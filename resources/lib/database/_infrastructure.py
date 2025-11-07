@@ -1,0 +1,288 @@
+"""Database infrastructure for connections, migrations, and schema.
+
+Core infrastructure shared across all database modules.
+"""
+from __future__ import annotations
+
+import sqlite3
+import uuid
+import xbmc
+import xbmcvfs
+from contextlib import contextmanager
+from typing import Generator, Tuple
+
+# Database path
+DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v1.db')
+
+# Database schema version
+DB_VERSION = 1
+
+
+def _generate_guid() -> str:
+    """Return a random GUID as a 32 character hex string."""
+    return uuid.uuid4().hex
+
+
+def _ensure_addon_data_folder() -> None:
+    """Create addon_data folder if it doesn't exist."""
+    folder = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/')
+    if not xbmcvfs.exists(folder):
+        xbmcvfs.mkdirs(folder)
+
+
+def get_connection(db_path: str = DB_PATH) -> sqlite3.Connection:
+    """
+    Get database connection with row factory.
+
+    Args:
+        db_path: Path to database file (defaults to unified DB)
+
+    Returns:
+        SQLite connection with Row factory
+    """
+    _ensure_addon_data_folder()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA foreign_keys = ON')
+    return conn
+
+
+@contextmanager
+def get_db(db_path: str = DB_PATH) -> Generator[Tuple[sqlite3.Connection, sqlite3.Cursor], None, None]:
+    """
+    Context manager for database connections.
+    Ensures connection is always closed, even on exception.
+
+    Args:
+        db_path: Path to database file (defaults to unified DB)
+
+    Usage:
+        with get_db() as (conn, cursor):
+            cursor.execute(...)
+            conn.commit()
+    """
+    conn = get_connection(db_path)
+    cursor = conn.cursor()
+    try:
+        yield conn, cursor
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        conn.close()
+
+
+# Schema Creation
+
+def _create_base_schema(cursor: sqlite3.Cursor) -> None:
+    """
+    Create unified schema with queue, cache, and operation history tables.
+    """
+    # Queue tables
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS art_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_type TEXT NOT NULL,
+            dbid INTEGER NOT NULL,
+            title TEXT,
+            year TEXT,
+            status TEXT DEFAULT 'pending',
+            priority INTEGER DEFAULT 5,
+            date_added TEXT DEFAULT CURRENT_TIMESTAMP,
+            date_processed TEXT,
+            scope TEXT DEFAULT '',
+            scan_session_id INTEGER,
+            guid TEXT,
+            FOREIGN KEY(scan_session_id) REFERENCES scan_sessions(id) ON DELETE SET NULL,
+            UNIQUE(media_type, dbid)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS art_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            queue_id INTEGER NOT NULL,
+            art_type TEXT NOT NULL,
+            current_url TEXT,
+            baseline_url TEXT,
+            selected_url TEXT,
+            auto_applied INTEGER DEFAULT 0,
+            review_mode TEXT DEFAULT 'missing',
+            requires_manual INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            scan_session_id INTEGER,
+            date_processed TEXT,
+            FOREIGN KEY(queue_id) REFERENCES art_queue(id) ON DELETE CASCADE
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS scan_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_type TEXT,
+            status TEXT DEFAULT 'in_progress',
+            started TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_activity TEXT,
+            completed TEXT,
+            stats TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS session_media_types (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            media_type TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES scan_sessions(id) ON DELETE CASCADE,
+            UNIQUE(session_id, media_type)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS session_art_types (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            art_type TEXT NOT NULL,
+            FOREIGN KEY(session_id) REFERENCES scan_sessions(id) ON DELETE CASCADE,
+            UNIQUE(session_id, art_type)
+        )
+    ''')
+
+    # Cache tables
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS artwork_cache (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_type TEXT NOT NULL,
+            media_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            art_type TEXT NOT NULL,
+            data TEXT NOT NULL,
+            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            expires_at TEXT NOT NULL,
+            UNIQUE(media_type, media_id, source, art_type)
+        )
+    ''')
+
+    # Operation history table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS operation_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operation TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            stats TEXT NOT NULL,
+            completed INTEGER DEFAULT 1,
+            scope TEXT
+        )
+    ''')
+
+    # Queue indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_status ON art_queue(status, priority)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_media_type ON art_queue(media_type)')
+    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_guid ON art_queue(guid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_scope ON art_queue(scope)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_session ON art_queue(scan_session_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_queue ON art_items(queue_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_status ON art_items(status)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_review_mode ON art_items(review_mode)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_queue_status_review ON art_items(queue_id, status, review_mode)')
+
+    # Session table indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_scan_type_activity ON scan_sessions(scan_type, last_activity DESC)')
+
+    # Session junction table indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_media_types_session ON session_media_types(session_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_media_types_lookup ON session_media_types(session_id, media_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_art_types_session ON session_art_types(session_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_art_types_lookup ON session_art_types(session_id, art_type)')
+
+    # Cache indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_lookup ON artwork_cache(media_type, media_id, source, art_type)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_expires ON artwork_cache(expires_at)')
+
+    # Operation history index
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_operation_history_lookup ON operation_history(operation, timestamp DESC)')
+
+    # Ratings tables
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings_api_usage (
+            provider TEXT,
+            api_key_hash TEXT,
+            date TEXT,
+            request_count INTEGER DEFAULT 0,
+            limit_hit INTEGER DEFAULT 0,
+            PRIMARY KEY (provider, api_key_hash, date)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings_update_history (
+            media_type TEXT,
+            media_id INTEGER,
+            last_updated TEXT,
+            sources_updated TEXT,
+            PRIMARY KEY (media_type, media_id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings_failures (
+            media_type TEXT,
+            media_id INTEGER,
+            reason TEXT,
+            last_attempt TEXT,
+            retry_count INTEGER DEFAULT 0,
+            PRIMARY KEY (media_type, media_id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings_cache (
+            provider TEXT NOT NULL,
+            media_id TEXT NOT NULL,
+            data TEXT NOT NULL,
+            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (provider, media_id)
+        )
+    ''')
+
+    # Ratings indexes
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_usage_lookup ON ratings_api_usage(provider, api_key_hash, date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_history_updated ON ratings_update_history(last_updated)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_failures_attempt ON ratings_failures(last_attempt)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_cache_lookup ON ratings_cache(provider, media_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_cache_expires ON ratings_cache(cached_at)')
+
+
+# Database Initialization
+
+def init_database() -> None:
+    """
+    Initialize unified database schema (queue, cache, and operation history).
+    Creates skininfo_v1.db with all tables.
+    """
+    conn = get_connection(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        _create_base_schema(cursor)
+        conn.commit()
+        xbmc.log("SkinInfo DB: Initialized", xbmc.LOGDEBUG)
+
+    except Exception as e:
+        conn.rollback()
+        xbmc.log(f"SkinInfo DB: Initialization failed: {str(e)}", xbmc.LOGERROR)
+        raise
+    finally:
+        conn.close()
+
+
+def vacuum_database() -> None:
+    """Vacuum database to reclaim disk space."""
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.execute('VACUUM')
+
+    xbmc.log("SkinInfo DB: Database vacuumed", xbmc.LOGDEBUG)

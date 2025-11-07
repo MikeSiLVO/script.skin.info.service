@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Artwork Selection Dialog for script.skin.info.service
+    Basic self-contained design - no external assets required
+-->
+<window type="dialog">
+	<defaultcontrol always="true">100</defaultcontrol>
+	<animation effect="fade" time="200">WindowOpen</animation>
+	<animation effect="fade" time="200">WindowClose</animation>
+	<controls>
+		<!-- Background dimmer -->
+		<control type="image">
+			<left>0</left>
+			<top>0</top>
+			<width>1920</width>
+			<height>1080</height>
+			<texture colordiffuse="CC000000">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+		</control>
+
+		<control type="group">
+			<centerleft>50%</centerleft>
+			<centertop>50%</centertop>
+			<width>1520</width>
+			<height>850</height>
+
+			<!-- Main dialog background -->
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1520</width>
+				<height>850</height>
+				<texture colordiffuse="FF1A1A1A">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+			</control>
+
+			<!-- Header background -->
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1520</width>
+				<height>70</height>
+				<texture colordiffuse="FF2A2A2A">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+			</control>
+
+			<!-- Border -->
+			<control type="image">
+				<left>0</left>
+				<top>0</top>
+				<width>1520</width>
+				<height>850</height>
+				<texture colordiffuse="FF0088FF" border="5">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+			</control>
+
+			<!-- Title Label -->
+			<control type="label" id="300">
+				<left>40</left>
+				<top>20</top>
+				<width>1440</width>
+				<height>30</height>
+				<font>font13_title</font>
+				<textcolor>FFFFFFFF</textcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<label>Select Artwork</label>
+			</control>
+
+			<!-- Info Label (item title and art type) -->
+			<control type="label" id="301">
+				<left>40</left>
+				<top>80</top>
+				<width>1440</width>
+				<height>30</height>
+				<font>font12</font>
+				<textcolor>FF0088FF</textcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<label>Select artwork or skip</label>
+			</control>
+
+			<!-- Artwork Panel (horizontal scrolling list) -->
+			<control type="panel" id="100">
+				<left>40</left>
+				<top>130</top>
+				<width>1440</width>
+				<height>600</height>
+				<ondown>201</ondown>
+				<orientation>horizontal</orientation>
+				<scrolltime>200</scrolltime>
+				<focusposition>1</focusposition>
+				<pagecontrol>-</pagecontrol>
+
+				<!-- Item layout (not focused) -->
+				<itemlayout height="600" width="360">
+					<!-- Border -->
+					<control type="image">
+						<left>10</left>
+						<top>10</top>
+						<width>340</width>
+						<height>510</height>
+						<texture colordiffuse="FF333333" border="2">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+					</control>
+					<!-- Image thumbnail -->
+					<control type="image">
+						<left>12</left>
+						<top>12</top>
+						<width>336</width>
+						<height>506</height>
+						<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
+						<aspectratio>scale</aspectratio>
+					</control>
+					<!-- Label -->
+					<control type="label">
+						<left>10</left>
+						<top>525</top>
+						<width>340</width>
+						<height>25</height>
+						<font>font12</font>
+						<textcolor>FFCCCCCC</textcolor>
+						<align>center</align>
+						<label>$INFO[ListItem.Label]</label>
+					</control>
+					<!-- Dimensions -->
+					<control type="label">
+						<left>10</left>
+						<top>550</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FF888888</textcolor>
+						<align>center</align>
+						<label>$INFO[ListItem.Property(dimensions)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(dimensions))</visible>
+					</control>
+					<!-- Language -->
+					<control type="label">
+						<left>10</left>
+						<top>565</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FF888888</textcolor>
+						<align>center</align>
+						<label>$INFO[ListItem.Property(language)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(language))</visible>
+					</control>
+					<!-- Season -->
+					<control type="label">
+						<left>10</left>
+						<top>585</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FF888888</textcolor>
+						<align>center</align>
+						<label>Season $INFO[ListItem.Property(season)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(season))</visible>
+					</control>
+				</itemlayout>
+
+				<!-- Focused layout -->
+				<focusedlayout height="600" width="360">
+					<!-- Focus border -->
+					<control type="image">
+						<left>8</left>
+						<top>8</top>
+						<width>344</width>
+						<height>514</height>
+						<texture colordiffuse="FF0088FF" border="4">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texture>
+					</control>
+					<!-- Image thumbnail -->
+					<control type="image">
+						<left>12</left>
+						<top>12</top>
+						<width>336</width>
+						<height>506</height>
+						<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
+						<aspectratio>scale</aspectratio>
+					</control>
+					<!-- Label (bold when focused) -->
+					<control type="label">
+						<left>10</left>
+						<top>525</top>
+						<width>340</width>
+						<height>25</height>
+						<font>font13</font>
+						<textcolor>FFFFFFFF</textcolor>
+						<align>center</align>
+						<label>[B]$INFO[ListItem.Label][/B]</label>
+					</control>
+						<!-- Dimensions -->
+					<control type="label">
+						<left>10</left>
+						<top>550</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FFFFFFFF</textcolor>
+						<align>center</align>
+						<label>$INFO[ListItem.Property(dimensions)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(dimensions))</visible>
+					</control>
+					<!-- Language -->
+					<control type="label">
+						<left>10</left>
+						<top>565</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FFFFFFFF</textcolor>
+						<align>center</align>
+						<label>$INFO[ListItem.Property(language)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(language))</visible>
+					</control>
+					<!-- Season -->
+					<control type="label">
+						<left>10</left>
+						<top>585</top>
+						<width>340</width>
+						<height>20</height>
+						<font>font10</font>
+						<textcolor>FFFFFFFF</textcolor>
+						<align>center</align>
+						<label>Season $INFO[ListItem.Property(season)]</label>
+						<visible>!String.IsEmpty(ListItem.Property(season))</visible>
+					</control>
+				</focusedlayout>
+			</control>
+
+			<!-- Button Group -->
+			<control type="grouplist" id="9000">
+				<left>350</left>
+				<top>770</top>
+				<width>820</width>
+				<height>50</height>
+				<orientation>horizontal</orientation>
+				<itemgap>10</itemgap>
+				<align>center</align>
+
+				<!-- Multi-Art Button (only visible for fanart) -->
+				<control type="button" id="203">
+					<width>250</width>
+					<height>50</height>
+					<font>font12_title</font>
+					<align>center</align>
+					<textcolor>FFFFFFFF</textcolor>
+					<focusedcolor>FFFFFFFF</focusedcolor>
+					<onup>100</onup>
+					<label>Multi-Art...</label>
+					<texturefocus colordiffuse="FF00AA00" border="4">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturefocus>
+					<texturenofocus colordiffuse="FF333333" border="2">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturenofocus>
+				</control>
+
+				<!-- Change Language Button (only visible when multiple languages available) -->
+				<control type="button" id="204">
+					<width>250</width>
+					<height>50</height>
+					<font>font12_title</font>
+					<align>center</align>
+					<textcolor>FFFFFFFF</textcolor>
+					<focusedcolor>FFFFFFFF</focusedcolor>
+					<onup>100</onup>
+					<label>$LOCALIZE[32120]</label>
+					<texturefocus colordiffuse="FFFF8800" border="4">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturefocus>
+					<texturenofocus colordiffuse="FF333333" border="2">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturenofocus>
+					<visible>String.IsEqual(Window.Property(show_change_language),true)</visible>
+				</control>
+
+				<!-- Skip Button -->
+				<control type="button" id="201">
+					<width>250</width>
+					<height>50</height>
+					<font>font12_title</font>
+					<align>center</align>
+					<textcolor>FFFFFFFF</textcolor>
+					<focusedcolor>FFFFFFFF</focusedcolor>
+					<onup>100</onup>
+					<label>Skip</label>
+					<texturefocus colordiffuse="FF0088FF" border="4">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturefocus>
+					<texturenofocus colordiffuse="FF333333" border="2">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturenofocus>
+				</control>
+
+				<!-- Cancel Button -->
+				<control type="button" id="202">
+					<width>250</width>
+					<height>50</height>
+					<font>font12_title</font>
+					<align>center</align>
+					<textcolor>FFFFFFFF</textcolor>
+					<focusedcolor>FFFFFFFF</focusedcolor>
+					<onup>100</onup>
+					<label>Cancel</label>
+					<texturefocus colordiffuse="FFFF4444" border="4">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturefocus>
+					<texturenofocus colordiffuse="FF333333" border="2">special://home/addons/script.skin.info.service/resources/skins/default/media/white.png</texturenofocus>
+				</control>
+			</control>
+
+			<!-- Hint text -->
+			<control type="label">
+				<left>40</left>
+				<top>735</top>
+				<width>1440</width>
+				<height>25</height>
+				<font>font10</font>
+				<textcolor>FF888888</textcolor>
+				<align>center</align>
+				<label>Click image to choose | Multi-Art for extras (fanart only) | Skip to leave unchanged | Cancel to exit</label>
+			</control>
+		</control>
+	</controls>
+</window>
