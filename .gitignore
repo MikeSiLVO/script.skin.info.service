@@ -1,0 +1,71 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+.installed.cfg
+*.egg
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Logs / reports
+*.log
+.coverage
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+htmlcov/
+
+# Editors / IDE
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.ropeproject
+
+# Docs build
+docs/_build/
+
+# Ignore top-level lib only, not subfolders like resources/lib
+/lib/
+!resources/lib/
+
+# Type stubs (regenerated from Kodistubs package)
+typings/
+xbmcgui/
+
+# Type checkers / linters
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.pyright/
+pyrightconfig.json
+
+# Test output
+.pytest_cache/
+.hypothesis/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Development tools (local only, not needed in addon distribution)
+.claude/
+lint.py
+dump_introspect.py
+
+# Tests (local development only)
+/tests/

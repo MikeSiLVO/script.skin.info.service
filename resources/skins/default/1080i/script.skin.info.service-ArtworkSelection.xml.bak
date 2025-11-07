@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Artwork Selection Dialog - Visual artwork chooser -->
+<window type="dialog">
+    <defaultcontrol always="true">100</defaultcontrol>
+    <coordinates>
+        <left>200</left>
+        <top>150</top>
+    </coordinates>
+    <controls>
+        <!-- Background -->
+        <control type="image">
+            <left>0</left>
+            <top>0</top>
+            <width>1520</width>
+            <height>780</height>
+            <texture border="20">dialogs/dialog-bg.png</texture>
+        </control>
+
+        <!-- Title Label -->
+        <control type="label" id="300">
+            <left>40</left>
+            <top>30</top>
+            <width>1440</width>
+            <height>40</height>
+            <font>font13</font>
+            <textcolor>FFFFFFFF</textcolor>
+            <align>center</align>
+            <label>Select Artwork</label>
+        </control>
+
+        <!-- Info Label -->
+        <control type="label" id="301">
+            <left>40</left>
+            <top>75</top>
+            <width>1440</width>
+            <height>30</height>
+            <font>font12</font>
+            <textcolor>FFAAAAAA</textcolor>
+            <align>center</align>
+            <label>Select artwork or skip</label>
+        </control>
+
+        <!-- Artwork List -->
+        <control type="wraplist" id="100">
+            <left>40</left>
+            <top>130</top>
+            <width>1440</width>
+            <height>520</height>
+            <ondown>200</ondown>
+            <orientation>horizontal</orientation>
+            <focusposition>2</focusposition>
+            <scrolltime>200</scrolltime>
+            <itemlayout width="300" height="500">
+                <!-- Image thumbnail -->
+                <control type="image">
+                    <left>15</left>
+                    <top>10</top>
+                    <width>270</width>
+                    <height>400</height>
+                    <texture>$INFO[ListItem.Art(thumb)]</texture>
+                    <aspectratio>keep</aspectratio>
+                </control>
+                <!-- Label -->
+                <control type="label">
+                    <left>15</left>
+                    <top>415</top>
+                    <width>270</width>
+                    <height>25</height>
+                    <font>font12</font>
+                    <textcolor>FFAAAAAA</textcolor>
+                    <align>center</align>
+                    <label>$INFO[ListItem.Label]</label>
+                </control>
+                <!-- Resolution -->
+                <control type="label">
+                    <left>15</left>
+                    <top>440</top>
+                    <width>270</width>
+                    <height>20</height>
+                    <font>font10</font>
+                    <textcolor>FF888888</textcolor>
+                    <align>center</align>
+                    <label>$INFO[ListItem.Property(width)]x$INFO[ListItem.Property(height)]</label>
+                    <visible>!String.IsEmpty(ListItem.Property(width))</visible>
+                </control>
+                <!-- Language -->
+                <control type="label">
+                    <left>15</left>
+                    <top>460</top>
+                    <width>270</width>
+                    <height>20</height>
+                    <font>font10</font>
+                    <textcolor>FF888888</textcolor>
+                    <align>center</align>
+                    <label>[$INFO[ListItem.Property(language)]]</label>
+                    <visible>!String.IsEmpty(ListItem.Property(language))</visible>
+                </control>
+            </itemlayout>
+            <focusedlayout width="300" height="500">
+                <!-- Focus border -->
+                <control type="image">
+                    <left>10</left>
+                    <top>5</top>
+                    <width>280</width>
+                    <height>410</height>
+                    <texture border="5">buttons/button-focus.png</texture>
+                </control>
+                <!-- Image thumbnail -->
+                <control type="image">
+                    <left>15</left>
+                    <top>10</top>
+                    <width>270</width>
+                    <height>400</height>
+                    <texture>$INFO[ListItem.Art(thumb)]</texture>
+                    <aspectratio>keep</aspectratio>
+                </control>
+                <!-- Label -->
+                <control type="label">
+                    <left>15</left>
+                    <top>415</top>
+                    <width>270</width>
+                    <height>25</height>
+                    <font>font12</font>
+                    <textcolor>FFFFFFFF</textcolor>
+                    <align>center</align>
+                    <label>[B]$INFO[ListItem.Label][/B]</label>
+                </control>
+                <!-- Resolution -->
+                <control type="label">
+                    <left>15</left>
+                    <top>440</top>
+                    <width>270</width>
+                    <height>20</height>
+                    <font>font10</font>
+                    <textcolor>FFCCCCCC</textcolor>
+                    <align>center</align>
+                    <label>$INFO[ListItem.Property(width)]x$INFO[ListItem.Property(height)]</label>
+                    <visible>!String.IsEmpty(ListItem.Property(width))</visible>
+                </control>
+                <!-- Language -->
+                <control type="label">
+                    <left>15</left>
+                    <top>460</top>
+                    <width>270</width>
+                    <height>20</height>
+                    <font>font10</font>
+                    <textcolor>FFCCCCCC</textcolor>
+                    <align>center</align>
+                    <label>[$INFO[ListItem.Property(language)]]</label>
+                    <visible>!String.IsEmpty(ListItem.Property(language))</visible>
+                </control>
+            </focusedlayout>
+        </control>
+
+        <!-- Button Group -->
+        <control type="grouplist" id="9000">
+            <left>570</left>
+            <top>690</top>
+            <width>380</width>
+            <height>50</height>
+            <orientation>horizontal</orientation>
+            <itemgap>20</itemgap>
+
+            <!-- Skip Button -->
+            <control type="button" id="201">
+                <width>150</width>
+                <height>40</height>
+                <font>font12</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FF000000</focusedcolor>
+                <align>center</align>
+                <onup>100</onup>
+                <label>Skip</label>
+            </control>
+
+            <!-- Cancel Button -->
+            <control type="button" id="202">
+                <width>150</width>
+                <height>40</height>
+                <font>font12</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FF000000</focusedcolor>
+                <align>center</align>
+                <onup>100</onup>
+                <label>Cancel</label>
+            </control>
+
+            <!-- Select Button -->
+            <control type="button" id="200">
+                <width>150</width>
+                <height>40</height>
+                <font>font12</font>
+                <textcolor>FF00FF00</textcolor>
+                <focusedcolor>FF000000</focusedcolor>
+                <align>center</align>
+                <onup>100</onup>
+                <label>Select</label>
+            </control>
+        </control>
+
+        <!-- Hint text -->
+        <control type="label">
+            <left>40</left>
+            <top>650</top>
+            <width>1440</width>
+            <height>25</height>
+            <font>font10</font>
+            <textcolor>FF888888</textcolor>
+            <align>center</align>
+            <label>Click image or Select button to choose | Skip to leave unchanged</label>
+        </control>
+    </controls>
+</window>
