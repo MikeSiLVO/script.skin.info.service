@@ -1,0 +1,1023 @@
+"""SkinInfo background service for property updates.
+
+Monitors ListItem changes and updates window properties with detailed media information
+for Movies, TV shows, Music, and more.
+"""
+from __future__ import annotations
+
+import threading
+import time
+import xbmc
+import xbmcaddon
+import xbmcgui
+
+from lib.kodi.client import request, get_cache_only, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, log
+from lib.service.properties import (
+    set_artist_properties,
+    set_album_properties,
+    set_movie_properties,
+    set_movieset_properties,
+    set_tvshow_properties,
+    set_season_properties,
+    set_episode_properties,
+    set_musicvideo_properties,
+    set_ratings_properties,
+)
+from lib.service.stinger import StingerMonitor
+from lib.kodi.utils import clear_group, set_prop, clear_prop, extract_media_ids
+
+SERVICE_POLL_INTERVAL = 0.10
+SERVICE_STARTUP_WAIT = 1.0
+SERVICE_READY_CHECK_INTERVAL = 0.5
+MAX_CONSECUTIVE_ERRORS = 10
+CACHE_MOVIESET_TTL = 300
+
+_MEDIA_TYPE_PREFIXES = {
+    "movie": "SkinInfo.Movie.",
+    "set": "SkinInfo.Set.",
+    "artist": "SkinInfo.Artist.",
+    "album": "SkinInfo.Album.",
+    "tvshow": "SkinInfo.TVShow.",
+    "season": "SkinInfo.Season.",
+    "episode": "SkinInfo.Episode.",
+    "musicvideo": "SkinInfo.MusicVideo.",
+    "player": "SkinInfo.Player.",
+}
+
+
+class LibraryMonitor(xbmc.Monitor):
+    """Monitor for library update notifications to trigger widget refresh."""
+
+    def __init__(self, service_main):
+        super().__init__()
+        self.service_main = service_main
+
+    def onNotification(self, sender: str, method: str, data: str) -> None:
+        """Handle Kodi notifications for library updates."""
+        if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
+            self.service_main._increment_library_refresh()
+
+        if method == 'VideoLibrary.OnScanFinished':
+            self.service_main._refresh_imdb_dataset()
+
+
+IMDB_CHECK_INTERVAL = 86400  # 24 hours in seconds
+
+
+class ServiceMain(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.abort = threading.Event()
+        self._last_id = None
+        self._last_type = None
+        self._last_player_id = None
+        self._last_player_type = None
+        self._blur_thread = None
+        self._last_blur_source = None
+        self._blur_player_thread = None
+        self._last_blur_player_source = None
+        self._slideshow_last_update = 0.0
+        self._slideshow_pool_populated = False
+        self._library_refresh_counter = 0
+        self._refresh_timers = {5: 0, 10: 0, 15: 0, 20: 0, 30: 0, 45: 0, 60: 0}
+        self._refresh_start_time = None
+        self._last_imdb_check = 0.0
+        self._last_api_key_check = 0.0
+        self._stinger_monitor = StingerMonitor()
+
+    def _increment_library_refresh(self) -> None:
+        """Increment library refresh counter to trigger widget/path stats refresh."""
+        self._library_refresh_counter += 1
+        set_prop("SkinInfo.Library.Refreshed", str(self._library_refresh_counter))
+        log("Service",f"Library refresh counter incremented to {self._library_refresh_counter}", xbmc.LOGDEBUG)
+
+    def _refresh_imdb_dataset(self) -> None:
+        """Check for IMDb dataset updates in background after library scan (if enabled)."""
+        setting = xbmcaddon.Addon().getSetting("imdb_auto_update")
+        if setting not in ("library_scan", "both"):
+            return
+
+        def _do_refresh():
+            try:
+                from lib.data.api.imdb import get_imdb_dataset
+                dataset = get_imdb_dataset()
+                if dataset.refresh_if_stale():
+                    log("Service", "IMDb dataset updated after library scan", xbmc.LOGINFO)
+                    self._run_imdb_auto_update()
+            except Exception as e:
+                log("Service", f"IMDb dataset refresh failed: {e}", xbmc.LOGWARNING)
+
+        threading.Thread(target=_do_refresh, daemon=True).start()
+
+    def _run_imdb_auto_update(self) -> None:
+        """Run IMDb auto-update for library items in background."""
+        def _do_update():
+            try:
+                from lib.rating.updater import update_library_ratings
+                scope = xbmcaddon.Addon().getSetting("imdb_auto_update_scope") or "movies_tvshows"
+
+                log("Service", f"Starting IMDb auto-update (scope={scope})", xbmc.LOGINFO)
+
+                if scope in ("all", "movies_tvshows", "movies"):
+                    update_library_ratings("movie", [], use_background=True, source_mode="imdb")
+
+                if scope in ("all", "movies_tvshows"):
+                    update_library_ratings("tvshow", [], use_background=True, source_mode="imdb")
+
+                if scope == "all":
+                    update_library_ratings("episode", [], use_background=True, source_mode="imdb")
+
+                log("Service", "IMDb auto-update complete", xbmc.LOGINFO)
+            except Exception as e:
+                log("Service", f"IMDb auto-update failed: {e}", xbmc.LOGWARNING)
+
+        threading.Thread(target=_do_update, daemon=True).start()
+
+    def _check_imdb_dataset_updates(self, force: bool = False) -> None:
+        """Check for IMDb dataset updates periodically (if enabled).
+
+        Args:
+            force: If True, skip the 24-hour interval check (used for startup)
+        """
+        setting = xbmcaddon.Addon().getSetting("imdb_auto_update")
+        if setting not in ("when_updated", "both"):
+            return
+
+        now = time.time()
+        if not force and (now - self._last_imdb_check) < IMDB_CHECK_INTERVAL:
+            return
+
+        self._last_imdb_check = now
+
+        def _do_check():
+            try:
+                from lib.data.api.imdb import get_imdb_dataset
+                dataset = get_imdb_dataset()
+                if dataset.refresh_if_stale():
+                    log("Service", "IMDb dataset updated (periodic check)", xbmc.LOGINFO)
+                    self._run_imdb_auto_update()
+            except Exception as e:
+                log("Service", f"IMDb dataset check failed: {e}", xbmc.LOGWARNING)
+
+        threading.Thread(target=_do_check, daemon=True).start()
+
+    def _update_scheduled_refresh(self) -> None:
+        """Update scheduled refresh properties based on elapsed time."""
+        if self._refresh_start_time is None:
+            self._refresh_start_time = time.time()
+            for interval in self._refresh_timers:
+                set_prop(f"SkinInfo.Refresh.{interval}min", "0")
+            return
+
+        elapsed_minutes = int((time.time() - self._refresh_start_time) / 60)
+
+        for interval in self._refresh_timers:
+            intervals_passed = elapsed_minutes // interval
+            if intervals_passed > self._refresh_timers[interval]:
+                self._refresh_timers[interval] = intervals_passed
+                set_prop(f"SkinInfo.Refresh.{interval}min", str(intervals_passed))
+                log("Service",f"Scheduled refresh {interval}min incremented to {intervals_passed}", xbmc.LOGDEBUG)
+
+    def _clear_media_type(self, media_type: str) -> None:
+        prefix = _MEDIA_TYPE_PREFIXES.get(media_type)
+        if prefix:
+            clear_group(prefix)
+
+    def _ready(self) -> bool:
+        """Check if Kodi's JSON-RPC API is ready."""
+        try:
+            result = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}')
+            return "pong" in result.lower()
+        except Exception:
+            return False
+
+    def run(self) -> None:
+        version = xbmcaddon.Addon().getAddonInfo("version")
+        log("Service",
+            f"Starting (version={version}), waiting for Kodi to be ready...",
+            xbmc.LOGINFO,
+        )
+        monitor = LibraryMonitor(self)
+
+        if not monitor.waitForAbort(SERVICE_STARTUP_WAIT):
+            while not monitor.waitForAbort(SERVICE_READY_CHECK_INTERVAL):
+                if self._ready():
+                    break
+
+        log("Service", "Kodi ready, service started", xbmc.LOGINFO)
+
+        from lib.infrastructure.workers import SingletonWorker
+        worker = SingletonWorker.get_instance()
+        worker.start()
+
+        try:
+            set_prop("SkinInfo.Service.Running", "true")
+        except RuntimeError as e:
+            log("Service",f" Error setting service running flag: {str(e)}", xbmc.LOGWARNING)
+        except Exception as e:
+            log("Service",f" Unexpected error setting service flag: {str(e)}", xbmc.LOGERROR)
+
+        self._populate_slideshow_pool_if_needed()
+
+        self._check_imdb_dataset_updates(force=True)
+
+        if xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.EnableSlideshow)'):
+            try:
+                from lib.service.slideshow import update_all_slideshow_properties
+                update_all_slideshow_properties()
+                self._slideshow_last_update = time.time()
+            except Exception as e:
+                log("Service",f"Slideshow: Initial update error: {str(e)}", xbmc.LOGERROR)
+
+        consecutive_errors = 0
+
+        try:
+            while not monitor.waitForAbort(SERVICE_POLL_INTERVAL):
+                if self.abort.is_set():
+                    break
+                try:
+                    self._loop()
+                    self._slideshow_update()
+                    self._update_scheduled_refresh()
+                    self._check_imdb_dataset_updates()
+                    consecutive_errors = 0
+                except (KeyError, ValueError, TypeError):
+                    consecutive_errors += 1
+                except Exception as e:
+                    import traceback
+                    log("Service",f" Unexpected error in service loop: {str(e)}", xbmc.LOGERROR)
+                    log("Service", traceback.format_exc(), xbmc.LOGERROR)
+                    consecutive_errors += 1
+
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    log("Service",f" Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service", xbmc.LOGERROR)
+                    break
+        finally:
+            try:
+                clear_prop("SkinInfo.Service.Running")
+            except Exception:
+                pass
+
+    def _check_pending_api_keys(self) -> None:
+        """Check for API keys that were entered but not saved (user canceled settings dialog)."""
+        import xbmcaddon
+        from lib.kodi.client import API_KEY_CONFIG, log
+        from lib.infrastructure.dialogs import show_notification
+
+        if xbmc.getCondVisibility('Window.IsVisible(DialogAddonSettings.xml)'):
+            return
+
+        addon = xbmcaddon.Addon()
+
+        for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
+            pending_prop = f'SkinInfo.PendingAPIKey.{provider}'
+            if xbmc.getInfoLabel(f'Window(home).Property({pending_prop})'):
+                config = API_KEY_CONFIG.get(f"{provider}_api_key")
+                if config:
+                    saved_key = addon.getSetting(config["setting_path"])
+                    if not saved_key:
+                        show_notification(
+                            "API Key Not Saved",
+                            f"{config['name']} API key was not saved",
+                            xbmcgui.NOTIFICATION_WARNING,
+                            5000
+                        )
+                        log("Settings", f"{config['name']} API key entered but not saved (dialog canceled)", xbmc.LOGDEBUG)
+                xbmc.executebuiltin(f'ClearProperty({pending_prop},home)')
+
+            pending_clear_prop = f'SkinInfo.PendingClearAPIKey.{provider}'
+            if xbmc.getInfoLabel(f'Window(home).Property({pending_clear_prop})'):
+                config = API_KEY_CONFIG.get(f"{provider}_api_key")
+                if config:
+                    saved_key = addon.getSetting(config["setting_path"])
+                    if saved_key:
+                        show_notification(
+                            "API Key Not Cleared",
+                            f"{config['name']} API key was not cleared",
+                            xbmcgui.NOTIFICATION_WARNING,
+                            5000
+                        )
+                        log("Settings", f"{config['name']} API key clear requested but not saved (dialog canceled)", xbmc.LOGDEBUG)
+                xbmc.executebuiltin(f'ClearProperty({pending_clear_prop},home)')
+
+    def _loop(self) -> None:
+        now = time.time()
+
+        if now - self._last_api_key_check >= 0.5:
+            self._check_pending_api_keys()
+            self._last_api_key_check = now
+        self._handle_blur_player()
+        self._handle_player()
+
+        dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
+        if not dbid:
+            if self._last_type:
+                self._clear_media_type(self._last_type)
+                self._last_type = ""
+                self._last_id = None
+            self._handle_blur()
+            return
+
+        dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
+        if dbid == self._last_id and dbtype and dbtype == self._last_type:
+            self._handle_blur()
+            return
+
+        if self._last_id and dbid != self._last_id:
+            if self._last_type:
+                self._clear_media_type(self._last_type)
+            self._last_type = ""
+
+        if dbtype in ("set", "movie", "artist", "album", "tvshow", "season", "episode", "musicvideo"):
+            cur_type = dbtype
+        elif dbid == self._last_id and self._last_type:
+            cur_type = self._last_type
+        else:
+            is_set = xbmc.getCondVisibility(
+                "ListItem.IsCollection | String.IsEqual(ListItem.DBType,set)"
+            )
+            if is_set or xbmc.getCondVisibility("Container.Content(sets)"):
+                cur_type = "set"
+            elif xbmc.getCondVisibility("Container.Content(movies)"):
+                cur_type = "movie"
+            elif xbmc.getCondVisibility("Container.Content(artists)"):
+                cur_type = "artist"
+            elif xbmc.getCondVisibility("Container.Content(albums)"):
+                cur_type = "album"
+            elif xbmc.getCondVisibility("Container.Content(tvshows)"):
+                cur_type = "tvshow"
+            elif xbmc.getCondVisibility("Container.Content(seasons)"):
+                cur_type = "season"
+            elif xbmc.getCondVisibility("Container.Content(episodes)"):
+                cur_type = "episode"
+            elif xbmc.getCondVisibility("Container.Content(musicvideos)"):
+                cur_type = "musicvideo"
+            else:
+                cur_type = ""
+
+        if dbid == self._last_id and cur_type == self._last_type:
+            self._handle_blur()
+            return
+
+        if cur_type == "set":
+            self._last_id = dbid
+            self._last_type = "set"
+            self._set_movieset_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "movie":
+            self._last_id = dbid
+            self._last_type = "movie"
+            self._set_movie_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "artist":
+            if self._last_type != "artist":
+                self._clear_media_type("album")
+            self._last_id = dbid
+            self._last_type = "artist"
+            self._set_artist_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "album":
+            if self._last_type != "album":
+                self._clear_media_type("artist")
+            self._last_id = dbid
+            self._last_type = "album"
+            self._set_album_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "tvshow":
+            self._last_id = dbid
+            self._last_type = "tvshow"
+            self._set_tvshow_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "season":
+            self._last_id = dbid
+            self._last_type = "season"
+            self._set_season_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "episode":
+            self._last_id = dbid
+            self._last_type = "episode"
+            self._set_episode_details(dbid)
+            self._handle_blur()
+            return
+
+        if cur_type == "musicvideo":
+            self._last_id = dbid
+            self._last_type = "musicvideo"
+            self._set_musicvideo_details(dbid)
+            self._handle_blur()
+            return
+
+        if self._last_type in ("movie", "set", "artist", "album", "tvshow", "season", "episode", "musicvideo"):
+            self._clear_media_type(self._last_type)
+        self._last_id = dbid
+        self._last_type = ""
+        self._handle_blur()
+
+    def _handle_player(self) -> None:
+        """Monitor currently playing video and set Player properties."""
+        if not xbmc.getCondVisibility("Player.HasVideo"):
+            if self._last_player_id:
+                self._clear_media_type("player")
+                self._last_player_id = None
+                self._last_player_type = None
+                self._stinger_monitor.on_playback_stop()
+            return
+
+        player_dbid = xbmc.getInfoLabel("VideoPlayer.DBID") or ""
+        if not player_dbid:
+            if self._last_player_id:
+                self._clear_media_type("player")
+                self._last_player_id = None
+                self._last_player_type = None
+                self._stinger_monitor.on_playback_stop()
+            return
+
+        # Check stinger notification timing during movie playback
+        self._stinger_monitor.check_notification()
+
+        is_movie = xbmc.getCondVisibility("VideoPlayer.Content(movies)")
+        is_episode = xbmc.getCondVisibility("VideoPlayer.Content(episodes)")
+
+        if is_movie:
+            player_type = "movie"
+        elif is_episode:
+            player_type = "episode"
+        else:
+            return
+
+        if player_dbid == self._last_player_id and player_type == self._last_player_type:
+            return
+
+        self._last_player_id = player_dbid
+        self._last_player_type = player_type
+
+        if player_type == "movie":
+            self._set_player_movie_details(player_dbid)
+        elif player_type == "episode":
+            self._set_player_episode_details(player_dbid)
+
+    def _set_player_movie_details(self, movieid: str) -> None:
+        """Fetch and set Player properties for currently playing movie."""
+        details = get_item_details(
+            'movie',
+            int(movieid),
+            KODI_MOVIE_PROPERTIES,
+            cache_key=f"player:movie:{movieid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_ratings_properties(details, "Player")
+
+        ids = extract_media_ids(details)
+        self._stinger_monitor.on_playback_start(
+            movie_id=movieid,
+            ids=ids,
+            movie_details=details
+        )
+
+    def _set_player_episode_details(self, episodeid: str) -> None:
+        """Fetch and set Player properties for currently playing episode."""
+        details = get_item_details(
+            'episode',
+            int(episodeid),
+            ["title", "ratings", "tvshowid", "season", "episode", "showtitle"],
+            cache_key=f"player:episode:{episodeid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_ratings_properties(details, "Player")
+
+        # Also fetch parent TV show details for status, next aired, etc.
+        tvshowid = details.get("tvshowid")
+        if tvshowid and tvshowid != -1:
+            self._set_player_tvshow_details(str(tvshowid))
+
+    def _set_player_tvshow_details(self, tvshowid: str) -> None:
+        """Fetch and set Player.TVShow properties for parent TV show."""
+        details = get_item_details(
+            'tvshow',
+            int(tvshowid),
+            [
+                "title", "plot", "year", "premiered", "rating", "votes",
+                "genre", "studio", "mpaa", "runtime", "episode", "season",
+                "watchedepisodes", "imdbnumber", "originaltitle",
+                "art", "userrating", "ratings", "status",
+            ],
+            cache_key=f"player:tvshow:{tvshowid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        # Set TV show properties with Player.TVShow prefix
+        from lib.service.properties import build_tvshow_data, batch_set_props
+        data = build_tvshow_data(details)
+        props = {f"SkinInfo.Player.TVShow.{k}": v for k, v in data.items() if not k.startswith("_")}
+        batch_set_props(props)
+
+        # Set TV show ratings with Player.TVShow prefix
+        set_ratings_properties(details, "Player.TVShow")
+
+    def _clear_blur_props(self, prop_base: str) -> None:
+        """Clear blur properties for a given property base."""
+        clear_prop(f"{prop_base}BlurredImage")
+        clear_prop(f"{prop_base}BlurredImage.Original")
+
+    def _resolve_blur_source_with_fallbacks(self, sources: list[str], is_var: bool) -> str:
+        """Resolve blur source with pipe-separated fallbacks.
+
+        Args:
+            sources: List of source names (split by |)
+            is_var: True if sources are VAR names, False if raw InfoLabels
+
+        Returns:
+            First non-empty resolved path, or empty string if all fail
+        """
+        for source in sources:
+            source = source.strip()
+            if not source:
+                continue
+
+            if is_var:
+                resolved = xbmc.getInfoLabel(f"$VAR[{source}]")
+            else:
+                resolved = xbmc.getInfoLabel(source)
+
+            if resolved:
+                return resolved
+
+        return ""
+
+    def _process_blur_generic(
+        self,
+        setting_check: str,
+        source_property: str,
+        last_source_attr: str,
+        thread_attr: str,
+        worker_callback,
+        prop_base: str,
+        cache_key_suffix: str = ""
+    ) -> None:
+        """Generic blur processing handler.
+
+        Args:
+            setting_check: Skin setting condition to check
+            source_property: Window property name for blur source
+            last_source_attr: Name of instance attribute tracking last source
+            thread_attr: Name of instance attribute for blur thread
+            worker_callback: Worker function to call in background thread
+            prop_base: Property base for setting properties
+            cache_key_suffix: Optional suffix for cache key (e.g., player file path)
+        """
+        if not xbmc.getCondVisibility(setting_check):
+            if getattr(self, last_source_attr) is not None:
+                self._clear_blur_props(prop_base)
+                setattr(self, last_source_attr, None)
+            return
+
+        blur_source_var = xbmcgui.Window(10000).getProperty(source_property + "Var")
+        if blur_source_var:
+            source_path = self._resolve_blur_source_with_fallbacks(
+                blur_source_var.split("|"),
+                is_var=True
+            )
+        else:
+            blur_source_infolabel = xbmcgui.Window(10000).getProperty(source_property)
+            if not blur_source_infolabel:
+                if getattr(self, last_source_attr) is not None:
+                    self._clear_blur_props(prop_base)
+                    setattr(self, last_source_attr, None)
+                return
+
+            if blur_source_infolabel.startswith('$'):
+                log("Blur",
+                    f"{source_property} should not contain $INFO[], $VAR[], etc. "
+                    f"Set raw infolabel instead. Got: {blur_source_infolabel}",
+                    xbmc.LOGWARNING
+                )
+
+            source_path = self._resolve_blur_source_with_fallbacks(
+                blur_source_infolabel.split("|"),
+                is_var=False
+            )
+        if not source_path:
+            if getattr(self, last_source_attr) is not None:
+                self._clear_blur_props(prop_base)
+                setattr(self, last_source_attr, None)
+            return
+
+        cache_key = f"{source_path}{cache_key_suffix}"
+        if cache_key == getattr(self, last_source_attr):
+            return
+
+        thread = getattr(self, thread_attr)
+        if thread is not None and thread.is_alive():
+            return
+
+        setattr(self, last_source_attr, cache_key)
+        new_thread = threading.Thread(
+            target=worker_callback,
+            args=(source_path, prop_base),
+            daemon=True
+        )
+        setattr(self, thread_attr, new_thread)
+        new_thread.start()
+
+    def _blur_worker(self, source: str, prop_base: str, thread_attr: str) -> None:
+        """Background worker to blur image and set window properties.
+
+        Args:
+            source: Source image path
+            prop_base: Property base for setting properties
+            thread_attr: Name of instance attribute for blur thread
+        """
+        try:
+            from lib.service import blur
+
+            blur_radius_str = xbmc.getInfoLabel("Skin.String(SkinInfo.BlurRadius)") or "40"
+            try:
+                blur_radius = int(blur_radius_str)
+                if blur_radius < 1:
+                    blur_radius = 40
+            except (ValueError, TypeError):
+                blur_radius = 40
+
+            blurred_path = blur.blur_image(source, blur_radius)
+
+            if blurred_path:
+                set_prop(f"{prop_base}BlurredImage", blurred_path)
+                set_prop(f"{prop_base}BlurredImage.Original", source)
+            else:
+                self._clear_blur_props(prop_base)
+
+        except Exception as e:
+            log("Blur", f"Failed to blur image: {e}", xbmc.LOGERROR)
+            self._clear_blur_props(prop_base)
+        finally:
+            setattr(self, thread_attr, None)
+
+    def _handle_blur(self) -> None:
+        """Handle blur processing based on skin settings and properties."""
+        if not xbmc.getCondVisibility("Skin.HasSetting(SkinInfo.Blur)"):
+            if self._last_blur_source is not None:
+                self._clear_blur_props("SkinInfo.")
+                self._last_blur_source = None
+            return
+
+        prefix = xbmcgui.Window(10000).getProperty("SkinInfo.BlurPrefix") or ""
+        prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
+
+        self._process_blur_generic(
+            setting_check="Skin.HasSetting(SkinInfo.Blur)",
+            source_property="SkinInfo.BlurSource",
+            last_source_attr="_last_blur_source",
+            thread_attr="_blur_thread",
+            worker_callback=lambda src, pb: self._blur_worker(src, pb, "_blur_thread"),
+            prop_base=prop_base
+        )
+
+    def _handle_blur_player(self) -> None:
+        """Handle player blur processing for audio playback."""
+        if not xbmc.getCondVisibility("Player.HasAudio"):
+            if self._last_blur_player_source is not None:
+                self._clear_blur_props("SkinInfo.Player.")
+                self._last_blur_player_source = None
+            return
+
+        current_file = xbmc.getInfoLabel("Player.Filenameandpath")
+
+        self._process_blur_generic(
+            setting_check="Skin.HasSetting(SkinInfo.Player.Blur)",
+            source_property="SkinInfo.Player.BlurSource",
+            last_source_attr="_last_blur_player_source",
+            thread_attr="_blur_player_thread",
+            worker_callback=lambda src, pb: self._blur_worker(src, pb, "_blur_player_thread"),
+            prop_base="SkinInfo.Player.",
+            cache_key_suffix=f"|{current_file}"
+        )
+
+    def _set_movie_details(self, movieid: str) -> None:
+        details = get_item_details(
+            'movie',
+            int(movieid),
+            KODI_MOVIE_PROPERTIES,
+            cache_key=f"movie:{movieid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_movie_properties(details)
+        set_ratings_properties(details, "Movie")
+
+    def _set_movieset_details(self, setid: str) -> None:
+        cached_full = get_cache_only(f"set:{setid}:details")
+        if cached_full:
+            details = extract_result(cached_full, "setdetails")
+            if isinstance(details, dict):
+                set_movieset_properties(details, details.get("movies") or [])
+                return
+
+        min_details = get_item_details(
+            'set',
+            int(setid),
+            ["title", "plot", "art"],
+            cache_key=f"set:{setid}:min",
+            ttl_seconds=CACHE_MOVIESET_TTL,
+            movies={
+                "properties": [
+                    "title",
+                    "year",
+                    "runtime",
+                    "thumbnail",
+                    "art",
+                    "file",
+                ],
+                "sort": {"method": "year", "order": "ascending"},
+            },
+        )
+        if isinstance(min_details, dict):
+            set_movieset_properties(min_details, min_details.get("movies") or [])
+
+        cached_movies = get_cache_only(f"set:{setid}:movies")
+        if cached_movies and min_details and isinstance(min_details, dict):
+            movies_list = extract_result(cached_movies, "movies")
+            if isinstance(movies_list, list):
+                set_movieset_properties(min_details, movies_list)
+
+        def _fetch_movies_and_update(current_id: str, base_details: dict) -> None:
+            movies_req = {
+                "filter": {"setid": int(current_id)},
+                "properties": [
+                    "title", "year", "runtime", "genre", "director", "studio",
+                    "country", "writer", "plot", "plotoutline", "mpaa", "file",
+                    "streamdetails", "art", "thumbnail",
+                ],
+                "sort": {"method": "year", "order": "ascending"},
+            }
+            mresp = request(
+                "VideoLibrary.GetMovies",
+                movies_req,
+                cache_key=f"set:{current_id}:movies",
+                ttl_seconds=CACHE_MOVIESET_TTL,
+            )
+            if not mresp:
+                return
+            movies = extract_result(mresp, "movies")
+            if not isinstance(movies, list):
+                return
+            if self._last_id == current_id and self._last_type == "set":
+                set_movieset_properties(base_details, movies)
+
+        if isinstance(min_details, dict):
+            threading.Thread(target=_fetch_movies_and_update, args=(setid, min_details), daemon=True).start()
+
+    def _set_artist_details(self, artistid: str) -> None:
+        ext_props = [
+            "description", "genre", "art", "thumbnail", "fanart",
+            "musicbrainzartistid", "born", "formed", "died", "disbanded",
+            "yearsactive", "instrument", "style", "mood", "type", "gender",
+            "disambiguation", "sortname", "dateadded", "roles", "songgenres",
+            "sourceid", "datemodified", "datenew", "compilationartist", "isalbumartist"
+        ]
+        artist = get_item_details(
+            'artist',
+            int(artistid),
+            ext_props,
+            cache_key=f"artist:{artistid}:details",
+        )
+        if not artist:
+            artist = get_item_details(
+                'artist',
+                int(artistid),
+                ["genre", "art", "thumbnail", "fanart", "description"],
+                cache_key=f"artist:{artistid}:details:min",
+            )
+        if not isinstance(artist, dict):
+            return
+
+        albums_req = {
+            "filter": {"artistid": int(artistid)},
+            "properties": [
+                "title", "year", "artist", "artistid",
+                "genre", "art", "albumlabel", "playcount", "rating",
+            ],
+            "sort": {"method": "year", "order": "ascending"},
+        }
+        albums_resp = request(
+            "AudioLibrary.GetAlbums",
+            albums_req,
+            cache_key=f"artist:{artistid}:albums",
+        )
+        albums = extract_result(albums_resp, "albums") if albums_resp else []
+        if not isinstance(albums, list):
+            albums = []
+
+        set_artist_properties(artist, albums)
+
+    def _set_album_details(self, albumid: str) -> None:
+        ext_props = [
+            "title", "art", "year", "artist", "artistid", "genre",
+            "style", "mood", "type", "albumlabel", "playcount", "rating", "userrating",
+            "musicbrainzalbumid", "musicbrainzreleasegroupid", "lastplayed", "dateadded",
+            "description", "votes", "displayartist", "compilation", "releasetype",
+            "sortartist", "songgenres", "totaldiscs", "releasedate", "originaldate", "albumduration",
+        ]
+        album = get_item_details(
+            'album',
+            int(albumid),
+            ext_props,
+            cache_key=f"album:{albumid}:details",
+        )
+        if not album:
+            album = get_item_details(
+                'album',
+                int(albumid),
+                [
+                    "title", "art", "year", "artist", "genre", "albumlabel", "playcount", "rating",
+                ],
+                cache_key=f"album:{albumid}:details:min",
+            )
+        if not isinstance(album, dict):
+            return
+
+        songs_req = {
+            "filter": {"albumid": int(albumid)},
+            "properties": ["title", "duration", "track", "disc", "file", "art", "thumbnail"],
+            "sort": {"method": "track", "order": "ascending"},
+        }
+        songs_resp = request(
+            "AudioLibrary.GetSongs",
+            songs_req,
+            cache_key=f"album:{albumid}:songs",
+        )
+        songs = extract_result(songs_resp, "songs") if songs_resp else []
+        if not isinstance(songs, list):
+            songs = []
+
+        set_album_properties(album, songs)
+
+    def _set_tvshow_details(self, tvshowid: str) -> None:
+        details = get_item_details(
+            'tvshow',
+            int(tvshowid),
+            [
+                "title", "plot", "year", "premiered", "rating", "votes",
+                "genre", "studio", "mpaa", "runtime", "episode", "season",
+                "watchedepisodes", "imdbnumber", "originaltitle", "sorttitle",
+                "episodeguide", "tag", "art", "userrating", "ratings",
+                "cast", "uniqueid", "dateadded", "file", "lastplayed", "playcount",
+                "trailer",
+            ],
+            cache_key=f"tvshow:{tvshowid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_tvshow_properties(details)
+        set_ratings_properties(details, "TVShow")
+
+    def _set_season_details(self, seasonid: str) -> None:
+        details = get_item_details(
+            'season',
+            int(seasonid),
+            [
+                "season", "showtitle", "playcount", "episode",
+                "tvshowid", "watchedepisodes", "art", "userrating", "title",
+            ],
+            cache_key=f"season:{seasonid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_season_properties(details)
+
+    def _set_episode_details(self, episodeid: str) -> None:
+        details = get_item_details(
+            'episode',
+            int(episodeid),
+            [
+                "title", "plot", "rating", "votes", "ratings", "season", "episode",
+                "showtitle", "firstaired", "runtime", "director", "writer", "file",
+                "streamdetails", "art", "productioncode", "originaltitle", "playcount",
+                "cast", "lastplayed", "resume", "tvshowid", "dateadded", "uniqueid",
+                "userrating", "seasonid", "genre", "studio",
+            ],
+            cache_key=f"episode:{episodeid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_episode_properties(details)
+        set_ratings_properties(details, "Episode")
+
+    def _set_musicvideo_details(self, musicvideoid: str) -> None:
+        details = get_item_details(
+            'musicvideo',
+            int(musicvideoid),
+            [
+                "title", "artist", "album", "genre", "year", "plot", "runtime",
+                "director", "studio", "file", "streamdetails", "art", "premiered",
+                "tag", "playcount",
+                "lastplayed", "resume", "dateadded", "rating", "userrating", "uniqueid", "track",
+            ],
+            cache_key=f"musicvideo:{musicvideoid}:details",
+        )
+        if not isinstance(details, dict):
+            return
+
+        set_musicvideo_properties(details)
+
+    def _populate_slideshow_pool_if_needed(self) -> None:
+        """Populate slideshow pool on first run if empty."""
+        if self._slideshow_pool_populated:
+            return
+
+        try:
+            from lib.service.slideshow import is_pool_populated, populate_slideshow_pool
+
+            if not is_pool_populated():
+                log("Service", "Slideshow: Populating pool for first time...", xbmc.LOGINFO)
+                populate_slideshow_pool()
+                log("Service", "Slideshow: Pool population complete", xbmc.LOGINFO)
+
+            self._slideshow_pool_populated = True
+        except Exception as e:
+            log("Service",f"Slideshow: Error populating pool: {str(e)}", xbmc.LOGERROR)
+
+    def _slideshow_update(self) -> None:
+        """Update slideshow properties if enabled and interval elapsed."""
+        if not xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.EnableSlideshow)'):
+            return
+
+        interval_str = xbmc.getInfoLabel('Skin.String(SkinInfo.SlideshowRefreshInterval)') or '10'
+        try:
+            from lib.service.slideshow import MIN_SLIDESHOW_INTERVAL, MAX_SLIDESHOW_INTERVAL
+            interval = int(interval_str)
+            interval = max(MIN_SLIDESHOW_INTERVAL, min(interval, MAX_SLIDESHOW_INTERVAL))
+        except ValueError:
+            interval = 10
+
+        now = time.time()
+        elapsed = now - self._slideshow_last_update
+
+        if elapsed < interval:
+            return
+
+        try:
+            from lib.service.slideshow import update_all_slideshow_properties
+            update_all_slideshow_properties()
+            self._slideshow_last_update = time.time()
+
+        except Exception as e:
+            log("Service",f"Slideshow: Update error: {str(e)}", xbmc.LOGERROR)
+
+
+def start_service() -> None:
+    from lib.data.database._infrastructure import init_database
+    from lib.service.slideshow import SlideshowMonitor
+    from lib.service.online import OnlineServiceMain
+    from lib.data.api.settings import sync_configured_flags
+
+    init_database()
+    sync_configured_flags()
+
+    thread = ServiceMain()
+    thread.start()
+
+    online_thread = OnlineServiceMain()
+    online_thread.start()
+
+    _slideshow_monitor = SlideshowMonitor()
+    monitor = xbmc.Monitor()
+    while not monitor.abortRequested():
+        if monitor.waitForAbort(1):
+            thread.abort.set()
+            online_thread.abort.set()
+            break
+
+    thread.abort.set()
+    online_thread.abort.set()
+
+    from lib.infrastructure.workers import SingletonWorker
+    worker = SingletonWorker.get_instance()
+    worker.stop()
+
+    log("Service", "Kodi shutting down, service thread aborted", xbmc.LOGINFO)
+    del _slideshow_monitor
+
+
+if __name__ == "__main__":
+    start_service()

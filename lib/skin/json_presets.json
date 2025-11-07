@@ -1,0 +1,17 @@
+{
+    "player_info": {
+        "method": "Player.GetProperties",
+        "params": {"playerid": 1, "properties": ["time", "totaltime", "speed", "percentage"]},
+        "window_prop": "Player"
+    },
+    "system_info": {
+        "method": "System.GetProperties",
+        "params": {"properties": ["canhibernate", "cansuspend", "canreboot", "canshutdown"]},
+        "window_prop": "System"
+    },
+    "app_info": {
+        "method": "Application.GetProperties",
+        "params": {"properties": ["volume", "muted", "name", "version"]},
+        "window_prop": "App"
+    }
+}
