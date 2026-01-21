@@ -475,7 +475,7 @@ msgid "How long to display the notification"
 msgstr ""
 
 msgctxt "#32162"
-msgid "Post-Credits Scene"
+msgid "Wait For It..."
 msgstr ""
 
 msgctxt "#32163"

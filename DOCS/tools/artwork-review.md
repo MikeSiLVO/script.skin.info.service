@@ -34,7 +34,7 @@ Scan library for missing artwork and fetch from TMDB and fanart.tv.
 
 ### API Keys
 
-You must provide your own API keys - the addon does not include built-in keys.
+You must provide your own fanart.tv API key - the addon does not include a built-in key.
 
 #### Why Both APIs?
 

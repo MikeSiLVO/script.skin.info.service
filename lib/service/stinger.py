@@ -12,8 +12,14 @@ from typing import Optional, Dict, Any
 import xbmc
 import xbmcaddon
 import xbmcgui
+import xbmcvfs
 
 from lib.kodi.client import log
+
+# Default icon path (skinners can override via Skin.String)
+DEFAULT_STINGER_ICON = xbmcvfs.translatePath(
+    "special://home/addons/script.skin.info.service/resources/icons/stinger.png"
+)
 
 ADDON = xbmcaddon.Addon()
 
@@ -253,28 +259,106 @@ def set_notify_property(show: bool, window_id: int = 12901) -> None:
         window.clearProperty("SkinInfo.Stinger.ShowNotify")
 
 
-def show_notification(info: StingerInfo, duration_seconds: int = 8) -> None:
+def _get_notification_icon() -> str:
+    """Get notification icon path, checking skin override first.
+
+    Skinners can override via: Skin.String(SkinInfo.Stinger.NotificationIcon)
+
+    Returns:
+        Icon path or empty string to use Kodi default
+    """
+    skin_icon = xbmc.getInfoLabel("Skin.String(SkinInfo.Stinger.NotificationIcon)")
+    if skin_icon and xbmcvfs.exists(skin_icon):
+        return skin_icon
+
+    if xbmcvfs.exists(DEFAULT_STINGER_ICON):
+        return DEFAULT_STINGER_ICON
+
+    return ""
+
+
+def _get_notification_text(stinger_type: StingerType) -> tuple[str, str]:
+    """Get notification heading and message, checking skin overrides first.
+
+    Skinners can override via:
+    - Skin.String(SkinInfo.Stinger.Heading)
+    - Skin.String(SkinInfo.Stinger.MessageDuring)
+    - Skin.String(SkinInfo.Stinger.MessageAfter)
+    - Skin.String(SkinInfo.Stinger.MessageBoth)
+
+    Args:
+        stinger_type: Type of stinger scene
+
+    Returns:
+        Tuple of (heading, message)
+    """
+    skin_heading = xbmc.getInfoLabel("Skin.String(SkinInfo.Stinger.Heading)")
+    heading = skin_heading if skin_heading else ADDON.getLocalizedString(STR_HEADING)
+
+    if stinger_type == StingerType.BOTH:
+        skin_msg = xbmc.getInfoLabel("Skin.String(SkinInfo.Stinger.MessageBoth)")
+        message = skin_msg if skin_msg else ADDON.getLocalizedString(STR_BOTH)
+    elif stinger_type == StingerType.DURING:
+        skin_msg = xbmc.getInfoLabel("Skin.String(SkinInfo.Stinger.MessageDuring)")
+        message = skin_msg if skin_msg else ADDON.getLocalizedString(STR_DURING)
+    elif stinger_type == StingerType.AFTER:
+        skin_msg = xbmc.getInfoLabel("Skin.String(SkinInfo.Stinger.MessageAfter)")
+        message = skin_msg if skin_msg else ADDON.getLocalizedString(STR_AFTER)
+    else:
+        message = ""
+
+    return heading, message
+
+
+def _skin_handles_notification() -> bool:
+    """Check if skin has opted in to handle stinger notifications.
+
+    Skins can opt in by setting: Skin.SetBool(SkinInfo.Stinger.CustomNotification)
+
+    When opted in, the addon skips Dialog().notification() and the skin
+    handles display using window properties (SkinInfo.Stinger.ShowNotify, etc).
+
+    Returns:
+        True if skin handles notifications, False to use Kodi notification
+    """
+    return xbmc.getCondVisibility("Skin.HasSetting(SkinInfo.Stinger.CustomNotification)")
+
+
+def show_notification(info: StingerInfo, duration_seconds: int = 4) -> None:
     """Show Kodi notification for stinger.
+
+    If skin has opted in via Skin.SetBool(SkinInfo.Stinger.CustomNotification),
+    skips Kodi notification and relies on skin to display using properties.
+
+    Otherwise, skinners can customize the Kodi notification via Skin.String:
+    - SkinInfo.Stinger.NotificationIcon: Custom icon path
+    - SkinInfo.Stinger.Heading: Custom heading text
+    - SkinInfo.Stinger.MessageDuring: Custom message for during-credits scene
+    - SkinInfo.Stinger.MessageAfter: Custom message for after-credits scene
+    - SkinInfo.Stinger.MessageBoth: Custom message for both types
 
     Args:
         info: StingerInfo with stinger details
         duration_seconds: How long to show notification
     """
-    heading = ADDON.getLocalizedString(STR_HEADING)
-
-    if info.stinger_type == StingerType.BOTH:
-        message = ADDON.getLocalizedString(STR_BOTH)
-    elif info.stinger_type == StingerType.DURING:
-        message = ADDON.getLocalizedString(STR_DURING)
-    elif info.stinger_type == StingerType.AFTER:
-        message = ADDON.getLocalizedString(STR_AFTER)
-    else:
+    if info.stinger_type == StingerType.NONE:
         return
+
+    # Skin handles its own notification display
+    if _skin_handles_notification():
+        log("Service", "Skin handles stinger notification, skipping Kodi dialog", xbmc.LOGDEBUG)
+        return
+
+    heading, message = _get_notification_text(info.stinger_type)
+    if not message:
+        return
+
+    icon = _get_notification_icon()
 
     xbmcgui.Dialog().notification(
         heading,
         message,
-        xbmcgui.NOTIFICATION_INFO,
+        icon if icon else xbmcgui.NOTIFICATION_INFO,
         duration_seconds * 1000
     )
 
