@@ -135,7 +135,6 @@ Returns cast for the currently playing library item.
 
 - `movie` - Cast for playing movie
 - `episode` - Cast for playing episode (or entire show with `aggregate=true`)
-- `musicvideo` - Cast for playing music video
 
 ### Examples
 

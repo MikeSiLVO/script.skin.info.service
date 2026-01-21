@@ -180,8 +180,8 @@ The service monitors library updates and recalculates statistics when:
 - `Window(Home).Property(SkinInfo.Library.Refreshed)` - Auto-increments on library updates
 
 ```xml
-<content target="video">$INFO[Window(Home).Property(widget.path)]</content>
-<content refresh="$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]" />
+<!-- Include reload parameter in the URL to trigger refresh when property changes -->
+<content>plugin://script.skin.info.service/?action=wrap&amp;path=$INFO[Window(Home).Property(widget.path)]&amp;reload=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Categorization Logic

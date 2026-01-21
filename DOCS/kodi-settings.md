@@ -271,7 +271,7 @@ See [Skin Utilities](skin-utilities.md) for usage instructions.
 **Based on Kodi source code analysis:**
 
 1. **Visibility Requirement:**
-   - Settings must be visible (`!setting->IsVisible()`)
+   - Settings must have their visibility set to true
    - Hidden settings cannot be accessed via JSON-RPC
 
 2. **Unsupported Types:**

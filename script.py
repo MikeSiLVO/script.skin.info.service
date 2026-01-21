@@ -163,7 +163,7 @@ def main() -> None:
             if string.startswith('$'):
                 string = xbmc.getInfoLabel(string)
             separator = args.get('separator', "|")
-            prefix = args.get('prefix', 'SkinInfo')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             split_string(string, separator, prefix, window)
             return
@@ -173,7 +173,7 @@ def main() -> None:
             string = args.get('string', "")
             if string.startswith('$'):
                 string = xbmc.getInfoLabel(string)
-            prefix = args.get('prefix', 'SkinInfo.Encoded')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             urlencode(string, prefix, window)
             return
@@ -183,7 +183,7 @@ def main() -> None:
             string = args.get('string', "")
             if string.startswith('$'):
                 string = xbmc.getInfoLabel(string)
-            prefix = args.get('prefix', 'SkinInfo.Decoded')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             urldecode(string, prefix, window)
             return
@@ -191,7 +191,7 @@ def main() -> None:
         elif action == "math":
             from lib.skin.math import evaluate_math
             expression = args.get('expression', "")
-            prefix = args.get('prefix', 'SkinInfo.Math')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             evaluate_math(expression, prefix, window)
             return
@@ -201,7 +201,7 @@ def main() -> None:
             container = args.get('container', "")
             infolabels = args.get('infolabels', '')
             artwork = args.get('artwork', '')
-            prefix = args.get('prefix', 'Selected')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             copy_container_item(container, infolabels, artwork, prefix, window)
             return
@@ -227,7 +227,7 @@ def main() -> None:
             from lib.skin.files import check_file_exists
             paths = args.get('paths', "")
             separator = args.get('separator', '|')
-            prefix = args.get('prefix', 'SkinInfo.File')
+            prefix = args.get('prefix', '')
             window = args.get('window', 'home')
             check_file_exists(paths, separator, prefix, window)
             return

@@ -122,7 +122,7 @@ Items featuring a random actor from the source item's cast.
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `dbid` | Yes | - | Database ID of source item |
-| `dbtype` | No | movie | Source type (movie/tvshow/episode/season/set) |
+| `dbtype` | No | movie | Source type (movie/tvshow/episode) |
 | `limit` | No | 25 | Maximum items |
 | `cast_limit` | No | 4 | Pick from top N cast (0=all) |
 | `mix` | No | true | Mixed movie/show results |
@@ -209,7 +209,7 @@ Items similar to source based on genre matching with year/MPAA scoring.
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `dbid` | Yes | - | Database ID |
-| `dbtype` | No | movie | Source type (movie/tvshow/episode/set) |
+| `dbtype` | No | movie | Source type (movie/tvshow/episode) |
 | `limit` | No | 25 | Maximum items |
 
 ### Scoring
@@ -251,7 +251,7 @@ Personalized recommendations based on watch history.
 | `strict_rating` | No | false | Only match MPAA ratings from history |
 | `min_rating` | No | 6.0 | Minimum rating threshold |
 
-> 💡 Also accepts `both`
+**Note:** Also accepts `both` for mixed results.
 
 ### Examples
 

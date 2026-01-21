@@ -59,14 +59,16 @@ TMDB is required for basic artwork. fanart.tv provides additional artwork types 
 
 #### Getting API Keys
 
-**TMDB API Key** - Free & Required
+**TMDB API Key** - Free & Optional
+
+A built-in TMDB key is included. To use your own key:
 
 1. Sign up at [themoviedb.org](https://www.themoviedb.org/)
 2. Go to Settings → API → Request API Key
 3. Select "Developer" as the type of use
 4. Fill out the required information
 5. Copy your API key
-6. Add to addon settings: Settings → API Keys → TMDB API Key
+6. Add to addon settings: Settings → Advanced → Enable "Use Custom TMDB Key" → Enter Key
 
 **fanart.tv API Key** - Free & Optional
 

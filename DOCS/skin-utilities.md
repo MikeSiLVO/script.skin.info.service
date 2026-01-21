@@ -887,13 +887,13 @@ Get a Kodi setting value and set as window property.
 
 <!-- Get video player refresh rate setting with prefix -->
 <onclick>RunScript(script.skin.info.service,action=get_setting,setting=videoplayer.adjustrefreshrate,prefix=Video)</onclick>
-<label>Refresh rate: $INFO[Window(Home).Property(SkinInfo.Setting.videoplayer.adjustrefreshrate)]</label>
+<label>Refresh rate: $INFO[Window(Home).Property(Video.Setting.videoplayer.adjustrefreshrate)]</label>
 
 <!-- Get multiple settings with different prefixes -->
 <onclick>RunScript(script.skin.info.service,action=get_setting,setting=musicplayer.crossfade,prefix=Music)</onclick>
 <onclick>RunScript(script.skin.info.service,action=get_setting,setting=videoplayer.seekdelay,prefix=Video)</onclick>
-<label>Crossfade: $INFO[Window(Home).Property(SkinInfo.Setting.musicplayer.crossfade)]</label>
-<label>Seek delay: $INFO[Window(Home).Property(SkinInfo.Setting.videoplayer.seekdelay)]</label>
+<label>Crossfade: $INFO[Window(Home).Property(Music.Setting.musicplayer.crossfade)]</label>
+<label>Seek delay: $INFO[Window(Home).Property(Video.Setting.videoplayer.seekdelay)]</label>
 ```
 
 ---
@@ -1360,11 +1360,11 @@ Increment a counter for widget refresh triggers.
 **Examples:**
 
 ```xml
-<!-- Button to refresh widget with dynamic UID based on folder name -->
-<onclick>RunScript(script.skin.info.service,action=refresh_counter,uid=$INFO[Container.FolderName])</onclick>
+<!-- Button to refresh widget with static UID -->
+<onclick>RunScript(script.skin.info.service,action=refresh_counter,uid=MyWidget)</onclick>
 
 <!-- Widget URL with refresh parameter -->
-<content>plugin://plugin.video.example/?action=list&amp;refresh=$INFO[Window(Home).Property(SkinInfo.$INFO[Container.FolderName])]</content>
+<content>plugin://plugin.video.example/?action=list&amp;refresh=$INFO[Window(Home).Property(SkinInfo.MyWidget)]</content>
 ```
 
 Each click increments the counter, changing the URL and triggering a widget reload.

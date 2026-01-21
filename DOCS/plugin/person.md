@@ -288,7 +288,7 @@ Acting credits with filtering options.
 |                     | rating, title                    |                   |
 | `limit`             | 1-999                            | Maximum items     |
 
-> 💡 Also accepts `both`
+**Note:** Also accepts `both` for mixed results.
 
 ### Filmography Properties
 
