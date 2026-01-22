@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
        name="Skin Info Service"
-       version="2.0.0~beta3"
+       version="2.0.0~beta4"
        provider-name="MikeSiLVO">
     <requires>
         <import addon="xbmc.python" version="3.0.0" />
@@ -31,6 +31,11 @@
             <fanart>fanart.jpg</fanart>
         </assets>
         <news>
+2.0.0~beta4
+- Added incremental ratings sync for faster auto-updates
+- Added TV show context menu now updates all episodes
+- Added art types settings as individual toggles
+
 2.0.0~beta3
 - Added stinger (mid/post-credits scene) notifications
 - Added custom stinger icon

@@ -152,10 +152,25 @@ class ServiceMain(threading.Thread):
         def _do_check():
             try:
                 from lib.data.api.imdb import get_imdb_dataset
+                from lib.data.database import workflow as db
                 dataset = get_imdb_dataset()
-                if dataset.refresh_if_stale():
-                    log("Service", "IMDb dataset updated (periodic check)", xbmc.LOGINFO)
+
+                dataset_updated = dataset.refresh_if_stale()
+                if dataset_updated:
+                    log("Service", "IMDb dataset updated, running full sync", xbmc.LOGINFO)
                     self._run_imdb_auto_update()
+                    return
+
+                synced_count = db.get_synced_items_count()
+                if synced_count == 0:
+                    log("Service", "No synced ratings yet, running full sync", xbmc.LOGINFO)
+                    self._run_imdb_auto_update()
+                    return
+
+                from lib.rating.updater import update_changed_imdb_ratings
+                log("Service", "Running incremental IMDb rating sync", xbmc.LOGINFO)
+                update_changed_imdb_ratings()
+
             except Exception as e:
                 log("Service", f"IMDb dataset check failed: {e}", xbmc.LOGWARNING)
 

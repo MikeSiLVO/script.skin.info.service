@@ -128,8 +128,23 @@ class KodiSettings:
 
     @classmethod
     def art_types_to_check(cls) -> str:
-        """Get art types to check setting."""
-        return cls.get_string('art_types_to_check')
+        """Get enabled art types from individual boolean settings."""
+        art_types = []
+        type_map = [
+            ('art_type_poster', 'poster'),
+            ('art_type_fanart', 'fanart'),
+            ('art_type_clearlogo', 'clearlogo'),
+            ('art_type_clearart', 'clearart'),
+            ('art_type_banner', 'banner'),
+            ('art_type_landscape', 'landscape'),
+            ('art_type_discart', 'discart'),
+            ('art_type_keyart', 'keyart'),
+            ('art_type_characterart', 'characterart'),
+        ]
+        for setting_id, art_type in type_map:
+            if cls.get_bool(setting_id):
+                art_types.append(art_type)
+        return ','.join(art_types)
 
     @classmethod
     def trakt_access_token(cls) -> str:

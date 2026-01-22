@@ -68,6 +68,40 @@ def _get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
     return {}
 
 
+def _update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
+    """
+    Update ratings for all episodes of a TV show.
+
+    Args:
+        tvshow_dbid: Database ID of the TV show
+        sources: List of rating sources to use
+
+    Returns:
+        Number of episodes that were updated
+    """
+    response = request("VideoLibrary.GetEpisodes", {
+        "tvshowid": tvshow_dbid,
+        "properties": ["title", "season", "episode", "tvshowid", "uniqueid", "ratings"]
+    })
+
+    if not response or "episodes" not in response.get("result", {}):
+        return 0
+
+    episodes = response["result"]["episodes"]
+    if not episodes:
+        return 0
+
+    log("Ratings", f"Updating ratings for {len(episodes)} episodes", xbmc.LOGINFO)
+
+    updated_count = 0
+    for episode in episodes:
+        success, _ = _update_single_item(episode, "episode", sources, use_background=False)
+        if success:
+            updated_count += 1
+
+    return updated_count
+
+
 def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> None:
     """
     Update ratings for a single item by DBID.
@@ -153,18 +187,25 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
 
     success, item_stats = _update_single_item(item, media_type, sources, use_background=False)
 
-    if success:
-        added_details = item_stats.get('added_details', []) if item_stats else []
-        updated_details = item_stats.get('updated_details', []) if item_stats else []
+    total_added = item_stats.get('added_details', []) if item_stats else []
+    total_updated = item_stats.get('updated_details', []) if item_stats else []
+    episodes_updated = 0
 
-        if added_details or updated_details:
+    if media_type == "tvshow" and success:
+        episodes_updated = _update_tvshow_episodes(int(dbid), sources)
+
+    if success:
+        if total_added or total_updated or episodes_updated > 0:
             message_lines = []
 
-            if added_details:
-                message_lines.append(f"[B]Added:[/B] {', '.join(added_details)}")
+            if total_added:
+                message_lines.append(f"[B]Added:[/B] {', '.join(total_added)}")
 
-            if updated_details:
-                message_lines.append(f"[B]Updated:[/B] {', '.join(updated_details)}")
+            if total_updated:
+                message_lines.append(f"[B]Updated:[/B] {', '.join(total_updated)}")
+
+            if episodes_updated > 0:
+                message_lines.append(f"[B]Episodes:[/B] {episodes_updated} updated")
 
             show_ok(ADDON.getLocalizedString(32316).format(title), "[CR]".join(message_lines))
         else:
@@ -257,6 +298,100 @@ def _select_mode_and_run(media_type: str, sources: List, source_mode: str) -> No
         MenuItem(ADDON.getLocalizedString(32411), run_foreground),
         MenuItem(ADDON.getLocalizedString(32412), run_background),
     ]).show()
+
+
+def update_changed_imdb_ratings(media_type: str = "") -> Dict[str, int]:
+    """
+    Incremental update - only sync items where IMDb rating has changed.
+
+    Uses SQL join between ratings_synced and imdb_ratings to find items
+    needing update, then updates only those items. Much faster than full scan.
+
+    Args:
+        media_type: Optional filter for "movie", "tvshow", or "episode".
+                   Empty string means all types.
+
+    Returns:
+        Stats dict with updated/skipped/failed counts
+    """
+    stats = {"updated": 0, "skipped": 0, "failed": 0}
+
+    changed_items = db.get_imdb_changed_items(media_type if media_type else None)
+
+    if not changed_items:
+        log("Ratings", "No IMDb rating changes detected", xbmc.LOGINFO)
+        return stats
+
+    log("Ratings", f"Found {len(changed_items)} items with changed IMDb ratings", xbmc.LOGINFO)
+
+    for item in changed_items:
+        item_media_type = item["media_type"]
+        dbid = item["dbid"]
+        imdb_id = item.get("imdb_id")
+        new_rating = item["new_rating"]
+        new_votes = item["new_votes"]
+
+        if not imdb_id:
+            stats["skipped"] += 1
+            continue
+
+        method_info = KODI_SET_DETAILS_METHODS.get(item_media_type)
+        if not method_info:
+            stats["failed"] += 1
+            continue
+        method, id_key = method_info
+
+        details_method = KODI_GET_DETAILS_METHODS.get(item_media_type)
+        if not details_method:
+            stats["failed"] += 1
+            continue
+
+        details = request(details_method[0], {
+            details_method[1]: dbid,
+            "properties": ["title", "ratings"]
+        })
+
+        if not details:
+            stats["failed"] += 1
+            continue
+
+        result_key = f"{item_media_type}details"
+        item_data = details.get(result_key, {})
+        title = item_data.get("title", "Unknown")
+        existing_ratings = item_data.get("ratings", {})
+
+        kodi_ratings = {
+            "imdb": {
+                "rating": new_rating,
+                "votes": new_votes,
+                "default": True
+            }
+        }
+
+        for source_name, rating_data in existing_ratings.items():
+            if source_name != "imdb" and isinstance(rating_data, dict):
+                kodi_ratings[source_name] = {
+                    "rating": rating_data.get("rating", 0),
+                    "votes": int(rating_data.get("votes", 0)),
+                    "default": False
+                }
+
+        response = request(method, {id_key: dbid, "ratings": kodi_ratings})
+
+        if response is not None:
+            db.update_synced_ratings(
+                item_media_type, dbid,
+                {"imdb": {"rating": new_rating, "votes": float(new_votes)}},
+                {"imdb": imdb_id}
+            )
+            old_rating = item["old_rating"]
+            log("Ratings", f"Updated {title}: imdb ({old_rating:.1f} -> {new_rating:.1f})", xbmc.LOGINFO)
+            stats["updated"] += 1
+        else:
+            stats["failed"] += 1
+
+    log("Ratings", f"Incremental update complete: {stats['updated']} updated, {stats['skipped']} skipped, {stats['failed']} failed", xbmc.LOGINFO)
+    return stats
 
 
 def update_library_ratings(
@@ -1039,6 +1174,13 @@ def _update_single_item_imdb(
 
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
+    if response is not None:
+        db.update_synced_ratings(
+            media_type, dbid,
+            {"imdb": {"rating": new_rating, "votes": new_votes}},
+            {"imdb": imdb_id}
+        )
+
     item_stats = {
         "title": title,
         "year": year,
@@ -1229,6 +1371,18 @@ def _finalize_item_ratings(
     method, id_key = method_info
 
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
+
+    if response is not None:
+        ids = state.ids
+        external_ids: Dict[str, str] = {}
+        imdb_id = ids.get("imdb_episode") or ids.get("imdb")
+        if imdb_id:
+            external_ids["imdb"] = str(imdb_id)
+        tmdb_id = ids.get("tmdb")
+        if tmdb_id:
+            external_ids["themoviedb"] = str(tmdb_id)
+            external_ids["tmdb"] = str(tmdb_id)
+        db.update_synced_ratings(media_type, dbid, final_ratings, external_ids)
 
     item_stats = {
         "title": title,
@@ -1475,6 +1629,17 @@ def _update_single_item(
     method, id_key = method_info
 
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
+
+    if response is not None:
+        external_ids: Dict[str, str] = {}
+        imdb_id = ids.get("imdb_episode") or ids.get("imdb")
+        if imdb_id:
+            external_ids["imdb"] = str(imdb_id)
+        tmdb_id = ids.get("tmdb")
+        if tmdb_id:
+            external_ids["themoviedb"] = str(tmdb_id)
+            external_ids["tmdb"] = str(tmdb_id)
+        db.update_synced_ratings(media_type, dbid, final_ratings, external_ids)
 
     item_stats = {
         "title": title,

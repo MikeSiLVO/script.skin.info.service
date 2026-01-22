@@ -1597,3 +1597,43 @@ msgstr ""
 msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 msgstr ""
+
+msgctxt "#32960"
+msgid "Art Types to Check"
+msgstr ""
+
+msgctxt "#32961"
+msgid "Poster"
+msgstr ""
+
+msgctxt "#32962"
+msgid "Fanart"
+msgstr ""
+
+msgctxt "#32963"
+msgid "Clearlogo"
+msgstr ""
+
+msgctxt "#32964"
+msgid "Clearart"
+msgstr ""
+
+msgctxt "#32965"
+msgid "Banner"
+msgstr ""
+
+msgctxt "#32966"
+msgid "Landscape"
+msgstr ""
+
+msgctxt "#32967"
+msgid "Discart"
+msgstr ""
+
+msgctxt "#32968"
+msgid "Keyart"
+msgstr ""
+
+msgctxt "#32969"
+msgid "Characterart"
+msgstr ""

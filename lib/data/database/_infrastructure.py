@@ -340,6 +340,21 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
 
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ratings_synced (
+            media_type TEXT NOT NULL,
+            dbid INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            external_id TEXT,
+            rating REAL NOT NULL,
+            votes INTEGER NOT NULL,
+            synced_at TEXT NOT NULL,
+            PRIMARY KEY (media_type, dbid, source)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_synced_lookup ON ratings_synced(media_type, dbid)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_synced_external ON ratings_synced(source, external_id)')
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS online_properties_cache (
             item_key TEXT PRIMARY KEY,
             data BLOB NOT NULL,

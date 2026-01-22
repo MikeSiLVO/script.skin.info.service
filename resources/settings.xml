@@ -334,12 +334,43 @@
 					<default>false</default>
 					<control type="toggle" />
 				</setting>
-				<setting id="art_types_to_check" type="string" label="32015" help="32016">
-					<default>poster,fanart,clearlogo,clearart,discart,banner,landscape,keyart</default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<control type="edit" format="string" />
+			</group>
+			<group id="5" label="32960">
+				<setting id="art_type_poster" type="boolean" label="32961">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_fanart" type="boolean" label="32962">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_clearlogo" type="boolean" label="32963">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_clearart" type="boolean" label="32964">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_banner" type="boolean" label="32965">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_landscape" type="boolean" label="32966">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_discart" type="boolean" label="32967">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_keyart" type="boolean" label="32968">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="art_type_characterart" type="boolean" label="32969">
+					<default>true</default>
+					<control type="toggle" />
 				</setting>
 			</group>
 		</category>

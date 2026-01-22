@@ -381,3 +381,169 @@ def clear_imdb_update_progress(media_type: str) -> None:
         cursor.execute('''
             DELETE FROM imdb_update_progress WHERE media_type = ?
         ''', (media_type,))
+
+
+def get_synced_ratings(media_type: str, dbid: int) -> Dict[str, Dict[str, float]]:
+    """
+    Get all synced ratings for an item.
+
+    Args:
+        media_type: "movie", "tvshow", or "episode"
+        dbid: Kodi database ID
+
+    Returns:
+        Dict mapping source name to {rating, votes}
+    """
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.execute('''
+            SELECT source, rating, votes
+            FROM ratings_synced
+            WHERE media_type = ? AND dbid = ?
+        ''', (media_type, dbid))
+
+        return {
+            row['source']: {'rating': row['rating'], 'votes': row['votes']}
+            for row in cursor.fetchall()
+        }
+
+
+def update_synced_ratings(
+    media_type: str,
+    dbid: int,
+    ratings: Dict[str, Dict[str, float]],
+    external_ids: Optional[Dict[str, str]] = None
+) -> None:
+    """
+    Update sync tracking for an item after successful Kodi DB write.
+
+    Args:
+        media_type: "movie", "tvshow", or "episode"
+        dbid: Kodi database ID
+        ratings: Dict mapping source to {rating, votes}
+        external_ids: Optional dict mapping source to external ID (imdb_id, tmdb_id, etc.)
+    """
+    if not ratings:
+        return
+
+    external_ids = external_ids or {}
+    now = datetime.now().isoformat()
+    with get_db(DB_PATH) as (conn, cursor):
+        for source, data in ratings.items():
+            if source.startswith('_'):
+                continue
+            rating = data.get('rating')
+            votes = data.get('votes', 0)
+            if rating is None:
+                continue
+            ext_id = external_ids.get(source)
+            cursor.execute('''
+                INSERT OR REPLACE INTO ratings_synced
+                (media_type, dbid, source, external_id, rating, votes, synced_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (media_type, dbid, source, ext_id, rating, int(votes), now))
+
+
+def update_synced_ratings_batch(items: List[tuple]) -> None:
+    """
+    Batch update sync tracking for multiple items.
+
+    Args:
+        items: List of (media_type, dbid, source, external_id, rating, votes) tuples
+    """
+    if not items:
+        return
+
+    now = datetime.now().isoformat()
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.executemany('''
+            INSERT OR REPLACE INTO ratings_synced
+            (media_type, dbid, source, external_id, rating, votes, synced_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', [(mt, dbid, src, ext_id, rating, votes, now) for mt, dbid, src, ext_id, rating, votes in items])
+
+
+def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
+    """
+    Get items where IMDb rating has changed since last sync.
+
+    Uses SQL join between ratings_synced and imdb_ratings for efficiency.
+    Only returns items that were previously synced and have changes.
+
+    Args:
+        media_type: Optional filter for "movie", "tvshow", or "episode"
+
+    Returns:
+        List of dicts with: media_type, dbid, imdb_id, new_rating, new_votes, old_rating, old_votes
+    """
+    with get_db(DB_PATH) as (conn, cursor):
+        if media_type:
+            cursor.execute('''
+                SELECT s.media_type, s.dbid, s.external_id AS imdb_id,
+                       r.rating AS new_rating, r.votes AS new_votes,
+                       s.rating AS old_rating, s.votes AS old_votes
+                FROM ratings_synced s
+                JOIN imdb_ratings r ON s.external_id = r.imdb_id
+                WHERE s.media_type = ? AND s.source = 'imdb'
+                  AND (ABS(s.rating - r.rating) > 0.01 OR s.votes != r.votes)
+            ''', (media_type,))
+        else:
+            cursor.execute('''
+                SELECT s.media_type, s.dbid, s.external_id AS imdb_id,
+                       r.rating AS new_rating, r.votes AS new_votes,
+                       s.rating AS old_rating, s.votes AS old_votes
+                FROM ratings_synced s
+                JOIN imdb_ratings r ON s.external_id = r.imdb_id
+                WHERE s.source = 'imdb'
+                  AND (ABS(s.rating - r.rating) > 0.01 OR s.votes != r.votes)
+            ''')
+
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_synced_items_count(media_type: Optional[str] = None) -> int:
+    """
+    Get count of items with synced ratings.
+
+    Args:
+        media_type: Optional filter for "movie", "tvshow", or "episode"
+
+    Returns:
+        Number of unique (media_type, dbid) in ratings_synced
+    """
+    with get_db(DB_PATH) as (conn, cursor):
+        if media_type:
+            cursor.execute('''
+                SELECT COUNT(DISTINCT dbid) as cnt
+                FROM ratings_synced
+                WHERE media_type = ?
+            ''', (media_type,))
+        else:
+            cursor.execute('''
+                SELECT COUNT(DISTINCT media_type || ':' || dbid) as cnt
+                FROM ratings_synced
+            ''')
+        row = cursor.fetchone()
+        return row['cnt'] if row else 0
+
+
+def clear_synced_ratings(media_type: Optional[str] = None, dbid: Optional[int] = None) -> None:
+    """
+    Clear synced ratings tracking.
+
+    Args:
+        media_type: Optional filter - if None, clears all
+        dbid: Optional specific item - requires media_type
+    """
+    with get_db(DB_PATH) as (conn, cursor):
+        if media_type and dbid:
+            cursor.execute(
+                'DELETE FROM ratings_synced WHERE media_type = ? AND dbid = ?',
+                (media_type, dbid)
+            )
+        elif media_type:
+            cursor.execute(
+                'DELETE FROM ratings_synced WHERE media_type = ?',
+                (media_type,)
+            )
+        else:
+            cursor.execute('DELETE FROM ratings_synced')
