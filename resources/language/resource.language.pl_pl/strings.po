@@ -1,0 +1,1641 @@
+# Kodi strings for script.skin.info.service
+msgid ""
+msgstr ""
+"Project-Id-Version: script.skin.info.service\n"
+"POT-Creation-Date: 2024-10-23 00:00+0000\n"
+"PO-Revision-Date: 2026-01-24 00:00+0000\n"
+"Last-Translator: 3vtv\n"
+"Language-Team: POLISH\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pl_PL\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgctxt "#32000"
+msgid "Animated Art"
+msgstr "Animowane grafiki"
+
+msgctxt "#32002"
+msgid "Gif filename patterns (exact/suffix)"
+msgstr "Wzorce nazw plików GIF (dokładne/przyrostki)"
+
+msgctxt "#32003"
+msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
+msgstr "Lista wzorców nazw plików GIF oddzielonych przecinkami. Pasuje do dokładnych nazw plików (np. 'poster.gif') lub plików kończących się wzorcem (np. 'movie.poster.gif')"
+
+msgctxt "#32004"
+msgid "Artwork Tools"
+msgstr "Narzędzia grafik"
+
+msgctxt "#32006"
+msgid "Preferred language"
+msgstr "Język preferowany"
+
+msgctxt "#32007"
+msgid "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
+msgstr "Grafiki w tym języku są priorytetowe dla plakatów, logo i innych grafik wrażliwych na język."
+
+msgctxt "#32008"
+msgid "Prefer fanart in selected language"
+msgstr "Preferuj fanarty w wybranym języku"
+
+msgctxt "#32015"
+msgid "Art types to check"
+msgstr "Typy grafik do sprawdzenia"
+
+msgctxt "#32016"
+msgid "Comma-separated list of art types to scan for"
+msgstr "Lista typów grafik do skanowania, oddzielonych przecinkami"
+
+msgctxt "#32017"
+msgid "Artwork Download"
+msgstr "Pobieranie grafik"
+
+msgctxt "#32018"
+msgid "Extra Download Options"
+msgstr "Dodatkowe opcje pobierania"
+
+msgctxt "#32019"
+msgid "Show download to filesystem options"
+msgstr "Pokaż opcje pobierania do systemu plików"
+
+msgctxt "#32020"
+msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
+msgstr "Pokaż dodatkowe opcje menu, aby pobierać grafiki do systemu plików podczas przeglądania i operacji wstępnego buforowania."
+
+msgctxt "#32021"
+msgid "File Handling"
+msgstr "Obsługa plików"
+
+msgctxt "#32022"
+msgid "When File Already Exists"
+msgstr "Gdy plik już istnieje"
+
+msgctxt "#32023"
+msgid "What to do when artwork file already exists on filesystem"
+msgstr "Co zrobić, gdy plik z grafiką już istnieje w systemie plików"
+
+msgctxt "#32024"
+msgid "Skip (don't download)"
+msgstr "Pomiń (nie pobieraj)"
+
+msgctxt "#32025"
+msgid "Overwrite existing file"
+msgstr "Nadpisz istniejący plik"
+
+msgctxt "#32026"
+msgid "Filename Patterns"
+msgstr "Szablony nazw plików"
+
+msgctxt "#32027"
+msgid "Use Movie Filename Prefix"
+msgstr "Użyj prefiksu nazwy pliku filmu"
+
+msgctxt "#32028"
+msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
+msgstr "Zapisz jako 'Avatar-poster.jpg' zamiast 'poster.jpg' w folderze filmu"
+
+msgctxt "#32029"
+msgid "Use Music Video Filename Prefix"
+msgstr "Użyj prefiksu nazwy pliku klipu muzycznego"
+
+msgctxt "#32030"
+msgid "Save as 'video-poster.jpg' instead of 'poster.jpg' in video folder"
+msgstr "Zapisz jako 'video-poster.jpg' zamiast 'poster.jpg' w folderze wideo"
+
+msgctxt "#32031"
+msgid "Default Review Mode"
+msgstr "Domyślny tryb przeglądania"
+
+msgctxt "#32032"
+msgid "Scan mode for manual artwork review"
+msgstr "Tryb skanowania do ręcznego przeglądania grafik"
+
+msgctxt "#32033"
+msgid "Missing + Upgrades"
+msgstr "Brakujące + Ulepszenia"
+
+msgctxt "#32034"
+msgid "Missing Only"
+msgstr "Tylko brakujące"
+
+msgctxt "#32035"
+msgid "Always Ask"
+msgstr "Zawsze pytaj"
+
+msgctxt "#32036"
+msgid "GIF Scanner Mode"
+msgstr "Tryb skanera GIF"
+
+msgctxt "#32037"
+msgid "Scan mode for animated art scanner"
+msgstr "Tryb skanowania dla skanera animowanych grafik"
+
+msgctxt "#32038"
+msgid "Incremental"
+msgstr "Przyrostowy"
+
+msgctxt "#32039"
+msgid "Full Scan"
+msgstr "Pełne skanowanie"
+
+msgctxt "#32044"
+msgid "API Keys"
+msgstr "Klucze API"
+
+msgctxt "#32045"
+msgid "TMDB - Not Required"
+msgstr "TMDB - Nie wymagane"
+
+msgctxt "#32046"
+msgid "Configure TMDB API Key"
+msgstr "Skonfiguruj klucz API TMDB"
+
+msgctxt "#32047"
+msgid "Get your API key from https://www.themoviedb.org/settings/api"
+msgstr "Uzyskaj swój klucz API z https://www.themoviedb.org/settings/api"
+
+msgctxt "#32048"
+msgid "Test Connection"
+msgstr "Testuj połączenie"
+
+msgctxt "#32049"
+msgid "Clear API Key"
+msgstr "Wyczyść klucz API"
+
+msgctxt "#32050"
+msgid "MDBList"
+msgstr "MDBList"
+
+msgctxt "#32051"
+msgid "Configure MDBList API Key"
+msgstr "Skonfiguruj klucz API MDBList"
+
+msgctxt "#32052"
+msgid "Get your API key from https://mdblist.com/preferences/"
+msgstr "Uzyskaj swój klucz API z https://mdblist.com/preferences/"
+
+msgctxt "#32053"
+msgid "OMDb"
+msgstr "OMDb"
+
+msgctxt "#32054"
+msgid "Configure OMDb API Key"
+msgstr "Skonfiguruj klucz API OMDb"
+
+msgctxt "#32055"
+msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
+msgstr "Uzyskaj swój klucz API z http://www.omdbapi.com/apikey.aspx"
+
+msgctxt "#32056"
+msgid "Fanart.tv"
+msgstr "Fanart.tv"
+
+msgctxt "#32057"
+msgid "Configure Fanart.tv API Key"
+msgstr "Skonfiguruj klucz API Fanart.tv"
+
+msgctxt "#32058"
+msgid "Get your API key from https://fanart.tv/get-an-api-key/"
+msgstr "Uzyskaj swój klucz API z https://fanart.tv/get-an-api-key/"
+
+msgctxt "#32059"
+msgid "Trakt"
+msgstr "Trakt"
+
+msgctxt "#32060"
+msgid "Authorize Trakt"
+msgstr "Autoryzuj Trakt"
+
+msgctxt "#32061"
+msgid "Authorize this addon to access your Trakt account"
+msgstr "Autoryzuj ten dodatek do dostępu do Twojego konta Trakt"
+
+msgctxt "#32062"
+msgid "Test Trakt Connection"
+msgstr "Testuj połączenie Trakt"
+
+msgctxt "#32063"
+msgid "Revoke Authorization"
+msgstr "Odwołaj autoryzację"
+
+msgctxt "#32064"
+msgid "Ratings"
+msgstr "Oceny"
+
+msgctxt "#32066"
+msgid "Provider data cache duration (days)"
+msgstr "Czas przechowywania pamięci podręcznej danych dostawcy (dni)"
+
+msgctxt "#32067"
+msgid "How long to cache ratings, awards, and cast/crew data from API providers before fetching again. Minimum 1 day to respect rate limits."
+msgstr "Jak długo przechowywać w pamięci podręcznej oceny, nagrody i dane obsady/ekipy od dostawców API przed ponownym pobraniem. Minimum 1 dzień, aby przestrzegać limitów żądań."
+
+msgctxt "#32068"
+msgid "1 day"
+msgstr "1 dzień"
+
+msgctxt "#32069"
+msgid "3 days"
+msgstr "3 dni"
+
+msgctxt "#32070"
+msgid "7 days"
+msgstr "7 dni"
+
+msgctxt "#32071"
+msgid "14 days"
+msgstr "14 dni"
+
+msgctxt "#32072"
+msgid "Processing Artwork Queue"
+msgstr "Przetwarzanie kolejki grafik"
+
+msgctxt "#32073"
+msgid "Cache is empty"
+msgstr "Pamięć podręczna jest pusta"
+
+msgctxt "#32074"
+msgid "Default ratings source"
+msgstr "Domyślne źródło ocen"
+
+msgctxt "#32075"
+msgid "Primary source to display when multiple ratings are available"
+msgstr "Podstawowe źródło do wyświetlania, gdy dostępne są multiple oceny"
+
+msgctxt "#32076"
+msgid "IMDb"
+msgstr "IMDb"
+
+msgctxt "#32077"
+msgid "TMDB"
+msgstr "TMDB"
+
+msgctxt "#32080"
+msgid "API Key"
+msgstr "Klucz API"
+
+msgctxt "#32081"
+msgid "Status: Authorized"
+msgstr "Status: Autoryzowany"
+
+msgctxt "#32082"
+msgid "Texture Cache Manager"
+msgstr "Menedżer pamięci podręcznej tekstur"
+
+msgctxt "#32083"
+msgid "Pre-Cache Library Artwork"
+msgstr "Wstępne buforowanie grafik biblioteki"
+
+msgctxt "#32085"
+msgid "Statistics & Info"
+msgstr "Statystyki i informacje"
+
+msgctxt "#32086"
+msgid "View Last Report"
+msgstr "Zobacz ostatni raport"
+
+msgctxt "#32087"
+msgid "Cleanup Textures"
+msgstr "Czyszczenie tekstur"
+
+msgctxt "#32088"
+msgid "Library Artwork Orphans"
+msgstr "Osierocone grafiki biblioteki"
+
+msgctxt "#32089"
+msgid "By Age (Older Than...)"
+msgstr "Według wieku (starsze niż...)"
+
+msgctxt "#32090"
+msgid "By Usage (Low Usage)"
+msgstr "Według użycia (małe użycie)"
+
+msgctxt "#32091"
+msgid "By URL Pattern (Force Re-Cache)"
+msgstr "Według wzorca URL (wymuś ponowne buforowanie)"
+
+msgctxt "#32092"
+msgid "Advanced Cleanup..."
+msgstr "Zaawansowane czyszczenie..."
+
+msgctxt "#32100"
+msgid "Manage Artwork"
+msgstr "Zarządzaj grafikami"
+
+msgctxt "#32101"
+msgid "Update Ratings"
+msgstr "Aktualizuj oceny"
+
+msgctxt "#32102"
+msgid "Skin Info Tools"
+msgstr "Skin Info Tools"
+
+msgctxt "#32103"
+msgid "Edit Metadata"
+msgstr "Edytuj metadane"
+
+msgctxt "#32110"
+msgid "Context Menu"
+msgstr "Menu kontekstowe"
+
+msgctxt "#32111"
+msgid "Context Menu Items"
+msgstr "Elementy menu kontekstowego"
+
+msgctxt "#32112"
+msgid "Show Manage Artwork"
+msgstr "Pokaż zarządzanie grafikami"
+
+msgctxt "#32113"
+msgid "Show Update Ratings"
+msgstr "Pokaż aktualizację ocen"
+
+msgctxt "#32114"
+msgid "Show Edit Metadata"
+msgstr "Pokaż edycję metadanych"
+
+msgctxt "#32120"
+msgid "Change Language"
+msgstr "Zmień język"
+
+msgctxt "#32122"
+msgid "Text-free / Untagged"
+msgstr "Bez tekstu / Bez tagów"
+
+msgctxt "#32123"
+msgid "Blur"
+msgstr "Rozmycie"
+
+msgctxt "#32124"
+msgid "Cache Management"
+msgstr "Zarządzanie pamięcią podręczną"
+
+msgctxt "#32125"
+msgid "Clear Blur Cache"
+msgstr "Wyczyść pamięć podręczną rozmyć"
+
+msgctxt "#32126"
+msgid "Delete all cached blurred images to free up disk space"
+msgstr "Usuń wszystkie buforowane rozmyte obrazy, aby zwolnić miejsce na dysku"
+
+msgctxt "#32128"
+msgid "Skip"
+msgstr "Pomiń"
+
+msgctxt "#32130"
+msgid "Multi-Art..."
+msgstr "Wiele grafik..."
+
+msgctxt "#32131"
+msgid "Sort"
+msgstr "Sortuj"
+
+msgctxt "#32132"
+msgid "Source: All"
+msgstr "Źródło: Wszystkie"
+
+msgctxt "#32133"
+msgid "Source: TMDB"
+msgstr "Źródło: TMDB"
+
+msgctxt "#32134"
+msgid "Source: Fanart.tv"
+msgstr "Źródło: Fanart.tv"
+
+msgctxt "#32135"
+msgid "IMDb Ratings"
+msgstr "Oceny IMDb"
+
+msgctxt "#32136"
+msgid "Auto-update"
+msgstr "Automatyczna aktualizacja"
+
+msgctxt "#32137"
+msgid "Automatically update IMDb ratings in your library"
+msgstr "Automatycznie aktualizuj oceny IMDb w Twojej bibliotece"
+
+msgctxt "#32139"
+msgid "After library scan"
+msgstr "Po skanowaniu biblioteki"
+
+msgctxt "#32140"
+msgid "When new ratings available"
+msgstr "Gdy dostępne są nowe oceny"
+
+msgctxt "#32141"
+msgid "Both"
+msgstr "Oba"
+
+msgctxt "#32142"
+msgid "Scope"
+msgstr "Zakres"
+
+msgctxt "#32143"
+msgid "Which media types to include in auto-updates"
+msgstr "Jakie typy multimediów uwzględnić w automatycznych aktualizacjach"
+
+msgctxt "#32144"
+msgid "All (Movies, TV Shows, Episodes)"
+msgstr "Wszystkie (filmy, seriale, odcinki)"
+
+msgctxt "#32145"
+msgid "Movies and TV Shows only"
+msgstr "Tylko filmy i seriale"
+
+msgctxt "#32146"
+msgid "Movies only"
+msgstr "Tylko filmy"
+
+msgctxt "#32150"
+msgid "Stinger Detection"
+msgstr "Wykrywanie scen po napisach"
+
+msgctxt "#32151"
+msgid "Enable stinger detection"
+msgstr "Włącz wykrywanie scen po napisach"
+
+msgctxt "#32152"
+msgid "Notify about post-credits scenes during movie playback"
+msgstr "Powiadamiaj o scenach po napisach podczas odtwarzania filmu"
+
+msgctxt "#32156"
+msgid "Minutes before end"
+msgstr "Minuty przed końcem"
+
+msgctxt "#32157"
+msgid "For movies without chapters, notify this many minutes before the end"
+msgstr "Dla filmów bez rozdziałów, powiadamiaj tyle minut przed końcem"
+
+msgctxt "#32158"
+msgid "Notification duration (seconds)"
+msgstr "Czas trwania powiadomienia (sekundy)"
+
+msgctxt "#32159"
+msgid "How long to display the notification"
+msgstr "Jak długo wyświetlać powiadomienie"
+
+msgctxt "#32162"
+msgid "Wait For It..."
+msgstr "Zaczekaj na to..."
+
+msgctxt "#32163"
+msgid "Stay for scene during credits"
+msgstr "Zostań na scenę podczas napisów"
+
+msgctxt "#32164"
+msgid "Stay for scene after credits"
+msgstr "Zostań na scenę po napisach"
+
+msgctxt "#32165"
+msgid "Stay for scenes during and after credits"
+msgstr "Zostań na sceny podczas i po napisach"
+
+msgctxt "#32170"
+msgid "Operation failed"
+msgstr "Operacja nie powiodła się"
+
+msgctxt "#32171"
+msgid "No items to display"
+msgstr "Brak elementów do wyświetlenia"
+
+msgctxt "#32172"
+msgid "Task Already Running"
+msgstr "Zadanie już działa"
+
+msgctxt "#32173"
+msgid "Another background task is currently running"
+msgstr "Inne zadanie w tle jest obecnie uruchomione"
+
+msgctxt "#32180"
+msgid "Texture Cache Statistics"
+msgstr "Statystyki pamięci podręcznej tekstur"
+
+msgctxt "#32181"
+msgid "Failed to gather statistics"
+msgstr "Nie udało się zebrać statystyk"
+
+msgctxt "#32182"
+msgid "No textures found in cache"
+msgstr "Nie znaleziono tekstur w pamięci podręcznej"
+
+msgctxt "#32183"
+msgid "Orphaned Textures Report"
+msgstr "Raport osieroconych tekstur"
+
+msgctxt "#32184"
+msgid "Analysis Failed"
+msgstr "Analiza nie powiodła się"
+
+msgctxt "#32190"
+msgid "Art Fetcher Report"
+msgstr "Raport pobierania grafik"
+
+msgctxt "#32191"
+msgid "Art Fetcher - Detailed Report"
+msgstr "Pobieranie grafik - Szczegółowy raport"
+
+msgctxt "#32192"
+msgid "Animated Art Scanner"
+msgstr "Skaner animowanych grafik"
+
+msgctxt "#32200"
+msgid "graphic"
+msgstr "graficzne"
+
+msgctxt "#32201"
+msgid "a lot of"
+msgstr "dużo"
+
+msgctxt "#32202"
+msgid "some"
+msgstr "trochę"
+
+msgctxt "#32203"
+msgid "a little"
+msgstr "mało"
+
+msgctxt "#32204"
+msgid "very little"
+msgstr "bardzo mało"
+
+msgctxt "#32210"
+msgid "violence or scares"
+msgstr "przemoc lub strach"
+
+msgctxt "#32211"
+msgid "sexual content"
+msgstr "treści seksualne"
+
+msgctxt "#32212"
+msgid "language"
+msgstr "język"
+
+msgctxt "#32213"
+msgid "substance use or smoking"
+msgstr "używki lub palenie"
+
+msgctxt "#32220"
+msgid "Rated {0}+ for {1}"
+msgstr "Ocena {0}+ za {1}"
+
+msgctxt "#32221"
+msgid " and "
+msgstr " i "
+
+msgctxt "#32250"
+msgid "Unsupported field type"
+msgstr "Nieobsługiwany typ pola"
+
+msgctxt "#32251"
+msgid "Failed to save"
+msgstr "Nie udało się zapisać"
+
+msgctxt "#32252"
+msgid "Rating Source (e.g., imdb, tmdb)"
+msgstr "Źródło oceny (np. imdb, tmdb)"
+
+msgctxt "#32253"
+msgid "Vote Count"
+msgstr "Liczba głosów"
+
+msgctxt "#32254"
+msgid "Invalid Value"
+msgstr "Nieprawidłowa wartość"
+
+msgctxt "#32255"
+msgid "Invalid Date"
+msgstr "Nieprawidłowa data"
+
+msgctxt "#32256"
+msgid "Invalid Rating"
+msgstr "Nieprawidłowa ocena"
+
+msgctxt "#32257"
+msgid "Already Exists"
+msgstr "Już istnieje"
+
+msgctxt "#32258"
+msgid "Editor"
+msgstr "Edytor"
+
+msgctxt "#32259"
+msgid "No valid item selected"
+msgstr "Nie wybrano poprawnego elementu"
+
+msgctxt "#32260"
+msgid "Fix Library IDs"
+msgstr "Napraw identyfikatory biblioteki"
+
+msgctxt "#32261"
+msgid "All IDs are valid"
+msgstr "Wszystkie identyfikatory są prawidłowe"
+
+msgctxt "#32262"
+msgid "Failed to load item"
+msgstr "Nie udało się załadować elementu"
+
+msgctxt "#32263"
+msgid "Unsupported type: {0}"
+msgstr "Nieobsługiwany typ: {0}"
+
+msgctxt "#32270"
+msgid "No path provided"
+msgstr "Nie podano ścieżki"
+
+msgctxt "#32271"
+msgid "No items found in directory"
+msgstr "Nie znaleziono elementów w katalogu"
+
+msgctxt "#32272"
+msgid "Select Actor"
+msgstr "Wybierz aktora"
+
+msgctxt "#32273"
+msgid "Missing Artwork"
+msgstr "Brakujące grafiki"
+
+msgctxt "#32274"
+msgid "Scan failed"
+msgstr "Skanowanie nie powiodło się"
+
+msgctxt "#32275"
+msgid "Select Artwork"
+msgstr "Wybierz grafikę"
+
+msgctxt "#32276"
+msgid "Loading artwork for {0}..."
+msgstr "Ładowanie grafik dla {0}..."
+
+msgctxt "#32277"
+msgid "Preparing library scan..."
+msgstr "Przygotowywanie skanowania biblioteki..."
+
+msgctxt "#32278"
+msgid "Initializing..."
+msgstr "Inicjalizowanie..."
+
+msgctxt "#32279"
+msgid "Processing complete!"
+msgstr "Przetwarzanie zakończone!"
+
+msgctxt "#32280"
+msgid "Art Fetcher"
+msgstr "Pobieranie grafik"
+
+msgctxt "#32281"
+msgid "Art Fetcher - Complete"
+msgstr "Pobieranie grafik - Zakończono"
+
+msgctxt "#32282"
+msgid "View Report"
+msgstr "Zobacz raport"
+
+msgctxt "#32284"
+msgid "Processed: {0} items"
+msgstr "Przetworzono: {0} elementów"
+
+msgctxt "#32285"
+msgid "Auto-applied: {0}"
+msgstr "Automatycznie zastosowano: {0}"
+
+msgctxt "#32286"
+msgid "Skipped: {0}"
+msgstr "Pominięto: {0}"
+
+msgctxt "#32287"
+msgid "Errors: {0}"
+msgstr "Błędy: {0}"
+
+msgctxt "#32288"
+msgid "No items in queue"
+msgstr "Brak elementów w kolejce"
+
+msgctxt "#32289"
+msgid "No pending items found in queue"
+msgstr "Nie znaleziono oczekujących elementów w kolejce"
+
+msgctxt "#32290"
+msgid "Download Artwork"
+msgstr "Pobierz grafiki"
+
+msgctxt "#32291"
+msgid "Preparing..."
+msgstr "Przygotowywanie..."
+
+msgctxt "#32292"
+msgid "Scanning library..."
+msgstr "Skanowanie biblioteki..."
+
+msgctxt "#32293"
+msgid "Building download list from {0} items..."
+msgstr "Tworzenie listy pobierania z {0} elementów..."
+
+msgctxt "#32294"
+msgid "Starting download of {0} artwork files..."
+msgstr "Rozpoczynanie pobierania {0} plików grafik..."
+
+msgctxt "#32295"
+msgid "Scan complete. No missing artwork found."
+msgstr "Skanowanie zakończone. Nie znaleziono brakujących grafik."
+
+msgctxt "#32300"
+msgid "Ratings Updater"
+msgstr "Aktualizator ocen"
+
+msgctxt "#32301"
+msgid "Remove Rating?"
+msgstr "Usunąć ocenę?"
+
+msgctxt "#32302"
+msgid "Remove {0} rating?"
+msgstr "Usunąć ocenę {0}?"
+
+msgctxt "#32303"
+msgid "Loading {0}s..."
+msgstr "Ładowanie {0}..."
+
+msgctxt "#32304"
+msgid "Updating {0} {1}s..."
+msgstr "Aktualizowanie {0} {1}..."
+
+msgctxt "#32305"
+msgid "Downloading IMDb dataset..."
+msgstr "Pobieranie zestawu danych IMDb..."
+
+msgctxt "#32306"
+msgid "Updating: {0}/{1} - {2}"
+msgstr "Aktualizowanie: {0}/{1} - {2}"
+
+msgctxt "#32307"
+msgid "Updating: {0}/{1} items"
+msgstr "Aktualizowanie: {0}/{1} elementów"
+
+msgctxt "#32308"
+msgid "Finalizing: {0}/{1}"
+msgstr "Finalizowanie: {0}/{1}"
+
+msgctxt "#32309"
+msgid "Finalizing: {0}/{1} items"
+msgstr "Finalizowanie: {0}/{1} elementów"
+
+msgctxt "#32310"
+msgid "Retrying failed items..."
+msgstr "Ponawianie nieudanych elementów..."
+
+msgctxt "#32311"
+msgid "Retrying: {0}/{1}"
+msgstr "Ponawianie: {0}/{1}"
+
+msgctxt "#32312"
+msgid "Updating episode data..."
+msgstr "Aktualizowanie danych odcinków..."
+
+msgctxt "#32313"
+msgid "{0} - Rate Limit"
+msgstr "{0} - Limit żądań"
+
+msgctxt "#32314"
+msgid "Waiting to retry..."
+msgstr "Oczekiwanie na ponowienie..."
+
+msgctxt "#32315"
+msgid "Waiting {0}s before retry..."
+msgstr "Oczekiwanie {0}s przed ponowieniem..."
+
+msgctxt "#32316"
+msgid "Ratings Updated - {0}"
+msgstr "Oceny zaktualizowane - {0}"
+
+msgctxt "#32317"
+msgid "Ratings Updater - Complete"
+msgstr "Aktualizator ocen - Zakończono"
+
+msgctxt "#32330"
+msgid "Analyzing Textures"
+msgstr "Analizowanie tekstur"
+
+msgctxt "#32331"
+msgid "Scanning texture cache..."
+msgstr "Skanowanie pamięci podręcznej tekstur..."
+
+msgctxt "#32332"
+msgid "Analyzing {0} textures..."
+msgstr "Analizowanie {0} tekstur..."
+
+msgctxt "#32333"
+msgid "Cleanup Textures by Age"
+msgstr "Czyszczenie tekstur według wieku"
+
+msgctxt "#32334"
+msgid "Clean Orphaned Textures"
+msgstr "Wyczyść osierocone tekstury"
+
+msgctxt "#32335"
+msgid "Starting cleanup..."
+msgstr "Rozpoczynanie czyszczenia..."
+
+msgctxt "#32336"
+msgid "Starting..."
+msgstr "Rozpoczynanie..."
+
+msgctxt "#32350"
+msgid "Loading library..."
+msgstr "Ładowanie biblioteki..."
+
+msgctxt "#32351"
+msgid "Loading TV shows..."
+msgstr "Ładowanie seriali..."
+
+msgctxt "#32352"
+msgid "Loading episodes..."
+msgstr "Ładowanie odcinków..."
+
+msgctxt "#32353"
+msgid "Analyzing library..."
+msgstr "Analizowanie biblioteki..."
+
+msgctxt "#32354"
+msgid "Downloading episode data..."
+msgstr "Pobieranie danych odcinków..."
+
+msgctxt "#32355"
+msgid "Matching episodes (dataset)... {0}/{1}"
+msgstr "Dopasowywanie odcinków (zestaw danych)... {0}/{1}"
+
+msgctxt "#32356"
+msgid "Fetching episodes (TMDB)... {0}/{1}"
+msgstr "Pobieranie odcinków (TMDB)... {0}/{1}"
+
+msgctxt "#32357"
+msgid "Fixing TMDB IDs... {0}/{1}"
+msgstr "Naprawianie identyfikatorów TMDB... {0}/{1}"
+
+msgctxt "#32358"
+msgid "Fetching {0}... {1}/{2}"
+msgstr "Pobieranie {0}... {1}/{2}"
+
+msgctxt "#32359"
+msgid "No IDs could be fixed"
+msgstr "Nie udało się naprawić żadnych identyfikatorów"
+
+msgctxt "#32370"
+msgid "Testing {0}"
+msgstr "Testowanie {0}"
+
+msgctxt "#32371"
+msgid "Connecting to API..."
+msgstr "Łączenie z API..."
+
+msgctxt "#32372"
+msgid "Trakt Authorization"
+msgstr "Autoryzacja Trakt"
+
+msgctxt "#32373"
+msgid "Requesting device code..."
+msgstr "Żądanie kodu urządzenia..."
+
+msgctxt "#32374"
+msgid "Testing Trakt"
+msgstr "Testowanie Trakt"
+
+msgctxt "#32390"
+msgid "No Library Values"
+msgstr "Brak wartości biblioteki"
+
+msgctxt "#32391"
+msgid "Not Rated"
+msgstr "Bez oceny"
+
+msgctxt "#32392"
+msgid "(Not Set)"
+msgstr "(Nie ustawiono)"
+
+msgctxt "#32393"
+msgid "Save Changes"
+msgstr "Zapisz zmiany"
+
+msgctxt "#32394"
+msgid "Add {0}"
+msgstr "Dodaj {0}"
+
+msgctxt "#32395"
+msgid "Quick Edit: {0}"
+msgstr "Szybka edycja: {0}"
+
+msgctxt "#32396"
+msgid "Select from Library"
+msgstr "Wybierz z biblioteki"
+
+msgctxt "#32397"
+msgid "Add/Remove Items"
+msgstr "Dodaj/Usuń elementy"
+
+msgctxt "#32399"
+msgid "Edit {0} (comma-separated)"
+msgstr "Edytuj {0} (oddzielone przecinkami)"
+
+msgctxt "#32400"
+msgid "No rating sources available. Please configure API keys in settings."
+msgstr "Brak dostępnych źródeł ocen. Skonfiguruj klucze API w ustawieniach."
+
+msgctxt "#32401"
+msgid "{0} not found"
+msgstr "{0} nie znaleziono"
+
+msgctxt "#32402"
+msgid "Updating ratings..."
+msgstr "Aktualizowanie ocen..."
+
+msgctxt "#32403"
+msgid "No changes needed"
+msgstr "Brak koniecznych zmian"
+
+msgctxt "#32404"
+msgid "Item skipped (no IDs or rate limit)"
+msgstr "Element pominięty (brak identyfikatorów lub limit żądań)"
+
+msgctxt "#32405"
+msgid "Failed to update ratings"
+msgstr "Nie udało się zaktualizować ocen"
+
+msgctxt "#32406"
+msgid "Update Movies"
+msgstr "Aktualizuj filmy"
+
+msgctxt "#32407"
+msgid "Update TV Shows"
+msgstr "Aktualizuj seriale"
+
+msgctxt "#32408"
+msgid "Update Episodes"
+msgstr "Aktualizuj odcinki"
+
+msgctxt "#32409"
+msgid "Update All"
+msgstr "Aktualizuj wszystko"
+
+msgctxt "#32410"
+msgid "Run Mode"
+msgstr "Tryb uruchomienia"
+
+msgctxt "#32411"
+msgid "Show progress dialog (Foreground)"
+msgstr "Pokaż okno postępu (Pierwszy plan)"
+
+msgctxt "#32412"
+msgid "Run in background"
+msgstr "Uruchom w tle"
+
+msgctxt "#32413"
+msgid "No {0}s found in library"
+msgstr "Nie znaleziono {0} w bibliotece"
+
+msgctxt "#32414"
+msgid "Fetching ratings batch {0}/{1}..."
+msgstr "Pobieranie partii ocen {0}/{1}..."
+
+msgctxt "#32415"
+msgid "Retry Failed Items"
+msgstr "Ponów nieudane elementy"
+
+msgctxt "#32416"
+msgid "{0} item(s) had temporary network issues."
+msgstr "{0} element(y) miały tymczasowe problemy z siecią."
+
+msgctxt "#32417"
+msgid "Retry these items now?"
+msgstr "Ponowić te elementy teraz?"
+
+msgctxt "#32418"
+msgid "Network Issues"
+msgstr "Problemy z siecią"
+
+msgctxt "#32419"
+msgid "Items with network issues"
+msgstr "Elementy z problemami sieciowymi"
+
+msgctxt "#32420"
+msgid "Retry: {0}/{1} succeeded"
+msgstr "Ponowienie: {0}/{1} powiodło się"
+
+msgctxt "#32421"
+msgid "IMDb ID Corrections"
+msgstr "Korekty identyfikatorów IMDb"
+
+msgctxt "#32422"
+msgid "{0} item(s) have outdated IMDb ID(s) (redirects)."
+msgstr "{0} element(y) mają przestarzałe identyfikatory IMDb (przekierowania)."
+
+msgctxt "#32423"
+msgid "Correct them in your library?"
+msgstr "Poprawić je w Twojej bibliotece?"
+
+msgctxt "#32424"
+msgid "No ratings update history found."
+msgstr "Nie znaleziono historii aktualizacji ocen."
+
+msgctxt "#32425"
+msgid "Calculating disk usage..."
+msgstr "Obliczanie użycia dysku..."
+
+msgctxt "#32426"
+msgid "Complete"
+msgstr "Zakończono"
+
+msgctxt "#32427"
+msgid "Show"
+msgstr "Pokaż"
+
+msgctxt "#32429"
+msgid "Retry"
+msgstr "Ponów"
+
+msgctxt "#32430"
+msgid "Ratings Update Report"
+msgstr "Raport aktualizacji ocen"
+
+msgctxt "#32440"
+msgid "Pre-Cache + Download"
+msgstr "Wstępne buforowanie + Pobieranie"
+
+msgctxt "#32441"
+msgid "Pre-Cache Artwork - Select Scope"
+msgstr "Wstępne buforowanie grafik - Wybierz zakres"
+
+msgctxt "#32451"
+msgid "Pre-Cache + Download - Select Scope"
+msgstr "Wstępne buforowanie + Pobieranie - Wybierz zakres"
+
+msgctxt "#32455"
+msgid "Pre-Cache Artwork"
+msgstr "Wstępne buforowanie grafik"
+
+msgctxt "#32457"
+msgid "[B]{0}[/B] is currently running."
+msgstr "[B]{0}[/B] jest obecnie uruchomione."
+
+msgctxt "#32458"
+msgid "Cannot start another background task."
+msgstr "Nie można uruchomić kolejnego zadania w tle."
+
+msgctxt "#32459"
+msgid "Pre-Cache Cancelled"
+msgstr "Wstępne buforowanie anulowane"
+
+msgctxt "#32460"
+msgid "Pre-Cache Complete"
+msgstr "Wstępne buforowanie zakończone"
+
+msgctxt "#32461"
+msgid "Cleanup Cancelled"
+msgstr "Czyszczenie anulowane"
+
+msgctxt "#32462"
+msgid "Cleanup Complete"
+msgstr "Czyszczenie zakończone"
+
+msgctxt "#32463"
+msgid "Total: {0}"
+msgstr "Łącznie: {0}"
+
+msgctxt "#32464"
+msgid "Cached: {0}"
+msgstr "Zbuforowano: {0}"
+
+msgctxt "#32465"
+msgid "Downloaded: {0} ({1:.1f} MB)"
+msgstr "Pobrano: {0} ({1:.1f} MB)"
+
+msgctxt "#32467"
+msgid "Failed: {0} cache, {1} download"
+msgstr "Niepowodzenie: {0} buforowanie, {1} pobieranie"
+
+msgctxt "#32468"
+msgid "Already Cached: {0}"
+msgstr "Już zbuforowano: {0}"
+
+msgctxt "#32469"
+msgid "Newly Cached: {0}"
+msgstr "Nowo zbuforowano: {0}"
+
+msgctxt "#32470"
+msgid "Failed: {0}"
+msgstr "Niepowodzenie: {0}"
+
+msgctxt "#32471"
+msgid "Status: Cancelled"
+msgstr "Status: Anulowano"
+
+msgctxt "#32472"
+msgid "Gathering statistics..."
+msgstr "Zbieranie statystyk..."
+
+msgctxt "#32473"
+msgid "Remove textures not used in..."
+msgstr "Usuń tekstury nieużywane w..."
+
+msgctxt "#32474"
+msgid "30 days"
+msgstr "30 dni"
+
+msgctxt "#32475"
+msgid "60 days"
+msgstr "60 dni"
+
+msgctxt "#32476"
+msgid "90 days"
+msgstr "90 dni"
+
+msgctxt "#32477"
+msgid "180 days"
+msgstr "180 dni"
+
+msgctxt "#32478"
+msgid "365 days (1 year)"
+msgstr "365 dni (1 rok)"
+
+msgctxt "#32479"
+msgid "No Old Textures"
+msgstr "Brak starych tekstur"
+
+msgctxt "#32480"
+msgid "No textures found older than {0} days."
+msgstr "Nie znaleziono tekstur starszych niż {0} dni."
+
+msgctxt "#32481"
+msgid "Total textures checked: {0}"
+msgstr "Łącznie sprawdzonych tekstur: {0}"
+
+msgctxt "#32482"
+msgid "Confirm Cleanup"
+msgstr "Potwierdź czyszczenie"
+
+msgctxt "#32483"
+msgid "Remove {0} textures older than {1} days?"
+msgstr "Usunąć {0} tekstur starszych niż {1} dni?"
+
+msgctxt "#32484"
+msgid "Total: {0} | Oldest: {1}"
+msgstr "Łącznie: {0} | Najstarsza: {1}"
+
+msgctxt "#32485"
+msgid "Cleanup by Usage"
+msgstr "Czyszczenie według użycia"
+
+msgctxt "#32486"
+msgid "Feature coming soon!"
+msgstr "Funkcja wkrótce dostępna!"
+
+msgctxt "#32487"
+msgid "Force Re-Cache by Pattern"
+msgstr "Wymuś ponowne buforowanie według wzorca"
+
+msgctxt "#32488"
+msgid "Texture Cache - Last Run"
+msgstr "Pamięć podręczna tekstur - Ostatnie uruchomienie"
+
+msgctxt "#32489"
+msgid "No previous operations found."
+msgstr "Nie znaleziono poprzednich operacji."
+
+msgctxt "#32490"
+msgid "Fetching texture database..."
+msgstr "Pobieranie bazy danych tekstur..."
+
+msgctxt "#32492"
+msgid "Removing {0} old textures..."
+msgstr "Usuwanie {0} starych tekstur..."
+
+msgctxt "#32493"
+msgid "Checked: {0} textures"
+msgstr "Sprawdzono: {0} tekstur"
+
+msgctxt "#32494"
+msgid "Older than {0} days: {1}"
+msgstr "Starsze niż {0} dni: {1}"
+
+msgctxt "#32495"
+msgid "Removed: {0}"
+msgstr "Usunięto: {0}"
+
+msgctxt "#32496"
+msgid "Total Cached: {0} | Library: {1}"
+msgstr "Łącznie zbuforowano: {0} | Biblioteka: {1}"
+
+msgctxt "#32497"
+msgid "Orphaned Found: {0} | Removed: {1}"
+msgstr "Znaleziono osieroconych: {0} | Usunięto: {1}"
+
+msgctxt "#32500"
+msgid "Session Report"
+msgstr "Raport sesji"
+
+msgctxt "#32501"
+msgid "Continue Selection ({0} pending)"
+msgstr "Kontynuuj wybór ({0} oczekujących)"
+
+msgctxt "#32502"
+msgid "Select Missing Artwork"
+msgstr "Wybierz brakujące grafiki"
+
+msgctxt "#32503"
+msgid "Select + Download Missing Artwork"
+msgstr "Wybierz + Pobierz brakujące grafiki"
+
+msgctxt "#32504"
+msgid "Auto-Apply Missing Artwork"
+msgstr "Automatycznie zastosuj brakujące grafiki"
+
+msgctxt "#32505"
+msgid "View Session History"
+msgstr "Zobacz historię sesji"
+
+msgctxt "#32507"
+msgid "Browse & Choose Artwork - Select Library"
+msgstr "Przeglądaj i wybierz grafiki - Wybierz bibliotekę"
+
+msgctxt "#32508"
+msgid "Browse & Choose + Download - Select Library"
+msgstr "Przeglądaj i wybierz + Pobierz - Wybierz bibliotekę"
+
+msgctxt "#32509"
+msgid "Auto-Fill Missing Artwork - Select Library"
+msgstr "Automatyczne uzupełnianie brakujących grafik - Wybierz bibliotekę"
+
+msgctxt "#32510"
+msgid "Last Session (any library)"
+msgstr "Ostatnia sesja (dowolna biblioteka)"
+
+msgctxt "#32511"
+msgid "Current Queue Status"
+msgstr "Aktualny status kolejki"
+
+msgctxt "#32512"
+msgid "Session History"
+msgstr "Historia sesji"
+
+msgctxt "#32513"
+msgid "Missing Artwork - Queue Status"
+msgstr "Brakujące grafiki - Status kolejki"
+
+msgctxt "#32514"
+msgid "Start new scan (clears queue)"
+msgstr "Rozpocznij nowe skanowanie (czyści kolejkę)"
+
+msgctxt "#32515"
+msgid "View last report"
+msgstr "Zobacz ostatni raport"
+
+msgctxt "#32516"
+msgid "Start new scan"
+msgstr "Rozpocznij nowe skanowanie"
+
+msgctxt "#32520"
+msgid "Artwork Download Report"
+msgstr "Raport pobierania grafik"
+
+msgctxt "#32522"
+msgid "Download Artwork to Filesystem"
+msgstr "Pobierz grafiki do systemu plików"
+
+msgctxt "#32523"
+msgid "Download Artwork - Select Scope"
+msgstr "Pobierz grafiki - Wybierz zakres"
+
+msgctxt "#32530"
+msgid "Tools"
+msgstr "Narzędzia"
+
+msgctxt "#32532"
+msgid "Add/Fix IMDb & TMDB IDs"
+msgstr "Dodaj/Napraw identyfikatory IMDb & TMDB"
+
+msgctxt "#32540"
+msgid "Scan for Animated Posters"
+msgstr "Skanuj w poszukiwaniu animowanych plakatów"
+
+msgctxt "#32541"
+msgid "View Cache Statistics"
+msgstr "Zobacz statystyki pamięci podręcznej"
+
+msgctxt "#32542"
+msgid "Reset GIF Cache"
+msgstr "Zresetuj pamięć podręczną GIF"
+
+msgctxt "#32543"
+msgid "GIF Scanner - Last Run"
+msgstr "Skaner GIF - Ostatnie uruchomienie"
+
+msgctxt "#32544"
+msgid "GIF Cache Statistics"
+msgstr "Statystyki pamięci podręcznej GIF"
+
+msgctxt "#32546"
+msgid "Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
+msgstr "Wyczyścić {0} buforowanych wpisów GIF?[CR][CR]Użyj tego do rozwiązywania problemów z pamięcią podręczną.[CR][CR]Wskazówka: Zamiast tego użyj trybu 'Pełne ponowne skanowanie', aby ponownie przetworzyć pliki GIF."
+
+msgctxt "#32547"
+msgid "GIF Cache"
+msgstr "Pamięć podręczna GIF"
+
+msgctxt "#32548"
+msgid "Reset complete - cleared {0} entries"
+msgstr "Reset zakończony - wyczyszczono {0} wpisów"
+
+msgctxt "#32549"
+msgid "Cache is already empty"
+msgstr "Pamięć podręczna jest już pusta"
+
+msgctxt "#32550"
+msgid "Auto-Applied Artwork Report"
+msgstr "Raport automatycznie zastosowanych grafik"
+
+msgctxt "#32551"
+msgid "Skipped Items Report"
+msgstr "Raport pominiętych elementów"
+
+msgctxt "#32552"
+msgid "Scan for GIF Posters"
+msgstr "Skanuj w poszukiwaniu plakatów GIF"
+
+msgctxt "#32553"
+msgid "Select scan mode"
+msgstr "Wybierz tryb skanowania"
+
+msgctxt "#32554"
+msgid "Select Language"
+msgstr "Wybierz język"
+
+msgctxt "#32555"
+msgid "Select Artwork Type - {0}"
+msgstr "Wybierz typ grafiki - {0}"
+
+msgctxt "#32556"
+msgid "Select {0}"
+msgstr "Wybierz {0}"
+
+msgctxt "#32557"
+msgid "Edit {0}"
+msgstr "Edytuj {0}"
+
+msgctxt "#32560"
+msgid "Edit: {0}"
+msgstr "Edytuj: {0}"
+
+msgctxt "#32561"
+msgid "Dialog Error"
+msgstr "Błąd okna dialogowego"
+
+msgctxt "#32562"
+msgid "File not found: {0}"
+msgstr "Nie znaleziono pliku: {0}"
+
+msgctxt "#32563"
+msgid "Failed to read file: {0}"
+msgstr "Nie udało się odczytać pliku: {0}"
+
+msgctxt "#32564"
+msgid "Rating source '{0}' already exists."
+msgstr "Źródło oceny '{0}' już istnieje."
+
+msgctxt "#32565"
+msgid "Rating (0-10)"
+msgstr "Ocena (0-10)"
+
+msgctxt "#32566"
+msgid "Continue"
+msgstr "Kontynuuj"
+
+msgctxt "#32567"
+msgid "Auto-Fill"
+msgstr "Automatyczne uzupełnianie"
+
+msgctxt "#32568"
+msgid "Resume in Background"
+msgstr "Wznów w tle"
+
+msgctxt "#32569"
+msgid "Yes, Cancel It"
+msgstr "Tak, anuluj to"
+
+msgctxt "#32570"
+msgid "No, Keep Running"
+msgstr "Nie, kontynuuj działanie"
+
+msgctxt "#32571"
+msgid "Cancel Running Task?"
+msgstr "Anulować uruchomione zadanie?"
+
+msgctxt "#32572"
+msgid "Scan Cancelled"
+msgstr "Skanowanie anulowane"
+
+msgctxt "#32573"
+msgid "Scan paused. Resume in background?"
+msgstr "Skanowanie wstrzymane. Wznowić w tle?"
+
+msgctxt "#32574"
+msgid "Cancel to resume later"
+msgstr "Anuluj, aby wznowić później"
+
+msgctxt "#32575"
+msgid "Invalid scope: {0}"
+msgstr "Nieprawidłowy zakres: {0}"
+
+msgctxt "#32576"
+msgid "Invalid scan mode: {0}"
+msgstr "Nieprawidłowy tryb skanowania: {0}"
+
+msgctxt "#32577"
+msgid "Resuming scan..."
+msgstr "Wznawianie skanowania..."
+
+msgctxt "#32578"
+msgid "Background scan complete"
+msgstr "Skanowanie w tle zakończone"
+
+msgctxt "#32579"
+msgid "All (Movies + TV Shows)"
+msgstr "Wszystkie (filmy + seriale)"
+
+msgctxt "#32580"
+msgid "Movies Only"
+msgstr "Tylko filmy"
+
+msgctxt "#32581"
+msgid "TV Shows Only"
+msgstr "Tylko seriale"
+
+msgctxt "#32582"
+msgid "Incremental Scan"
+msgstr "Skanowanie przyrostowe"
+
+msgctxt "#32583"
+msgid "Skip unchanged GIFs, detect new/modified ones"
+msgstr "Pomiń niezmienione pliki GIF, wykryj nowe/zmodyfikowane"
+
+msgctxt "#32584"
+msgid "Full Rescan"
+msgstr "Pełne ponowne skanowanie"
+
+msgctxt "#32585"
+msgid "Rescan all items, rebuild cache from scratch"
+msgstr "Przeskanuj wszystkie elementy, odbuduj pamięć podręczną od zera"
+
+msgctxt "#32586"
+msgid "{0} GIFs cached"
+msgstr "{0} plików GIF zbuforowano"
+
+msgctxt "#32587"
+msgid "no cache"
+msgstr "brak pamięci podręcznej"
+
+msgctxt "#32588"
+msgid "Total Cached GIFs: {0}"
+msgstr "Łącznie zbuforowanych GIF: {0}"
+
+msgctxt "#32589"
+msgid "Recently Scanned (Last {0}):"
+msgstr "Ostatnio zeskanowane (Ostatnie {0}):"
+
+msgctxt "#32590"
+msgid "... and {0} more"
+msgstr "... i {0} więcej"
+
+msgctxt "#32591"
+msgid "Cannot resume in background."
+msgstr "Nie można wznowić w tle."
+
+msgctxt "#32592"
+msgid "Cancel it and start {0}?"
+msgstr "Anulować to i rozpocząć {0}?"
+
+msgctxt "#32593"
+msgid "Scan cancelled. Found: {0} | Cached: {1} | Existing: {2}"
+msgstr "Skanowanie anulowane. Znaleziono: {0} | Zbuforowano: {1} | Istniejące: {2}"
+
+msgctxt "#32594"
+msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
+msgstr "Skanowanie zakończone! Znaleziono: {0} | Zbuforowano: {1} | Istniejące: {2}"
+
+msgctxt "#32900"
+msgid "Debug"
+msgstr "Debugowanie"
+
+msgctxt "#32901"
+msgid "Enable Debug Output"
+msgstr "Włącz wyjście debugowania"
+
+msgctxt "#32930"
+msgid "English"
+msgstr "Angielski"
+
+msgctxt "#32931"
+msgid "Spanish"
+msgstr "Hiszpański"
+
+msgctxt "#32932"
+msgid "Portuguese (Brazil)"
+msgstr "Portugalski (Brazylia)"
+
+msgctxt "#32933"
+msgid "Portuguese (Portugal)"
+msgstr "Portugalski (Portugalia)"
+
+msgctxt "#32934"
+msgid "French"
+msgstr "Francuski"
+
+msgctxt "#32935"
+msgid "German"
+msgstr "Niemiecki"
+
+msgctxt "#32936"
+msgid "Chinese (Simplified)"
+msgstr "Chiński (Uproszczony)"
+
+msgctxt "#32937"
+msgid "Chinese (Traditional)"
+msgstr "Chiński (Tradycyjny)"
+
+msgctxt "#32938"
+msgid "Italian"
+msgstr "Włoski"
+
+msgctxt "#32939"
+msgid "Polish"
+msgstr "Polski"
+
+msgctxt "#32940"
+msgid "Russian"
+msgstr "Rosyjski"
+
+msgctxt "#32941"
+msgid "Dutch"
+msgstr "Holenderski"
+
+msgctxt "#32942"
+msgid "Swedish"
+msgstr "Szwedzki"
+
+msgctxt "#32943"
+msgid "Korean"
+msgstr "Koreański"
+
+msgctxt "#32944"
+msgid "Japanese"
+msgstr "Japoński"
+
+msgctxt "#32950"
+msgid "Advanced API Configuration"
+msgstr "Zaawansowana konfiguracja API"
+
+msgctxt "#32951"
+msgid "Use Custom TMDb API Key"
+msgstr "Użyj własnego klucza API TMDb"
+
+msgctxt "#32952"
+msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
+msgstr "Wbudowany klucz API TMDb jest dostarczony i działa dla większości użytkowników. Włącz to tylko, jeśli potrzebujesz wyższych limitów żądań lub chcesz użyć własnej dedykowanej puli."
+
+msgctxt "#32960"
+msgid "Art Types to Check"
+msgstr "Typy grafik do sprawdzenia"
+
+msgctxt "#32961"
+msgid "Poster"
+msgstr "Poster"
+
+msgctxt "#32962"
+msgid "Fanart"
+msgstr "Fanart"
+
+msgctxt "#32963"
+msgid "Clearlogo"
+msgstr "Clearlogo"
+
+msgctxt "#32964"
+msgid "Clearart"
+msgstr "Clearart"
+
+msgctxt "#32965"
+msgid "Banner"
+msgstr "Banner"
+
+msgctxt "#32966"
+msgid "Landscape"
+msgstr "Landscape"
+
+msgctxt "#32967"
+msgid "Discart"
+msgstr "Discart"
+
+msgctxt "#32968"
+msgid "Keyart"
+msgstr "Keyart"
+
+msgctxt "#32969"
+msgid "Characterart"
+msgstr "Characterart"
