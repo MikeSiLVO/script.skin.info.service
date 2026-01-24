@@ -4,10 +4,10 @@ from __future__ import annotations
 from typing import Any
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.infrastructure.dialogs import show_select, show_yesno
+from lib.kodi.client import ADDON
 from lib.editor.config import TVSHOW_STATUS_VALUES
 from lib.editor.operations import fetch_library_values_for_field
 from lib.editor.utilities import (
@@ -19,8 +19,6 @@ from lib.editor.utilities import (
     validate_top250,
     validate_year,
 )
-
-ADDON = xbmcaddon.Addon()
 
 
 def handle_text(

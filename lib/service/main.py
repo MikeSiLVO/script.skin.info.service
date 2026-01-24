@@ -8,10 +8,9 @@ from __future__ import annotations
 import threading
 import time
 import xbmc
-import xbmcaddon
 import xbmcgui
 
-from lib.kodi.client import request, get_cache_only, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, log
+from lib.kodi.client import request, get_cache_only, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, log, ADDON
 from lib.service.properties import (
     set_artist_properties,
     set_album_properties,
@@ -24,11 +23,9 @@ from lib.service.properties import (
     set_ratings_properties,
 )
 from lib.service.stinger import StingerMonitor
-from lib.kodi.utils import clear_group, set_prop, clear_prop, extract_media_ids
+from lib.kodi.utils import clear_group, set_prop, clear_prop, extract_media_ids, wait_for_kodi_ready
 
 SERVICE_POLL_INTERVAL = 0.10
-SERVICE_STARTUP_WAIT = 1.0
-SERVICE_READY_CHECK_INTERVAL = 0.5
 MAX_CONSECUTIVE_ERRORS = 10
 CACHE_MOVIESET_TTL = 300
 
@@ -93,7 +90,7 @@ class ServiceMain(threading.Thread):
 
     def _refresh_imdb_dataset(self) -> None:
         """Check for IMDb dataset updates in background after library scan (if enabled)."""
-        setting = xbmcaddon.Addon().getSetting("imdb_auto_update")
+        setting = ADDON.getSetting("imdb_auto_update")
         if setting not in ("library_scan", "both"):
             return
 
@@ -114,7 +111,7 @@ class ServiceMain(threading.Thread):
         def _do_update():
             try:
                 from lib.rating.updater import update_library_ratings
-                scope = xbmcaddon.Addon().getSetting("imdb_auto_update_scope") or "movies_tvshows"
+                scope = ADDON.getSetting("imdb_auto_update_scope") or "movies_tvshows"
 
                 log("Service", f"Starting IMDb auto-update (scope={scope})", xbmc.LOGINFO)
 
@@ -139,7 +136,7 @@ class ServiceMain(threading.Thread):
         Args:
             force: If True, skip the 24-hour interval check (used for startup)
         """
-        setting = xbmcaddon.Addon().getSetting("imdb_auto_update")
+        setting = ADDON.getSetting("imdb_auto_update")
         if setting not in ("when_updated", "both"):
             return
 
@@ -191,35 +188,20 @@ class ServiceMain(threading.Thread):
             if intervals_passed > self._refresh_timers[interval]:
                 self._refresh_timers[interval] = intervals_passed
                 set_prop(f"SkinInfo.Refresh.{interval}min", str(intervals_passed))
-                log("Service",f"Scheduled refresh {interval}min incremented to {intervals_passed}", xbmc.LOGDEBUG)
 
     def _clear_media_type(self, media_type: str) -> None:
         prefix = _MEDIA_TYPE_PREFIXES.get(media_type)
         if prefix:
             clear_group(prefix)
 
-    def _ready(self) -> bool:
-        """Check if Kodi's JSON-RPC API is ready."""
-        try:
-            result = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}')
-            return "pong" in result.lower()
-        except Exception:
-            return False
-
     def run(self) -> None:
-        version = xbmcaddon.Addon().getAddonInfo("version")
-        log("Service",
-            f"Starting (version={version}), waiting for Kodi to be ready...",
-            xbmc.LOGINFO,
-        )
+        version = ADDON.getAddonInfo("version")
+
         monitor = LibraryMonitor(self)
+        if not wait_for_kodi_ready(monitor):
+            return
 
-        if not monitor.waitForAbort(SERVICE_STARTUP_WAIT):
-            while not monitor.waitForAbort(SERVICE_READY_CHECK_INTERVAL):
-                if self._ready():
-                    break
-
-        log("Service", "Kodi ready, service started", xbmc.LOGINFO)
+        log("Service", f"Started (version={version})", xbmc.LOGINFO)
 
         from lib.infrastructure.workers import SingletonWorker
         worker = SingletonWorker.get_instance()
@@ -275,21 +257,18 @@ class ServiceMain(threading.Thread):
 
     def _check_pending_api_keys(self) -> None:
         """Check for API keys that were entered but not saved (user canceled settings dialog)."""
-        import xbmcaddon
-        from lib.kodi.client import API_KEY_CONFIG, log
+        from lib.kodi.client import API_KEY_CONFIG
         from lib.infrastructure.dialogs import show_notification
 
         if xbmc.getCondVisibility('Window.IsVisible(DialogAddonSettings.xml)'):
             return
-
-        addon = xbmcaddon.Addon()
 
         for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
             pending_prop = f'SkinInfo.PendingAPIKey.{provider}'
             if xbmc.getInfoLabel(f'Window(home).Property({pending_prop})'):
                 config = API_KEY_CONFIG.get(f"{provider}_api_key")
                 if config:
-                    saved_key = addon.getSetting(config["setting_path"])
+                    saved_key = ADDON.getSetting(config["setting_path"])
                     if not saved_key:
                         show_notification(
                             "API Key Not Saved",
@@ -304,7 +283,7 @@ class ServiceMain(threading.Thread):
             if xbmc.getInfoLabel(f'Window(home).Property({pending_clear_prop})'):
                 config = API_KEY_CONFIG.get(f"{provider}_api_key")
                 if config:
-                    saved_key = addon.getSetting(config["setting_path"])
+                    saved_key = ADDON.getSetting(config["setting_path"])
                     if saved_key:
                         show_notification(
                             "API Key Not Cleared",
@@ -1030,7 +1009,7 @@ def start_service() -> None:
     worker = SingletonWorker.get_instance()
     worker.stop()
 
-    log("Service", "Kodi shutting down, service thread aborted", xbmc.LOGINFO)
+    log("Service", "Stopped", xbmc.LOGINFO)
     del _slideshow_monitor
 
 

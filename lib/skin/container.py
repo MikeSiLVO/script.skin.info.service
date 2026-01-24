@@ -122,6 +122,9 @@ def move_to_position(
         if not cid:
             continue
 
+        if not xbmc.getCondVisibility(f'Control.IsVisible({cid})'):
+            continue
+
         if has_pipe_main_position and idx < len(main_position_list):
             position_str = main_position_list[idx]
         else:

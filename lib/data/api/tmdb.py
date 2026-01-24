@@ -16,6 +16,16 @@ from lib.rating import tracker as usage_tracker
 from lib.kodi.settings import KodiSettings
 
 
+def _get_metadata_language() -> str:
+    """Get language code for TMDb API requests."""
+    lang = KodiSettings.online_metadata_language()
+    # TMDb expects codes like 'zh-CN', 'pt-BR' (region part uppercase)
+    if '-' in lang:
+        parts = lang.split('-')
+        return f"{parts[0]}-{parts[1].upper()}"
+    return lang
+
+
 def _is_valid_tmdb_id(tmdb_id: str | None) -> bool:
     """Check if a TMDB ID looks valid (numeric only, reasonable length)."""
     if not tmdb_id:
@@ -483,9 +493,10 @@ class ApiTmdb(RatingSource):
         """
         append = "credits,videos,keywords,release_dates,images,external_ids,recommendations"
         api_key = self.get_api_key()
+        language = _get_metadata_language()
         return self.session.get(
             f"/movie/{tmdb_id}",
-            params={"api_key": api_key, "append_to_response": append},
+            params={"api_key": api_key, "language": language, "append_to_response": append},
             abort_flag=abort_flag
         )
 
@@ -497,9 +508,10 @@ class ApiTmdb(RatingSource):
         """
         append = "credits,videos,keywords,content_ratings,images,external_ids,recommendations"
         api_key = self.get_api_key()
+        language = _get_metadata_language()
         return self.session.get(
             f"/tv/{tmdb_id}",
-            params={"api_key": api_key, "append_to_response": append},
+            params={"api_key": api_key, "language": language, "append_to_response": append},
             abort_flag=abort_flag
         )
 
@@ -517,9 +529,10 @@ class ApiTmdb(RatingSource):
         """
         append = "credits,videos,images,external_ids"
         api_key = self.get_api_key()
+        language = _get_metadata_language()
         return self.session.get(
             f"/tv/{tmdb_id}/season/{season}/episode/{episode}",
-            params={"api_key": api_key, "append_to_response": append},
+            params={"api_key": api_key, "language": language, "append_to_response": append},
             abort_flag=abort_flag
         )
 
@@ -540,9 +553,10 @@ class ApiTmdb(RatingSource):
             - aggregate_credits (main cast for the season)
         """
         api_key = self.get_api_key()
+        language = _get_metadata_language()
         return self.session.get(
             f"/tv/{tmdb_id}/season/{season_number}",
-            params={"api_key": api_key, "append_to_response": "aggregate_credits"},
+            params={"api_key": api_key, "language": language, "append_to_response": "aggregate_credits"},
             abort_flag=abort_flag
         )
 
@@ -616,9 +630,10 @@ class ApiTmdb(RatingSource):
         """
         append = "images,combined_credits,external_ids"
         api_key = self.get_api_key()
+        language = _get_metadata_language()
         return self.session.get(
             f"/person/{person_id}",
-            params={"api_key": api_key, "append_to_response": append},
+            params={"api_key": api_key, "language": language, "append_to_response": append},
             abort_flag=abort_flag
         )
 
@@ -686,8 +701,9 @@ class ApiTmdb(RatingSource):
 
         endpoint = endpoint_map.get(media_type, '/search/movie')
         api_key = self.get_api_key()
+        language = _get_metadata_language()
 
-        params: Dict[str, str | int] = {"api_key": api_key, "query": query}
+        params: Dict[str, str | int] = {"api_key": api_key, "language": language, "query": query}
         if year > 0 and media_type in ('movie', 'tv'):
             year_param = 'year' if media_type == 'movie' else 'first_air_date_year'
             params[year_param] = year

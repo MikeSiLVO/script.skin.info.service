@@ -4,12 +4,11 @@ from __future__ import annotations
 from typing import Any
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.infrastructure.dialogs import show_notification
 from lib.infrastructure.menus import Menu, MenuItem
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.editor.config import (
     MEDIA_TYPE_FIELDS,
     FieldType,
@@ -31,8 +30,6 @@ from lib.editor.utilities import (
     format_runtime_value_for_display,
     format_value_for_display,
 )
-
-ADDON = xbmcaddon.Addon()
 
 
 def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
@@ -85,45 +82,50 @@ def _show_main_menu(
 ) -> None:
     """Show flattened field menu with all editable fields."""
     fields = get_fields_for_media_type(media_type)
+    last_selected = 0
 
-    menu_items = []
-    for field in fields:
-        field_def = get_field_def(field)
-        if not field_def:
-            continue
+    while True:
+        menu_items = []
+        for field in fields:
+            field_def = get_field_def(field)
+            if not field_def:
+                continue
 
-        current = item.get(field_def["get_property"])
-        display_name = field_def["display_name"]
-        field_type = field_def["field_type"]
+            current = item.get(field_def["get_property"])
+            display_name = field_def["display_name"]
+            field_type = field_def["field_type"]
 
-        if field == "runtime":
-            value_display = format_runtime_value_for_display(current or 0)
-        else:
-            value_display = format_value_for_display(current, field_type)
+            if field == "runtime":
+                value_display = format_runtime_value_for_display(current or 0)
+            else:
+                value_display = format_value_for_display(current, field_type)
 
-        # External Ratings opens submenu, others edit directly
-        if field_type == FieldType.RATINGS:
-            label = f"{display_name}..."
-        else:
-            label = f"{display_name}: {value_display}"
+            if field_type == FieldType.RATINGS:
+                label = f"{display_name}..."
+            else:
+                label = f"{display_name}: {value_display}"
 
-        menu_items.append(MenuItem(
-            label,
-            lambda f=field: _edit_field(dbid, media_type, item, f),
-            loop=True
-        ))
+            menu_items.append(MenuItem(
+                label,
+                lambda f=field: _edit_field(dbid, media_type, item, f),
+            ))
 
-    menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items)
-    menu.show()
+        menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items)
+        result = menu.show(preselect=last_selected)
+
+        if result is None:
+            break
+
+        last_selected = menu._last_selected_idx or 0
 
 
 def _edit_field(
     dbid: int, media_type: str, item: dict[str, Any], field: str
-) -> None:
-    """Edit a single field."""
+) -> bool:
+    """Edit a single field. Returns True to keep menu open."""
     field_def = get_field_def(field)
     if not field_def:
-        return
+        return True
 
     current = item.get(field_def["get_property"])
     display_name = field_def["display_name"]
@@ -168,14 +170,23 @@ def _edit_field(
 
     else:
         show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32250), xbmcgui.NOTIFICATION_WARNING)
-        return
+        return True
 
     if cancelled:
-        return
+        return True
 
-    if save_field(dbid, media_type, field, new_value):
+    if save_field(dbid, media_type, field, new_value, item):
         item[field_def["get_property"]] = new_value
+        # Also update premiered in local item when year changes since Kodi links them
+        if field == "year" and isinstance(new_value, int):
+            original = item.get("premiered", "")
+            if original and len(original) >= 10:
+                item["premiered"] = f"{new_value}{original[4:10]}"
+            else:
+                item["premiered"] = f"{new_value}-01-01"
         show_notification(ADDON.getLocalizedString(32258), f"{display_name} updated", xbmcgui.NOTIFICATION_INFO, 2000)
         xbmc.executebuiltin("Container.Refresh")
     else:
         show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32251), xbmcgui.NOTIFICATION_ERROR, 3000)
+
+    return True

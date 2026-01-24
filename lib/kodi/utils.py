@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import threading
 import xbmc
-import xbmcaddon
 import xbmcgui
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -11,8 +10,6 @@ from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
 from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon(id="script.skin.info.service")
 HOME = xbmcgui.Window(10000)
 
 
@@ -255,3 +252,33 @@ def format_date(date_str: str, include_time: bool = False) -> str:
     except Exception as e:
         log("General", f"Unexpected error formatting date '{date_str}': {str(e)}", xbmc.LOGERROR)
         return date_str
+
+
+def wait_for_kodi_ready(
+    monitor: xbmc.Monitor,
+    initial_wait: float = 1.0,
+    check_interval: float = 0.5,
+) -> bool:
+    """
+    Wait for Kodi's JSON-RPC to be ready before starting service work.
+
+    Args:
+        monitor: xbmc.Monitor instance for abort checking
+        initial_wait: Seconds to wait before first check
+        check_interval: Seconds between subsequent checks
+
+    Returns:
+        True if ready, False if aborted
+    """
+    if monitor.waitForAbort(initial_wait):
+        return False
+
+    while not monitor.waitForAbort(check_interval):
+        try:
+            result = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}')
+            if "pong" in result.lower():
+                return True
+        except Exception:
+            pass
+
+    return False

@@ -36,7 +36,8 @@ def get_item_for_editing(dbid: int, media_type: str) -> dict[str, Any] | None:
 
 
 def save_field(
-    dbid: int, media_type: str, field_name: str, value: Any
+    dbid: int, media_type: str, field_name: str, value: Any,
+    item: dict[str, Any] | None = None
 ) -> bool:
     """Save a single field value."""
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
@@ -52,7 +53,18 @@ def save_field(
     method, id_key = method_info
     api_name = field_def["api_name"]
 
-    response = request(method, {id_key: dbid, api_name: value})
+    params: dict[str, Any] = {id_key: dbid, api_name: value}
+
+    # Kodi ignores year if premiered exists, so set both
+    if field_name == "year" and isinstance(value, int):
+        original = item.get("premiered", "") if item else ""
+        # Preserve month-day from original, only change year
+        if original and len(original) >= 10:
+            params["premiered"] = f"{value}{original[4:10]}"
+        else:
+            params["premiered"] = f"{value}-01-01"
+
+    response = request(method, params)
 
     if response is not None:
         log("Editor", f"Saved {media_type} {dbid} {field_name}", xbmc.LOGDEBUG)

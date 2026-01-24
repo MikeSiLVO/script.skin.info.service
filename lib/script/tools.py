@@ -9,11 +9,9 @@ Provides a single menu for accessing:
 """
 from __future__ import annotations
 
-import xbmcaddon
 import xbmcgui
 from lib.infrastructure.menus import Menu, MenuItem
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import ADDON
 _HOME = xbmcgui.Window(10000)
 
 

@@ -6,7 +6,6 @@ Builds queue for manual review or auto-processing.
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 from time import time
 from typing import Optional, List, Tuple, Any, Sequence
 
@@ -17,9 +16,7 @@ from lib.kodi.utils import get_preferred_language_code
 from lib.artwork.config import REVIEW_MODE_MISSING
 from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
-from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import log, ADDON
 
 
 class ArtworkScanner:

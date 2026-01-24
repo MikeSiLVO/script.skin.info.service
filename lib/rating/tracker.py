@@ -3,13 +3,10 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Tuple, Sequence
-import xbmcaddon
 import xbmcgui
 
 from lib.data.database._infrastructure import get_db
-from lib.kodi.client import _get_api_key
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import _get_api_key, ADDON
 
 
 _session_skip_providers = set()

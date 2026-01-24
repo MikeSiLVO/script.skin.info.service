@@ -14,14 +14,13 @@ from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.data import database as db
 from lib.data.database.queue import QueueEntry, ArtItemEntry
 from lib.kodi.client import request, extract_result, get_item_details, KODI_GET_DETAILS_METHODS
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.menus import Menu, MenuItem, _RETURN_TO_MAIN
 from lib.infrastructure.dialogs import show_ok, show_yesno, show_textviewer, show_select, show_notification
@@ -39,8 +38,6 @@ from lib.artwork.config import (
     serialise_session_stats as _serialise_session_stats,
 )
 from lib.artwork.scanner import ArtworkScanner
-
-ADDON = xbmcaddon.Addon()
 
 MAX_REVIEW_LOG_ITEMS = 100
 
@@ -280,6 +277,89 @@ def _show_session_report(session_row) -> None:
     show_textviewer(ADDON.getLocalizedString(32500), text)
 
 
+def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updates: Dict[str, str]) -> None:
+    """
+    Download selected artwork to filesystem after Manage Artwork selection.
+
+    Args:
+        media_type: Media type ('movie', 'tvshow', etc.)
+        dbid: Database ID
+        title: Media title (for logging)
+        art_updates: Dict of artwork_type -> URL to download
+    """
+    from lib.download.artwork import DownloadArtwork
+    from lib.infrastructure.paths import PathBuilder
+
+    if media_type not in KODI_GET_DETAILS_METHODS:
+        return
+
+    properties = []
+    if media_type in ('movie', 'episode', 'musicvideo'):
+        properties.append("file")
+    if media_type == 'season':
+        properties.extend(["season", "tvshowid"])
+    elif media_type == 'episode':
+        properties.extend(["season", "episode", "file"])
+
+    if not properties:
+        return
+
+    item = get_item_details(media_type, dbid, properties)
+    if not isinstance(item, dict):
+        return
+
+    media_file = item.get("file", "")
+    season = item.get("season")
+    episode = item.get("episode")
+
+    if not media_file and media_type not in ('season', 'tvshow', 'set'):
+        log("Artwork", f"No file path for {media_type} '{title}', skipping download")
+        return
+
+    existing_file_mode_setting = KodiSettings.existing_file_mode()
+    existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+    existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+
+    savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
+    savewith_basefilename_mvids = ADDON.getSettingBool('download.savewith_basefilename_mvids')
+
+    use_basename = media_type == 'episode' \
+        or media_type == 'movie' and savewith_basefilename \
+        or media_type == 'musicvideo' and savewith_basefilename_mvids
+
+    path_builder = PathBuilder()
+    downloader = DownloadArtwork()
+
+    for artwork_type, url in art_updates.items():
+        if not url or not url.startswith('http'):
+            continue
+
+        local_path = path_builder.build_path(
+            media_type=media_type,
+            media_file=media_file,
+            artwork_type=artwork_type,
+            season_number=season,
+            episode_number=episode,
+            use_basename=use_basename
+        )
+
+        if not local_path:
+            log("Artwork", f"Could not build download path for {media_type} '{title}' {artwork_type}")
+            continue
+
+        success, error, bytes_downloaded = downloader.download_artwork(
+            url=url,
+            local_path=local_path,
+            artwork_type=artwork_type,
+            existing_file_mode=existing_file_mode
+        )
+
+        if success:
+            log("Artwork", f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)")
+        elif error:
+            log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
+
+
 def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
     """
     Open artwork selection dialog for a single item.
@@ -395,11 +475,14 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     from lib.artwork.utilities import filter_artwork_by_language
 
+    last_selected = 0
     while True:
-        selected = show_select(ADDON.getLocalizedString(32555).format(title), art_type_labels)
+        selected = show_select(ADDON.getLocalizedString(32555).format(title), art_type_labels, preselect=last_selected)
 
         if selected < 0:
             return
+
+        last_selected = selected
 
         selected_art_type = available_art_types[selected]
         full_artwork_list = available_by_type[selected_art_type]
@@ -436,6 +519,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
                 xbmcgui.NOTIFICATION_INFO,
                 2000
             )
+            if KodiSettings.download_after_manage_artwork():
+                _download_selected_artwork(dbtype_lower, dbid_int, title, art_updates)
             refreshed_details = extract_result(
                 request(method_name, {id_key: dbid_int, "properties": ["art"]}),
                 result_key
@@ -622,10 +707,10 @@ class ArtworkSelection:
                 media_types=self.media_filter or [],
                 art_types=[]
             )
-            log("Artwork", f"Created review session {self.session_id}")
+            log("Artwork", f"Created review session {self.session_id}", xbmc.LOGDEBUG)
             return
 
-        log("Artwork", f"Resuming review session {self.session_id}")
+        log("Artwork", f"Resuming review session {self.session_id}", xbmc.LOGDEBUG)
 
         paused_sessions = [
             s for s in db.get_paused_sessions()
@@ -927,8 +1012,6 @@ class ArtworkManager:
         return db.get_pending_media_counts()
 
     def run(self) -> None:
-        log("Artwork", "ArtworkManager: starting")
-
         from lib.data.api.artwork import create_default_fetcher, validate_api_keys
         fetcher = create_default_fetcher()
         if not validate_api_keys(fetcher.tmdb_api, fetcher.fanart_api):

@@ -95,6 +95,10 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
     if not source_path:
         return None
 
+    # Resource addon icons can't be resolved via texture cache
+    if source_path.startswith('resource://'):
+        return None
+
     cache_dir = _get_cache_dir()
     if cache_dir:
         cache_filename = _generate_cache_key(source_path, blur_radius)
@@ -152,7 +156,8 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
             if img.format == 'JPEG':
                 img.draft('RGB', (480, 480))
 
-            if img.mode == "RGBA":
+            # JPEG doesn't support transparency
+            if img.mode in ("RGBA", "LA", "PA", "P"):
                 img = img.convert("RGB")
 
             img = img.resize((480, 480), _get_resize_filter())

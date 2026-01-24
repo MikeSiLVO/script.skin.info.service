@@ -2,12 +2,9 @@
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
-from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import log, ADDON
 
 TEST_DEFAULTS = {
     'heading': 'Test Dialog',

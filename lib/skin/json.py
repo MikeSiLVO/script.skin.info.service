@@ -2,14 +2,12 @@
 import json
 import os
 import xbmc
-import xbmcaddon
 import xbmcvfs
-from lib.kodi.client import log, request as json_rpc_request
+from lib.kodi.client import log, request as json_rpc_request, ADDON
 
 
 _PRESETS_CACHE = None
-_ADDON = xbmcaddon.Addon()
-_ADDON_PATH = xbmcvfs.translatePath(_ADDON.getAddonInfo('path'))
+_ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
 _PRESETS_FILE = os.path.join(_ADDON_PATH, 'lib', 'skin', 'json_presets.json')
 
 

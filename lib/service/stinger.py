@@ -10,18 +10,15 @@ from enum import Enum
 from typing import Optional, Dict, Any
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 
 # Default icon path (skinners can override via Skin.String)
 DEFAULT_STINGER_ICON = xbmcvfs.translatePath(
     "special://home/addons/script.skin.info.service/resources/icons/stinger.png"
 )
-
-ADDON = xbmcaddon.Addon()
 
 
 class StingerType(Enum):
@@ -76,11 +73,10 @@ def get_settings() -> Dict[str, Any]:
         - minutes_before_end: int
         - notification_duration: int (seconds)
     """
-    addon = xbmcaddon.Addon()
     return {
-        "enabled": addon.getSettingBool("stinger_enabled"),
-        "minutes_before_end": addon.getSettingInt("stinger_minutes_before_end") or 8,
-        "notification_duration": addon.getSettingInt("stinger_notification_duration") or 4,
+        "enabled": ADDON.getSettingBool("stinger_enabled"),
+        "minutes_before_end": ADDON.getSettingInt("stinger_minutes_before_end") or 8,
+        "notification_duration": ADDON.getSettingInt("stinger_notification_duration") or 4,
     }
 
 

@@ -3,17 +3,14 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Set
 import xbmc
-import xbmcaddon
 import xbmcgui
 
-from lib.kodi.client import request, get_library_items, log, KODI_SET_DETAILS_METHODS, KODI_ID_KEYS
+from lib.kodi.client import request, get_library_items, log, KODI_SET_DETAILS_METHODS, KODI_ID_KEYS, ADDON
 from lib.data.api.tmdb import ApiTmdb, resolve_tmdb_id, _is_valid_tmdb_id
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import cache as db_cache
 from lib.data.database._infrastructure import init_database, get_db
 from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno
-
-ADDON = xbmcaddon.Addon()
 
 
 def get_imdb_id_from_tmdb(

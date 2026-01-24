@@ -8,7 +8,11 @@ import threading
 import urllib.parse
 
 import xbmc
+import xbmcaddon
 from lib.kodi.settings import KodiSettings
+
+# Shared addon instance - import this instead of creating new xbmcaddon.Addon()
+ADDON = xbmcaddon.Addon()
 
 CACHE_DEFAULT_TTL = 30
 CACHE_CLEANUP_INTERVAL = 60

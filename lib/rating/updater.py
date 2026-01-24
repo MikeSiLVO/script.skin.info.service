@@ -5,13 +5,12 @@ from typing import List, Dict, Optional, Set, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 import time
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import (
     request, get_library_items, _get_api_key, log,
-    KODI_GET_DETAILS_METHODS, KODI_SET_DETAILS_METHODS
+    KODI_GET_DETAILS_METHODS, KODI_SET_DETAILS_METHODS, ADDON
 )
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource, resolve_tmdb_id
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource, BATCH_SIZE as MDBLIST_BATCH_SIZE
@@ -27,8 +26,6 @@ from lib.data.database import workflow as db
 from lib.data.database._infrastructure import init_database, get_db
 from lib.rating.executor import RatingBatchExecutor, ItemState
 from lib.rating.ids import get_imdb_id_from_tmdb, update_kodi_uniqueid
-
-ADDON = xbmcaddon.Addon()
 
 PROGRESS_SAVE_INTERVAL = 50
 
@@ -319,7 +316,6 @@ def update_changed_imdb_ratings(media_type: str = "") -> Dict[str, int]:
     changed_items = db.get_imdb_changed_items(media_type if media_type else None)
 
     if not changed_items:
-        log("Ratings", "No IMDb rating changes detected", xbmc.LOGINFO)
         return stats
 
     log("Ratings", f"Found {len(changed_items)} items with changed IMDb ratings", xbmc.LOGINFO)
@@ -814,7 +810,7 @@ class MdblistBatchFetcher:
         batch_num = (index // MDBLIST_BATCH_SIZE) + 1
         total_batches = (self.total_items + MDBLIST_BATCH_SIZE - 1) // MDBLIST_BATCH_SIZE
 
-        log("Ratings", f"Fetching MDBList batch {batch_num}/{total_batches} ({len(batch_ids)} items)")
+        log("Ratings", f"Fetching MDBList batch {batch_num}/{total_batches} ({len(batch_ids)} items)", xbmc.LOGDEBUG)
 
         if progress:
             if isinstance(progress, xbmcgui.DialogProgressBG):
@@ -979,13 +975,11 @@ def _ensure_episode_dataset(
         library_ep_count = 0
 
     if library_ep_count == 0:
-        log("Ratings", "No episodes in library, skipping episode dataset refresh")
         return
 
     dataset = get_imdb_dataset()
 
     if not dataset.needs_episode_refresh(library_ep_count):
-        log("Ratings", "Episode dataset is current")
         return
 
     shows = get_library_items(["tvshow"], properties=["uniqueid"])

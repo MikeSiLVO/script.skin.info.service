@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 from typing import Optional, List
 
 from lib.infrastructure.dialogs import show_ok, show_textviewer
@@ -10,8 +9,7 @@ from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 
 from lib.data import database as db
 from lib.download.workflows import LOG_DIR, download_scope_artwork
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import ADDON
 
 
 def show_download_report() -> None:

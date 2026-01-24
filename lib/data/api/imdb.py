@@ -122,7 +122,6 @@ class ApiImdbDataset:
             local_mod = self._get_local_last_modified()
 
             if local_mod == remote_mod:
-                log("IMDb", "Dataset is current, no download needed")
                 return False
 
             log("IMDb", f"Dataset update available (local: {local_mod}, remote: {remote_mod})")
@@ -213,12 +212,12 @@ class ApiImdbDataset:
                         return False
                     f.write(chunk)
 
-            log("IMDb", "Extracting dataset...")
+            log("IMDb", "Extracting dataset...", xbmc.LOGDEBUG)
             with gzip.open(gzip_path, "rb") as gz:
                 with open(tsv_path, "wb") as out:
                     out.write(gz.read())
 
-            log("IMDb", "Importing to database...")
+            log("IMDb", "Importing to database...", xbmc.LOGDEBUG)
             count = self._import_tsv_to_db(tsv_path)
 
             if last_mod:

@@ -35,12 +35,11 @@ from __future__ import annotations
 
 import xbmc
 import xbmcgui
-import xbmcaddon
 from typing import Optional
 from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.utilities import parse_art_slot_index
 from lib.artwork.config import FANART_DIMENSIONS_VARIANTS
-from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS, log
+from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS, log, ADDON
 
 
 class ArtworkDialogMulti(ArtworkDialogBase):
@@ -530,8 +529,7 @@ def show_multiart_dialog(media_type: str, dbid: int, title: str, art_type: str =
         Dict of art assignments or None if cancelled
         Example: {'fanart1': 'url1', 'fanart2': 'url2'}
     """
-    addon = xbmcaddon.Addon('script.skin.info.service')
-    addon_path = addon.getAddonInfo('path')
+    addon_path = ADDON.getAddonInfo('path')
 
     dialog = ArtworkDialogMulti(
         'script.skin.info.service-MultiArtSelection.xml',

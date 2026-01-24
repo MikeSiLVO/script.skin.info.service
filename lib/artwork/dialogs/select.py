@@ -37,14 +37,11 @@ from __future__ import annotations
 
 import xbmc
 from lib.infrastructure.dialogs import show_select
-import xbmcaddon
 from typing import Optional
 from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.dialogs.multi import show_multiart_dialog
 from lib.kodi.settings import KodiSettings
-from lib.kodi.client import decode_image_url, log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import decode_image_url, log, ADDON
 
 
 class ArtworkDialogSelect(ArtworkDialogBase):
@@ -541,8 +538,7 @@ def show_artwork_selection_dialog(
     if not available_art and not full_artwork_list:
         return ('skip', None, None)
 
-    addon = xbmcaddon.Addon('script.skin.info.service')
-    addon_path = addon.getAddonInfo('path')
+    addon_path = ADDON.getAddonInfo('path')
 
     dialog = ArtworkDialogSelect(
         'script.skin.info.service-ArtworkSelection.xml',
