@@ -172,3 +172,7 @@ When opted in, the addon only sets window properties. The skin handles display u
 - Custom positioning
 - Extended information display
 - Interactive elements if desired
+
+---
+
+[↑ Top](#stinger-notifications) · [Index](../index.md)

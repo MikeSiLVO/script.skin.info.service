@@ -46,7 +46,7 @@ def handle_next_up(handle: int, params: dict) -> None:
 
     result = request('VideoLibrary.GetTVShows', {
         'filter': {'field': 'inprogress', 'operator': 'true', 'value': ''},
-        'properties': ['art', 'title'],
+        'properties': ['art', 'title', 'mpaa', 'studio'],
         'sort': {'method': 'lastplayed', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
@@ -101,11 +101,17 @@ def handle_next_up(handle: int, params: dict) -> None:
             episode = next_ep[0]
             listitem = _create_episode_listitem(episode)
             _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
+            video_tag = listitem.getVideoInfoTag()
+            if show.get('mpaa'):
+                video_tag.setMpaa(show['mpaa'])
+            if show.get('studio'):
+                video_tag.setStudios(show['studio'])
             items.append((episode['file'], listitem, False))
 
     for url, listitem, isfolder in items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle)
 
 
@@ -202,7 +208,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
         'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
                       'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
                       'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                      'imdbnumber', 'originaltitle'],
+                      'imdbnumber', 'originaltitle', 'season'],
         'sort': {'method': 'dateadded', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
@@ -228,6 +234,8 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                 episode = episodes[0]
                 listitem = _create_episode_listitem(episode)
                 _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
+                if show.get('season'):
+                    listitem.setProperty('TotalSeasons', str(show['season']))
                 items.append((episode['file'], listitem, False))
 
         elif include_watched:
@@ -247,26 +255,35 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
 
                 if date1 == date2:
                     listitem = _create_tvshow_listitem(show)
+                    if show.get('season'):
+                        listitem.setProperty('TotalSeasons', str(show['season']))
                     show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
                     items.append((show_url, listitem, True))
                 else:
                     episode = recent_eps[0]
                     listitem = _create_episode_listitem(episode)
                     _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
+                    if show.get('season'):
+                        listitem.setProperty('TotalSeasons', str(show['season']))
                     items.append((episode['file'], listitem, False))
             elif recent_eps:
                 episode = recent_eps[0]
                 listitem = _create_episode_listitem(episode)
                 _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
+                if show.get('season'):
+                    listitem.setProperty('TotalSeasons', str(show['season']))
                 items.append((episode['file'], listitem, False))
         else:
             listitem = _create_tvshow_listitem(show)
+            if show.get('season'):
+                listitem.setProperty('TotalSeasons', str(show['season']))
             show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
             items.append((show_url, listitem, True))
 
     for url, listitem, isfolder in items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    xbmcplugin.setContent(handle, 'tvshows')
     xbmcplugin.endOfDirectory(handle)
 
 
@@ -481,6 +498,12 @@ def handle_by_actor(handle: int, params: dict) -> None:
         listitem.setProperty('Actor', actor)
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    if mix:
+        xbmcplugin.setContent(handle, 'videos')
+    elif dbtype in ('movie', 'set'):
+        xbmcplugin.setContent(handle, 'movies')
+    else:
+        xbmcplugin.setContent(handle, 'tvshows')
     xbmcplugin.endOfDirectory(handle)
 
 
@@ -665,6 +688,12 @@ def handle_by_director(handle: int, params: dict) -> None:
         listitem.setProperty('Director', director)
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    if mix:
+        xbmcplugin.setContent(handle, 'videos')
+    elif dbtype in ('movie', 'set'):
+        xbmcplugin.setContent(handle, 'movies')
+    else:
+        xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle)
 
 
@@ -786,7 +815,12 @@ def handle_similar(handle: int, params: dict) -> None:
     for url, listitem, isfolder in all_items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    if target_dbtype == 'movie':
+        xbmcplugin.setContent(handle, 'movies')
+    else:
+        xbmcplugin.setContent(handle, 'tvshows')
     xbmcplugin.endOfDirectory(handle)
+
 
 def handle_recommended(handle: int, params: dict) -> None:
     """
@@ -908,7 +942,7 @@ def handle_recommended(handle: int, params: dict) -> None:
             'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
                           'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
                           'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                          'imdbnumber', 'originaltitle'],
+                          'imdbnumber', 'originaltitle', 'season'],
         })
         candidates.extend(result.get('result', {}).get('tvshows', []) if result else [])
 
@@ -963,12 +997,20 @@ def handle_recommended(handle: int, params: dict) -> None:
             all_items.append((item_data['file'], listitem, False))
         else:
             listitem = _create_tvshow_listitem(item_data)
+            if item_data.get('season'):
+                listitem.setProperty('TotalSeasons', str(item_data['season']))
             show_url = f"videodb://tvshows/titles/{item_data['tvshowid']}/"
             all_items.append((show_url, listitem, True))
 
     for url, listitem, isfolder in all_items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    if dbtype == 'movie':
+        xbmcplugin.setContent(handle, 'movies')
+    elif dbtype == 'tvshow':
+        xbmcplugin.setContent(handle, 'tvshows')
+    else:
+        xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle)
 
 
@@ -982,9 +1024,10 @@ SEASONAL_TAGS = {
     ],
     'halloween': [
         'halloween', 'trick or treat', 'trick or treating',
-        'pumpkin', 'jack-o-lantern', 'witch', 'werewolf',
+        'pumpkin', 'jack-o-lantern', 'witchcraft', 'werewolf',
         'zombie', 'monster', 'vampire', 'holiday horror',
-        'horror anthology'
+        'horror anthology', 'slasher', 'haunted', 'ghost',
+        'supernatural', 'demon', 'demonic possession', 'gore', 'occult'
     ],
     'valentines': [
         "valentine's day", 'soulmate', 'soulmates', 'love story'
@@ -1059,4 +1102,5 @@ def handle_seasonal(handle: int, params: dict) -> None:
     for url, listitem, isfolder in all_items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
+    xbmcplugin.setContent(handle, 'movies')
     xbmcplugin.endOfDirectory(handle)

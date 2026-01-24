@@ -1694,6 +1694,74 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
     xbmcplugin.endOfDirectory(handle)
 
 
+def _handle_root_menu(handle: int) -> None:
+    """Show root menu with Tools, Search, and Widgets folders."""
+    items = [
+        ("Tools", "plugin://script.skin.info.service/?action=exec_tools", "DefaultAddonProgram.png", False),
+        ("Search", "plugin://script.skin.info.service/?action=menu_search", "DefaultAddonsSearch.png", True),
+        ("Widgets", "plugin://script.skin.info.service/?action=menu_widgets", "DefaultAddonVideo.png", True),
+    ]
+
+    for label, path, icon, is_folder in items:
+        li = xbmcgui.ListItem(label, offscreen=True)
+        li.setArt({'icon': icon, 'thumb': icon})
+        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=is_folder)
+
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
+def _handle_search_menu(handle: int) -> None:
+    """Show search submenu."""
+    items = [
+        ("Search Movies", "plugin://script.skin.info.service/?action=exec_search&dbtype=movie", "DefaultMovies.png"),
+        ("Search TV Shows", "plugin://script.skin.info.service/?action=exec_search&dbtype=tv", "DefaultTVShows.png"),
+        ("Search People", "plugin://script.skin.info.service/?action=exec_search&dbtype=person", "DefaultActor.png"),
+    ]
+
+    for label, path, icon in items:
+        li = xbmcgui.ListItem(label, offscreen=True)
+        li.setArt({'icon': icon, 'thumb': icon})
+        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=False)
+
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
+def _handle_widgets_menu(handle: int) -> None:
+    """Show widgets submenu."""
+    items = [
+        ("Next Up", "plugin://script.skin.info.service/?action=next_up", "DefaultInProgressShows.png", True),
+        ("Recent Episodes", "plugin://script.skin.info.service/?action=recent_episodes_grouped", "DefaultRecentlyAddedEpisodes.png", True),
+        ("Seasonal", "plugin://script.skin.info.service/?action=menu_seasonal", "DefaultYear.png", True),
+        ("Recommended Movies", "plugin://script.skin.info.service/?action=recommended&dbtype=movie", "DefaultMovies.png", True),
+        ("Recommended TV Shows", "plugin://script.skin.info.service/?action=recommended&dbtype=tvshow", "DefaultTVShows.png", True),
+    ]
+
+    for label, path, icon, is_folder in items:
+        li = xbmcgui.ListItem(label, offscreen=True)
+        li.setArt({'icon': icon, 'thumb': icon})
+        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=is_folder)
+
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
+def _handle_seasonal_menu(handle: int) -> None:
+    """Show seasonal submenu."""
+    items = [
+        ("Christmas", "plugin://script.skin.info.service/?action=seasonal&season=christmas", "DefaultYear.png"),
+        ("Halloween", "plugin://script.skin.info.service/?action=seasonal&season=halloween", "DefaultYear.png"),
+        ("Valentine's Day", "plugin://script.skin.info.service/?action=seasonal&season=valentines", "DefaultYear.png"),
+        ("Thanksgiving", "plugin://script.skin.info.service/?action=seasonal&season=thanksgiving", "DefaultYear.png"),
+        ("Star Wars Day", "plugin://script.skin.info.service/?action=seasonal&season=starwars", "DefaultYear.png"),
+    ]
+
+    for label, path, icon in items:
+        li = xbmcgui.ListItem(label, offscreen=True)
+        li.setArt({'icon': icon, 'thumb': icon})
+        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=True)
+
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
 def main() -> None:
     """
     Plugin entry point with action-based routing.
@@ -1701,7 +1769,7 @@ def main() -> None:
     Supports:
     - action=get_cast: Aggregate cast from movie sets or TV seasons
     - action=get_cast_player: Get cast for currently playing library item
-    - No action: DBID query (legacy behavior)
+    - No action: Root menu
     """
     try:
         handle = int(sys.argv[1])
@@ -1709,16 +1777,11 @@ def main() -> None:
         log("Plugin", f"Invalid handle provided: {e}", xbmc.LOGERROR)
         return
 
-    if len(sys.argv) < 3:
-        log("Plugin", "Plugin called with insufficient arguments", xbmc.LOGWARNING)
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+    if len(sys.argv) < 3 or not sys.argv[2] or sys.argv[2] == "?":
+        _handle_root_menu(handle)
         return
 
     query_string = sys.argv[2]
-    if not query_string or query_string == "?":
-        log("Plugin", "No query parameters provided", xbmc.LOGWARNING)
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
-        return
 
     if query_string.startswith("?"):
         query_string = query_string[1:]
@@ -1730,7 +1793,20 @@ def main() -> None:
 
     action = params.get('action', [''])[0]
 
-    if action == 'get_cast':
+    if action == 'menu_search':
+        _handle_search_menu(handle)
+    elif action == 'menu_widgets':
+        _handle_widgets_menu(handle)
+    elif action == 'menu_seasonal':
+        _handle_seasonal_menu(handle)
+    elif action == 'exec_tools':
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmc.executebuiltin('RunScript(script.skin.info.service,action=tools)')
+    elif action == 'exec_search':
+        dbtype = params.get('dbtype', ['movie'])[0]
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmc.executebuiltin(f'RunScript(script.skin.info.service,action=tmdb_search,dbtype={dbtype})')
+    elif action == 'get_cast':
         handle_get_cast(handle, params)
     elif action == 'get_cast_player':
         handle_get_cast_player(handle, params)

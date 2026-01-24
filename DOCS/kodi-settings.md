@@ -287,3 +287,7 @@ See [Skin Utilities](skin-utilities.md) for usage instructions.
    - Passing wrong type (e.g., string to integer setting) returns error
 
 **Source:** `xbmc/interfaces/json-rpc/SettingsOperations.cpp`
+
+---
+
+[↑ Top](#kodi-settings) · [Index](index.md)

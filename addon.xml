@@ -1,36 +1,48 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
-       name="Skin Info Service"
-       version="2.0.0~beta4"
-       provider-name="MikeSiLVO">
-    <requires>
-        <import addon="xbmc.python" version="3.0.0" />
-        <import addon="xbmc.json" version="12.0.0" />
-        <import addon="script.module.pil" version="1.1.7" />
-        <import addon="script.module.requests" version="2.31.0" />
-    </requires>
-    <extension point="xbmc.python.library" library="script.py" />
-    <extension point="xbmc.python.pluginsource" library="plugin.py" />
-    <extension point="kodi.context.item">
-        <menu id="kodi.core.main">
-            <item library="context.py">
-                <label>$ADDON[script.skin.info.service 32102]</label>
-                <visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,set)]</visible>
-            </item>
-        </menu>
-    </extension>
-    <extension point="xbmc.addon.metadata">
-        <summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
-        <description lang="en_GB">Skin Info Service provides additional properties such as ratings, artwork, and stream details for movies, sets, artists, and albums. Includes a gif poster scanner tool to automatically find and add animated gif posters to your library.
-        </description>
-        <platform>all</platform>
-        <license>GPL-3.0-only</license>
-        <source>https://github.com/MikeSiLVO/script.skin.info.service</source>
-        <assets>
-            <icon>icon.png</icon>
-            <fanart>fanart.jpg</fanart>
-        </assets>
-        <news>
+	   name="Skin Info Service"
+	   version="2.0.0~beta5"
+	   provider-name="MikeSiLVO">
+	<requires>
+		<import addon="xbmc.python" version="3.0.0" />
+		<import addon="xbmc.json" version="12.0.0" />
+		<import addon="script.module.pil" version="1.1.7" />
+		<import addon="script.module.requests" version="2.31.0" />
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="plugin.py">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.python.library" library="script.py" />
+	<extension point="kodi.context.item">
+		<menu id="kodi.core.main">
+			<item library="context.py">
+				<label>$ADDON[script.skin.info.service 32102]</label>
+				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,set)]</visible>
+			</item>
+		</menu>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
+		<description lang="en_GB">Skin Info Service provides additional properties such as ratings, artwork, and stream details for movies, sets, artists, and albums. Includes a gif poster scanner tool to automatically find and add animated gif posters to your library.
+		</description>
+		<platform>all</platform>
+		<license>GPL-3.0-only</license>
+		<source>https://github.com/MikeSiLVO/script.skin.info.service</source>
+		<assets>
+			<icon>icon.png</icon>
+			<fanart>fanart.jpg</fanart>
+		</assets>
+		<news>
+2.0.0~beta5
+- Changed addon type to plugin for visibility in My Add-ons
+- Added plugin root menu with Tools, Search, and Widgets
+- Added seasonal submenu with all season options
+- Added setContent for proper content type in widgets
+- Added mpaa/studio infolabels to next_up widget
+- Added TotalSeasons property to tvshow widgets
+- Fixed halloween tag 'witch' to 'witchcraft' to avoid false positives
+- Added halloween tags: slasher, haunted, ghost, supernatural, demon, demonic possession, gore, occult
+
 2.0.0~beta4
 - Added incremental ratings sync for faster auto-updates
 - Added TV show context menu now updates all episodes
@@ -56,6 +68,6 @@
 - Added blur, color picker, slideshow tools
 - Added GIF scanner
 - Added context menu integration
-        </news>
-    </extension>
+		</news>
+	</extension>
 </addon>
