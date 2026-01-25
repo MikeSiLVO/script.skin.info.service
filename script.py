@@ -121,7 +121,7 @@ def main() -> None:
                 log("General", f"Unknown dialog type '{dialog}'", xbmc.LOGERROR)
             return
 
-        valid_actions = ("tools", "settings_action", "review_artwork", "update_ratings", "edit",
+        valid_actions = ("tools", "settings_action", "review_artwork", "download_artwork", "update_ratings", "edit",
                          "arttest", "multiarttest", "blur", "colorpicker",
                          "split_string", "urlencode", "urldecode", "math",
                          "copy_item", "container_labels", "refresh_counter", "file_exists", "json",
@@ -319,6 +319,13 @@ def main() -> None:
             dbid = args.get('dbid')
             dbtype = args.get('dbtype')
             run_art_fetcher_single(dbid, dbtype)
+            return
+
+        elif action == "download_artwork":
+            from lib.artwork.manager import download_item_artwork
+            dbid = args.get('dbid')
+            dbtype = args.get('dbtype')
+            download_item_artwork(dbid, dbtype)
             return
 
         elif action == "update_ratings":

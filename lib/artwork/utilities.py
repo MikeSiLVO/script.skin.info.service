@@ -136,11 +136,10 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mo
     if not art_list:
         return art_list
 
+    preferred_lang = get_preferred_language_code()
     try:
-        preferred_lang = get_preferred_language_code()
         prefer_fanart_language = KodiSettings.prefer_fanart_language()
     except Exception:
-        preferred_lang = get_preferred_language_code()
         prefer_fanart_language = False
 
     use_language_preference = True

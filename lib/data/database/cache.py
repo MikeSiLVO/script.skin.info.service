@@ -349,6 +349,7 @@ def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
 
         expires_at = datetime.fromisoformat(row['expires_at'])
         if datetime.now() > expires_at:
+            cursor.execute('DELETE FROM online_properties_cache WHERE item_key = ?', (item_key,))
             return None
 
         try:

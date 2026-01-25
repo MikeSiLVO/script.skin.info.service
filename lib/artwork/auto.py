@@ -278,12 +278,12 @@ class ArtworkAuto:
                 return
 
             properties = []
-            if media_type in ('movie', 'episode', 'musicvideo'):
+            if media_type in ('movie', 'tvshow', 'episode', 'musicvideo'):
                 properties.append("file")
             if media_type == 'season':
                 properties.extend(["season", "tvshowid"])
             elif media_type == 'episode':
-                properties.extend(["season", "episode", "file"])
+                properties.extend(["season", "episode"])
 
             if not properties:
                 return
@@ -410,7 +410,7 @@ class ArtworkAuto:
         lines = ["[B]Auto-Applied Artwork:[/B]", ""]
 
         current_title = None
-        for title, art_type, url in self.applied_items:
+        for title, art_type, _ in self.applied_items:
             if title != current_title:
                 if current_title:
                     lines.append("")  # Blank line between items

@@ -6,7 +6,7 @@ Sets properties with SkinInfo.Online.* prefix on Home window.
 from __future__ import annotations
 
 import threading
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import xbmc
 
@@ -29,7 +29,20 @@ _PLAYER_SKININFO_PREFIX_MAP = {
 }
 
 
-def _resolve_ids(dbtype: str, dbid: str) -> tuple[str, str]:
+def _make_cache_key(media_type: str, imdb_id: str, tmdb_id: str) -> str:
+    """Create a stable cache key using the best available ID.
+
+    Priority: IMDb (universally unique) > TMDb
+    Format: "{media_type}:{id_type}:{id_value}"
+    """
+    if imdb_id:
+        return f"{media_type}:imdb:{imdb_id}"
+    if tmdb_id:
+        return f"{media_type}:tmdb:{tmdb_id}"
+    return ""
+
+
+def _resolve_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
     """
     Resolve IMDb and TMDb IDs using multiple fallback sources.
 
@@ -69,7 +82,7 @@ def _resolve_ids(dbtype: str, dbid: str) -> tuple[str, str]:
     return imdb_id, tmdb_id
 
 
-def _jsonrpc_get_uniqueids(dbtype: str, dbid: str) -> tuple[str, str]:
+def _jsonrpc_get_uniqueids(dbtype: str, dbid: str) -> Tuple[str, str]:
     from lib.kodi.client import request
 
     method_map = {
@@ -94,7 +107,7 @@ def _jsonrpc_get_uniqueids(dbtype: str, dbid: str) -> tuple[str, str]:
     return "", ""
 
 
-def _resolve_player_ids(dbtype: str, dbid: str) -> tuple[str, str]:
+def _resolve_player_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
     """
     Resolve IMDb and TMDb IDs for currently playing video.
 
@@ -198,18 +211,20 @@ class OnlineServiceMain(threading.Thread):
                 self._last_prop_keys = set()
             return
 
-        item_key = f"{dbtype}:{dbid}:{imdb_id}:{tmdb_id}"
+        cache_key = _make_cache_key(dbtype, imdb_id, tmdb_id)
+        if not cache_key:
+            return
 
-        if item_key == self._last_item_key:
+        if cache_key == self._last_item_key:
             return
 
         if self._fetch_thread and self._fetch_thread.is_alive():
             return
 
-        self._last_item_key = item_key
+        self._last_item_key = cache_key
 
         from lib.data.database.cache import get_cached_online_properties
-        cached_props = get_cached_online_properties(item_key)
+        cached_props = get_cached_online_properties(cache_key)
         if cached_props:
             new_keys = set()
             for key, value in cached_props.items():
@@ -219,14 +234,11 @@ class OnlineServiceMain(threading.Thread):
             for old_key in self._last_prop_keys - new_keys:
                 clear_prop(f"{ONLINE_PROPERTY_PREFIX}{old_key}")
             self._last_prop_keys = new_keys
-        else:
-            self._clear_properties()
-            self._last_prop_keys = set()
+        # Don't clear on cache miss - let worker set new props and clear stale ones
 
-        # Still fetch fresh data in background to update cache
         self._fetch_thread = threading.Thread(
             target=self._fetch_worker,
-            args=(dbtype, dbid, imdb_id, tmdb_id, ONLINE_PROPERTY_PREFIX, "_last_item_key", self._abort_flag),
+            args=(dbtype, imdb_id, tmdb_id, cache_key, ONLINE_PROPERTY_PREFIX, "_last_item_key", self._abort_flag),
             daemon=True
         )
         self._fetch_thread.start()
@@ -266,20 +278,22 @@ class OnlineServiceMain(threading.Thread):
                 self._last_player_key = None
             return
 
-        player_key = f"player:{dbtype}:{dbid}:{imdb_id}:{tmdb_id}"
+        cache_key = f"player:{_make_cache_key(dbtype, imdb_id, tmdb_id)}"
+        if cache_key == "player:":
+            return
 
-        if player_key == self._last_player_key:
+        if cache_key == self._last_player_key:
             return
 
         if self._player_fetch_thread and self._player_fetch_thread.is_alive():
             return
 
-        self._last_player_key = player_key
-        self._clear_player_properties()
+        self._last_player_key = cache_key
+        # Don't clear - let worker set new props (player doesn't cache so stale data is brief)
 
         self._player_fetch_thread = threading.Thread(
             target=self._fetch_worker,
-            args=(dbtype, dbid, imdb_id, tmdb_id, PLAYER_ONLINE_PROPERTY_PREFIX, "_last_player_key", self._abort_flag),
+            args=(dbtype, imdb_id, tmdb_id, cache_key, PLAYER_ONLINE_PROPERTY_PREFIX, "_last_player_key", self._abort_flag),
             daemon=True
         )
         self._player_fetch_thread.start()
@@ -293,9 +307,9 @@ class OnlineServiceMain(threading.Thread):
     def _fetch_worker(
         self,
         media_type: str,
-        dbid: str,
         imdb_id: str,
         tmdb_id: str,
+        cache_key: str,
         prop_prefix: str,
         key_attr: str,
         abort_flag: ServiceAbortFlag
@@ -313,12 +327,7 @@ class OnlineServiceMain(threading.Thread):
             if not props:
                 return
 
-            if key_attr == "_last_player_key":
-                current_key = f"player:{media_type}:{dbid}:{imdb_id}:{tmdb_id}"
-            else:
-                current_key = f"{media_type}:{dbid}:{imdb_id}:{tmdb_id}"
-
-            if current_key != getattr(self, key_attr):
+            if cache_key != getattr(self, key_attr):
                 return
 
             new_keys = set()
@@ -335,7 +344,7 @@ class OnlineServiceMain(threading.Thread):
                 self._last_prop_keys = new_keys
 
                 from lib.data.database.cache import cache_online_properties
-                cache_online_properties(current_key, props, ttl_hours=1)
+                cache_online_properties(cache_key, props, ttl_hours=1)
 
         except Exception as e:
             log("Service", f"Online fetch error: {e}", xbmc.LOGWARNING)

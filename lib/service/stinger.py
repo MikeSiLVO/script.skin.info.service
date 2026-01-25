@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 
 import xbmc
 import xbmcgui
@@ -82,7 +82,6 @@ def get_settings() -> Dict[str, Any]:
 
 def is_trakt_configured() -> bool:
     """Check if Trakt has a valid token configured."""
-    import xbmcvfs
     token_path = xbmcvfs.translatePath(
         "special://profile/addon_data/script.skin.info.service/trakt_tokens.json"
     )
@@ -273,7 +272,7 @@ def _get_notification_icon() -> str:
     return ""
 
 
-def _get_notification_text(stinger_type: StingerType) -> tuple[str, str]:
+def _get_notification_text(stinger_type: StingerType) -> Tuple[str, str]:
     """Get notification heading and message, checking skin overrides first.
 
     Skinners can override via:
@@ -399,7 +398,8 @@ def is_near_credits(minutes_before_end: int = 8) -> bool:
 
         time_remaining_minutes = (total_time - current_time) / 60
         return time_remaining_minutes < minutes_before_end
-    except Exception:
+    except Exception as e:
+        log("Service", f"Error checking playback position: {e}", xbmc.LOGDEBUG)
         return False
 
 

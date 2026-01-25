@@ -43,7 +43,7 @@ REVIEW_SCOPE_LABELS = {scope: label for scope, label in REVIEW_SCOPE_OPTIONS}
 
 REVIEW_MEDIA_FILTERS = {
     'movies': ['movie'],
-    'tvshows': ['tvshow'],
+    'tvshows': ['tvshow', 'episode'],
     'music': ['artist', 'album'],
 }
 

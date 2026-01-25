@@ -336,6 +336,10 @@ msgctxt "#32114"
 msgid "Show Edit Metadata"
 msgstr ""
 
+msgctxt "#32117"
+msgid "Show Download Artwork"
+msgstr ""
+
 msgctxt "#32120"
 msgid "Change Language"
 msgstr ""
@@ -722,6 +726,10 @@ msgstr ""
 
 msgctxt "#32295"
 msgid "Scan complete. No missing artwork found."
+msgstr ""
+
+msgctxt "#32296"
+msgid "No remote artwork to download"
 msgstr ""
 
 msgctxt "#32300"

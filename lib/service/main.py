@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import List
 import xbmc
 import xbmcgui
 
@@ -238,7 +239,8 @@ class ServiceMain(threading.Thread):
                     self._update_scheduled_refresh()
                     self._check_imdb_dataset_updates()
                     consecutive_errors = 0
-                except (KeyError, ValueError, TypeError):
+                except (KeyError, ValueError, TypeError) as e:
+                    log("Service", f"Data error in service loop: {e}", xbmc.LOGDEBUG)
                     consecutive_errors += 1
                 except Exception as e:
                     import traceback
@@ -530,7 +532,7 @@ class ServiceMain(threading.Thread):
         clear_prop(f"{prop_base}BlurredImage")
         clear_prop(f"{prop_base}BlurredImage.Original")
 
-    def _resolve_blur_source_with_fallbacks(self, sources: list[str], is_var: bool) -> str:
+    def _resolve_blur_source_with_fallbacks(self, sources: List[str], is_var: bool) -> str:
         """Resolve blur source with pipe-separated fallbacks.
 
         Args:
@@ -660,6 +662,11 @@ class ServiceMain(threading.Thread):
         except Exception as e:
             log("Blur", f"Failed to blur image: {e}", xbmc.LOGERROR)
             self._clear_blur_props(prop_base)
+            # Allow retry after failure
+            if thread_attr == "_blur_thread":
+                self._last_blur_source = None
+            elif thread_attr == "_blur_player_thread":
+                self._last_blur_player_source = None
         finally:
             setattr(self, thread_attr, None)
 

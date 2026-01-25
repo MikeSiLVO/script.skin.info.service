@@ -229,6 +229,9 @@ def build_download_jobs(
             if media_type == 'episode' and (art_type.startswith('tvshow.') or art_type.startswith('season.')):
                 continue
 
+            if media_type == 'season' and art_type.startswith('tvshow.'):
+                continue
+
             local_path = path_builder.build_path(
                 media_type=media_type,
                 media_file=file_path,
@@ -240,6 +243,7 @@ def build_download_jobs(
 
             if not local_path:
                 failed_build_path += 1
+                log("Download", f"Failed to build path for {media_type} '{title}' art:{art_type} file:{file_path}", xbmc.LOGWARNING)
                 continue
 
             alternate_path = None
@@ -479,7 +483,7 @@ def download_scope_artwork(
                 }, scope=scope)
 
                 _show_download_report(final_stats, len(jobs), scope=scope, use_background=use_background,
-                                     mismatch_counts=mismatch_counts, existing_file_mode=existing_file_mode)
+                                     mismatch_counts=mismatch_counts)
 
             finally:
                 queue.stop(wait=False)
@@ -499,8 +503,7 @@ def _show_download_report(
     total_jobs: int,
     scope: str = 'all',
     use_background: bool = False,
-    mismatch_counts: Optional[Dict[str, int]] = None,
-    existing_file_mode: str = 'skip'
+    mismatch_counts: Optional[Dict[str, int]] = None
 ) -> None:
     """
     Show final download report dialog.
@@ -511,7 +514,6 @@ def _show_download_report(
         scope: Download scope
         use_background: If True, show notification instead of textviewer
         mismatch_counts: Dict with naming mismatch counts
-        existing_file_mode: Current file mode setting
     """
     from lib.infrastructure.dialogs import show_notification
 

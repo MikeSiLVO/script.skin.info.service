@@ -1,7 +1,7 @@
 """Build dictionaries for ListItem properties from Kodi library data."""
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from lib.service.properties import (
     build_movie_data as _build_movie_base,
@@ -40,7 +40,7 @@ def build_movie_data(details: dict) -> dict:
     return data
 
 
-def build_movieset_data(set_details: dict, movies: list[dict]) -> dict:
+def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     """Build movie set data dictionary for ListItem properties."""
     data = _build_movieset_base(set_details, movies)
     data.pop("_metadata", None)
@@ -87,7 +87,7 @@ def build_musicvideo_data(details: dict) -> dict:
     return data
 
 
-def build_artist_data(artist: dict, albums: list[dict]) -> dict:
+def build_artist_data(artist: dict, albums: List[dict]) -> dict:
     """Build artist data dictionary for ListItem properties."""
     data = _build_artist_base(artist, albums)
     data.pop("_metadata", None)
@@ -113,7 +113,7 @@ def build_artist_data(artist: dict, albums: list[dict]) -> dict:
     return data
 
 
-def build_album_data(album: dict, songs: list[dict]) -> dict:
+def build_album_data(album: dict, songs: List[dict]) -> dict:
     """Build album data dictionary for ListItem properties."""
     data = _build_album_base(album, songs)
     data.pop("_metadata", None)

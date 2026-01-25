@@ -518,6 +518,11 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
+				<setting id="context_show_download_artwork" type="boolean" label="32117">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
 				<setting id="context_show_update_ratings" type="boolean" label="32113">
 					<level>0</level>
 					<default>true</default>

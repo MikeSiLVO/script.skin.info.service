@@ -50,7 +50,7 @@ def _get_cached_texture_urls() -> Set[str]:
     with _cache_lock:
         _cached_texture_urls = cached_urls
 
-    log("Service",f"Slideshow: Loaded {len(cached_urls)} cached texture URLs")
+    log("Service", f"Slideshow: Loaded {len(cached_urls)} cached texture URLs")
     return cached_urls
 
 
@@ -135,7 +135,7 @@ def _cache_image_url(url: str) -> bool:
             pass
         return True
     except Exception as e:
-        log("Service",f"Slideshow: Failed to cache URL {url}: {e}", xbmc.LOGWARNING)
+        log("Service", f"Slideshow: Failed to cache URL {url}: {e}", xbmc.LOGWARNING)
         return False
 
 
@@ -203,7 +203,7 @@ def populate_slideshow_pool() -> None:
 
         conn.commit()
 
-    log("Service",f"Slideshow: Pool populated with {len(movies)} movies, {len(tvshows)} TV shows, {len(artists)} artists")
+    log("Service", f"Slideshow: Pool populated with {len(movies)} movies, {len(tvshows)} TV shows, {len(artists)} artists")
 
 
 def sync_slideshow_pool() -> None:
@@ -251,7 +251,7 @@ def _get_artists_with_fanart() -> list:
         return []
 
     all_artists = response['result']['artists']
-    log("Service",f"Slideshow: GetArtists returned {len(all_artists)} total artists")
+    log("Service", f"Slideshow: GetArtists returned {len(all_artists)} total artists")
 
     artists_with_fanart = []
 
@@ -266,7 +266,7 @@ def _get_artists_with_fanart() -> list:
                 'description': artist.get('description', '')
             })
 
-    log("Service",f"Slideshow: Found {len(artists_with_fanart)} artists with fanart")
+    log("Service", f"Slideshow: Found {len(artists_with_fanart)} artists with fanart")
     return artists_with_fanart
 
 
@@ -316,7 +316,7 @@ def _get_random_item(media_types: List[str], select_fields: List[str], result_ma
                 if decoded in cached_urls:
                     return {result_mapping[k]: row[k] for k in result_mapping}
 
-        log("Service",f"Slideshow: No cached {media_type_label} fanart found in sample, caching random item")
+        log("Service", f"Slideshow: No cached {media_type_label} fanart found in sample, caching random item")
 
         cursor.execute(f'''
             SELECT {select_clause}
@@ -333,10 +333,10 @@ def _get_random_item(media_types: List[str], select_fields: List[str], result_ma
                     if _cached_texture_urls is not None:
                         decoded = decode_image_url(row['fanart'])
                         _cached_texture_urls.add(decoded)
-                log("Service",f"Slideshow: Cached {media_type_label} fanart: {row['fanart']}")
+                log("Service", f"Slideshow: Cached {media_type_label} fanart: {row['fanart']}")
                 return {result_mapping[k]: row[k] for k in result_mapping}
             else:
-                log("Service",f"Slideshow: Failed to cache {media_type_label} fanart", xbmc.LOGWARNING)
+                log("Service", f"Slideshow: Failed to cache {media_type_label} fanart", xbmc.LOGWARNING)
 
     return None
 
@@ -580,15 +580,15 @@ class SlideshowMonitor(xbmc.Monitor):
     def onScanFinished(self, library: str) -> None:
         """Sync slideshow pool when library scan completes."""
         try:
-            log("Service",f"Slideshow: Library scan finished ({library}), syncing pool...", xbmc.LOGDEBUG)
+            log("Service", f"Slideshow: Library scan finished ({library}), syncing pool...", xbmc.LOGDEBUG)
             sync_slideshow_pool()
         except Exception as e:
-            log("Service",f"Slideshow: Error syncing pool after scan: {str(e)}", xbmc.LOGERROR)
+            log("Service", f"Slideshow: Error syncing pool after scan: {e}", xbmc.LOGERROR)
 
     def onCleanFinished(self, library: str) -> None:
         """Sync slideshow pool when library clean completes."""
         try:
-            log("Service",f"Slideshow: Library clean finished ({library}), syncing pool...", xbmc.LOGDEBUG)
+            log("Service", f"Slideshow: Library clean finished ({library}), syncing pool...", xbmc.LOGDEBUG)
             sync_slideshow_pool()
         except Exception as e:
-            log("Service",f"Slideshow: Error syncing pool after clean: {str(e)}", xbmc.LOGERROR)
+            log("Service", f"Slideshow: Error syncing pool after clean: {e}", xbmc.LOGERROR)

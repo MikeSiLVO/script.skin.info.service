@@ -18,7 +18,7 @@ import xbmcgui
 
 from lib.data import database as db
 from lib.data.database.queue import QueueEntry, ArtItemEntry
-from lib.kodi.client import request, extract_result, get_item_details, KODI_GET_DETAILS_METHODS
+from lib.kodi.client import request, extract_result, get_item_details, decode_image_url, KODI_GET_DETAILS_METHODS
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
@@ -293,26 +293,40 @@ def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updat
     if media_type not in KODI_GET_DETAILS_METHODS:
         return
 
-    properties = []
-    if media_type in ('movie', 'episode', 'musicvideo'):
-        properties.append("file")
-    if media_type == 'season':
-        properties.extend(["season", "tvshowid"])
-    elif media_type == 'episode':
-        properties.extend(["season", "episode", "file"])
+    # Sets use title for MSIF path building, no item details needed
+    if media_type == 'set':
+        media_file = title
+        season = None
+        episode = None
+    else:
+        properties = []
+        if media_type in ('movie', 'tvshow', 'episode', 'musicvideo'):
+            properties.append("file")
+        if media_type == 'season':
+            properties.extend(["season", "tvshowid"])
+        elif media_type == 'episode':
+            properties.extend(["season", "episode", "file"])
 
-    if not properties:
-        return
+        if not properties:
+            return
 
-    item = get_item_details(media_type, dbid, properties)
-    if not isinstance(item, dict):
-        return
+        item = get_item_details(media_type, dbid, properties)
+        if not isinstance(item, dict):
+            return
 
-    media_file = item.get("file", "")
-    season = item.get("season")
-    episode = item.get("episode")
+        media_file = item.get("file", "")
+        season = item.get("season")
+        episode = item.get("episode")
 
-    if not media_file and media_type not in ('season', 'tvshow', 'set'):
+        # For seasons, get the tvshow's folder path
+        if media_type == 'season' and not media_file:
+            tvshowid = item.get("tvshowid")
+            if tvshowid:
+                tvshow = get_item_details("tvshow", tvshowid, ["file"])
+                if isinstance(tvshow, dict):
+                    media_file = tvshow.get("file", "")
+
+    if not media_file and media_type not in ('tvshow', 'set'):
         log("Artwork", f"No file path for {media_type} '{title}', skipping download")
         return
 
@@ -358,6 +372,162 @@ def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updat
             log("Artwork", f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)")
         elif error:
             log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
+
+
+def _extract_downloadable_art(
+    art_dict: Dict[str, str],
+    skip_prefixes: Optional[List[str]] = None
+) -> Dict[str, str]:
+    """Extract HTTP URLs from art dict, optionally filtering by prefix."""
+    downloadable = {}
+    for art_type, url in art_dict.items():
+        if not url:
+            continue
+        if skip_prefixes:
+            if any(art_type.startswith(prefix) for prefix in skip_prefixes):
+                continue
+        decoded_url = decode_image_url(url)
+        if decoded_url.startswith('http'):
+            downloadable[art_type] = decoded_url
+    return downloadable
+
+
+def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
+    """
+    Download existing library artwork to filesystem for a single item.
+
+    For TV shows, downloads artwork for the show, all seasons, and all episodes.
+
+    Args:
+        dbid: Database ID of the item (if None, will get from ListItem)
+        dbtype: Type of the item (movie, tvshow, episode, etc.)
+    """
+    if not dbid:
+        dbid = xbmc.getInfoLabel("ListItem.DBID")
+    if not dbtype:
+        dbtype = xbmc.getInfoLabel("ListItem.DBType")
+
+    if not dbid or dbid == "-1" or not dbtype:
+        show_notification(
+            ADDON.getLocalizedString(32290),
+            ADDON.getLocalizedString(32259),
+            xbmcgui.NOTIFICATION_WARNING,
+            3000
+        )
+        return
+
+    media_type = dbtype.lower()
+    dbid_int = int(dbid)
+
+    method_info = KODI_GET_DETAILS_METHODS.get(media_type)
+    if not method_info:
+        show_notification(
+            ADDON.getLocalizedString(32290),
+            ADDON.getLocalizedString(32263).format(media_type),
+            xbmcgui.NOTIFICATION_WARNING,
+            3000
+        )
+        return
+
+    method_name, id_key, result_key = method_info
+
+    details = extract_result(
+        request(method_name, {id_key: dbid_int, "properties": ["title", "art"]}),
+        result_key
+    )
+
+    if not details or not isinstance(details, dict):
+        show_notification(
+            ADDON.getLocalizedString(32290),
+            ADDON.getLocalizedString(32262),
+            xbmcgui.NOTIFICATION_WARNING,
+            3000
+        )
+        return
+
+    title = details.get("title", "Unknown")
+    current_art = details.get("art", {})
+
+    downloadable_art = _extract_downloadable_art(current_art)
+
+    art_count = 0
+    season_count = 0
+    episode_count = 0
+
+    if downloadable_art:
+        _download_selected_artwork(media_type, dbid_int, title, downloadable_art)
+        art_count += len(downloadable_art)
+
+    # For TV shows, also download season and episode artwork
+    if media_type == 'tvshow':
+        # Fetch and download season artwork
+        seasons_resp = request("VideoLibrary.GetSeasons", {
+            "tvshowid": dbid_int,
+            "properties": ["art", "season", "title"]
+        })
+        seasons = extract_result(seasons_resp, "seasons", [])
+
+        for season in seasons:
+            if not isinstance(season, dict):
+                continue
+            season_art = season.get("art", {})
+            # Filter out tvshow.* prefixed art - those belong to the parent show
+            season_downloadable = _extract_downloadable_art(season_art, skip_prefixes=["tvshow."])
+            if season_downloadable:
+                season_id = season.get("seasonid")
+                season_title = season.get("title", f"Season {season.get('season', '?')}")
+                if season_id:
+                    _download_selected_artwork("season", season_id, f"{title} - {season_title}", season_downloadable)
+                    art_count += len(season_downloadable)
+                    season_count += 1
+
+        # Fetch and download episode artwork
+        episodes_resp = request("VideoLibrary.GetEpisodes", {
+            "tvshowid": dbid_int,
+            "properties": ["art", "season", "episode", "title", "file"]
+        })
+        episodes = extract_result(episodes_resp, "episodes", [])
+
+        for episode in episodes:
+            if not isinstance(episode, dict):
+                continue
+            episode_art = episode.get("art", {})
+            # Filter out tvshow.* and season.* prefixed art
+            episode_downloadable = _extract_downloadable_art(episode_art, skip_prefixes=["tvshow.", "season."])
+            if episode_downloadable:
+                episode_id = episode.get("episodeid")
+                ep_title = episode.get("title", "")
+                ep_num = f"S{episode.get('season', 0):02d}E{episode.get('episode', 0):02d}"
+                if episode_id:
+                    _download_selected_artwork("episode", episode_id, f"{title} - {ep_num} {ep_title}", episode_downloadable)
+                    art_count += len(episode_downloadable)
+                    episode_count += 1
+
+    if art_count == 0:
+        show_notification(
+            ADDON.getLocalizedString(32290),
+            ADDON.getLocalizedString(32296),
+            xbmcgui.NOTIFICATION_INFO,
+            3000
+        )
+    else:
+        # Build summary message
+        if media_type == 'tvshow':
+            parts = [f"{art_count} files"]
+            if season_count > 0:
+                parts.append(f"{season_count} seasons")
+            if episode_count > 0:
+                parts.append(f"{episode_count} episodes")
+            message = "Downloaded " + ", ".join(parts)
+        else:
+            message = f"Downloaded {art_count} files"
+
+        show_notification(
+            ADDON.getLocalizedString(32290),
+            message,
+            xbmcgui.NOTIFICATION_INFO,
+            3000
+        )
 
 
 def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
@@ -544,7 +714,6 @@ class ArtworkSelection:
         self,
         session_id: Optional[int] = None,
         media_filter: Optional[List[str]] = None,
-        review_mode: str = REVIEW_MODE_MISSING,
         enable_download: bool = False,
     ):
 
@@ -1400,7 +1569,6 @@ class ArtworkManager:
         reviewer = ArtworkSelection(
             session_id=self.session_id,
             media_filter=self.media_filter,
-            review_mode=self.review_mode,
         )
         review_outcome = reviewer.review_queue()
         if not review_outcome:
@@ -1408,7 +1576,7 @@ class ArtworkManager:
 
         return True
 
-    def _handle_manual_review(self, preset_mode: Optional[str] = None, enable_download: bool = False) -> bool:
+    def _handle_manual_review(self, enable_download: bool = False) -> bool:
         need_scan = self._decide_session()
         if need_scan is None or need_scan is _RETURN_TO_MAIN:
             return False
@@ -1453,7 +1621,6 @@ class ArtworkManager:
         reviewer = ArtworkSelection(
             session_id=self.session_id,
             media_filter=self.media_filter,
-            review_mode=self.review_mode,
             enable_download=enable_download,
         )
         review_outcome = reviewer.review_queue()
