@@ -11,7 +11,7 @@ from typing import Dict, Optional
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utils import set_prop, clear_prop, clear_group, get_prop
+from lib.kodi.utils import set_prop, clear_prop, clear_group, get_prop, wait_for_kodi_ready
 
 ONLINE_POLL_INTERVAL = 0.10
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
@@ -161,8 +161,10 @@ class OnlineServiceMain(threading.Thread):
         self._last_prop_keys: set = set()
 
     def run(self) -> None:
-        log("Service", "Online service started", xbmc.LOGINFO)
         monitor = xbmc.Monitor()
+
+        if not wait_for_kodi_ready(monitor):
+            return
 
         while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
             if self.abort.is_set():
@@ -171,8 +173,6 @@ class OnlineServiceMain(threading.Thread):
                 self._loop()
             except Exception as e:
                 log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
-
-        log("Service", "Online service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
         self._handle_library_item()

@@ -3,13 +3,10 @@ from __future__ import annotations
 
 from typing import Sequence, Tuple, Optional, Any
 import time
-import xbmcaddon
 import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
-from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import ADDON
 
 # Sentinel value to signal "return to main menu" vs "go back one level"
 _RETURN_TO_MAIN = object()
@@ -171,11 +168,7 @@ def show_menu_with_cancel(
         elif action is None:
             pass
     """
-    log("General", f"UI Helper: show_menu_with_cancel('{title}') ENTRY")
-
     task_info = task_manager.get_task_info()
-    task_running = task_info is not None
-    log("General", f"UI Helper: Task running: {task_running}")
 
     display_options = []
     action_map = []
@@ -197,11 +190,9 @@ def show_menu_with_cancel(
     choice = xbmcgui.Dialog().select(title, display_options, preselect=adjusted_preselect if adjusted_preselect is not None else -1)
 
     if choice == -1:
-        log("General", "UI Helper: User pressed back/ESC")
         return ('__back__', False)
 
     selected_action = action_map[choice]
-    log("General", f"UI Helper: Selected action: {selected_action}")
 
     if selected_action == '__cancel_task__':
         task_manager.cancel_task()

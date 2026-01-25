@@ -1020,7 +1020,6 @@ def main() -> None:
             log("General", f"Unknown action '{action}'. Expected one of: {', '.join(valid_actions)}", xbmc.LOGWARNING)
             return
 
-    log("Service", "Starting background service", xbmc.LOGINFO)
     from lib.service.main import start_service
     start_service()
 

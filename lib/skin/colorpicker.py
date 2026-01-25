@@ -4,9 +4,10 @@ from __future__ import annotations
 import os
 import xml.etree.ElementTree as ET
 import xbmc
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
+
+from lib.kodi.client import ADDON
 
 
 def _resolve_infolabel(value: str) -> str:
@@ -298,7 +299,7 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '', onback: 
 
     dialog = ColorPickerDialog(
         'script.skin.info.service-ColorPicker.xml',
-        xbmcaddon.Addon().getAddonInfo('path'),
+        ADDON.getAddonInfo('path'),
         setting_name=setting,
         current_color=current_color,
         default_color=default,

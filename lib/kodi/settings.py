@@ -89,9 +89,19 @@ class KodiSettings:
         return cls.get_bool('prefer_fanart_language')
 
     @classmethod
+    def online_metadata_language(cls) -> str:
+        """Get preferred language for online metadata (TMDb titles, plots, etc.)."""
+        return cls.get_string('online.metadata_language') or 'en'
+
+    @classmethod
     def enable_combo_workflows(cls) -> bool:
         """Check if download combo workflows are enabled."""
         return cls.get_bool('download.enable_combo_workflows')
+
+    @classmethod
+    def download_after_manage_artwork(cls) -> bool:
+        """Check if artwork should be downloaded after Manage Artwork selection."""
+        return cls.get_bool('download.after_manage_artwork')
 
     @classmethod
     def existing_file_mode(cls) -> str:

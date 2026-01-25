@@ -68,7 +68,7 @@ A built-in TMDB key is included. To use your own key:
 3. Select "Developer" as the type of use
 4. Fill out the required information
 5. Copy your API key
-6. Add to addon settings: Settings → Advanced → Enable "Use Custom TMDB Key" → Enter Key
+6. Add to addon settings: Settings → Advanced → Enable "Use Custom TMDB Key", then click "Enter/Edit Key"
 
 **fanart.tv API Key** - Free & Optional
 
@@ -207,25 +207,25 @@ Reports are accessible from:
 
 ## Configuration
 
-Configure the Artwork Reviewer in addon settings under "Artwork Tools":
+Configure the Artwork Reviewer in addon settings under **Artwork**:
 
-### Art Types to Check
+### Missing Artwork Types
 
-Settings > Artwork Tools > Art Types to Check
+Settings > Artwork > Missing Artwork Types
 
-Default: `poster,fanart,clearlogo,clearart,discart,banner,landscape,keyart`
+Toggle which art types to scan for:
 
-Comma-separated list of art types to scan for. Common types:
-
-- `poster` - Movie/show posters
-- `fanart` - Background artwork
-- `clearlogo` - Transparent logo
-- `clearart` - Transparent artwork
-- `discart` - Disc artwork
-- `banner` - Wide banner artwork
-- `landscape` - Landscape/thumb
-- `keyart` - Key art/poster variant
-- `characterart` - Character artwork
+| Type | Description |
+|------|-------------|
+| Poster | Movie/show posters |
+| Fanart | Background artwork |
+| Clearlogo | Transparent logo |
+| Clearart | Transparent artwork |
+| Discart | Disc artwork |
+| Banner | Wide banner artwork |
+| Landscape | Landscape/thumb |
+| Keyart | Key art/poster variant |
+| Characterart | Character artwork |
 
 Not all art types are available for all items - availability depends on scraper sources.
 
@@ -414,7 +414,7 @@ The Artwork Reviewer fully supports resume from any point:
 
 **Solutions**:
 
-1. Check "Art Types to Check" setting - make sure it includes the types you want
+1. Check "Missing Artwork Types" setting - make sure it includes the types you want
 2. Verify the artwork actually exists on scraper sources (TMDB, fanart.tv)
 3. Check that your scrapers are configured correctly in Kodi
 
@@ -424,28 +424,9 @@ The Artwork Reviewer fully supports resume from any point:
 
 **Solutions**:
 
-1. Verify your TMDB API key is entered correctly in Settings → API Keys
+1. Verify your TMDB API key is entered correctly in Settings → Advanced
 2. Verify your fanart.tv API key is entered correctly (if using fanart.tv)
 3. Check Kodi log for API error messages
-
-## Advanced Tips
-
-### Custom Art Types
-
-Add custom/rare art types to "Art Types to Check":
-
-```text
-poster,fanart,clearlogo,clearart,banner,landscape,keyart,discart,characterart,animatedposter
-```
-
-### Clear Queue and Start Fresh
-
-If you want to abandon current queue:
-
-1. Run Artwork Reviewer
-2. Choose **Manual Review**
-3. When prompted, choose to start a new scan
-4. Old queue is cleared and new scan begins
 
 ---
 

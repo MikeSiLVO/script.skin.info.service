@@ -31,7 +31,7 @@ Detects movies with post-credits scenes (stingers) and notifies near the end of 
 
 ## Settings
 
-Enable in addon settings under **Stinger Notifications**:
+Enable in addon settings under **Stinger Detection**:
 
 | Setting | Default | Description |
 |---------|---------|-------------|

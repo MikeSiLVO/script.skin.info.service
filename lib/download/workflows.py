@@ -5,7 +5,6 @@ import time
 from datetime import datetime
 import xbmc
 from lib.infrastructure.dialogs import show_ok, show_textviewer
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
 from typing import Optional, List, Dict, Tuple, Any
@@ -15,10 +14,8 @@ from lib.download.queue import DownloadQueue
 from lib.infrastructure.paths import PathBuilder
 from lib.infrastructure.tasks import TaskContext
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.data import database as db
-
-ADDON = xbmcaddon.Addon()
 
 # Log file paths
 LOG_DIR = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/')
@@ -139,7 +136,7 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
         return bool(art and isinstance(art, dict))
 
     try:
-        log("Artwork", f"Querying library for media types: {', '.join(media_types)}")
+        log("Artwork", f"Querying library for media types: {', '.join(media_types)}", xbmc.LOGDEBUG)
         all_items: List[Dict[str, Any]] = []
 
         for media_type in media_types:
@@ -166,7 +163,7 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
             if 'title' not in item:
                 item['title'] = item.get('label', 'Unknown')
 
-        log("Artwork", f"Retrieved {len(all_items)} library items with artwork")
+        log("Artwork", f"Retrieved {len(all_items)} library items with artwork", xbmc.LOGDEBUG)
         return all_items
 
     except Exception as e:
@@ -190,7 +187,7 @@ def build_download_jobs(
         - jobs: List of (url, local_path, artwork_type, title, alternate_path, media_type) tuples
         - mismatch_stats: Dict with mismatch counts per media type
     """
-    log("Artwork", f"Building download jobs from {len(items)} library items")
+    log("Artwork", f"Building download jobs from {len(items)} library items", xbmc.LOGDEBUG)
     jobs = []
     path_builder = PathBuilder()
 

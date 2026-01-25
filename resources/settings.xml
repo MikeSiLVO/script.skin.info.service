@@ -2,7 +2,7 @@
 <settings version="1">
 	<section id="script.skin.info.service">
 		<category id="api_keys" label="32044">
-			<group id="101" label="32050">
+			<group id="1" label="32050">
 				<setting id="mdblist_always_false" type="string">
 					<visible>false</visible>
 					<default>false</default>
@@ -50,7 +50,7 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="102" label="32053">
+			<group id="2" label="32053">
 				<setting id="omdb_always_false" type="string">
 					<visible>false</visible>
 					<default>false</default>
@@ -98,7 +98,7 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="103" label="32056">
+			<group id="3" label="32056">
 				<setting id="fanarttv_always_false" type="string">
 					<visible>false</visible>
 					<default>false</default>
@@ -146,7 +146,7 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="104" label="32059">
+			<group id="4" label="32059">
 				<setting id="trakt_configured" type="string">
 					<visible>false</visible>
 					<default>false</default>
@@ -209,8 +209,64 @@
 				</setting>
 			</group>
 		</category>
+		<category id="language" label="248">
+			<group id="1" label="32976">
+				<setting id="online.metadata_language" type="string" label="32006" help="32977">
+					<default>en</default>
+					<constraints>
+						<options>
+							<option label="32930">en</option>
+							<option label="32931">es</option>
+							<option label="32932">pt-br</option>
+							<option label="32933">pt</option>
+							<option label="32934">fr</option>
+							<option label="32935">de</option>
+							<option label="32936">zh-cn</option>
+							<option label="32937">zh-tw</option>
+							<option label="32938">it</option>
+							<option label="32939">pl</option>
+							<option label="32940">ru</option>
+							<option label="32941">nl</option>
+							<option label="32942">sv</option>
+							<option label="32943">ko</option>
+							<option label="32944">ja</option>
+						</options>
+					</constraints>
+					<control type="list" format="string" />
+				</setting>
+			</group>
+			<group id="2" label="32004">
+				<setting id="preferred_language" type="string" label="32006" help="32007">
+					<default>en</default>
+					<constraints>
+						<options>
+							<option label="32930">en</option>
+							<option label="32931">es</option>
+							<option label="32932">pt-br</option>
+							<option label="32933">pt</option>
+							<option label="32934">fr</option>
+							<option label="32935">de</option>
+							<option label="32936">zh-cn</option>
+							<option label="32937">zh-tw</option>
+							<option label="32938">it</option>
+							<option label="32939">pl</option>
+							<option label="32940">ru</option>
+							<option label="32941">nl</option>
+							<option label="32942">sv</option>
+							<option label="32943">ko</option>
+							<option label="32944">ja</option>
+						</options>
+					</constraints>
+					<control type="list" format="string" />
+				</setting>
+				<setting id="prefer_fanart_language" type="boolean" label="32008">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+			</group>
+		</category>
 		<category id="ratings" label="32064">
-			<group id="105" label="5">
+			<group id="1" label="5">
 				<setting id="ratings_default_source" type="string" label="32074" help="32075">
 					<default>imdb</default>
 					<constraints>
@@ -223,7 +279,7 @@
 					<control type="list" format="string" />
 				</setting>
 			</group>
-			<group id="106" label="32135">
+			<group id="2" label="32135">
 				<setting id="imdb_auto_update" type="string" label="32136" help="32137">
 					<default>off</default>
 					<constraints>
@@ -257,7 +313,7 @@
 			</group>
 		</category>
 		<category id="stinger" label="32150">
-			<group id="300" label="32150">
+			<group id="1" label="32150">
 				<setting id="stinger_enabled" type="boolean" label="32151" help="32152">
 					<default>false</default>
 					<control type="toggle" />
@@ -288,8 +344,40 @@
 				</setting>
 			</group>
 		</category>
-		<category id="artwork_tools" label="32004">
-			<group id="1" label="32000">
+		<category id="artwork" label="32004">
+			<group id="1" label="32974">
+				<setting id="download.existing_file_mode" type="integer" label="32022" help="32023">
+					<default>0</default>
+					<constraints>
+						<options>
+							<option label="32024">0</option>
+							<option label="32025">1</option>
+						</options>
+					</constraints>
+					<control type="spinner" format="integer" />
+				</setting>
+				<setting id="download.savewith_basefilename" type="boolean" label="32027" help="32028">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="download.savewith_basefilename_mvids" type="boolean" label="32029" help="32030">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+			</group>
+			<group id="2" label="32273">
+				<setting id="download.enable_combo_workflows" type="boolean" label="32019" help="32020">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+			</group>
+			<group id="3" label="32100">
+				<setting id="download.after_manage_artwork" type="boolean" label="32970" help="32971">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+			</group>
+			<group id="4" label="32000">
 				<setting id="gif_scan.scan_mode" type="string" label="32036" help="32037">
 					<default>incremental</default>
 					<constraints>
@@ -306,41 +394,12 @@
 					<control type="edit" format="string" />
 				</setting>
 			</group>
-			<group id="2" label="32100">
-				<setting id="preferred_language" type="string" label="32006" help="32007">
-					<default>en</default>
-					<constraints>
-						<options>
-							<option label="32930">en</option>
-							<option label="32931">es</option>
-							<option label="32932">pt-br</option>
-							<option label="32933">pt</option>
-							<option label="32934">fr</option>
-							<option label="32935">de</option>
-							<option label="32936">zh-cn</option>
-							<option label="32937">zh-tw</option>
-							<option label="32938">it</option>
-							<option label="32939">pl</option>
-							<option label="32940">ru</option>
-							<option label="32941">nl</option>
-							<option label="32942">sv</option>
-							<option label="32943">ko</option>
-							<option label="32944">ja</option>
-						</options>
-					</constraints>
-					<control type="list" format="string" />
-				</setting>
-				<setting id="prefer_fanart_language" type="boolean" label="32008">
-					<default>false</default>
-					<control type="toggle" />
-				</setting>
-			</group>
 			<group id="5" label="32960">
-				<setting id="art_type_poster" type="boolean" label="32961">
+				<setting id="art_type_poster" type="boolean" label="20021">
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
-				<setting id="art_type_fanart" type="boolean" label="32962">
+				<setting id="art_type_fanart" type="boolean" label="20445">
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
@@ -352,7 +411,7 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
-				<setting id="art_type_banner" type="boolean" label="32965">
+				<setting id="art_type_banner" type="boolean" label="20020">
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
@@ -374,38 +433,8 @@
 				</setting>
 			</group>
 		</category>
-		<category id="artwork_download" label="32017">
-			<group id="6" label="32018">
-				<setting id="download.enable_combo_workflows" type="boolean" label="32019" help="32020">
-					<default>false</default>
-					<control type="toggle" />
-				</setting>
-			</group>
-			<group id="7" label="32021">
-				<setting id="download.existing_file_mode" type="integer" label="32022" help="32023">
-					<default>0</default>
-					<constraints>
-						<options>
-							<option label="32024">0</option>
-							<option label="32025">1</option>
-						</options>
-					</constraints>
-					<control type="spinner" format="integer" />
-				</setting>
-			</group>
-			<group id="8" label="32026">
-				<setting id="download.savewith_basefilename" type="boolean" label="32027" help="32028">
-					<default>true</default>
-					<control type="toggle" />
-				</setting>
-				<setting id="download.savewith_basefilename_mvids" type="boolean" label="32029" help="32030">
-					<default>true</default>
-					<control type="toggle" />
-				</setting>
-			</group>
-		</category>
 		<category id="advanced" label="10038">
-			<group id="201" label="32950">
+			<group id="1" label="32950">
 				<setting id="tmdb_use_custom_key" type="boolean" label="32951" help="32952">
 					<default>false</default>
 					<control type="toggle" />
@@ -463,7 +492,7 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="200" label="32124">
+			<group id="2" label="32124">
 				<setting id="provider_cache_days" type="integer" label="32066" help="32067">
 					<level>3</level>
 					<default>3</default>
@@ -483,7 +512,7 @@
 					</control>
 				</setting>
 			</group>
-			<group id="6" label="32111">
+			<group id="3" label="32111">
 				<setting id="context_show_review_artwork" type="boolean" label="32112">
 					<level>0</level>
 					<default>true</default>
@@ -500,7 +529,7 @@
 					<control type="toggle" />
 				</setting>
 			</group>
-			<group id="5" label="32900">
+			<group id="4" label="14260">
 				<setting id="enable_debug" type="boolean" label="32901">
 					<default>false</default>
 					<control type="toggle" />

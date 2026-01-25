@@ -48,7 +48,7 @@ RunScript(script.skin.info.service,action=edit,dbid=$INFO[ListItem.DBID],dbtype=
 
 The addon provides a context menu item for editing metadata. Enable it in addon settings:
 
-Settings → Context Menu → Show Edit Metadata
+Settings → Advanced → Context Menu Items
 
 ---
 

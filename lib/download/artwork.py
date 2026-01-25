@@ -5,14 +5,11 @@ import os
 import urllib.parse
 import xbmc
 import xbmcvfs
-import xbmcaddon
 from typing import Optional, Tuple, Dict
 
 from lib.kodi.client import log
 from lib.data.api.client import ApiSession
 from lib.rating.source import RetryableError
-
-ADDON = xbmcaddon.Addon()
 
 
 class DownloadArtwork:

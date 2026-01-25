@@ -8,13 +8,10 @@ from typing import Any, Optional, List, Tuple, Dict, Set
 import os
 import urllib.request
 import xbmc
-import xbmcaddon
 import xbmcgui
 
 from lib.kodi.utils import clear_prop, batch_set_props, format_date, extract_cast_names
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
-
-ADDON = xbmcaddon.Addon()
 _window = xbmcgui.Window(10000)
 
 _RESOLUTION_TABLE = [

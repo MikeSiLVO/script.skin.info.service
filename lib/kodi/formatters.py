@@ -5,8 +5,6 @@ Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
 from typing import Dict, Tuple
 
-import xbmcaddon
-
 from lib.kodi.utils import format_date
 
 RT_SOURCE_TOMATOES = "tomatoes"
@@ -319,7 +317,7 @@ def build_common_sense_summary(cs_data: dict) -> Tuple[str, str]:
         reasons: "extreme violence and nudity; moderate language"
     """
     from typing import Dict, List
-    ADDON = xbmcaddon.Addon()
+    from lib.kodi.client import ADDON
 
     age = cs_data.get("age", 0)
 

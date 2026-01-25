@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import xbmc
 from lib.infrastructure.dialogs import show_ok, show_textviewer
-import xbmcaddon
 import xbmcgui
 from typing import Optional, List, Sequence
 
@@ -20,9 +19,7 @@ from lib.data.api.fanarttv import ApiFanarttv
 from lib.artwork.config import AUTO_LANG_REQUIRED_TYPES, AUTO_NO_LANGUAGE_TYPES
 from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
-from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import log, ADDON
 
 DEFAULT_BATCH_SIZE = 100
 

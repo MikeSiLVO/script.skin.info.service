@@ -5,20 +5,17 @@ import os
 import xbmc
 import xbmcvfs
 from lib.infrastructure.dialogs import show_textviewer, show_select, show_notification, show_yesno
-import xbmcaddon
 import xbmcgui
 from typing import Optional, Dict
 from datetime import datetime
 
-from lib.kodi.client import request, log
+from lib.kodi.client import request, log, ADDON
 from lib.infrastructure import tasks as task_manager
 from lib.infrastructure.dialogs import ProgressDialog, format_operation_report
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.data.database import gif as gif_db
-
-ADDON = xbmcaddon.Addon()
 
 
 def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) -> None:

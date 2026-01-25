@@ -2,15 +2,12 @@
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 from typing import Optional
 
-from lib.kodi.client import log, get_item_details
+from lib.kodi.client import log, get_item_details, ADDON
 from lib.data.api.tmdb import ApiTmdb
 from lib.data import database as db
-
-ADDON = xbmcaddon.Addon()
 
 
 def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:

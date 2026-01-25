@@ -3,16 +3,13 @@ from __future__ import annotations
 
 import os
 import xbmc
-import xbmcaddon
 import xbmcgui
 import xbmcvfs
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.texture.utilities import is_library_artwork_url
-
-ADDON = xbmcaddon.Addon()
 
 
 def calculate_texture_statistics(

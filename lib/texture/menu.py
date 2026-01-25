@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
@@ -11,7 +10,7 @@ from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.infrastructure.dialogs import format_operation_report, show_ok, show_textviewer
 from lib.infrastructure.menus import confirm_cancel_running_task
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.texture.cache import (
     get_cached_textures,
@@ -21,8 +20,6 @@ from lib.texture.cache import (
     cleanup_orphaned_textures,
 )
 from lib.texture.stats import calculate_texture_statistics, format_statistics_report
-
-ADDON = xbmcaddon.Addon()
 
 
 def run_texture_maintenance() -> None:

@@ -29,11 +29,11 @@ When launched, a dialog appears letting you choose:
 
 ## Configuration
 
-Configure the scanner in addon settings under the "Artwork Tools":
+Configure the scanner in addon settings under **Artwork > Animated Art**:
 
 ### Gif Filename Patterns
 
-Settings > Artwork Tools > Gif Filename Patterns
+Settings > Artwork > Animated Art
 
 Default patterns: `poster.gif, animatedposter.gif`
 
@@ -47,7 +47,7 @@ You can add custom patterns separated by commas.
 
 ### Scan Mode
 
-Settings > Artwork Tools > GIF Scanner Mode
+Settings > Artwork > Animated Art
 
 Default: `Incremental`
 

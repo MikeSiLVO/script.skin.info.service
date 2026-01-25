@@ -6,7 +6,6 @@ Handles caching, batch fetching, and dimension normalization.
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 from typing import Optional, Dict, List, Any
 
 from lib.data import database as db
@@ -15,9 +14,7 @@ from lib.data.api.fanarttv import ApiFanarttv
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
 from lib.artwork.utilities import sort_artwork_by_popularity
 from lib.artwork.config import FANART_DIMENSIONS, CACHE_ART_TYPES
-from lib.kodi.client import log
-
-ADDON = xbmcaddon.Addon()
+from lib.kodi.client import log, ADDON
 
 
 class ApiArtworkFetcher:
@@ -434,7 +431,6 @@ def validate_api_keys(tmdb_api: ApiTmdb, fanart_api: ApiFanarttv) -> bool:
     Returns:
         True if user confirmed to continue, False if cancelled
     """
-    import xbmcaddon
     from lib.infrastructure.dialogs import show_yesno
 
     fanart_key = fanart_api.get_api_key()
@@ -446,8 +442,7 @@ def validate_api_keys(tmdb_api: ApiTmdb, fanart_api: ApiFanarttv) -> bool:
             "Available: poster, fanart, clearlogo (TMDB)\n\n"
             "Continue?"
         )
-        addon = xbmcaddon.Addon()
-        if not show_yesno(addon.getLocalizedString(32273), message):
+        if not show_yesno(ADDON.getLocalizedString(32273), message):
             return False
 
     return True

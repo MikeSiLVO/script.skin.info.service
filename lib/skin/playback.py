@@ -5,13 +5,10 @@ Provides playall and playrandom functionality using JSON-RPC Playlist methods.
 from __future__ import annotations
 
 import xbmc
-import xbmcaddon
 import xbmcgui
 
-from lib.kodi.client import request
+from lib.kodi.client import request, ADDON
 from lib.infrastructure.dialogs import show_notification
-
-ADDON = xbmcaddon.Addon()
 
 
 def _detect_media_type(path: str) -> str:

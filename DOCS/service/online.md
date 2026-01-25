@@ -87,12 +87,12 @@ The online service runs automatically when the main service is started. API keys
 
 | API | Required | Setting Location |
 |-----|----------|------------------|
-| TMDb | No | Settings → API Keys |
+| TMDb | No | Settings → Advanced (custom key optional) |
 | OMDb | No | Settings → API Keys |
 | MDBList | No | Settings → API Keys |
 | Trakt | No | Settings → API Keys |
 
-TMDb uses a built-in API key by default. You can optionally provide your own key in settings.
+TMDb uses a built-in API key by default. You can optionally provide your own key in Advanced settings.
 
 ---
 
