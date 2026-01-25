@@ -110,7 +110,7 @@ def _show_main_menu(
                 lambda f=field: _edit_field(dbid, media_type, item, f),
             ))
 
-        menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items)
+        menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items, is_main_menu=True)
         result = menu.show(preselect=last_selected)
 
         if result is None:

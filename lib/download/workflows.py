@@ -145,10 +145,15 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
 
             properties = DOWNLOAD_PROPERTIES.get(media_type, ['art', 'title'])
 
+            include_seasons = media_type == 'tvshow'
+            season_props = DOWNLOAD_PROPERTIES.get('season', ['art', 'title', 'season'])
+
             items = get_library_items(
                 media_types=[media_type],
                 properties=properties,
                 decode_urls=True,
+                include_nested_seasons=include_seasons,
+                season_properties=season_props,
                 filter_func=has_artwork
             )
 
@@ -219,6 +224,9 @@ def build_download_jobs(
                 continue
 
             if media_type == 'movie' and art_type.startswith('set.'):
+                continue
+
+            if media_type == 'episode' and (art_type.startswith('tvshow.') or art_type.startswith('season.')):
                 continue
 
             local_path = path_builder.build_path(

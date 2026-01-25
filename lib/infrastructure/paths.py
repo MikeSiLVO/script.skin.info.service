@@ -142,6 +142,11 @@ class PathBuilder:
 
         sep = '\\' if '\\' in media_file else '/'
 
+        # For directory-based media types (tvshow, season), ensure we use the full path
+        # os.path.split on "/TV/Show" gives ("/TV", "Show") but we want "/TV/Show"
+        if media_type in ('tvshow', 'season') and filename and not os.path.splitext(media_file)[1]:
+            dir_path = base_path
+
         if media_type == 'movie':
             parent_dir_name = os.path.basename(dir_path)
             if parent_dir_name in ('BDMV', 'VIDEO_TS'):
