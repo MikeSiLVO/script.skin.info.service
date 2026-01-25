@@ -1,4 +1,4 @@
-oceni strings for script.skin.info.service
+# Kodi strings for script.skin.info.service
 msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
@@ -9,7 +9,6 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 msgctxt "#32000"
 msgid "Animated Art"
@@ -24,9 +23,10 @@ msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e
 msgstr "Lista wzorców nazw plików GIF oddzielonych przecinkami. Pasuje do dokładnych nazw plików (np. 'poster.gif') lub plików kończących się wzorcem (np. 'movie.poster.gif')"
 
 msgctxt "#32004"
-msgid "Artwork Tools"
-msgstr "Narzędzia grafik"
+msgid "Artwork"
+msgstr "Grafiki"
 
+#. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
 msgid "Preferred language"
 msgstr "Język preferowany"
@@ -43,21 +43,9 @@ msgctxt "#32015"
 msgid "Art types to check"
 msgstr "Typy grafik do sprawdzenia"
 
-msgctxt "#32016"
-msgid "Comma-separated list of art types to scan for"
-msgstr "Lista typów grafik do skanowania, oddzielonych przecinkami"
-
-msgctxt "#32017"
-msgid "Artwork Download"
-msgstr "Pobieranie grafik"
-
-msgctxt "#32018"
-msgid "Extra Download Options"
-msgstr "Dodatkowe opcje pobierania"
-
 msgctxt "#32019"
-msgid "Show download to filesystem options"
-msgstr "Pokaż opcje pobierania do systemu plików"
+msgid "Add 'Download' option to missing artwork and pre-cache"
+msgstr "Dodaj opcję 'Pobierz' do brakujących grafik i wstępnego buforowania"
 
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
@@ -82,10 +70,6 @@ msgstr "Pomiń (nie pobieraj)"
 msgctxt "#32025"
 msgid "Overwrite existing file"
 msgstr "Nadpisz istniejący plik"
-
-msgctxt "#32026"
-msgid "Filename Patterns"
-msgstr "Szablony nazw plików"
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
@@ -142,10 +126,6 @@ msgstr "Pełne skanowanie"
 msgctxt "#32044"
 msgid "API Keys"
 msgstr "Klucze API"
-
-msgctxt "#32045"
-msgid "TMDB - Not Required"
-msgstr "TMDB - Nie wymagane"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
@@ -281,7 +261,7 @@ msgstr "Status: Autoryzowany"
 
 msgctxt "#32082"
 msgid "Texture Cache Manager"
-msgstr "Menedżer pamięci podręcznej tekstur"
+msgstr "Menadżer pamięci podręcznej tekstur"
 
 msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
@@ -319,6 +299,7 @@ msgctxt "#32092"
 msgid "Advanced Cleanup..."
 msgstr "Zaawansowane czyszczenie..."
 
+#. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
 msgstr "Zarządzaj grafikami"
@@ -567,6 +548,7 @@ msgctxt "#32211"
 msgid "sexual content"
 msgstr "treści seksualne"
 
+#. Content advisory category - profanity/swearing (e.g., "Rated R for graphic language")
 msgctxt "#32212"
 msgid "language"
 msgstr "język"
@@ -579,6 +561,7 @@ msgctxt "#32220"
 msgid "Rated {0}+ for {1}"
 msgstr "Ocena {0}+ za {1}"
 
+#. Conjunction between content advisory items - spaces are intentional (e.g., "violence and language")
 msgctxt "#32221"
 msgid " and "
 msgstr " i "
@@ -615,6 +598,7 @@ msgctxt "#32257"
 msgid "Already Exists"
 msgstr "Już istnieje"
 
+#. Notification title for metadata editor operations
 msgctxt "#32258"
 msgid "Editor"
 msgstr "Edytor"
@@ -651,6 +635,7 @@ msgctxt "#32272"
 msgid "Select Actor"
 msgstr "Wybierz aktora"
 
+#. Menu title and feature name - scans library for items without artwork
 msgctxt "#32273"
 msgid "Missing Artwork"
 msgstr "Brakujące grafiki"
@@ -903,10 +888,12 @@ msgctxt "#32390"
 msgid "No Library Values"
 msgstr "Brak wartości biblioteki"
 
+#. Displayed when user rating is 0 (no rating given by user)
 msgctxt "#32391"
 msgid "Not Rated"
 msgstr "Bez oceny"
 
+#. Placeholder shown when a field has no value
 msgctxt "#32392"
 msgid "(Not Set)"
 msgstr "(Nie ustawiono)"
@@ -1043,6 +1030,7 @@ msgctxt "#32426"
 msgid "Complete"
 msgstr "Zakończono"
 
+#. Button label meaning "display/reveal" (not TV Show)
 msgctxt "#32427"
 msgid "Show"
 msgstr "Pokaż"
@@ -1519,10 +1507,6 @@ msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
 msgstr "Skanowanie zakończone! Znaleziono: {0} | Zbuforowano: {1} | Istniejące: {2}"
 
-msgctxt "#32900"
-msgid "Debug"
-msgstr "Debugowanie"
-
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr "Włącz wyjście debugowania"
@@ -1600,16 +1584,8 @@ msgid "A built-in TMDb API key is provided and works for most users. Enable this
 msgstr "Wbudowany klucz API TMDb jest dostarczony i działa dla większości użytkowników. Włącz to tylko, jeśli potrzebujesz wyższych limitów żądań lub chcesz użyć własnej dedykowanej puli."
 
 msgctxt "#32960"
-msgid "Art Types to Check"
-msgstr "Typy grafik do sprawdzenia"
-
-msgctxt "#32961"
-msgid "Poster"
-msgstr "Poster"
-
-msgctxt "#32962"
-msgid "Fanart"
-msgstr "Fanart"
+msgid "Missing Artwork Types"
+msgstr "Brakujące typy grafik"
 
 msgctxt "#32963"
 msgid "Clearlogo"
@@ -1618,10 +1594,6 @@ msgstr "Clearlogo"
 msgctxt "#32964"
 msgid "Clearart"
 msgstr "Clearart"
-
-msgctxt "#32965"
-msgid "Banner"
-msgstr "Banner"
 
 msgctxt "#32966"
 msgid "Landscape"
@@ -1638,3 +1610,28 @@ msgstr "Keyart"
 msgctxt "#32969"
 msgid "Characterart"
 msgstr "Characterart"
+
+msgctxt "#32970"
+msgid "Auto-download after Manage Artwork"
+msgstr "Automatyczne pobieranie po zarządzaniu grafikami"
+
+msgctxt "#32971"
+msgid "Automatically download selected artwork to filesystem after selection in Manage Artwork"
+msgstr "Automatycznie pobierz wybrane grafiki do systemu plików po wyborze w Zarządzaj grafikami"
+
+msgctxt "#32974"
+msgid "Download Settings"
+msgstr "Ustawienia pobierania"
+
+msgctxt "#32975"
+msgid "Replace existing artwork files when downloading after Manage Artwork selection"
+msgstr "Zastępuj istniejące pliki grafik podczas pobierania po wyborze w Zarządzaj grafikami"
+
+#. Settings group - language for data from online APIs (TMDb titles, plots, etc.)
+msgctxt "#32976"
+msgid "Online Service"
+msgstr "Usługa online"
+
+msgctxt "#32977"
+msgid "Language for titles, plots, and other metadata from TMDb"
+msgstr "Język dla tytułów, opisów i innych metadanych z TMDb"
