@@ -32,6 +32,30 @@ PROGRESS_SAVE_INTERVAL = 50
 _tvshow_uniqueid_cache: Dict[int, Dict[str, str]] = {}
 
 
+def _preserve_other_ratings(existing_ratings: Dict, kodi_ratings: Dict) -> None:
+    """Copy non-imdb ratings from existing to kodi_ratings format."""
+    for source_name, rating_data in existing_ratings.items():
+        if source_name != "imdb" and isinstance(rating_data, dict):
+            kodi_ratings[source_name] = {
+                "rating": rating_data.get("rating", 0),
+                "votes": int(rating_data.get("votes", 0)),
+                "default": False
+            }
+
+
+def _build_external_ids(ids: Dict) -> Dict[str, str]:
+    """Build external_ids dict from ids for database sync."""
+    external_ids: Dict[str, str] = {}
+    imdb_id = ids.get("imdb_episode") or ids.get("imdb")
+    if imdb_id:
+        external_ids["imdb"] = str(imdb_id)
+    tmdb_id = ids.get("tmdb")
+    if tmdb_id:
+        external_ids["themoviedb"] = str(tmdb_id)
+        external_ids["tmdb"] = str(tmdb_id)
+    return external_ids
+
+
 def _clear_tvshow_uniqueid_cache() -> None:
     """Clear the tvshow uniqueid cache. Call at start of batch operations."""
     _tvshow_uniqueid_cache.clear()
@@ -92,7 +116,7 @@ def _update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
 
     updated_count = 0
     for episode in episodes:
-        success, _ = _update_single_item(episode, "episode", sources, use_background=False)
+        success, _ = _update_single_item(episode, "episode", sources)
         if success:
             updated_count += 1
 
@@ -182,7 +206,7 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
         2000
     )
 
-    success, item_stats = _update_single_item(item, media_type, sources, use_background=False)
+    success, item_stats = _update_single_item(item, media_type, sources)
 
     total_added = item_stats.get('added_details', []) if item_stats else []
     total_updated = item_stats.get('updated_details', []) if item_stats else []
@@ -364,13 +388,7 @@ def update_changed_imdb_ratings(media_type: str = "") -> Dict[str, int]:
             }
         }
 
-        for source_name, rating_data in existing_ratings.items():
-            if source_name != "imdb" and isinstance(rating_data, dict):
-                kodi_ratings[source_name] = {
-                    "rating": rating_data.get("rating", 0),
-                    "votes": int(rating_data.get("votes", 0)),
-                    "default": False
-                }
+        _preserve_other_ratings(existing_ratings, kodi_ratings)
 
         response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
@@ -497,7 +515,7 @@ def update_library_ratings(
         if source_mode == "imdb":
             return _update_single_item_imdb(item, media_type, ctx.abort_flag, db_cursor)
         else:
-            return _update_single_item(item, media_type, sources, use_background, ctx.abort_flag)
+            return _update_single_item(item, media_type, sources, ctx.abort_flag)
 
     def update_results(item, success, item_stats):
         """Update results dict with item outcome."""
@@ -540,7 +558,7 @@ def update_library_ratings(
             id_key = "movieid" if media_type == "movie" else "tvshowid" if media_type == "tvshow" else "episodeid"
             items_since_save = 0
 
-            with get_db() as (conn, db_cursor):
+            with get_db() as (_, db_cursor):
                 for i, item in enumerate(items):
                     if ctx.abort_flag.is_requested():
                         results["cancelled"] = True
@@ -938,7 +956,7 @@ def _process_retry_queue(
         if source_mode == "imdb":
             success, _ = _update_single_item_imdb(item, media_type)
         else:
-            success, _ = _update_single_item(item, media_type, sources, use_background=False)
+            success, _ = _update_single_item(item, media_type, sources)
 
         if success:
             success_count += 1
@@ -1153,13 +1171,7 @@ def _update_single_item_imdb(
         }
     }
 
-    for source_name, rating_data in existing_ratings.items():
-        if source_name != "imdb" and isinstance(rating_data, dict):
-            kodi_ratings[source_name] = {
-                "rating": rating_data.get("rating", 0),
-                "votes": int(rating_data.get("votes", 0)),
-                "default": False
-            }
+    _preserve_other_ratings(existing_ratings, kodi_ratings)
 
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
     if not method_info:
@@ -1290,6 +1302,7 @@ def _finalize_item_ratings(
     year = state.year
     dbid = state.dbid
     existing_ratings = state.existing_ratings
+    ids = state.ids
 
     if not all_ratings:
         log("Ratings", "No ratings returned from any source", xbmc.LOGDEBUG)
@@ -1348,6 +1361,8 @@ def _finalize_item_ratings(
         log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
     if not added_ratings and not updated_ratings:
+        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
+
         return True, {
             "title": title,
             "year": year,
@@ -1367,16 +1382,7 @@ def _finalize_item_ratings(
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
     if response is not None:
-        ids = state.ids
-        external_ids: Dict[str, str] = {}
-        imdb_id = ids.get("imdb_episode") or ids.get("imdb")
-        if imdb_id:
-            external_ids["imdb"] = str(imdb_id)
-        tmdb_id = ids.get("tmdb")
-        if tmdb_id:
-            external_ids["themoviedb"] = str(tmdb_id)
-            external_ids["tmdb"] = str(tmdb_id)
-        db.update_synced_ratings(media_type, dbid, final_ratings, external_ids)
+        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(state.ids))
 
     item_stats = {
         "title": title,
@@ -1396,7 +1402,6 @@ def _update_single_item(
     item: Dict,
     media_type: str,
     sources: List,
-    use_background: bool = False,
     abort_flag=None
 ) -> tuple[Optional[bool], Optional[Dict]]:
     """
@@ -1606,6 +1611,8 @@ def _update_single_item(
         log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
     if not added_ratings and not updated_ratings:
+        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
+
         return True, {
             "title": title,
             "year": year,
@@ -1625,15 +1632,7 @@ def _update_single_item(
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
     if response is not None:
-        external_ids: Dict[str, str] = {}
-        imdb_id = ids.get("imdb_episode") or ids.get("imdb")
-        if imdb_id:
-            external_ids["imdb"] = str(imdb_id)
-        tmdb_id = ids.get("tmdb")
-        if tmdb_id:
-            external_ids["themoviedb"] = str(tmdb_id)
-            external_ids["tmdb"] = str(tmdb_id)
-        db.update_synced_ratings(media_type, dbid, final_ratings, external_ids)
+        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
 
     item_stats = {
         "title": title,

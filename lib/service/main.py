@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import List
 import xbmc
 import xbmcgui
 
@@ -79,7 +80,6 @@ class ServiceMain(threading.Thread):
         self._refresh_timers = {5: 0, 10: 0, 15: 0, 20: 0, 30: 0, 45: 0, 60: 0}
         self._refresh_start_time = None
         self._last_imdb_check = 0.0
-        self._last_api_key_check = 0.0
         self._stinger_monitor = StingerMonitor()
 
     def _increment_library_refresh(self) -> None:
@@ -238,7 +238,8 @@ class ServiceMain(threading.Thread):
                     self._update_scheduled_refresh()
                     self._check_imdb_dataset_updates()
                     consecutive_errors = 0
-                except (KeyError, ValueError, TypeError):
+                except (KeyError, ValueError, TypeError) as e:
+                    log("Service", f"Data error in service loop: {e}", xbmc.LOGDEBUG)
                     consecutive_errors += 1
                 except Exception as e:
                     import traceback
@@ -255,51 +256,7 @@ class ServiceMain(threading.Thread):
             except Exception:
                 pass
 
-    def _check_pending_api_keys(self) -> None:
-        """Check for API keys that were entered but not saved (user canceled settings dialog)."""
-        from lib.kodi.client import API_KEY_CONFIG
-        from lib.infrastructure.dialogs import show_notification
-
-        if xbmc.getCondVisibility('Window.IsVisible(DialogAddonSettings.xml)'):
-            return
-
-        for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
-            pending_prop = f'SkinInfo.PendingAPIKey.{provider}'
-            if xbmc.getInfoLabel(f'Window(home).Property({pending_prop})'):
-                config = API_KEY_CONFIG.get(f"{provider}_api_key")
-                if config:
-                    saved_key = ADDON.getSetting(config["setting_path"])
-                    if not saved_key:
-                        show_notification(
-                            "API Key Not Saved",
-                            f"{config['name']} API key was not saved",
-                            xbmcgui.NOTIFICATION_WARNING,
-                            5000
-                        )
-                        log("Settings", f"{config['name']} API key entered but not saved (dialog canceled)", xbmc.LOGDEBUG)
-                xbmc.executebuiltin(f'ClearProperty({pending_prop},home)')
-
-            pending_clear_prop = f'SkinInfo.PendingClearAPIKey.{provider}'
-            if xbmc.getInfoLabel(f'Window(home).Property({pending_clear_prop})'):
-                config = API_KEY_CONFIG.get(f"{provider}_api_key")
-                if config:
-                    saved_key = ADDON.getSetting(config["setting_path"])
-                    if saved_key:
-                        show_notification(
-                            "API Key Not Cleared",
-                            f"{config['name']} API key was not cleared",
-                            xbmcgui.NOTIFICATION_WARNING,
-                            5000
-                        )
-                        log("Settings", f"{config['name']} API key clear requested but not saved (dialog canceled)", xbmc.LOGDEBUG)
-                xbmc.executebuiltin(f'ClearProperty({pending_clear_prop},home)')
-
     def _loop(self) -> None:
-        now = time.time()
-
-        if now - self._last_api_key_check >= 0.5:
-            self._check_pending_api_keys()
-            self._last_api_key_check = now
         self._handle_blur_player()
         self._handle_player()
 
@@ -530,7 +487,7 @@ class ServiceMain(threading.Thread):
         clear_prop(f"{prop_base}BlurredImage")
         clear_prop(f"{prop_base}BlurredImage.Original")
 
-    def _resolve_blur_source_with_fallbacks(self, sources: list[str], is_var: bool) -> str:
+    def _resolve_blur_source_with_fallbacks(self, sources: List[str], is_var: bool) -> str:
         """Resolve blur source with pipe-separated fallbacks.
 
         Args:
@@ -660,6 +617,11 @@ class ServiceMain(threading.Thread):
         except Exception as e:
             log("Blur", f"Failed to blur image: {e}", xbmc.LOGERROR)
             self._clear_blur_props(prop_base)
+            # Allow retry after failure
+            if thread_attr == "_blur_thread":
+                self._last_blur_source = None
+            elif thread_attr == "_blur_player_thread":
+                self._last_blur_player_source = None
         finally:
             setattr(self, thread_attr, None)
 

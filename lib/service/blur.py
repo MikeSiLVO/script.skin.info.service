@@ -48,7 +48,7 @@ def _get_cache_dir():
     if not xbmcvfs.exists(cache_dir):
         success = xbmcvfs.mkdirs(cache_dir)
         if not success:
-            log("Blur",f" Failed to create blur cache directory: {cache_dir}", xbmc.LOGERROR)
+            log("Blur", f"Failed to create blur cache directory: {cache_dir}", xbmc.LOGERROR)
             return None
 
     return cache_dir
@@ -121,11 +121,11 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
                     img_bytes = f.readBytes()
 
                 if not img_bytes:
-                    log("Blur",f" Failed to download artwork: {source_path}", xbmc.LOGWARNING)
+                    log("Blur", f"Failed to download artwork: {source_path}", xbmc.LOGWARNING)
                     return None
 
             except Exception as e:
-                log("Blur",f" Failed to download artwork: {source_path}: {e}", xbmc.LOGWARNING)
+                log("Blur", f"Failed to download artwork: {source_path}: {e}", xbmc.LOGWARNING)
                 return None
         else:
             source_path = local_path
@@ -133,7 +133,7 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
         source_path = xbmcvfs.translatePath(source_path)
 
     if img_bytes is None and not xbmcvfs.exists(source_path):
-        log("Blur",f" Source image does not exist: {source_path}", xbmc.LOGWARNING)
+        log("Blur", f"Source image does not exist: {source_path}", xbmc.LOGWARNING)
         return None
 
     if not cache_dir:
@@ -169,7 +169,7 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
         return cache_path
 
     except Exception as e:
-        log("Blur",f" Failed to blur image {source_path}: {e}", xbmc.LOGERROR)
+        log("Blur", f"Failed to blur image {source_path}: {e}", xbmc.LOGERROR)
         return None
 
 
@@ -212,7 +212,7 @@ def clear_blur_cache() -> int:
     """
     cache_dir = _get_cache_dir()
     if not cache_dir or not xbmcvfs.exists(cache_dir):
-        log("Blur", " Blur cache directory does not exist", xbmc.LOGWARNING)
+        log("Blur", "Blur cache directory does not exist", xbmc.LOGWARNING)
         return 0
 
     try:
@@ -224,11 +224,11 @@ def clear_blur_cache() -> int:
             if xbmcvfs.delete(file_path):
                 deleted_count += 1
             else:
-                log("Blur",f" Failed to delete blur cache file: {file_path}", xbmc.LOGWARNING)
+                log("Blur", f"Failed to delete blur cache file: {file_path}", xbmc.LOGWARNING)
 
         log("General", f"Cleared blur cache: {deleted_count} files deleted")
         return deleted_count
 
     except Exception as e:
-        log("Blur",f" Failed to clear blur cache: {e}", xbmc.LOGERROR)
+        log("Blur", f"Failed to clear blur cache: {e}", xbmc.LOGERROR)
         return 0

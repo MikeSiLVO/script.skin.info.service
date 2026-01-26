@@ -78,6 +78,10 @@ class DownloadArtwork:
             log("Download", "Empty URL provided", xbmc.LOGERROR)
             return False, "Empty URL", 0
 
+        if not local_path:
+            log("Download", "Empty local_path provided", xbmc.LOGERROR)
+            return False, "Empty local_path", 0
+
         hostname = urllib.parse.urlparse(url).netloc
 
         if self.provider_errors.get(hostname, 0) >= self.max_provider_errors:

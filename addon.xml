@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta6"
+	   version="2.0.0~beta10"
 	   provider-name="MikeSiLVO">
 	<requires>
-		<import addon="xbmc.python" version="3.0.0" />
+		<import addon="xbmc.python" version="3.0.1" />
 		<import addon="xbmc.json" version="12.0.0" />
 		<import addon="script.module.pil" version="1.1.7" />
 		<import addon="script.module.requests" version="2.31.0" />
@@ -33,6 +33,37 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta10
+- Updated Fanart.tv API to v3.2 with built-in project key
+- Moved Fanart.tv personal key to Advanced settings (matches TMDB pattern)
+- API keys now save immediately without requiring dialog confirmation
+- Added progress dialog to Download Artwork context menu action
+- Requires Kodi 21+ (xbmc.python 3.0.1)
+
+2.0.0~beta9
+- Fixed episode artwork download failing due to duplicate JSON-RPC property
+
+2.0.0~beta8
+- Added Download Artwork context menu action for single items
+- TV show download now includes all seasons and episodes
+- Fixed season artwork path building
+- Fixed bulk download not including episodes in tvshows scope
+- Fixed inherited artwork prefixes (tvshow.*, season.*) being downloaded
+- Fixed online service cache causing property flicker
+- Fixed slideshow timing bug (sqlite3.Row compatibility)
+- Fixed blur retry logging and stinger exception logging
+- Fixed Python 3.8 compatibility issues
+- Fixed editor save when value unchanged
+- Fixed artwork auto download property fetching
+- Various service and artwork scanner cleanups
+
+2.0.0~beta7
+- Fixed metadata editor for TV shows (removed invalid 'status' field)
+- Fixed artwork downloader downloading tvshow/season art for each episode
+- Fixed season artwork not being downloaded (now included with tvshow downloads)
+- Fixed artwork paths for tvshows/seasons without trailing slash
+- Fixed metadata editor Cancel button looping instead of closing
+
 2.0.0~beta6
 - Added online metadata language setting for TMDb localization
 - Reworked settings with Language category (metadata + artwork)

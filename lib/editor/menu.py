@@ -110,7 +110,7 @@ def _show_main_menu(
                 lambda f=field: _edit_field(dbid, media_type, item, f),
             ))
 
-        menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items)
+        menu = Menu(ADDON.getLocalizedString(32560).format(title), menu_items, is_main_menu=True)
         result = menu.show(preselect=last_selected)
 
         if result is None:
@@ -138,7 +138,7 @@ def _edit_field(
         new_value, cancelled = handle_text(display_name, current)
 
     elif field_type == FieldType.TEXT_LONG:
-        new_value, cancelled = handle_text(display_name, current, is_long=True)
+        new_value, cancelled = handle_text(display_name, current)
 
     elif field_type == FieldType.INTEGER:
         if field == "runtime":
@@ -173,6 +173,9 @@ def _edit_field(
         return True
 
     if cancelled:
+        return True
+
+    if new_value == current:
         return True
 
     if save_field(dbid, media_type, field, new_value, item):

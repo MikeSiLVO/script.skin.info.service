@@ -191,10 +191,10 @@ def _build_listitem_unified_data(
     genre: str = "",
     runtime_minutes: int = 0,
     duration_seconds: int = 0,
-    rating: float | None = None,
-    votes: int | None = None,
-    userrating: int | None = None,
-    ratings_dict: dict | None = None,
+    rating: Optional[float] = None,
+    votes: Optional[int] = None,
+    userrating: Optional[int] = None,
+    ratings_dict: Optional[dict] = None,
 ) -> dict:
     """Build unified ListItem properties that work across all media types.
 
@@ -532,7 +532,7 @@ def set_movie_properties(details: dict) -> None:
     set_listitem_unified_properties(unified)
 
 
-def build_movieset_data(set_details: dict, movies: list[dict]) -> dict:
+def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     """Build movie set data dictionary for ListItem properties."""
     data = {}
 
@@ -660,7 +660,7 @@ def build_movieset_data(set_details: dict, movies: list[dict]) -> dict:
     return data
 
 
-def set_movieset_properties(set_details: dict, movies: list[dict]) -> None:
+def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     """Set movie set window properties with SkinInfo.Set prefix."""
     data = build_movieset_data(set_details, movies)
 
@@ -692,7 +692,7 @@ def set_movieset_properties(set_details: dict, movies: list[dict]) -> None:
     _STATE["set_movies"] = metadata["movies_count"]
 
     total_runtime_min = sum(int(m.get("runtime") or 0) // 60 for m in movies)
-    genres_set: set[str] = set()
+    genres_set: Set[str] = set()
     for m in movies:
         genres_set.update(m.get("genre") or [])
     genres_sorted = sorted(genres_set, key=str.casefold) if genres_set else []
@@ -706,7 +706,7 @@ def set_movieset_properties(set_details: dict, movies: list[dict]) -> None:
     set_listitem_unified_properties(unified)
 
 
-def build_artist_data(artist: dict, albums: list[dict]) -> dict:
+def build_artist_data(artist: dict, albums: List[dict]) -> dict:
     """Build artist data dictionary for ListItem properties."""
     data = {}
 
@@ -778,7 +778,7 @@ def build_artist_data(artist: dict, albums: list[dict]) -> dict:
     return data
 
 
-def set_artist_properties(artist: dict, albums: list[dict]) -> None:
+def set_artist_properties(artist: dict, albums: List[dict]) -> None:
     """Set artist window properties with SkinInfo.Artist prefix."""
     data = build_artist_data(artist, albums)
 
@@ -809,7 +809,7 @@ def set_artist_properties(artist: dict, albums: list[dict]) -> None:
     set_listitem_unified_properties(unified)
 
 
-def build_album_data(album: dict, songs: list[dict]) -> dict:
+def build_album_data(album: dict, songs: List[dict]) -> dict:
     """Build album data dictionary for ListItem properties."""
     data = {}
 
@@ -886,7 +886,7 @@ def build_album_data(album: dict, songs: list[dict]) -> dict:
     return data
 
 
-def set_album_properties(album: dict, songs: list[dict]) -> None:
+def set_album_properties(album: dict, songs: List[dict]) -> None:
     """Set album window properties with SkinInfo.Album prefix."""
     data = build_album_data(album, songs)
 
@@ -927,7 +927,7 @@ _LISTITEM_RATING_STATE: Set[str] = set()
 def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
     ratings = item.get("ratings") or {}
     prefix = f"SkinInfo.{media_type}.Rating"
-    props: Dict[str, str | None] = {}
+    props: Dict[str, Optional[str]] = {}
     current_sources: Set[str] = set()
 
     for src, info in ratings.items():

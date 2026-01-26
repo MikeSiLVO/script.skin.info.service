@@ -6,7 +6,7 @@ import xbmc
 import xbmcvfs
 from lib.infrastructure.dialogs import show_textviewer, show_select, show_notification, show_yesno
 import xbmcgui
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
 
 from lib.kodi.client import request, log, ADDON
@@ -256,7 +256,7 @@ def _run_scan_operation(
             return True
 
     if not scanner.cancelled:
-        stale_removed = scanner._cleanup_stale_cache()
+        stale_removed = scanner.cleanup_stale_cache()
         log("Artwork", f"Cleaned {stale_removed} stale GIF cache entries", xbmc.LOGDEBUG)
 
     scanner.show_summary()
@@ -337,7 +337,7 @@ class ArtworkAnimated:
 
     def __init__(
         self,
-        patterns: list[str],
+        patterns: List[str],
         force_full_rescan: bool,
         progress: ProgressDialog,
         task_context=None
@@ -672,7 +672,7 @@ class ArtworkAnimated:
         except OSError:
             pass
 
-    def _cleanup_stale_cache(self) -> int:
+    def cleanup_stale_cache(self) -> int:
         """
         Remove cache entries for GIF files not found during this scan.
 

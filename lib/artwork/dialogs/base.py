@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import List
 import xbmcgui
 from lib.artwork.utilities import get_language_display_name
 
@@ -71,7 +72,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
 
         return item
 
-    def populate_list_batch(self, control, items: list[xbmcgui.ListItem]) -> None:
+    def populate_list_batch(self, control, items: List[xbmcgui.ListItem]) -> None:
         """
         Add items to list control using batch operation.
 

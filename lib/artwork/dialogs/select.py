@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import xbmc
 from lib.infrastructure.dialogs import show_select
-from typing import Optional
+from typing import Optional, List, Tuple
 from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.dialogs.multi import show_multiart_dialog
 from lib.kodi.settings import KodiSettings
@@ -502,15 +502,15 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 def show_artwork_selection_dialog(
     title: str,
     art_type: str,
-    available_art: list[dict],
-    full_artwork_list: Optional[list[dict]] = None,
+    available_art: List[dict],
+    full_artwork_list: Optional[List[dict]] = None,
     media_type: str = '',
     year: str = '',
     current_url: str = '',
     dbid: int = 0,
     test_mode: bool = False,
     review_mode: str = 'missing'
-) -> tuple[str, Optional[dict], Optional[dict]]:
+) -> Tuple[str, Optional[dict], Optional[dict]]:
     """
     Show artwork selection dialog and return result.
 

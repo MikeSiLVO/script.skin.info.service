@@ -1,10 +1,10 @@
 """GIF cache database operations."""
 from __future__ import annotations
 
-from typing import Optional, Dict
+from typing import Optional, Dict, Set, Union
 from lib.data.database._infrastructure import get_db
 
-def get_cached_gif(gif_path: str) -> Optional[Dict[str, float | str]]:
+def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
     """
     Get cached GIF metadata.
 
@@ -47,7 +47,7 @@ def update_gif_cache(gif_path: str, mtime: float, scanned_at: str) -> None:
         ''', (gif_path, mtime, scanned_at))
 
 
-def get_all_cached_gifs() -> Dict[str, Dict[str, float | str]]:
+def get_all_cached_gifs() -> Dict[str, Dict[str, Union[float, str]]]:
     """
     Get all cached GIF entries.
 
@@ -65,7 +65,7 @@ def get_all_cached_gifs() -> Dict[str, Dict[str, float | str]]:
     return cache
 
 
-def cleanup_stale_gifs(accessed_paths: set[str]) -> int:
+def cleanup_stale_gifs(accessed_paths: Set[str]) -> int:
     """
     Remove GIF cache entries not in the accessed set.
 

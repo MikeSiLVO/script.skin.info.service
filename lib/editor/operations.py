@@ -1,6 +1,7 @@
 """JSON-RPC operations for metadata editor."""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import xbmc
@@ -58,8 +59,7 @@ def save_field(
     # Kodi ignores year if premiered exists, so set both
     if field_name == "year" and isinstance(value, int):
         original = item.get("premiered", "") if item else ""
-        # Preserve month-day from original, only change year
-        if original and len(original) >= 10:
+        if original and re.match(r'^\d{4}-\d{2}-\d{2}', original):
             params["premiered"] = f"{value}{original[4:10]}"
         else:
             params["premiered"] = f"{value}-01-01"

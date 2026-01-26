@@ -119,8 +119,13 @@ class KodiSettings:
         return cls.get_string('tmdb_api_key')
 
     @classmethod
+    def fanarttv_use_custom_key(cls) -> bool:
+        """Check if custom Fanart.tv personal key should be used."""
+        return cls.get_bool('fanarttv_use_custom_key')
+
+    @classmethod
     def fanarttv_api_key(cls) -> str:
-        """Get FanartTV API key."""
+        """Get Fanart.tv personal API key."""
         return cls.get_string('fanarttv_api_key')
 
     @classmethod

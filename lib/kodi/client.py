@@ -527,6 +527,9 @@ def get_library_items(
                         season['media_type'] = 'season'
                         season['tvshowid'] = tvshowid
 
+                        if 'file' not in season and 'file' in item:
+                            season['file'] = item['file']
+
                         if 'showtitle' not in season and 'title' in item:
                             season['showtitle'] = item['title']
 

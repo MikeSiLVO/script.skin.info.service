@@ -22,18 +22,19 @@ from lib.editor.utilities import (
 
 
 def handle_text(
-    field_name: str, current_value: str | None, is_long: bool = False
+    field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
     """Handle text input."""
     heading = f"Edit {field_name}"
     default = current_value or ""
 
-    result = xbmcgui.Dialog().input(heading, default)
+    kb = xbmc.Keyboard(default, heading)
+    kb.doModal()
 
-    if result == "":
+    if not kb.isConfirmed():
         return None, True
 
-    return result, False
+    return kb.getText(), False
 
 
 def handle_integer(
@@ -184,11 +185,13 @@ def _quick_edit_list(
     current_str = ", ".join(current)
     heading = f"Edit {field_name} (comma-separated)"
 
-    result = xbmcgui.Dialog().input(heading, current_str)
+    kb = xbmc.Keyboard(current_str, heading)
+    kb.doModal()
 
-    if result is None or result == "":
+    if not kb.isConfirmed():
         return None, True
 
+    result = kb.getText()
     parsed = [x.strip() for x in result.split(",") if x.strip()]
     return parsed, False
 
@@ -285,7 +288,9 @@ def handle_ratings(
         choice = show_select(ADDON.getLocalizedString(32557).format(field_name), options)
 
         if choice < 0:
-            return (ratings, False) if modified else (None, True)
+            if modified:
+                return ratings, False
+            return None, True
 
         if choice == len(sources):
             if _add_rating_source(ratings):

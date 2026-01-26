@@ -211,7 +211,6 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "premiered",
         "runtime",
         "mpaa",
-        "status",
         "genre",
         "studio",
         "tag",

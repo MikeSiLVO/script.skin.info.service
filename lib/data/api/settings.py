@@ -4,7 +4,6 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 
-from lib.kodi.settings import KodiSettings
 from lib.kodi.client import ADDON
 
 
@@ -30,12 +29,13 @@ def edit_api_key(provider: str) -> None:
     )
 
     if keyboard:
-        ADDON.setSetting(config["setting_path"], keyboard)
+        settings = ADDON.getSettings()
+        settings.setString(config["setting_path"], keyboard)
+        settings.setString(f"{provider}_configured", "true")
+        settings.setString(f"{provider}_api_key_display", keyboard)
+
         ADDON.setSetting(f"{provider}_configured", "true")
         ADDON.setSetting(f"{provider}_api_key_display", keyboard)
-
-        # Set property to track pending save
-        xbmc.executebuiltin(f'SetProperty(SkinInfo.PendingAPIKey.{provider},true,home)')
 
 
 def clear_api_key(provider: str) -> None:
@@ -56,12 +56,14 @@ def clear_api_key(provider: str) -> None:
         "Clear API Key",
         f"Are you sure you want to clear the {config['name']} API key?"
     ):
-        ADDON.setSetting(config["setting_path"], "")
+        settings = ADDON.getSettings()
+        settings.setString(config["setting_path"], "")
+        settings.setString(f"{provider}_configured", "false")
+        settings.setString(f"{provider}_api_key_display", "Not configured")
+
         ADDON.setSetting(f"{provider}_configured", "false")
         ADDON.setSetting(f"{provider}_api_key_display", "Not configured")
 
-        # Set property to track pending clear
-        xbmc.executebuiltin(f'SetProperty(SkinInfo.PendingClearAPIKey.{provider},true,home)')
         xbmc.executebuiltin('Action(Up)')
 
 
@@ -73,7 +75,6 @@ def test_api_key(provider: str) -> None:
         provider: Provider name (tmdb, mdblist, omdb, fanarttv)
     """
     from lib.kodi.client import API_KEY_CONFIG
-    from lib.data.api.client import ApiSession
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
     if not config:
@@ -96,28 +97,9 @@ def test_api_key(provider: str) -> None:
             source = OMDbRatingsSource()
             success = source.test_connection()
         elif provider == "fanarttv":
-            api_key = KodiSettings.fanarttv_api_key()
-
-            if not api_key:
-                progress.close()
-                dialog = xbmcgui.Dialog()
-                dialog.ok(
-                    f"{config['name']} - Connection Test",
-                    "No API key configured.\n\nPlease add your Fanart.tv API key first."
-                )
-                return
-
-            session = ApiSession(
-                service_name="Fanart.tv Test",
-                base_url="https://webservice.fanart.tv/v3",
-                timeout=(5.0, 10.0)
-            )
-
-            data = session.get(
-                "/movies/11",
-                params={"api_key": api_key}
-            )
-            success = data is not None and data.get('name') is not None
+            from lib.data.api.fanarttv import ApiFanarttv
+            source = ApiFanarttv()
+            success = source.test_connection()
         else:
             progress.close()
             return
@@ -218,6 +200,8 @@ def authorize_trakt() -> None:
                     tokens.get("expires_in", 86400)
                 )
 
+                settings = ADDON.getSettings()
+                settings.setString("trakt_configured", "true")
                 ADDON.setSetting("trakt_configured", "true")
 
                 progress.close()
@@ -286,6 +270,8 @@ def revoke_trakt_authorization() -> None:
         source = TraktRatingsSource()
         source._delete_tokens()
 
+        settings = ADDON.getSettings()
+        settings.setString("trakt_configured", "false")
         ADDON.setSetting("trakt_configured", "false")
 
 
@@ -295,13 +281,16 @@ def sync_configured_flags() -> None:
     import json
     from lib.kodi.client import API_KEY_CONFIG
 
+    settings = ADDON.getSettings()
+
     for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
         config = API_KEY_CONFIG.get(f"{provider}_api_key")
         if config:
             key = ADDON.getSetting(config["setting_path"])
-            ADDON.setSetting(f"{provider}_configured", "true" if key else "false")
+            value = "true" if key else "false"
+            settings.setString(f"{provider}_configured", value)
+            ADDON.setSetting(f"{provider}_configured", value)
 
-    # Check Trakt token file instead of setting
     token_path = xbmcvfs.translatePath("special://profile/addon_data/script.skin.info.service/trakt_tokens.json")
     has_trakt_token = False
     if xbmcvfs.exists(token_path):
@@ -311,4 +300,6 @@ def sync_configured_flags() -> None:
                 has_trakt_token = bool(tokens.get("access_token"))
         except Exception:
             pass
-    ADDON.setSetting("trakt_configured", "true" if has_trakt_token else "false")
+    value = "true" if has_trakt_token else "false"
+    settings.setString("trakt_configured", value)
+    ADDON.setSetting("trakt_configured", value)

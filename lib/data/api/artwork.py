@@ -14,7 +14,7 @@ from lib.data.api.fanarttv import ApiFanarttv
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
 from lib.artwork.utilities import sort_artwork_by_popularity
 from lib.artwork.config import FANART_DIMENSIONS, CACHE_ART_TYPES
-from lib.kodi.client import log, ADDON
+from lib.kodi.client import log
 
 
 class ApiArtworkFetcher:
@@ -294,16 +294,7 @@ class ApiArtworkFetcher:
         return artwork
 
     def _fetch_season_artwork(self, season_dbid: int, season_number: Optional[int] = None) -> Dict[str, List[dict]]:
-        """
-        Fetch artwork for a TV season.
-
-        Args:
-            season_dbid: Kodi season database ID
-            season_number: Season number (if None, will be fetched from Kodi)
-
-        Returns:
-            Dict mapping art types to lists of artwork dicts
-        """
+        """Fetch artwork for a TV season from TMDB and fanart.tv."""
         details = get_item_details('season', season_dbid, ['season', 'tvshowid'])
         if not isinstance(details, dict):
             return {}
@@ -317,13 +308,23 @@ class ApiArtworkFetcher:
 
         tvshow_ids = self.get_external_ids('tvshow', tvshow_id)
         tmdb_id = tvshow_ids.get('tmdb_id')
+        tvdb_id = tvshow_ids.get('tvdb_id')
 
         if not tmdb_id:
             return {}
 
-        tmdb_art = self.tmdb_api.get_season_images(tmdb_id, season_number)
+        all_art: Dict[str, List[dict]] = {}
 
-        return self._finalise_artwork('season', tmdb_art)
+        tmdb_art = self.tmdb_api.get_season_images(tmdb_id, season_number)
+        for art_type, artworks in tmdb_art.items():
+            all_art.setdefault(art_type, []).extend(artworks)
+
+        if tvdb_id:
+            fanart_art = self.fanart_api.get_season_artwork(tvdb_id, season_number)
+            for art_type, artworks in fanart_art.items():
+                all_art.setdefault(art_type, []).extend(artworks)
+
+        return self._finalise_artwork('season', all_art)
 
     def _fetch_episode_artwork(self, episode_dbid: int, season_number: Optional[int] = None, episode_number: Optional[int] = None) -> Dict[str, List[dict]]:
         """
@@ -418,34 +419,6 @@ class ApiArtworkFetcher:
                 all_art.setdefault(art_type, []).extend(artworks)
 
         return self._finalise_artwork('set', all_art)
-
-
-def validate_api_keys(tmdb_api: ApiTmdb, fanart_api: ApiFanarttv) -> bool:
-    """
-    Validate that required API keys are configured.
-
-    Args:
-        tmdb_api: TMDB API client
-        fanart_api: Fanart.tv API client
-
-    Returns:
-        True if user confirmed to continue, False if cancelled
-    """
-    from lib.infrastructure.dialogs import show_yesno
-
-    fanart_key = fanart_api.get_api_key()
-
-    if not fanart_key:
-        message = (
-            "fanart.tv API key not configured.\n\n"
-            "Missing: clearart, banner, discart, landscape, characterart\n"
-            "Available: poster, fanart, clearlogo (TMDB)\n\n"
-            "Continue?"
-        )
-        if not show_yesno(ADDON.getLocalizedString(32273), message):
-            return False
-
-    return True
 
 
 # Global singleton instance for convenience

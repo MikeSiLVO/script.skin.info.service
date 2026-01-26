@@ -1,12 +1,104 @@
 """Build Kodi-compliant artwork file paths following naming conventions."""
 from __future__ import annotations
 
-import os
 import xbmcgui
 import xbmcvfs
-from typing import Optional
+from typing import Optional, Tuple
 
 from lib.kodi.client import request
+
+
+def vfs_get_separator(path: str) -> str:
+    """Detect separator used in path (backslash for Windows/SMB, forward slash otherwise)."""
+    return '\\' if '\\' in path else '/'
+
+
+def vfs_rstrip_sep(path: str) -> str:
+    """Strip trailing separators from path."""
+    return path.rstrip('/\\')
+
+
+def vfs_split(path: str) -> Tuple[str, str]:
+    """
+    Split path into (directory, filename) like os.path.split but VFS-aware.
+
+    Handles both / and \\ separators correctly.
+    Strips trailing separators before splitting.
+
+    Examples:
+        '/TV/Show/' -> ('/TV', 'Show')
+        '/TV/Show' -> ('/TV', 'Show')
+        '/TV/Show/file.mkv' -> ('/TV/Show', 'file.mkv')
+        'smb://server/share/folder' -> ('smb://server/share', 'folder')
+    """
+    path = vfs_rstrip_sep(path)
+    if not path:
+        return ('', '')
+
+    last_sep = -1
+    for i in range(len(path) - 1, -1, -1):
+        if path[i] in '/\\':
+            last_sep = i
+            break
+
+    if last_sep == -1:
+        return ('', path)
+
+    return (path[:last_sep], path[last_sep + 1:])
+
+
+def vfs_dirname(path: str) -> str:
+    """Get parent directory of path, VFS-aware."""
+    return vfs_split(path)[0]
+
+
+def vfs_basename(path: str) -> str:
+    """Get filename/last component of path, VFS-aware."""
+    return vfs_split(path)[1]
+
+
+def vfs_splitext(path: str) -> Tuple[str, str]:
+    """
+    Split path into (base, extension) like os.path.splitext but VFS-aware.
+
+    Only considers extension in the filename part, not in directories.
+
+    Examples:
+        '/path/file.mkv' -> ('/path/file', '.mkv')
+        '/path.with.dots/file' -> ('/path.with.dots/file', '')
+        '/path/file' -> ('/path/file', '')
+    """
+    dir_part, filename = vfs_split(path)
+
+    if not filename:
+        return (path, '')
+
+    dot_pos = filename.rfind('.')
+    if dot_pos <= 0:  # No dot, or dot at start (hidden file)
+        return (path, '')
+
+    ext = filename[dot_pos:]
+    base = filename[:dot_pos]
+
+    if dir_part:
+        sep = vfs_get_separator(path)
+        return (dir_part + sep + base, ext)
+    return (base, ext)
+
+
+def vfs_join(base: str, *parts: str) -> str:
+    """Join path components using the separator from the base path."""
+    if not base:
+        return '/'.join(parts)
+
+    sep = vfs_get_separator(base)
+    result = vfs_rstrip_sep(base)
+
+    for part in parts:
+        if part:
+            result = result + sep + part
+
+    return result
 
 
 class PathBuilder:
@@ -97,8 +189,39 @@ class PathBuilder:
         """
         sanitized = xbmcvfs.makeLegalFilename(title)
         # Extract just the filename part (makeLegalFilename returns full path on some platforms)
-        sanitized = os.path.basename(sanitized)
+        sanitized = vfs_basename(sanitized)
         return sanitized if sanitized else "Unnamed Set"
+
+    @staticmethod
+    def _find_movie_root(path: str) -> str:
+        """
+        Find movie root directory, handling BDMV/VIDEO_TS structures.
+
+        For Blu-ray: /Movies/Avatar/BDMV/STREAM/00001.m2ts -> /Movies/Avatar
+        For DVD: /Movies/Avatar/VIDEO_TS/VTS_01_1.VOB -> /Movies/Avatar
+        Otherwise returns parent directory of the file.
+        """
+        dir_path = vfs_dirname(path)
+
+        check_path = dir_path
+        for _ in range(3):
+            dirname = vfs_basename(check_path)
+            if dirname in ('BDMV', 'VIDEO_TS', 'STREAM', 'BACKUP'):
+                check_path = vfs_dirname(check_path)
+            else:
+                break
+
+        parent_name = vfs_basename(vfs_dirname(path))
+        grandparent_name = vfs_basename(vfs_dirname(vfs_dirname(path)))
+
+        if parent_name in ('BDMV', 'VIDEO_TS'):
+            return vfs_dirname(vfs_dirname(path))
+        elif grandparent_name in ('BDMV', 'VIDEO_TS'):
+            return vfs_dirname(vfs_dirname(vfs_dirname(path)))
+        elif parent_name == 'STREAM' and grandparent_name == 'BDMV':
+            return vfs_dirname(vfs_dirname(vfs_dirname(path)))
+
+        return dir_path
 
     @staticmethod
     def build_path(
@@ -137,23 +260,25 @@ class PathBuilder:
         if not media_file:
             return None
 
-        base_path = os.path.splitext(media_file)[0]
-        dir_path, filename = os.path.split(base_path)
+        base_path, ext = vfs_splitext(media_file)
+        dir_path, filename = vfs_split(base_path)
 
-        sep = '\\' if '\\' in media_file else '/'
+        if not ext:
+            dir_path = vfs_rstrip_sep(media_file)
+            filename = ''
 
         if media_type == 'movie':
-            parent_dir_name = os.path.basename(dir_path)
-            if parent_dir_name in ('BDMV', 'VIDEO_TS'):
-                dir_path = os.path.dirname(dir_path)
-                return dir_path + sep + artwork_type
-            elif use_basename and filename:
+            if use_basename and filename:
                 return base_path + '-' + artwork_type
             else:
-                return dir_path + sep + artwork_type
+                if ext:
+                    movie_root = PathBuilder._find_movie_root(media_file)
+                else:
+                    movie_root = dir_path
+                return vfs_join(movie_root, artwork_type)
 
         elif media_type == 'tvshow':
-            return dir_path + sep + artwork_type
+            return vfs_join(dir_path, artwork_type)
 
         elif media_type == 'season':
             if season_number is None:
@@ -162,19 +287,19 @@ class PathBuilder:
                 season_str = f"season{season_number:02d}"
             else:
                 season_str = "season-specials"
-            return dir_path + sep + season_str + '-' + artwork_type
+            return vfs_join(dir_path, season_str + '-' + artwork_type)
 
         elif media_type == 'episode':
             if use_basename and filename:
                 return base_path + '-' + artwork_type
             else:
-                return dir_path + sep + 'episode-' + artwork_type
+                return vfs_join(dir_path, 'episode-' + artwork_type)
 
         elif media_type == 'musicvideo':
             if use_basename and filename:
                 return base_path + '-' + artwork_type
             else:
-                return dir_path + sep + artwork_type
+                return vfs_join(dir_path, artwork_type)
 
         elif media_type == 'set':
             movie_sets_folder = PathBuilder._get_movie_sets_folder()
@@ -193,7 +318,6 @@ class PathBuilder:
             else:
                 clean_art_type = artwork_type
 
-            sep = '\\' if '\\' in movie_sets_folder else '/'
-            return movie_sets_folder + sep + sanitized_title + sep + clean_art_type
+            return vfs_join(movie_sets_folder, sanitized_title, clean_art_type)
 
         return None

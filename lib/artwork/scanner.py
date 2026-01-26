@@ -10,7 +10,7 @@ from time import time
 from typing import Optional, List, Tuple, Any, Sequence
 
 from lib.data import database as db
-from lib.kodi.client import request, extract_result, get_library_items
+from lib.kodi.client import get_item_details, get_library_items, KODI_GET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utils import get_preferred_language_code
 from lib.artwork.config import REVIEW_MODE_MISSING
@@ -92,12 +92,8 @@ class ArtworkScanner:
         self,
         *,
         progress_title: str,
-        local_index: int,
-        local_total: int,
         title: str,
         year: str,
-        missing_art: Sequence[str],
-        candidate_art: Sequence[str],
     ) -> None:
         """Update the shared progress dialog with overall status."""
         overall_index = self._processed_items + 1
@@ -125,6 +121,18 @@ class ArtworkScanner:
 
         self.progress.update(percent, message)
 
+    # Properties needed per media type for scanning
+    _SCAN_PROPERTIES = {
+        'movie': ["title", "art", "year"],
+        'tvshow': ["title", "art", "year"],
+        'episode': ["title", "art", "showtitle", "season", "episode"],
+        'season': ["title", "art", "season", "showtitle"],
+        'musicvideo': ["title", "artist", "art"],
+        'artist': ["artist", "art"],
+        'album': ["title", "artist", "art", "year"],
+        'set': ["title", "art"],
+    }
+
     def scan_single_item(self, dbid: str, dbtype: str) -> bool:
         """
         Scan a single item for missing artwork.
@@ -146,55 +154,14 @@ class ArtworkScanner:
             log("Artwork", f"Scanner: Invalid media type: {dbtype}", xbmc.LOGWARNING)
             return False
 
-        dbid_int = int(dbid)
-
-        art_types = self._get_art_types_to_check(dbtype)
-
-        if dbtype == "movie":
-            items = request("VideoLibrary.GetMovieDetails", {
-                "movieid": dbid_int,
-                "properties": ["title", "art", "year"]
-            })
-            item = extract_result(items, "moviedetails") if items else None
-        elif dbtype == "tvshow":
-            items = request("VideoLibrary.GetTVShowDetails", {
-                "tvshowid": dbid_int,
-                "properties": ["title", "art", "year"]
-            })
-            item = extract_result(items, "tvshowdetails") if items else None
-        elif dbtype == "episode":
-            items = request("VideoLibrary.GetEpisodeDetails", {
-                "episodeid": dbid_int,
-                "properties": ["title", "art", "showtitle", "season", "episode"]
-            })
-            item = extract_result(items, "episodedetails") if items else None
-        elif dbtype == "season":
-            items = request("VideoLibrary.GetSeasonDetails", {
-                "seasonid": dbid_int,
-                "properties": ["title", "art", "season", "showtitle"]
-            })
-            item = extract_result(items, "seasondetails") if items else None
-        elif dbtype == "musicvideo":
-            items = request("VideoLibrary.GetMusicVideoDetails", {
-                "musicvideoid": dbid_int,
-                "properties": ["title", "artist", "art"]
-            })
-            item = extract_result(items, "musicvideodetails") if items else None
-        elif dbtype == "artist":
-            items = request("AudioLibrary.GetArtistDetails", {
-                "artistid": dbid_int,
-                "properties": ["artist", "art"]
-            })
-            item = extract_result(items, "artistdetails") if items else None
-        elif dbtype == "album":
-            items = request("AudioLibrary.GetAlbumDetails", {
-                "albumid": dbid_int,
-                "properties": ["title", "artist", "art", "year"]
-            })
-            item = extract_result(items, "albumdetails") if items else None
-        else:
+        if dbtype not in KODI_GET_DETAILS_METHODS:
             return False
 
+        dbid_int = int(dbid)
+        art_types = self._get_art_types_to_check(dbtype)
+        properties = self._SCAN_PROPERTIES.get(dbtype, ["title", "art"])
+
+        item = get_item_details(dbtype, dbid_int, properties)
         if not isinstance(item, dict):
             return False
 
@@ -230,7 +197,7 @@ class ArtworkScanner:
         Scan library for missing artwork.
 
         Args:
-            media_type: "movies", "tvshows", "music", "all", or "custom"
+            media_type: "movies", "tvshows", or "all"
             resume_session_id: Optional session ID to resume from
 
         Returns:
@@ -241,8 +208,6 @@ class ArtworkScanner:
             media_types.append("movie")
         if media_type in ("tvshows", "all"):
             media_types.append("tvshow")
-        if media_type == "music":
-            media_types.extend(["artist", "album"])
 
         if resume_session_id:
             session_id = resume_session_id
@@ -277,21 +242,7 @@ class ArtworkScanner:
                     lambda art_types=season_art_types: self._scan_seasons(art_types, session_id, scope_label='seasons')
                 ))
 
-            if "artist" in media_types:
-                artist_art_types = self._get_art_types_to_check("artist")
-                scan_steps.append((
-                    'artists',
-                    lambda art_types=artist_art_types: self._scan_artists(art_types)
-                ))
-
-            if "album" in media_types:
-                album_art_types = self._get_art_types_to_check("album")
-                scan_steps.append((
-                    'albums',
-                    lambda art_types=album_art_types: self._scan_albums(art_types)
-                ))
-
-            for scope_label, runner in scan_steps:
+            for _, runner in scan_steps:
                 if self.cancelled:
                     break
 
@@ -350,7 +301,7 @@ class ArtworkScanner:
         queue_items: List[dict] = []
         art_items: List[dict] = []
 
-        for idx, item in enumerate(items):
+        for item in items:
             if self.progress.is_cancelled():
                 self.cancelled = True
                 break
@@ -404,12 +355,8 @@ class ArtworkScanner:
 
             self._update_scan_progress(
                 progress_title=progress_title,
-                local_index=idx + 1,
-                local_total=total,
                 title=title,
                 year=year,
-                missing_art=missing_art_types,
-                candidate_art=[],
             )
 
             self._processed_items += 1
@@ -476,7 +423,8 @@ class ArtworkScanner:
                 properties=["title", "year", "art"],
                 decode_urls=True
             )
-        except Exception:
+        except Exception as e:
+            log("Artwork", f"Error fetching movies: {e}", xbmc.LOGWARNING)
             return True
 
         if not movies:
@@ -502,7 +450,8 @@ class ArtworkScanner:
                 properties=["title", "year", "art"],
                 decode_urls=True
             )
-        except Exception:
+        except Exception as e:
+            log("Artwork", f"Error fetching TV shows: {e}", xbmc.LOGWARNING)
             return True
 
         if not shows:
@@ -530,7 +479,8 @@ class ArtworkScanner:
                 include_nested_seasons=True,
                 season_properties=["title", "art", "season", "showtitle"]
             )
-        except Exception:
+        except Exception as e:
+            log("Artwork", f"Error fetching seasons: {e}", xbmc.LOGWARNING)
             return True
 
         all_seasons = [item for item in all_items if item.get('media_type') == 'season']
@@ -550,10 +500,3 @@ class ArtworkScanner:
             progress_title="Scanning Seasons",
         )
 
-    def _scan_artists(self, art_types: List[str]) -> bool:
-        """Scan artists for missing artwork (stub for future implementation)."""
-        return True
-
-    def _scan_albums(self, art_types: List[str]) -> bool:
-        """Scan albums for missing artwork (stub for future implementation)."""
-        return True

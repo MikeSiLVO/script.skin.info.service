@@ -98,55 +98,7 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="3" label="32056">
-				<setting id="fanarttv_always_false" type="string">
-					<visible>false</visible>
-					<default>false</default>
-					<control type="edit" format="string" />
-				</setting>
-				<setting id="fanarttv_configured" type="string">
-					<visible>false</visible>
-					<default>false</default>
-					<control type="edit" format="string" />
-				</setting>
-				<setting id="fanarttv_api_key_display" type="string" label="32080">
-					<default>Not configured</default>
-					<control type="edit" format="string" />
-					<dependencies>
-						<dependency type="enable" setting="fanarttv_always_false">true</dependency>
-					</dependencies>
-				</setting>
-				<setting id="fanarttv_api_key_action" type="action" label="32057" help="32058">
-					<control type="button" format="action">
-						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=edit_api_key,provider=fanarttv)</data>
-					</control>
-				</setting>
-				<setting id="fanarttv_api_key" type="string">
-					<visible>false</visible>
-					<default></default>
-					<constraints>
-						<allowempty>true</allowempty>
-					</constraints>
-					<control type="edit" format="string" />
-				</setting>
-				<setting id="fanarttv_test_action" type="action" label="32048">
-					<control type="button" format="action">
-						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=test_api_key,provider=fanarttv)</data>
-					</control>
-					<dependencies>
-						<dependency type="enable" setting="fanarttv_configured">true</dependency>
-					</dependencies>
-				</setting>
-				<setting id="fanarttv_clear_action" type="action" label="32049">
-					<control type="button" format="action">
-						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=clear_api_key,provider=fanarttv)</data>
-					</control>
-					<dependencies>
-						<dependency type="enable" setting="fanarttv_configured">true</dependency>
-					</dependencies>
-				</setting>
-			</group>
-			<group id="4" label="32059">
+			<group id="3" label="32059">
 				<setting id="trakt_configured" type="string">
 					<visible>false</visible>
 					<default>false</default>
@@ -492,7 +444,65 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="2" label="32124">
+			<group id="2" label="32056">
+				<setting id="fanarttv_use_custom_key" type="boolean" label="32953" help="32954">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="fanarttv_always_false" type="string">
+					<visible>false</visible>
+					<default>false</default>
+					<control type="edit" format="string" />
+				</setting>
+				<setting id="fanarttv_configured" type="string">
+					<visible>false</visible>
+					<default>false</default>
+					<control type="edit" format="string" />
+				</setting>
+				<setting id="fanarttv_api_key_display" type="string" label="32080">
+					<default>Using built-in key</default>
+					<control type="edit" format="string" />
+					<dependencies>
+						<dependency type="enable" setting="fanarttv_always_false">true</dependency>
+						<dependency type="visible" setting="fanarttv_use_custom_key">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="fanarttv_api_key_action" type="action" label="32057" help="32058">
+					<control type="button" format="action">
+						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=edit_api_key,provider=fanarttv)</data>
+					</control>
+					<dependencies>
+						<dependency type="visible" setting="fanarttv_use_custom_key">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="fanarttv_api_key" type="string">
+					<visible>false</visible>
+					<default></default>
+					<constraints>
+						<allowempty>true</allowempty>
+					</constraints>
+					<control type="edit" format="string" />
+				</setting>
+				<setting id="fanarttv_test_action" type="action" label="32048">
+					<control type="button" format="action">
+						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=test_api_key,provider=fanarttv)</data>
+					</control>
+					<dependencies>
+						<dependency type="enable" setting="fanarttv_configured">true</dependency>
+						<dependency type="visible" setting="fanarttv_use_custom_key">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="fanarttv_clear_action" type="action" label="32049">
+					<control type="button" format="action">
+						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=clear_api_key,provider=fanarttv)</data>
+					</control>
+					<dependencies>
+						<dependency type="enable" setting="fanarttv_configured">true</dependency>
+						<dependency type="visible" setting="fanarttv_use_custom_key">true</dependency>
+					</dependencies>
+				</setting>
+			</group>
+			<group id="3" label="32124">
 				<setting id="provider_cache_days" type="integer" label="32066" help="32067">
 					<level>3</level>
 					<default>3</default>
@@ -512,8 +522,13 @@
 					</control>
 				</setting>
 			</group>
-			<group id="3" label="32111">
+			<group id="4" label="32111">
 				<setting id="context_show_review_artwork" type="boolean" label="32112">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="context_show_download_artwork" type="boolean" label="32117">
 					<level>0</level>
 					<default>true</default>
 					<control type="toggle" />
@@ -529,7 +544,7 @@
 					<control type="toggle" />
 				</setting>
 			</group>
-			<group id="4" label="14260">
+			<group id="5" label="14260">
 				<setting id="enable_debug" type="boolean" label="32901">
 					<default>false</default>
 					<control type="toggle" />
