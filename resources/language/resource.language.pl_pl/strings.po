@@ -336,6 +336,10 @@ msgctxt "#32114"
 msgid "Show Edit Metadata"
 msgstr "Pokaż edycję metadanych"
 
+msgctxt "#32117"
+msgid "Show Download Artwork"
+msgstr "Pokaż grafiki do pobrania"
+
 msgctxt "#32120"
 msgid "Change Language"
 msgstr "Zmień język"
@@ -723,6 +727,22 @@ msgstr "Rozpoczynanie pobierania {0} plików grafik..."
 msgctxt "#32295"
 msgid "Scan complete. No missing artwork found."
 msgstr "Skanowanie zakończone. Nie znaleziono brakujących grafik."
+
+msgctxt "#32297"
+msgid "Preparing download..."
+msgstr "Przygotowywanie pobierania..."
+
+msgctxt "#32298"
+msgid "Downloading artwork..."
+msgstr "Pobieranie grafiki..."
+
+msgctxt "#32299"
+msgid "Loading seasons and episodes..."
+msgstr "Ładowanie sezonów i odcinków..."
+
+msgctxt "#32296"
+msgid "No remote artwork to download"
+msgstr "Brak zdalnych grafik do pobrania"
 
 msgctxt "#32300"
 msgid "Ratings Updater"
@@ -1582,6 +1602,14 @@ msgstr "Użyj własnego klucza API TMDb"
 msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 msgstr "Wbudowany klucz API TMDb jest dostarczony i działa dla większości użytkowników. Włącz to tylko, jeśli potrzebujesz wyższych limitów żądań lub chcesz użyć własnej dedykowanej puli."
+
+msgctxt "#32953"
+msgid "Use Personal API Key"
+msgstr "Użyj osobistego klucza API"
+
+msgctxt "#32954"
+msgid "A built-in project key is provided. Personal keys give faster access to newly uploaded artwork (2 days vs 7 days). VIP members get immediate access."
+msgstr "Dostępny jest wbudowany klucz projektu. Klucze osobiste zapewniają szybszy dostęp do nowo przesłanych grafik (2 dni zamiast 7). Członkowie VIP otrzymują natychmiastowy dostęp."
 
 msgctxt "#32960"
 msgid "Missing Artwork Types"
