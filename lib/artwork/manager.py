@@ -305,7 +305,7 @@ def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updat
         if media_type == 'season':
             properties.extend(["season", "tvshowid"])
         elif media_type == 'episode':
-            properties.extend(["season", "episode", "file"])
+            properties.extend(["season", "episode"])
 
         if not properties:
             return
