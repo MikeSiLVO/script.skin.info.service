@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta9"
+	   version="2.0.0~beta10"
 	   provider-name="MikeSiLVO">
 	<requires>
-		<import addon="xbmc.python" version="3.0.0" />
+		<import addon="xbmc.python" version="3.0.1" />
 		<import addon="xbmc.json" version="12.0.0" />
 		<import addon="script.module.pil" version="1.1.7" />
 		<import addon="script.module.requests" version="2.31.0" />
@@ -33,6 +33,13 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta10
+- Updated Fanart.tv API to v3.2 with built-in project key
+- Moved Fanart.tv personal key to Advanced settings (matches TMDB pattern)
+- API keys now save immediately without requiring dialog confirmation
+- Added progress dialog to Download Artwork context menu action
+- Requires Kodi 21+ (xbmc.python 3.0.1)
+
 2.0.0~beta9
 - Fixed episode artwork download failing due to duplicate JSON-RPC property
 

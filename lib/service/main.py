@@ -80,7 +80,6 @@ class ServiceMain(threading.Thread):
         self._refresh_timers = {5: 0, 10: 0, 15: 0, 20: 0, 30: 0, 45: 0, 60: 0}
         self._refresh_start_time = None
         self._last_imdb_check = 0.0
-        self._last_api_key_check = 0.0
         self._stinger_monitor = StingerMonitor()
 
     def _increment_library_refresh(self) -> None:
@@ -257,51 +256,7 @@ class ServiceMain(threading.Thread):
             except Exception:
                 pass
 
-    def _check_pending_api_keys(self) -> None:
-        """Check for API keys that were entered but not saved (user canceled settings dialog)."""
-        from lib.kodi.client import API_KEY_CONFIG
-        from lib.infrastructure.dialogs import show_notification
-
-        if xbmc.getCondVisibility('Window.IsVisible(DialogAddonSettings.xml)'):
-            return
-
-        for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
-            pending_prop = f'SkinInfo.PendingAPIKey.{provider}'
-            if xbmc.getInfoLabel(f'Window(home).Property({pending_prop})'):
-                config = API_KEY_CONFIG.get(f"{provider}_api_key")
-                if config:
-                    saved_key = ADDON.getSetting(config["setting_path"])
-                    if not saved_key:
-                        show_notification(
-                            "API Key Not Saved",
-                            f"{config['name']} API key was not saved",
-                            xbmcgui.NOTIFICATION_WARNING,
-                            5000
-                        )
-                        log("Settings", f"{config['name']} API key entered but not saved (dialog canceled)", xbmc.LOGDEBUG)
-                xbmc.executebuiltin(f'ClearProperty({pending_prop},home)')
-
-            pending_clear_prop = f'SkinInfo.PendingClearAPIKey.{provider}'
-            if xbmc.getInfoLabel(f'Window(home).Property({pending_clear_prop})'):
-                config = API_KEY_CONFIG.get(f"{provider}_api_key")
-                if config:
-                    saved_key = ADDON.getSetting(config["setting_path"])
-                    if saved_key:
-                        show_notification(
-                            "API Key Not Cleared",
-                            f"{config['name']} API key was not cleared",
-                            xbmcgui.NOTIFICATION_WARNING,
-                            5000
-                        )
-                        log("Settings", f"{config['name']} API key clear requested but not saved (dialog canceled)", xbmc.LOGDEBUG)
-                xbmc.executebuiltin(f'ClearProperty({pending_clear_prop},home)')
-
     def _loop(self) -> None:
-        now = time.time()
-
-        if now - self._last_api_key_check >= 0.5:
-            self._check_pending_api_keys()
-            self._last_api_key_check = now
         self._handle_blur_player()
         self._handle_player()
 

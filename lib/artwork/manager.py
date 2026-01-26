@@ -431,77 +431,128 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     method_name, id_key, result_key = method_info
 
-    details = extract_result(
-        request(method_name, {id_key: dbid_int, "properties": ["title", "art"]}),
-        result_key
-    )
+    progress = xbmcgui.DialogProgress()
+    progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32297))
 
-    if not details or not isinstance(details, dict):
+    try:
+        details = extract_result(
+            request(method_name, {id_key: dbid_int, "properties": ["title", "art"]}),
+            result_key
+        )
+
+        if not details or not isinstance(details, dict):
+            progress.close()
+            show_notification(
+                ADDON.getLocalizedString(32290),
+                ADDON.getLocalizedString(32262),
+                xbmcgui.NOTIFICATION_WARNING,
+                3000
+            )
+            return
+
+        title = details.get("title", "Unknown")
+        current_art = details.get("art", {})
+
+        downloadable_art = _extract_downloadable_art(current_art)
+
+        art_count = 0
+        season_count = 0
+        episode_count = 0
+
+        if progress.iscanceled():
+            progress.close()
+            return
+
+        if downloadable_art:
+            progress.update(5, f"{title}\n{ADDON.getLocalizedString(32298)}")
+            _download_selected_artwork(media_type, dbid_int, title, downloadable_art)
+            art_count += len(downloadable_art)
+
+        if media_type == 'tvshow':
+            if progress.iscanceled():
+                progress.close()
+                return
+
+            progress.update(10, f"{title}\n{ADDON.getLocalizedString(32299)}")
+
+            seasons_resp = request("VideoLibrary.GetSeasons", {
+                "tvshowid": dbid_int,
+                "properties": ["art", "season", "title"]
+            })
+            seasons = extract_result(seasons_resp, "seasons", [])
+
+            episodes_resp = request("VideoLibrary.GetEpisodes", {
+                "tvshowid": dbid_int,
+                "properties": ["art", "season", "episode", "title", "file"]
+            })
+            episodes = extract_result(episodes_resp, "episodes", [])
+
+            total_items = len(seasons) + len(episodes)
+            processed = 0
+
+            for season in seasons:
+                if progress.iscanceled():
+                    progress.close()
+                    return
+
+                if not isinstance(season, dict):
+                    processed += 1
+                    continue
+
+                season_art = season.get("art", {})
+                season_downloadable = _extract_downloadable_art(season_art, skip_prefixes=["tvshow."])
+
+                if season_downloadable:
+                    season_id = season.get("seasonid")
+                    season_title = season.get("title", f"Season {season.get('season', '?')}")
+
+                    if season_id:
+                        pct = 10 + int((processed / max(total_items, 1)) * 85)
+                        progress.update(pct, f"{title}\n{season_title}")
+                        _download_selected_artwork("season", season_id, f"{title} - {season_title}", season_downloadable)
+                        art_count += len(season_downloadable)
+                        season_count += 1
+
+                processed += 1
+
+            for episode in episodes:
+                if progress.iscanceled():
+                    progress.close()
+                    return
+
+                if not isinstance(episode, dict):
+                    processed += 1
+                    continue
+
+                episode_art = episode.get("art", {})
+                episode_downloadable = _extract_downloadable_art(episode_art, skip_prefixes=["tvshow.", "season."])
+
+                if episode_downloadable:
+                    episode_id = episode.get("episodeid")
+                    ep_title = episode.get("title", "")
+                    ep_num = f"S{episode.get('season', 0):02d}E{episode.get('episode', 0):02d}"
+
+                    if episode_id:
+                        pct = 10 + int((processed / max(total_items, 1)) * 85)
+                        progress.update(pct, f"{title}\n{ep_num} {ep_title}")
+                        _download_selected_artwork("episode", episode_id, f"{title} - {ep_num} {ep_title}", episode_downloadable)
+                        art_count += len(episode_downloadable)
+                        episode_count += 1
+
+                processed += 1
+
+        progress.close()
+
+    except Exception as e:
+        progress.close()
+        log("Artwork", f"Error downloading artwork: {e}", xbmc.LOGERROR)
         show_notification(
             ADDON.getLocalizedString(32290),
-            ADDON.getLocalizedString(32262),
-            xbmcgui.NOTIFICATION_WARNING,
+            str(e),
+            xbmcgui.NOTIFICATION_ERROR,
             3000
         )
         return
-
-    title = details.get("title", "Unknown")
-    current_art = details.get("art", {})
-
-    downloadable_art = _extract_downloadable_art(current_art)
-
-    art_count = 0
-    season_count = 0
-    episode_count = 0
-
-    if downloadable_art:
-        _download_selected_artwork(media_type, dbid_int, title, downloadable_art)
-        art_count += len(downloadable_art)
-
-    # For TV shows, also download season and episode artwork
-    if media_type == 'tvshow':
-        # Fetch and download season artwork
-        seasons_resp = request("VideoLibrary.GetSeasons", {
-            "tvshowid": dbid_int,
-            "properties": ["art", "season", "title"]
-        })
-        seasons = extract_result(seasons_resp, "seasons", [])
-
-        for season in seasons:
-            if not isinstance(season, dict):
-                continue
-            season_art = season.get("art", {})
-            # Filter out tvshow.* prefixed art - those belong to the parent show
-            season_downloadable = _extract_downloadable_art(season_art, skip_prefixes=["tvshow."])
-            if season_downloadable:
-                season_id = season.get("seasonid")
-                season_title = season.get("title", f"Season {season.get('season', '?')}")
-                if season_id:
-                    _download_selected_artwork("season", season_id, f"{title} - {season_title}", season_downloadable)
-                    art_count += len(season_downloadable)
-                    season_count += 1
-
-        # Fetch and download episode artwork
-        episodes_resp = request("VideoLibrary.GetEpisodes", {
-            "tvshowid": dbid_int,
-            "properties": ["art", "season", "episode", "title", "file"]
-        })
-        episodes = extract_result(episodes_resp, "episodes", [])
-
-        for episode in episodes:
-            if not isinstance(episode, dict):
-                continue
-            episode_art = episode.get("art", {})
-            # Filter out tvshow.* and season.* prefixed art
-            episode_downloadable = _extract_downloadable_art(episode_art, skip_prefixes=["tvshow.", "season."])
-            if episode_downloadable:
-                episode_id = episode.get("episodeid")
-                ep_title = episode.get("title", "")
-                ep_num = f"S{episode.get('season', 0):02d}E{episode.get('episode', 0):02d}"
-                if episode_id:
-                    _download_selected_artwork("episode", episode_id, f"{title} - {ep_num} {ep_title}", episode_downloadable)
-                    art_count += len(episode_downloadable)
-                    episode_count += 1
 
     if art_count == 0:
         show_notification(
@@ -511,7 +562,6 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             3000
         )
     else:
-        # Build summary message
         if media_type == 'tvshow':
             parts = [f"{art_count} files"]
             if season_count > 0:
@@ -600,13 +650,10 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
     year = details.get("year", "")
     current_art = details.get("art", {})
 
-    from lib.data.api.artwork import create_default_fetcher, validate_api_keys
+    from lib.data.api.artwork import create_default_fetcher
     from lib.artwork.auto import ArtworkAuto
 
     fetcher = create_default_fetcher()
-    if not validate_api_keys(fetcher.tmdb_api, fetcher.fanart_api):
-        return
-
     processor = ArtworkAuto(source_fetcher=fetcher, use_background=False)
 
     show_notification(
@@ -1181,11 +1228,6 @@ class ArtworkManager:
         return db.get_pending_media_counts()
 
     def run(self) -> None:
-        from lib.data.api.artwork import create_default_fetcher, validate_api_keys
-        fetcher = create_default_fetcher()
-        if not validate_api_keys(fetcher.tmdb_api, fetcher.fanart_api):
-            return
-
         db.init_database()
         db.cleanup_old_queue_items()
 

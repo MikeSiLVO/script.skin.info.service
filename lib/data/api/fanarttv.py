@@ -3,10 +3,11 @@
 Provides:
 - Movie artwork (clearlogos, clearart, banners, discart, etc.)
 - TV show artwork (clearlogos, clearart, banners, characterart, etc.)
+- Season artwork (posters, banners, thumbs filtered by season number)
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, List, Dict
 
 from lib.data.api.client import ApiSession
 from lib.kodi.settings import KodiSettings
@@ -15,9 +16,9 @@ from lib.kodi.settings import KodiSettings
 class ApiFanarttv:
     """Fanart.tv API client with rate limiting."""
 
-    BASE_URL = "https://webservice.fanart.tv/v3"
+    BASE_URL = "https://webservice.fanart.tv/v3.2"
 
-    API_KEY = None
+    API_KEY = "1fffa11cc0e558efad9c4da6b9cd2cef"
 
     def __init__(self):
         self.session = ApiSession(
@@ -32,37 +33,24 @@ class ApiFanarttv:
             }
         )
 
-    def get_api_key(self) -> Optional[str]:
-        """
-        Get fanart.tv API key with priority order:
-        1. User's key from addon settings
-        2. Built-in key from API_KEY constant
+    def get_api_key(self) -> str:
+        """Get fanart.tv project API key."""
+        return self.API_KEY.strip()
 
-        Returns:
-            API key or None if not configured
-        """
-        user_key = KodiSettings.fanarttv_api_key()
-        if user_key:
-            return user_key
-
-        if self.API_KEY:
-            return self.API_KEY.strip()
-
+    def get_client_key(self) -> Optional[str]:
+        """Get user's personal API key (client_key) if configured."""
+        use_custom = KodiSettings.fanarttv_use_custom_key()
+        if use_custom:
+            return KodiSettings.fanarttv_api_key() or None
         return None
 
     def _make_request(self, endpoint: str, abort_flag=None) -> Optional[dict]:
-        """
-        Make HTTP request to fanart.tv API with rate limiting and retry.
+        """Make HTTP request to fanart.tv API with rate limiting and retry."""
+        headers = {"api-key": self.get_api_key()}
 
-        Args:
-            endpoint: API endpoint (relative to BASE_URL)
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            JSON response or None on error
-        """
-        api_key = self.get_api_key()
-        headers = {"api-key": api_key} if api_key else None
+        client_key = self.get_client_key()
+        if client_key:
+            headers["client-key"] = client_key
 
         return self.session.get(
             endpoint,
@@ -70,23 +58,52 @@ class ApiFanarttv:
             abort_flag=abort_flag
         )
 
+    def _format_artwork_item(self, item: dict, fanart_type: str) -> dict:
+        """Format a fanart.tv artwork item to common format."""
+        full_url = item.get('url', '')
+
+        if 'banner' in fanart_type:
+            preview = full_url
+        else:
+            preview = full_url.replace('/fanart/', '/preview/')
+
+        artwork: Dict[str, object] = {
+            'url': full_url,
+            'previewurl': preview,
+            'language': item.get('lang', ''),
+            'likes': item.get('likes', '0'),
+            'id': item.get('id', ''),
+            'source': 'fanart.tv'
+        }
+
+        width = item.get('width')
+        height = item.get('height')
+        if width:
+            artwork['width'] = int(width)
+        if height:
+            artwork['height'] = int(height)
+
+        season = item.get('season')
+        if season:
+            artwork['season'] = season
+
+        disc = item.get('disc')
+        if disc:
+            artwork['disc'] = disc
+        disc_type = item.get('disc_type')
+        if disc_type:
+            artwork['disc_type'] = disc_type
+
+        return artwork
+
     def get_movie_artwork(self, tmdb_id: int, abort_flag=None) -> dict:
-        """
-        Get all available artwork for a movie from fanart.tv.
-
-        Args:
-            tmdb_id: TMDB movie ID
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dict with artwork by type
-        """
+        """Get all available artwork for a movie from fanart.tv."""
         data = self._make_request(f"/movies/{tmdb_id}", abort_flag)
 
         if not data:
             return {}
 
-        result = {}
+        result: Dict[str, List[dict]] = {}
 
         type_map = {
             'movieposter': 'poster',
@@ -101,19 +118,6 @@ class ApiFanarttv:
             'moviethumb': 'landscape'
         }
 
-        dimensions_map = {
-            'movieposter': (1000, 1426),
-            'moviebackground': (1920, 1080),
-            'moviebackground4k': (3840, 2160),
-            'hdmovielogo': (800, 310),
-            'movielogo': (400, 155),
-            'hdmovieclearart': (1000, 562),
-            'movieclearart': (1000, 562),
-            'moviebanner': (1000, 185),
-            'moviedisc': (1000, 1000),
-            'moviethumb': (1000, 562)
-        }
-
         for fanart_type, kodi_type in type_map.items():
             if fanart_type in data:
                 items = data[fanart_type]
@@ -121,25 +125,7 @@ class ApiFanarttv:
                     result[kodi_type] = []
 
                 for item in items:
-                    full_url = item.get('url', '')
-
-                    if fanart_type == 'moviebanner':
-                        preview = full_url
-                    else:
-                        preview = item.get('url_thumb') or full_url.replace('/fanart/', '/preview/')
-
-                    artwork = {
-                        'url': full_url,
-                        'previewurl': preview,
-                        'language': item.get('lang', ''),
-                        'likes': item.get('likes', '0'),
-                        'id': item.get('id', ''),
-                        'source': 'fanart.tv'
-                    }
-
-                    if fanart_type in dimensions_map:
-                        artwork['width'], artwork['height'] = dimensions_map[fanart_type]
-
+                    artwork = self._format_artwork_item(item, fanart_type)
                     result[kodi_type].append(artwork)
 
         return result
@@ -148,21 +134,18 @@ class ApiFanarttv:
         """
         Get all available artwork for a TV show from fanart.tv.
 
-        Args:
-            tvdb_id: TVDB show ID (fanart.tv uses TVDB IDs for TV shows)
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dict with artwork by type
+        Show-level artwork is returned under standard keys (poster, fanart, etc.).
+        Season-specific artwork is returned under prefixed keys (season.poster, etc.)
+        with the season number in the artwork dict.
         """
         data = self._make_request(f"/tv/{tvdb_id}", abort_flag)
 
         if not data:
             return {}
 
-        result = {}
+        result: Dict[str, List[dict]] = {}
 
-        type_map = {
+        show_type_map = {
             'tvposter': 'poster',
             'showbackground': 'fanart',
             'showbackground4k': 'fanart',
@@ -173,57 +156,73 @@ class ApiFanarttv:
             'tvbanner': 'banner',
             'tvthumb': 'landscape',
             'characterart': 'characterart',
-            'seasonposter': 'poster',
-            'seasonbanner': 'banner',
-            'seasonthumb': 'landscape'
         }
 
-        dimensions_map = {
-            'tvposter': (1000, 1426),
-            'showbackground': (1920, 1080),
-            'showbackground4k': (3840, 2160),
-            'hdtvlogo': (800, 310),
-            'clearlogo': (400, 155),
-            'hdclearart': (1000, 562),
-            'clearart': (1000, 562),
-            'tvbanner': (1000, 185),
-            'tvthumb': (1000, 562),
-            'characterart': (1000, 1399),
-            'seasonposter': (1000, 1426),
-            'seasonbanner': (1000, 185),
-            'seasonthumb': (1000, 562)
+        season_type_map = {
+            'seasonposter': 'season.poster',
+            'seasonbanner': 'season.banner',
+            'seasonthumb': 'season.landscape',
         }
 
-        for fanart_type, kodi_type in type_map.items():
+        for fanart_type, kodi_type in show_type_map.items():
             if fanart_type in data:
                 items = data[fanart_type]
                 if kodi_type not in result:
                     result[kodi_type] = []
 
                 for item in items:
-                    full_url = item.get('url', '')
+                    artwork = self._format_artwork_item(item, fanart_type)
+                    result[kodi_type].append(artwork)
 
-                    if fanart_type in ('tvbanner', 'seasonbanner'):
-                        preview = full_url
-                    else:
-                        preview = item.get('url_thumb') or full_url.replace('/fanart/', '/preview/')
+        for fanart_type, kodi_type in season_type_map.items():
+            if fanart_type in data:
+                items = data[fanart_type]
+                if kodi_type not in result:
+                    result[kodi_type] = []
 
-                    artwork = {
-                        'url': full_url,
-                        'previewurl': preview,
-                        'language': item.get('lang', ''),
-                        'likes': item.get('likes', '0'),
-                        'id': item.get('id', ''),
-                        'season': item.get('season', ''),
-                        'source': 'fanart.tv'
-                    }
-
-                    if fanart_type in dimensions_map:
-                        artwork['width'], artwork['height'] = dimensions_map[fanart_type]
-
+                for item in items:
+                    artwork = self._format_artwork_item(item, fanart_type)
                     result[kodi_type].append(artwork)
 
         return result
+
+    def get_season_artwork(self, tvdb_id: int, season_number: int, abort_flag=None) -> dict:
+        """Get artwork for a specific TV season from fanart.tv."""
+        data = self._make_request(f"/tv/{tvdb_id}", abort_flag)
+
+        if not data:
+            return {}
+
+        result: Dict[str, List[dict]] = {}
+        season_str = str(season_number)
+
+        season_type_map = {
+            'seasonposter': 'poster',
+            'seasonbanner': 'banner',
+            'seasonthumb': 'landscape',
+        }
+
+        for fanart_type, kodi_type in season_type_map.items():
+            if fanart_type in data:
+                items = data[fanart_type]
+
+                for item in items:
+                    item_season = item.get('season', '')
+                    if item_season == season_str or item_season == 'all':
+                        if kodi_type not in result:
+                            result[kodi_type] = []
+                        artwork = self._format_artwork_item(item, fanart_type)
+                        result[kodi_type].append(artwork)
+
+        return result
+
+    def test_connection(self) -> bool:
+        """Test fanart.tv API connection."""
+        try:
+            data = self._make_request("/movies/11")
+            return data is not None and data.get('name') is not None
+        except Exception:
+            return False
 
     @staticmethod
     def get_attribution() -> str:
