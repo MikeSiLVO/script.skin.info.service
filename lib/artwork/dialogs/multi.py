@@ -305,11 +305,9 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         """Update selection count property (matches regular artwork dialog format)."""
         count = len(self.working_art)
         if count == 0:
-            count_text = "No images selected"
-        elif count == 1:
-            count_text = "1 image selected"
+            count_text = ADDON.getLocalizedString(32012)
         else:
-            count_text = f"{count} images selected"
+            count_text = ADDON.getLocalizedString(32015).format(count)
 
         self.setProperty('count', count_text)
         self.setProperty('count_total', str(len(self.available_art)))
@@ -466,11 +464,11 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         try:
             button = self.getControl(self.BUTTON_SOURCE_PREF)
             if self.source_pref == 'all':
-                button.setLabel('Source: All')
+                button.setLabel(ADDON.getLocalizedString(32132))
             elif self.source_pref == 'tmdb':
-                button.setLabel('Source: TMDB')
+                button.setLabel(ADDON.getLocalizedString(32133))
             else:
-                button.setLabel('Source: Fanart.tv')
+                button.setLabel(ADDON.getLocalizedString(32134))
         except Exception:
             pass
 

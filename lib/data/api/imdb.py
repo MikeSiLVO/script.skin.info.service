@@ -482,9 +482,6 @@ class ApiImdbDataset:
 
                     lines_processed += 1
 
-                    if lines_processed % 500000 == 0 and progress_callback:
-                        progress_callback(f"Processing... {lines_processed:,} rows checked")
-
                     parts = line.strip().split("\t")
                     if len(parts) >= 4:
                         ep_id, parent_id, season_str, episode_str = parts[0], parts[1], parts[2], parts[3]

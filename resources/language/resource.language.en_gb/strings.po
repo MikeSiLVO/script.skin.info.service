@@ -39,8 +39,44 @@ msgctxt "#32008"
 msgid "Prefer fanart in selected language"
 msgstr ""
 
+msgctxt "#32009"
+msgid "No artwork available from scrapers"
+msgstr ""
+
+msgctxt "#32010"
+msgid "No artwork matched language preferences"
+msgstr ""
+
+msgctxt "#32011"
+msgid "Needs manual review"
+msgstr ""
+
+msgctxt "#32012"
+msgid "No images selected"
+msgstr ""
+
+msgctxt "#32013"
+msgid "Downloaded {0} files"
+msgstr ""
+
+msgctxt "#32014"
+msgid "{0} files"
+msgstr ""
+
 msgctxt "#32015"
-msgid "Art types to check"
+msgid "{0} image(s) selected"
+msgstr ""
+
+msgctxt "#32016"
+msgid "{0} seasons"
+msgstr ""
+
+msgctxt "#32017"
+msgid "{0} episodes"
+msgstr ""
+
+msgctxt "#32018"
+msgid "Processing episodes..."
 msgstr ""
 
 msgctxt "#32019"
@@ -49,10 +85,6 @@ msgstr ""
 
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
-msgstr ""
-
-msgctxt "#32021"
-msgid "File Handling"
 msgstr ""
 
 msgctxt "#32022"
@@ -87,22 +119,6 @@ msgctxt "#32030"
 msgid "Save as 'video-poster.jpg' instead of 'poster.jpg' in video folder"
 msgstr ""
 
-msgctxt "#32031"
-msgid "Default Review Mode"
-msgstr ""
-
-msgctxt "#32032"
-msgid "Scan mode for manual artwork review"
-msgstr ""
-
-msgctxt "#32033"
-msgid "Missing + Upgrades"
-msgstr ""
-
-msgctxt "#32034"
-msgid "Missing Only"
-msgstr ""
-
 msgctxt "#32035"
 msgid "Always Ask"
 msgstr ""
@@ -121,6 +137,26 @@ msgstr ""
 
 msgctxt "#32039"
 msgid "Full Scan"
+msgstr ""
+
+msgctxt "#32040"
+msgid "Download Report"
+msgstr ""
+
+msgctxt "#32041"
+msgid "No download history found."
+msgstr ""
+
+msgctxt "#32042"
+msgid "Cancelled"
+msgstr ""
+
+msgctxt "#32043"
+msgid "No valid media types to download."
+msgstr ""
+
+msgctxt "#32045"
+msgid "Downloaded:"
 msgstr ""
 
 msgctxt "#32044"
@@ -201,6 +237,10 @@ msgstr ""
 
 msgctxt "#32064"
 msgid "Ratings"
+msgstr ""
+
+msgctxt "#32065"
+msgid "Not configured"
 msgstr ""
 
 msgctxt "#32066"
@@ -299,6 +339,34 @@ msgctxt "#32092"
 msgid "Advanced Cleanup..."
 msgstr ""
 
+msgctxt "#32093"
+msgid "Enter {0} API Key"
+msgstr ""
+
+msgctxt "#32094"
+msgid "Are you sure you want to clear the {0} API key?"
+msgstr ""
+
+msgctxt "#32095"
+msgid "Error testing connection:\n\n{0}"
+msgstr ""
+
+msgctxt "#32096"
+msgid "Failed to get device code from Trakt."
+msgstr ""
+
+msgctxt "#32097"
+msgid "Error:\n\n{0}"
+msgstr ""
+
+msgctxt "#32098"
+msgid "Are you sure you want to revoke Trakt authorization?\n\nYou will need to re-authorize to use Trakt ratings."
+msgstr ""
+
+msgctxt "#32099"
+msgid "Downloaded {0} files ({1} MB)"
+msgstr ""
+
 #. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
@@ -316,8 +384,32 @@ msgctxt "#32103"
 msgid "Edit Metadata"
 msgstr ""
 
+msgctxt "#32104"
+msgid "{0} - Connection Test"
+msgstr ""
+
+msgctxt "#32105"
+msgid "Connection successful!\n\nAPI key is valid and working."
+msgstr ""
+
+msgctxt "#32106"
+msgid "Connection failed.\n\nPlease check your API key."
+msgstr ""
+
+msgctxt "#32107"
+msgid "Trakt Authorization Failed"
+msgstr ""
+
+msgctxt "#32108"
+msgid "Trakt - Connection Test"
+msgstr ""
+
+msgctxt "#32109"
+msgid "Authorization successful!\n\nTrakt is now connected."
+msgstr ""
+
 msgctxt "#32110"
-msgid "Context Menu"
+msgid "Authorization timed out.\n\nPlease try again."
 msgstr ""
 
 msgctxt "#32111"
@@ -336,20 +428,36 @@ msgctxt "#32114"
 msgid "Show Edit Metadata"
 msgstr ""
 
+msgctxt "#32115"
+msgid "Connection successful!\n\nTrakt is authorized and working."
+msgstr ""
+
+msgctxt "#32116"
+msgid "Connection failed.\n\nPlease authorize Trakt first."
+msgstr ""
+
 msgctxt "#32117"
 msgid "Show Download Artwork"
+msgstr ""
+
+msgctxt "#32118"
+msgid "No HTTP artwork URLs found in {0} library items."
+msgstr ""
+
+msgctxt "#32119"
+msgid "Overwrite Mode Warning"
 msgstr ""
 
 msgctxt "#32120"
 msgid "Change Language"
 msgstr ""
 
-msgctxt "#32122"
-msgid "Text-free / Untagged"
+msgctxt "#32121"
+msgid "Download Complete"
 msgstr ""
 
-msgctxt "#32123"
-msgid "Blur"
+msgctxt "#32122"
+msgid "Text-free / Untagged"
 msgstr ""
 
 msgctxt "#32124"
@@ -1662,4 +1770,29 @@ msgstr ""
 
 msgctxt "#32977"
 msgid "Language for titles, plots, and other metadata from TMDb"
+msgstr ""
+
+#. Actor image download feature (context menu)
+msgctxt "#32981"
+msgid "Downloading actor images..."
+msgstr ""
+
+msgctxt "#32982"
+msgid "{0} actors"
+msgstr ""
+
+msgctxt "#32983"
+msgid "Include TV Episode Guest Stars"
+msgstr ""
+
+msgctxt "#32984"
+msgid "Download guest star images from TV show episodes (increases API calls)"
+msgstr ""
+
+msgctxt "#32985"
+msgid "Include Episode Thumbnails"
+msgstr ""
+
+msgctxt "#32986"
+msgid "Download episode thumbnail artwork during bulk operations"
 msgstr ""

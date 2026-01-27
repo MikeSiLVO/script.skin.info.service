@@ -1,0 +1,1 @@
+"""Actor image download functionality."""

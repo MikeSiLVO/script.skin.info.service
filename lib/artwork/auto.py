@@ -204,11 +204,11 @@ class ArtworkAuto:
             else:
                 db.update_queue_status(queue_item['id'], 'skipped')
                 if no_art_available:
-                    self.skipped_items.append((title, "No artwork available from scrapers"))
+                    self.skipped_items.append((title, ADDON.getLocalizedString(32009)))
                 elif blocked_by_policy:
-                    self.skipped_items.append((title, "No artwork matched language preferences"))
+                    self.skipped_items.append((title, ADDON.getLocalizedString(32010)))
                 else:
-                    self.skipped_items.append((title, "Needs manual review"))
+                    self.skipped_items.append((title, ADDON.getLocalizedString(32011)))
 
             self.stats['processed'] += 1
             if not applied_any:

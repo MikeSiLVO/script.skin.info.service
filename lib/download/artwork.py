@@ -10,6 +10,7 @@ from typing import Optional, Tuple, Dict
 from lib.kodi.client import log
 from lib.data.api.client import ApiSession
 from lib.rating.source import RetryableError
+from lib.infrastructure.paths import vfs_ensure_dir_slash
 
 
 class DownloadArtwork:
@@ -128,14 +129,17 @@ class DownloadArtwork:
 
             full_path = xbmcvfs.validatePath(local_path + '.' + ext)
             parent_dir = os.path.dirname(full_path)
-            if not xbmcvfs.mkdirs(parent_dir):
-                self.file_error_count += 1
-                log("Download",
-                    f"FILE ERROR #{self.file_error_count} - Cannot create directory: {parent_dir}",
-                    xbmc.LOGERROR
-                )
-                response.close()
-                return False, f"Cannot create directory: {parent_dir}", 0
+            parent_dir_check = vfs_ensure_dir_slash(parent_dir)
+            if not xbmcvfs.exists(parent_dir_check):
+                xbmcvfs.mkdirs(parent_dir)
+                if not xbmcvfs.exists(parent_dir_check):
+                    self.file_error_count += 1
+                    log("Download",
+                        f"FILE ERROR #{self.file_error_count} - Cannot create directory: {parent_dir}",
+                        xbmc.LOGERROR
+                    )
+                    response.close()
+                    return False, f"Cannot create directory: {parent_dir}", 0
 
             bytes_written = self._write_file_stream(full_path, response, abort_flag)
 

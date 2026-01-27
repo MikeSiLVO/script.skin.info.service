@@ -153,22 +153,22 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
         credits = complete_data['credits'].get('cast', [])
 
-    match = _exact_match(credits, actor_name, actor_role)
+    match = exact_match(credits, actor_name, actor_role)
     if match:
         log("Person", f"Matched '{actor_name}' via exact match (person_id={match['id']})", xbmc.LOGDEBUG)
         return match['id']
 
-    match = _fuzzy_role_match(credits, actor_name, actor_role)
+    match = fuzzy_role_match(credits, actor_name, actor_role)
     if match:
         log("Person", f"Matched '{actor_name}' via fuzzy role (person_id={match['id']})", xbmc.LOGDEBUG)
         return match['id']
 
-    match = _name_only_match(credits, actor_name)
+    match = name_only_match(credits, actor_name)
     if match:
         log("Person", f"Matched '{actor_name}' via name only (person_id={match['id']})", xbmc.LOGDEBUG)
         return match['id']
 
-    match = _fuzzy_name_match(credits, actor_name)
+    match = fuzzy_name_match(credits, actor_name)
     if match:
         log("Person", f"Matched '{actor_name}' via fuzzy name (person_id={match['id']})", xbmc.LOGDEBUG)
         return match['id']
@@ -181,7 +181,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
     return None
 
 
-def _normalize_name(name: str) -> str:
+def normalize_name(name: str) -> str:
     """Normalize name for matching by handling special characters and initials."""
     import re
     import unicodedata
@@ -195,27 +195,27 @@ def _normalize_name(name: str) -> str:
     return normalized.strip()
 
 
-def _exact_match(credits: list, name: str, role: str) -> Optional[dict]:
+def exact_match(credits: list, name: str, role: str) -> Optional[dict]:
     """Match exact name and exact role."""
-    normalized_name = _normalize_name(name)
+    normalized_name = normalize_name(name)
     for actor in credits:
         actor_name = actor.get('name', '')
-        normalized_actor = _normalize_name(actor_name)
+        normalized_actor = normalize_name(actor_name)
         if normalized_actor == normalized_name and actor.get('character') == role:
             return actor
     return None
 
 
-def _fuzzy_role_match(credits: list, name: str, role: str) -> Optional[dict]:
+def fuzzy_role_match(credits: list, name: str, role: str) -> Optional[dict]:
     """Match exact name with fuzzy role (substring)."""
     if not role:
         return None
 
-    normalized_name = _normalize_name(name)
+    normalized_name = normalize_name(name)
     role_lower = role.lower()
     for actor in credits:
         actor_name = actor.get('name', '')
-        normalized_actor = _normalize_name(actor_name)
+        normalized_actor = normalize_name(actor_name)
         if normalized_actor == normalized_name:
             character = actor.get('character', '').lower()
             if role_lower in character or character in role_lower:
@@ -223,18 +223,18 @@ def _fuzzy_role_match(credits: list, name: str, role: str) -> Optional[dict]:
     return None
 
 
-def _name_only_match(credits: list, name: str) -> Optional[dict]:
+def name_only_match(credits: list, name: str) -> Optional[dict]:
     """Match name only, ignore role."""
-    normalized_name = _normalize_name(name)
+    normalized_name = normalize_name(name)
     for actor in credits:
         actor_name = actor.get('name', '')
-        normalized_actor = _normalize_name(actor_name)
+        normalized_actor = normalize_name(actor_name)
         if normalized_actor == normalized_name:
             return actor
     return None
 
 
-def _fuzzy_name_match(credits: list, name: str) -> Optional[dict]:
+def fuzzy_name_match(credits: list, name: str) -> Optional[dict]:
     """Match with name variations (handle 'First Last' vs 'Last, First')."""
     name_lower = name.lower().strip()
     name_reversed = ' '.join(reversed(name.split())).lower()
@@ -332,7 +332,7 @@ def match_crew_to_person_id(
         TMDB person ID or None if not found/cancelled
     """
     api = ApiTmdb()
-    normalized_name = _normalize_name(crew_name)
+    normalized_name = normalize_name(crew_name)
 
     if crew_type == "creator":
         if dbtype != "tvshow":
@@ -347,7 +347,7 @@ def match_crew_to_person_id(
         created_by = data.get("created_by") or []
         for creator in created_by:
             creator_name = creator.get("name", "")
-            if _normalize_name(creator_name) == normalized_name:
+            if normalize_name(creator_name) == normalized_name:
                 person_id = creator.get("id")
                 log("Person", f"Matched creator '{crew_name}' (person_id={person_id})", xbmc.LOGDEBUG)
                 return person_id
@@ -375,7 +375,7 @@ def match_crew_to_person_id(
         for member in crew:
             member_name = member.get("name", "")
             member_job = member.get("job", "")
-            if _normalize_name(member_name) == normalized_name and member_job in job_filter:
+            if normalize_name(member_name) == normalized_name and member_job in job_filter:
                 person_id = member.get("id")
                 log("Person", f"Matched {crew_type} '{crew_name}' (person_id={person_id})", xbmc.LOGDEBUG)
                 return person_id

@@ -68,6 +68,8 @@ def calculate_texture_statistics(
                 raw_usecount = size.get('usecount', 0)
                 raw_width = size.get('width', 0)
 
+                # Workaround for Kodi bug: width/usecount fields swapped
+                # https://github.com/xbmc/xbmc/pull/27584
                 if raw_width < 256 and raw_usecount >= 256:
                     usecount = raw_width
                 else:

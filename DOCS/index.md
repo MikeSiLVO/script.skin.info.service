@@ -37,6 +37,7 @@ Window properties and plugin paths for Kodi skins.
 | [Artwork Review](tools/artwork-review.md) | Browse and manage library artwork |
 | [Blur](tools/blur.md)                     | Generate blurred images           |
 | [Color Picker](tools/color-picker.md)     | RGBA color picker dialog          |
+| [Download Artwork](tools/download-artwork.md) | Download artwork and actor images to filesystem |
 | [GIF Scanner](tools/gif-scanner.md)       | Find animated artwork in library  |
 | [Metadata Editor](tools/metadata-editor.md) | Edit library item metadata      |
 | [Slideshow](tools/slideshow.md)           | Rotating fanart backgrounds       |
