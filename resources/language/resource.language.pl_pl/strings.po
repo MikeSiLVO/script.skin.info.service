@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-01-24 00:00+0000\n"
+"PO-Revision-Date: 2026-01-30 00:00+0000\n"
 "Last-Translator: 3vtv\n"
 "Language: pl_PL\n"
 "MIME-Version: 1.0\n"
@@ -39,9 +39,45 @@ msgctxt "#32008"
 msgid "Prefer fanart in selected language"
 msgstr "Preferuj fanarty w wybranym języku"
 
+msgctxt "#32009"
+msgid "No artwork available from scrapers"
+msgstr "Brak dostępnych grafik od scraperów"
+
+msgctxt "#32010"
+msgid "No artwork matched language preferences"
+msgstr "Żadna grafika nie pasuje do preferencji językowych"
+
+msgctxt "#32011"
+msgid "Needs manual review"
+msgstr "Wymaga ręcznego przeglądu"
+
+msgctxt "#32012"
+msgid "No images selected"
+msgstr "Nie wybrano obrazów"
+
+msgctxt "#32013"
+msgid "Downloaded {0} files"
+msgstr "Pobrano {0} plików"
+
+msgctxt "#32014"
+msgid "{0} files"
+msgstr "{0} plików"
+
 msgctxt "#32015"
-msgid "Art types to check"
-msgstr "Typy grafik do sprawdzenia"
+msgid "{0} image(s) selected"
+msgstr "Wybrano {0} obraz(y/ów)"
+
+msgctxt "#32016"
+msgid "{0} seasons"
+msgstr "{0} sezon(y/ów)"
+
+msgctxt "#32017"
+msgid "{0} episodes"
+msgstr "{0} odcink(i/ów)"
+
+msgctxt "#32018"
+msgid "Processing episodes..."
+msgstr "Przetwarzanie odcinków..."
 
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
@@ -50,10 +86,6 @@ msgstr "Dodaj opcję 'Pobierz' do brakujących grafik i wstępnego buforowania"
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
 msgstr "Pokaż dodatkowe opcje menu, aby pobierać grafiki do systemu plików podczas przeglądania i operacji wstępnego buforowania."
-
-msgctxt "#32021"
-msgid "File Handling"
-msgstr "Obsługa plików"
 
 msgctxt "#32022"
 msgid "When File Already Exists"
@@ -87,22 +119,6 @@ msgctxt "#32030"
 msgid "Save as 'video-poster.jpg' instead of 'poster.jpg' in video folder"
 msgstr "Zapisz jako 'video-poster.jpg' zamiast 'poster.jpg' w folderze wideo"
 
-msgctxt "#32031"
-msgid "Default Review Mode"
-msgstr "Domyślny tryb przeglądania"
-
-msgctxt "#32032"
-msgid "Scan mode for manual artwork review"
-msgstr "Tryb skanowania do ręcznego przeglądania grafik"
-
-msgctxt "#32033"
-msgid "Missing + Upgrades"
-msgstr "Brakujące + Ulepszenia"
-
-msgctxt "#32034"
-msgid "Missing Only"
-msgstr "Tylko brakujące"
-
 msgctxt "#32035"
 msgid "Always Ask"
 msgstr "Zawsze pytaj"
@@ -122,6 +138,26 @@ msgstr "Przyrostowy"
 msgctxt "#32039"
 msgid "Full Scan"
 msgstr "Pełne skanowanie"
+
+msgctxt "#32040"
+msgid "Download Report"
+msgstr "Raport pobierania"
+
+msgctxt "#32041"
+msgid "No download history found."
+msgstr "Nie znaleziono historii pobierania."
+
+msgctxt "#32042"
+msgid "Cancelled"
+msgstr "Anulowano"
+
+msgctxt "#32043"
+msgid "No valid media types to download."
+msgstr "Brak prawidłowych typów multimediów do pobrania."
+
+msgctxt "#32045"
+msgid "Downloaded:"
+msgstr "Pobrano:"
 
 msgctxt "#32044"
 msgid "API Keys"
@@ -202,6 +238,10 @@ msgstr "Odwołaj autoryzację"
 msgctxt "#32064"
 msgid "Ratings"
 msgstr "Oceny"
+
+msgctxt "#32065"
+msgid "Not configured"
+msgstr "Nieskonfigurowano"
 
 msgctxt "#32066"
 msgid "Provider data cache duration (days)"
@@ -299,6 +339,34 @@ msgctxt "#32092"
 msgid "Advanced Cleanup..."
 msgstr "Zaawansowane czyszczenie..."
 
+msgctxt "#32093"
+msgid "Enter {0} API Key"
+msgstr "Wprowadź klucz API {0}"
+
+msgctxt "#32094"
+msgid "Are you sure you want to clear the {0} API key?"
+msgstr "Czy na pewno chcesz wyczyścić klucz API {0}?"
+
+msgctxt "#32095"
+msgid "Error testing connection:\n\n{0}"
+msgstr "Błąd testowania połączenia:\n\n{0}"
+
+msgctxt "#32096"
+msgid "Failed to get device code from Trakt."
+msgstr "Nie udało się uzyskać kodu urządzenia od Trakt."
+
+msgctxt "#32097"
+msgid "Error:\n\n{0}"
+msgstr "Błąd:\n\n{0}"
+
+msgctxt "#32098"
+msgid "Are you sure you want to revoke Trakt authorization?\n\nYou will need to re-authorize to use Trakt ratings."
+msgstr "Czy na pewno chcesz odwołać autoryzację Trakt?\n\nBędziesz musiał ponownie autoryzować, aby używać ocen Trakt."
+
+msgctxt "#32099"
+msgid "Downloaded {0} files ({1} MB)"
+msgstr "Pobrano {0} plików ({1} MB)"
+
 #. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
@@ -316,9 +384,33 @@ msgctxt "#32103"
 msgid "Edit Metadata"
 msgstr "Edytuj metadane"
 
+msgctxt "#32104"
+msgid "{0} - Connection Test"
+msgstr "{0} - Test połączenia"
+
+msgctxt "#32105"
+msgid "Connection successful!\n\nAPI key is valid and working."
+msgstr "Połączenie udane!\n\nKlucz API jest prawidłowy i działa."
+
+msgctxt "#32106"
+msgid "Connection failed.\n\nPlease check your API key."
+msgstr "Połączenie nieudane.\n\nSprawdź swój klucz API."
+
+msgctxt "#32107"
+msgid "Trakt Authorization Failed"
+msgstr "Autoryzacja Trakt nie powiodła się"
+
+msgctxt "#32108"
+msgid "Trakt - Connection Test"
+msgstr "Trakt - Test połączenia"
+
+msgctxt "#32109"
+msgid "Authorization successful!\n\nTrakt is now connected."
+msgstr "Autoryzacja udana!\n\nTrakt jest teraz połączony."
+
 msgctxt "#32110"
-msgid "Context Menu"
-msgstr "Menu kontekstowe"
+msgid "Authorization timed out.\n\nPlease try again."
+msgstr "Upłynął czas autoryzacji.\n\nSpróbuj ponownie."
 
 msgctxt "#32111"
 msgid "Context Menu Items"
@@ -336,21 +428,37 @@ msgctxt "#32114"
 msgid "Show Edit Metadata"
 msgstr "Pokaż edycję metadanych"
 
+msgctxt "#32115"
+msgid "Connection successful!\n\nTrakt is authorized and working."
+msgstr "Połączenie udane!\n\nTrakt jest autoryzowany i działa."
+
+msgctxt "#32116"
+msgid "Connection failed.\n\nPlease authorize Trakt first."
+msgstr "Połączenie nieudane.\n\nNajpierw autoryzuj Trakt."
+
 msgctxt "#32117"
 msgid "Show Download Artwork"
 msgstr "Pokaż grafiki do pobrania"
+
+msgctxt "#32118"
+msgid "No HTTP artwork URLs found in {0} library items."
+msgstr "Nie znaleziono adresów URL grafik HTTP w {0} elementach biblioteki."
+
+msgctxt "#32119"
+msgid "Overwrite Mode Warning"
+msgstr "Ostrzeżenie trybu nadpisywania"
 
 msgctxt "#32120"
 msgid "Change Language"
 msgstr "Zmień język"
 
+msgctxt "#32121"
+msgid "Download Complete"
+msgstr "Pobieranie zakończone"
+
 msgctxt "#32122"
 msgid "Text-free / Untagged"
 msgstr "Bez tekstu / Bez tagów"
-
-msgctxt "#32123"
-msgid "Blur"
-msgstr "Rozmycie"
 
 msgctxt "#32124"
 msgid "Cache Management"
@@ -728,6 +836,10 @@ msgctxt "#32295"
 msgid "Scan complete. No missing artwork found."
 msgstr "Skanowanie zakończone. Nie znaleziono brakujących grafik."
 
+msgctxt "#32296"
+msgid "No remote artwork to download"
+msgstr "Brak zdalnych grafik do pobrania"
+
 msgctxt "#32297"
 msgid "Preparing download..."
 msgstr "Przygotowywanie pobierania..."
@@ -739,10 +851,6 @@ msgstr "Pobieranie grafiki..."
 msgctxt "#32299"
 msgid "Loading seasons and episodes..."
 msgstr "Ładowanie sezonów i odcinków..."
-
-msgctxt "#32296"
-msgid "No remote artwork to download"
-msgstr "Brak zdalnych grafik do pobrania"
 
 msgctxt "#32300"
 msgid "Ratings Updater"
@@ -1663,3 +1771,28 @@ msgstr "Usługa online"
 msgctxt "#32977"
 msgid "Language for titles, plots, and other metadata from TMDb"
 msgstr "Język dla tytułów, opisów i innych metadanych z TMDb"
+
+#. Actor image download feature (context menu)
+msgctxt "#32981"
+msgid "Downloading actor images..."
+msgstr "Pobieranie obrazów aktorów..."
+
+msgctxt "#32982"
+msgid "{0} actors"
+msgstr "{0} aktorów"
+
+msgctxt "#32983"
+msgid "Include TV Episode Guest Stars"
+msgstr "Uwzględnij gościnne występy w odcinkach seriali"
+
+msgctxt "#32984"
+msgid "Download guest star images from TV show episodes (increases API calls)"
+msgstr "Pobierz obrazy gościnnych gwiazd z odcinków seriali (zwiększa liczbę wywołań API)"
+
+msgctxt "#32985"
+msgid "Include Episode Thumbnails"
+msgstr "Uwzględnij miniatury odcinków"
+
+msgctxt "#32986"
+msgid "Download episode thumbnail artwork during bulk operations"
+msgstr "Pobierz miniaturę odcinka podczas operacji zbiorczych"
