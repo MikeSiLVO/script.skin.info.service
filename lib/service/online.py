@@ -6,12 +6,17 @@ Sets properties with SkinInfo.Online.* prefix on Home window.
 from __future__ import annotations
 
 import threading
+from collections import OrderedDict
 from typing import Dict, Optional, Tuple
 
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utils import set_prop, clear_prop, clear_group, get_prop, wait_for_kodi_ready
+from lib.kodi.utils import clear_group, get_prop, wait_for_kodi_ready, batch_set_props
+from lib.data.database.cache import get_cached_online_properties, cache_online_properties
+
+_MEMORY_CACHE: OrderedDict[str, Dict[str, str]] = OrderedDict()
+_MEMORY_CACHE_MAX = 20
 
 ONLINE_POLL_INTERVAL = 0.10
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
@@ -169,8 +174,10 @@ class OnlineServiceMain(threading.Thread):
         self._abort_flag = ServiceAbortFlag(self.abort)
         self._last_item_key: Optional[str] = None
         self._fetch_thread: Optional[threading.Thread] = None
+        self._fetch_for_key: Optional[str] = None
         self._last_player_key: Optional[str] = None
         self._player_fetch_thread: Optional[threading.Thread] = None
+        self._player_fetch_for_key: Optional[str] = None
         self._last_prop_keys: set = set()
 
     def run(self) -> None:
@@ -202,13 +209,14 @@ class OnlineServiceMain(threading.Thread):
                 self._last_prop_keys = set()
             return
 
-        imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+        prefix = _SKININFO_PREFIX_MAP.get(dbtype, "")
+        imdb_id = get_prop(f"{prefix}.UniqueID.IMDB") or ""
+        tmdb_id = get_prop(f"{prefix}.UniqueID.TMDB") or ""
 
         if not imdb_id and not tmdb_id:
-            if self._last_item_key:
-                self._clear_properties()
-                self._last_item_key = None
-                self._last_prop_keys = set()
+            imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+
+        if not imdb_id and not tmdb_id:
             return
 
         cache_key = _make_cache_key(dbtype, imdb_id, tmdb_id)
@@ -218,24 +226,32 @@ class OnlineServiceMain(threading.Thread):
         if cache_key == self._last_item_key:
             return
 
-        if self._fetch_thread and self._fetch_thread.is_alive():
-            return
-
         self._last_item_key = cache_key
 
-        from lib.data.database.cache import get_cached_online_properties
-        cached_props = get_cached_online_properties(cache_key)
+        cached_props = _MEMORY_CACHE.get(cache_key)
+        if cached_props is None:
+            cached_props = get_cached_online_properties(cache_key)
+            if cached_props:
+                _MEMORY_CACHE[cache_key] = cached_props
+                if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
+                    _MEMORY_CACHE.popitem(last=False)
+
         if cached_props:
+            props_to_set = {}
             new_keys = set()
             for key, value in cached_props.items():
                 if value:
-                    set_prop(f"{ONLINE_PROPERTY_PREFIX}{key}", str(value))
+                    props_to_set[f"{ONLINE_PROPERTY_PREFIX}{key}"] = str(value)
                     new_keys.add(key)
             for old_key in self._last_prop_keys - new_keys:
-                clear_prop(f"{ONLINE_PROPERTY_PREFIX}{old_key}")
+                props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
+            batch_set_props(props_to_set)
             self._last_prop_keys = new_keys
-        # Don't clear on cache miss - let worker set new props and clear stale ones
 
+        if self._fetch_thread and self._fetch_thread.is_alive() and self._fetch_for_key == cache_key:
+            return
+
+        self._fetch_for_key = cache_key
         self._fetch_thread = threading.Thread(
             target=self._fetch_worker,
             args=(dbtype, imdb_id, tmdb_id, cache_key, ONLINE_PROPERTY_PREFIX, "_last_item_key", self._abort_flag),
@@ -285,12 +301,12 @@ class OnlineServiceMain(threading.Thread):
         if cache_key == self._last_player_key:
             return
 
-        if self._player_fetch_thread and self._player_fetch_thread.is_alive():
+        self._last_player_key = cache_key
+
+        if self._player_fetch_thread and self._player_fetch_thread.is_alive() and self._player_fetch_for_key == cache_key:
             return
 
-        self._last_player_key = cache_key
-        # Don't clear - let worker set new props (player doesn't cache so stale data is brief)
-
+        self._player_fetch_for_key = cache_key
         self._player_fetch_thread = threading.Thread(
             target=self._fetch_worker,
             args=(dbtype, imdb_id, tmdb_id, cache_key, PLAYER_ONLINE_PROPERTY_PREFIX, "_last_player_key", self._abort_flag),
@@ -330,20 +346,27 @@ class OnlineServiceMain(threading.Thread):
             if cache_key != getattr(self, key_attr):
                 return
 
+            if abort_flag.is_requested():
+                return
+
+            props_to_set = {}
             new_keys = set()
             for key, value in props.items():
-                if abort_flag.is_requested():
-                    return
                 if value:
-                    set_prop(f"{prop_prefix}{key}", str(value))
+                    props_to_set[f"{prop_prefix}{key}"] = str(value)
                     new_keys.add(key)
 
             if not is_player:
                 for old_key in self._last_prop_keys - new_keys:
-                    clear_prop(f"{prop_prefix}{old_key}")
+                    props_to_set[f"{prop_prefix}{old_key}"] = ""
                 self._last_prop_keys = new_keys
 
-                from lib.data.database.cache import cache_online_properties
+            batch_set_props(props_to_set)
+
+            if not is_player:
+                _MEMORY_CACHE[cache_key] = props
+                if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
+                    _MEMORY_CACHE.popitem(last=False)
                 cache_online_properties(cache_key, props, ttl_hours=1)
 
         except Exception as e:

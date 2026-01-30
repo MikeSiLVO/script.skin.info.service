@@ -316,6 +316,14 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
+				<setting id="download.include_guest_stars" type="boolean" label="32983" help="32984">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="download.include_episode_thumbs" type="boolean" label="32985" help="32986">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
 			</group>
 			<group id="2" label="32273">
 				<setting id="download.enable_combo_workflows" type="boolean" label="32019" help="32020">

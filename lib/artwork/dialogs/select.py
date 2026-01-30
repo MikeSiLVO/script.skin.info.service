@@ -419,11 +419,11 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         try:
             button = self.getControl(self.BUTTON_SOURCE_PREF)
             if self.source_pref == 'all':
-                button.setLabel('Source: All')
+                button.setLabel(ADDON.getLocalizedString(32132))
             elif self.source_pref == 'tmdb':
-                button.setLabel('Source: TMDB')
+                button.setLabel(ADDON.getLocalizedString(32133))
             else:
-                button.setLabel('Source: Fanart.tv')
+                button.setLabel(ADDON.getLocalizedString(32134))
         except Exception:
             pass
 

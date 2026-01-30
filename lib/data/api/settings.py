@@ -23,7 +23,7 @@ def edit_api_key(provider: str) -> None:
     current_key = ADDON.getSetting(config["setting_path"])
 
     keyboard = xbmcgui.Dialog().input(
-        f"Enter {config['name']} API Key",
+        ADDON.getLocalizedString(32093).format(config['name']),
         current_key,
         type=xbmcgui.INPUT_ALPHANUM
     )
@@ -53,16 +53,17 @@ def clear_api_key(provider: str) -> None:
         return
 
     if show_yesno(
-        "Clear API Key",
-        f"Are you sure you want to clear the {config['name']} API key?"
+        ADDON.getLocalizedString(32049),
+        ADDON.getLocalizedString(32094).format(config['name'])
     ):
+        not_configured = ADDON.getLocalizedString(32065)
         settings = ADDON.getSettings()
         settings.setString(config["setting_path"], "")
         settings.setString(f"{provider}_configured", "false")
-        settings.setString(f"{provider}_api_key_display", "Not configured")
+        settings.setString(f"{provider}_api_key_display", not_configured)
 
         ADDON.setSetting(f"{provider}_configured", "false")
-        ADDON.setSetting(f"{provider}_api_key_display", "Not configured")
+        ADDON.setSetting(f"{provider}_api_key_display", not_configured)
 
         xbmc.executebuiltin('Action(Up)')
 
@@ -109,22 +110,22 @@ def test_api_key(provider: str) -> None:
         if success:
             dialog = xbmcgui.Dialog()
             dialog.ok(
-                f"{config['name']} - Connection Test",
-                "Connection successful!\n\nAPI key is valid and working."
+                ADDON.getLocalizedString(32104).format(config['name']),
+                ADDON.getLocalizedString(32105)
             )
         else:
             dialog = xbmcgui.Dialog()
             dialog.ok(
-                f"{config['name']} - Connection Test",
-                "Connection failed.\n\nPlease check your API key."
+                ADDON.getLocalizedString(32104).format(config['name']),
+                ADDON.getLocalizedString(32106)
             )
 
     except Exception as e:
         progress.close()
         dialog = xbmcgui.Dialog()
         dialog.ok(
-            f"{config['name']} - Connection Test",
-            f"Error testing connection:\n\n{str(e)}"
+            ADDON.getLocalizedString(32104).format(config['name']),
+            ADDON.getLocalizedString(32095).format(str(e))
         )
 
 
@@ -156,8 +157,8 @@ def authorize_trakt() -> None:
         if not data_dict:
             progress.close()
             show_ok(
-                "Trakt Authorization Failed",
-                "Failed to get device code from Trakt."
+                ADDON.getLocalizedString(32107),
+                ADDON.getLocalizedString(32096)
             )
             return
 
@@ -206,22 +207,22 @@ def authorize_trakt() -> None:
 
                 progress.close()
                 show_ok(
-                    "Trakt Authorization",
-                    "Authorization successful!\n\nTrakt is now connected."
+                    ADDON.getLocalizedString(32372),
+                    ADDON.getLocalizedString(32109)
                 )
                 return
 
         progress.close()
         show_ok(
-            "Trakt Authorization",
-            "Authorization timed out.\n\nPlease try again."
+            ADDON.getLocalizedString(32372),
+            ADDON.getLocalizedString(32110)
         )
 
     except Exception as e:
         progress.close()
         show_ok(
-            "Trakt Authorization Failed",
-            f"Error:\n\n{str(e)}"
+            ADDON.getLocalizedString(32107),
+            ADDON.getLocalizedString(32097).format(str(e))
         )
 
 
@@ -240,20 +241,20 @@ def test_trakt_connection() -> None:
 
         if success:
             show_ok(
-                "Trakt - Connection Test",
-                "Connection successful!\n\nTrakt is authorized and working."
+                ADDON.getLocalizedString(32108),
+                ADDON.getLocalizedString(32115)
             )
         else:
             show_ok(
-                "Trakt - Connection Test",
-                "Connection failed.\n\nPlease authorize Trakt first."
+                ADDON.getLocalizedString(32108),
+                ADDON.getLocalizedString(32116)
             )
 
     except Exception as e:
         progress.close()
         show_ok(
-            "Trakt - Connection Test",
-            f"Error testing connection:\n\n{str(e)}"
+            ADDON.getLocalizedString(32108),
+            ADDON.getLocalizedString(32095).format(str(e))
         )
 
 
@@ -263,9 +264,8 @@ def revoke_trakt_authorization() -> None:
     from lib.infrastructure.dialogs import show_yesno
 
     if show_yesno(
-        "Revoke Trakt Authorization",
-        "Are you sure you want to revoke Trakt authorization?\n\n"
-        "You will need to re-authorize to use Trakt ratings."
+        ADDON.getLocalizedString(32063),
+        ADDON.getLocalizedString(32098)
     ):
         source = TraktRatingsSource()
         source._delete_tokens()

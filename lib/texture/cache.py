@@ -11,7 +11,7 @@ import xbmcgui
 import xbmcvfs
 from typing import Optional, List, Dict, Set, Any, Union, Callable
 
-from lib.kodi.client import request, get_library_items
+from lib.kodi.client import request, get_library_items, ADDON
 from lib.kodi.client import log
 from lib.kodi.client import decode_image_url, encode_image_url
 from lib.kodi.settings import KodiSettings
@@ -979,7 +979,7 @@ def cleanup_orphaned_textures(
                         url = texture.get('url', '')
                         report_lines.append(f"{i}. {url}")
 
-                    dialog.textviewer("Orphaned Textures Report", "\n".join(report_lines))
+                    dialog.textviewer(ADDON.getLocalizedString(32183), "\n".join(report_lines))
                 elif result == 1:
                     break
                 else:
@@ -989,7 +989,7 @@ def cleanup_orphaned_textures(
             if isinstance(progress_dialog, xbmcgui.DialogProgressBG):
                 progress_dialog.update(
                     60,
-                    "Clean Orphaned Textures",
+                    ADDON.getLocalizedString(32334),
                     f"Removing {stats['orphaned_found']} orphaned textures..."
                 )
             else:
@@ -1015,7 +1015,7 @@ def cleanup_orphaned_textures(
                 if isinstance(progress_dialog, xbmcgui.DialogProgressBG):
                     progress_dialog.update(
                         percent,
-                        "Clean Orphaned Textures",
+                        ADDON.getLocalizedString(32334),
                         f"Removed {idx + 1} / {stats['orphaned_found']}"
                     )
                 else:

@@ -18,8 +18,8 @@ def show_download_report() -> None:
 
     if not last_report:
         show_ok(
-            "Download Report",
-            "No download history found."
+            ADDON.getLocalizedString(32040),
+            ADDON.getLocalizedString(32041)
         )
         return
 
@@ -40,7 +40,7 @@ def show_download_report() -> None:
 
     mb = bytes_downloaded / (1024 * 1024) if bytes_downloaded > 0 else 0
 
-    status = "Cancelled" if cancelled else "Complete"
+    status = ADDON.getLocalizedString(32042) if cancelled else ADDON.getLocalizedString(32121)
 
     lines = [
         f"[B]Artwork Download Report - {status}[/B]",
@@ -116,7 +116,9 @@ def run_download_menu() -> None:
 
     db.init_database()
 
-    items = [MenuItem(ADDON.getLocalizedString(32290), _handle_download, loop=True)]
+    items = [
+        MenuItem(ADDON.getLocalizedString(32290), _handle_download, loop=True),
+    ]
 
     if db.get_last_operation_stats('artwork_download'):
         items.append(MenuItem(ADDON.getLocalizedString(32086), show_download_report, loop=True))

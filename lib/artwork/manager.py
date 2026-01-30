@@ -24,6 +24,7 @@ from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.menus import Menu, MenuItem, _RETURN_TO_MAIN
 from lib.infrastructure.dialogs import show_ok, show_yesno, show_textviewer, show_select, show_notification
+from lib.actor.downloader import download_actor_images
 
 # Import from new artwork package
 from lib.artwork.config import (
@@ -277,15 +278,22 @@ def _show_session_report(session_row) -> None:
     show_textviewer(ADDON.getLocalizedString(32500), text)
 
 
-def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updates: Dict[str, str]) -> None:
+def _download_selected_artwork(
+    media_type: str,
+    dbid: int,
+    title: str,
+    art_updates: Dict[str, str],
+    force_overwrite: bool = False
+) -> None:
     """
-    Download selected artwork to filesystem after Manage Artwork selection.
+    Download selected artwork to filesystem.
 
     Args:
         media_type: Media type ('movie', 'tvshow', etc.)
         dbid: Database ID
         title: Media title (for logging)
         art_updates: Dict of artwork_type -> URL to download
+        force_overwrite: Always overwrite existing files (ignores setting)
     """
     from lib.download.artwork import DownloadArtwork
     from lib.infrastructure.paths import PathBuilder
@@ -330,9 +338,12 @@ def _download_selected_artwork(media_type: str, dbid: int, title: str, art_updat
         log("Artwork", f"No file path for {media_type} '{title}', skipping download")
         return
 
-    existing_file_mode_setting = KodiSettings.existing_file_mode()
-    existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
-    existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+    if force_overwrite:
+        existing_file_mode = 'overwrite'
+    else:
+        existing_file_mode_setting = KodiSettings.existing_file_mode()
+        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
     savewith_basefilename_mvids = ADDON.getSettingBool('download.savewith_basefilename_mvids')
@@ -436,7 +447,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     try:
         details = extract_result(
-            request(method_name, {id_key: dbid_int, "properties": ["title", "art"]}),
+            request(method_name, {id_key: dbid_int, "properties": ["title", "art", "file"]}),
             result_key
         )
 
@@ -453,11 +464,24 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         title = details.get("title", "Unknown")
         current_art = details.get("art", {})
 
-        downloadable_art = _extract_downloadable_art(current_art)
+        skip_prefixes = None
+        if media_type == 'episode':
+            skip_prefixes = ["tvshow.", "season."]
+        elif media_type == 'season':
+            skip_prefixes = ["tvshow."]
+        elif media_type == 'movie':
+            skip_prefixes = ["set."]
+
+        downloadable_art = _extract_downloadable_art(current_art, skip_prefixes=skip_prefixes)
 
         art_count = 0
         season_count = 0
         episode_count = 0
+        actor_count = 0
+
+        existing_file_mode_setting = KodiSettings.existing_file_mode()
+        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
         if progress.iscanceled():
             progress.close()
@@ -481,11 +505,14 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             })
             seasons = extract_result(seasons_resp, "seasons", [])
 
-            episodes_resp = request("VideoLibrary.GetEpisodes", {
-                "tvshowid": dbid_int,
-                "properties": ["art", "season", "episode", "title", "file"]
-            })
-            episodes = extract_result(episodes_resp, "episodes", [])
+            include_episode_thumbs = ADDON.getSettingBool("download.include_episode_thumbs")
+            episodes = []
+            if include_episode_thumbs:
+                episodes_resp = request("VideoLibrary.GetEpisodes", {
+                    "tvshowid": dbid_int,
+                    "properties": ["art", "season", "episode", "title", "file"]
+                })
+                episodes = extract_result(episodes_resp, "episodes", [])
 
             total_items = len(seasons) + len(episodes)
             processed = 0
@@ -541,6 +568,21 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
                 processed += 1
 
+        if progress.iscanceled():
+            progress.close()
+            return
+
+        if media_type in ('movie', 'tvshow'):
+            progress.update(95, f"{title}\n{ADDON.getLocalizedString(32981)}")
+            file_path = details.get("file", "")
+            downloaded, _, _ = download_actor_images(
+                media_type=media_type,
+                dbid=dbid_int,
+                file_path=file_path,
+                existing_file_mode=existing_file_mode
+            )
+            actor_count = downloaded
+
         progress.close()
 
     except Exception as e:
@@ -554,7 +596,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
-    if art_count == 0:
+    total_count = art_count + actor_count
+    log("Artwork", f"Download counts - art: {art_count}, actors: {actor_count}, total: {total_count}", xbmc.LOGDEBUG)
+    if total_count == 0:
         show_notification(
             ADDON.getLocalizedString(32290),
             ADDON.getLocalizedString(32296),
@@ -563,14 +607,19 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
     else:
         if media_type == 'tvshow':
-            parts = [f"{art_count} files"]
+            parts = [ADDON.getLocalizedString(32014).format(art_count)]
             if season_count > 0:
-                parts.append(f"{season_count} seasons")
+                parts.append(ADDON.getLocalizedString(32016).format(season_count))
             if episode_count > 0:
-                parts.append(f"{episode_count} episodes")
-            message = "Downloaded " + ", ".join(parts)
+                parts.append(ADDON.getLocalizedString(32017).format(episode_count))
+            if actor_count > 0:
+                parts.append(ADDON.getLocalizedString(32982).format(actor_count))
+            message = ADDON.getLocalizedString(32045) + " " + ", ".join(parts)
         else:
-            message = f"Downloaded {art_count} files"
+            if actor_count > 0:
+                message = ADDON.getLocalizedString(32013).format(art_count) + ", " + ADDON.getLocalizedString(32982).format(actor_count)
+            else:
+                message = ADDON.getLocalizedString(32013).format(art_count)
 
         show_notification(
             ADDON.getLocalizedString(32290),
@@ -737,7 +786,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
                 2000
             )
             if KodiSettings.download_after_manage_artwork():
-                _download_selected_artwork(dbtype_lower, dbid_int, title, art_updates)
+                _download_selected_artwork(dbtype_lower, dbid_int, title, art_updates, force_overwrite=True)
             refreshed_details = extract_result(
                 request(method_name, {id_key: dbid_int, "properties": ["art"]}),
                 result_key

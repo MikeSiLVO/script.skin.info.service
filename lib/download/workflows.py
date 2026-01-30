@@ -302,12 +302,15 @@ def download_scope_artwork(
     if media_filter is None:
         media_filter = REVIEW_MEDIA_FILTERS.get(scope, ['movie', 'tvshow', 'episode'])
 
+    if not ADDON.getSettingBool('download.include_episode_thumbs'):
+        media_filter = [mt for mt in media_filter if mt != 'episode']
+
     media_filter = [mt for mt in media_filter if mt in KODI_GET_LIBRARY_METHODS]
 
     if not media_filter:
         show_ok(
-            "Download Artwork",
-            "No valid media types to download."
+            ADDON.getLocalizedString(32290),
+            ADDON.getLocalizedString(32043)
         )
         return
 
@@ -364,7 +367,7 @@ def download_scope_artwork(
             pattern_text = ", ".join(pattern_desc)
 
             confirmed = show_yesno(
-                "Overwrite Mode Warning",
+                ADDON.getLocalizedString(32119),
                 f"[B]Overwrite mode is enabled[/B][CR][CR]"
                 f"Filename pattern: {pattern_text}[CR]"
                 f"Mismatches detected: {total_mismatches} files[CR][CR]"
@@ -387,7 +390,7 @@ def download_scope_artwork(
             progress.close()
             show_ok(
                 ADDON.getLocalizedString(32290),
-                f"No HTTP artwork URLs found in {len(items)} library items."
+                ADDON.getLocalizedString(32118).format(len(items))
             )
             return
 
@@ -526,14 +529,14 @@ def _show_download_report(
 
     if use_background:
         show_notification(
-            "Download Complete",
-            f"Downloaded {downloaded} files ({mb:.2f} MB)",
+            ADDON.getLocalizedString(32121),
+            ADDON.getLocalizedString(32099).format(downloaded, f"{mb:.2f}"),
             xbmcgui.NOTIFICATION_INFO,
             5000
         )
     else:
         lines = [
-            "[B]Download Complete[/B]",
+            f"[B]{ADDON.getLocalizedString(32121)}[/B]",
             "",
             f"Total artwork URLs: {total_jobs}",
             f"Downloaded: {downloaded}",

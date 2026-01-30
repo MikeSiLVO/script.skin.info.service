@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta10"
+	   version="2.0.0~beta11"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,16 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta11
+- Added actor image download to Download Artwork context menu (movies and TV shows)
+- New setting: Include TV Episode Guest Stars (default off)
+- New setting: Include Episode Thumbnails (default off)
+- Auto-download after Manage Artwork now always overwrites existing files
+- Fixed episode Download Artwork including parent show/season artwork
+- Simplified IMDb dataset progress messages
+- Fixed hardcoded strings to use localized versions
+- Removed unused localization strings
+
 2.0.0~beta10
 - Updated Fanart.tv API to v3.2 with built-in project key
 - Moved Fanart.tv personal key to Advanced settings (matches TMDB pattern)

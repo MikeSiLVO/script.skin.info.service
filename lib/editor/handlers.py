@@ -183,7 +183,7 @@ def _quick_edit_list(
 ) -> tuple[list[str] | None, bool]:
     """Edit list as comma-separated string."""
     current_str = ", ".join(current)
-    heading = f"Edit {field_name} (comma-separated)"
+    heading = ADDON.getLocalizedString(32399).format(field_name)
 
     kb = xbmc.Keyboard(current_str, heading)
     kb.doModal()

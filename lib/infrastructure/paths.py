@@ -18,6 +18,15 @@ def vfs_rstrip_sep(path: str) -> str:
     return path.rstrip('/\\')
 
 
+def vfs_ensure_dir_slash(path: str) -> str:
+    """Ensure path has trailing separator. Required for xbmcvfs.exists() directory checks."""
+    if not path:
+        return path
+    path = vfs_rstrip_sep(path)
+    sep = vfs_get_separator(path)
+    return path + sep
+
+
 def vfs_split(path: str) -> Tuple[str, str]:
     """
     Split path into (directory, filename) like os.path.split but VFS-aware.
@@ -99,6 +108,38 @@ def vfs_join(base: str, *parts: str) -> str:
             result = result + sep + part
 
     return result
+
+
+def build_actors_folder_path(media_type: str, file_path: str, show_path: Optional[str] = None) -> Optional[str]:
+    """
+    Build .actors folder path for a media item.
+
+    Follows Kodi conventions from VideoInfoScanner.cpp and VideoDatabase.cpp:
+    - Movie: parent directory of movie file
+    - TV Show: show root directory
+    - Episode: show root directory (shared with TV show)
+
+    Args:
+        media_type: 'movie', 'tvshow', or 'episode'
+        file_path: Path to movie file or TV show folder
+        show_path: TV show root path (required for episodes)
+
+    Returns:
+        Full path to .actors folder, or None if cannot determine
+    """
+    if media_type == "movie":
+        if not file_path:
+            return None
+        parent = vfs_dirname(file_path)
+        return vfs_join(parent, ".actors")
+    elif media_type in ("tvshow", "episode"):
+        base_path = show_path if show_path else file_path
+        if not base_path:
+            return None
+        base_path = base_path.rstrip("/\\")
+        return vfs_join(base_path, ".actors")
+
+    return None
 
 
 class PathBuilder:
