@@ -235,8 +235,9 @@ def _add_remove_items(
 ) -> tuple[list[str] | None, bool]:
     """Interactive add/remove loop."""
     items = list(current)
+    monitor = xbmc.Monitor()
 
-    while True:
+    while not monitor.abortRequested():
         options = [f"[+] Add {field_name}"]
         for item in items:
             options.append(f"[-] {item}")
@@ -261,6 +262,8 @@ def _add_remove_items(
             if 0 <= item_index < len(items):
                 del items[item_index]
 
+    return None, True
+
 
 def handle_ratings(
     field_name: str, current_ratings: dict[str, Any] | None
@@ -268,8 +271,9 @@ def handle_ratings(
     """Handle external ratings editing. Returns updated ratings after each change."""
     ratings = dict(current_ratings) if current_ratings else {}
     modified = False
+    monitor = xbmc.Monitor()
 
-    while True:
+    while not monitor.abortRequested():
         options = []
         sources = list(ratings.keys())
 
@@ -299,6 +303,8 @@ def handle_ratings(
             source = sources[choice]
             if _edit_single_rating(ratings, source):
                 modified = True
+
+    return None, True
 
 
 def _add_rating_source(ratings: dict[str, Any]) -> bool:

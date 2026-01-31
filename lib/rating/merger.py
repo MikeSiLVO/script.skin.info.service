@@ -139,4 +139,19 @@ def prepare_kodi_ratings(
         first_source = next(iter(kodi_ratings))
         kodi_ratings[first_source]["default"] = True
 
+    # Kodi scrapers use inconsistent naming: movies use "themoviedb", TV uses "tmdb"
+    # Write both keys to ensure skins find the rating regardless of which they check
+    if "themoviedb" in kodi_ratings and "tmdb" not in kodi_ratings:
+        kodi_ratings["tmdb"] = {
+            "rating": kodi_ratings["themoviedb"]["rating"],
+            "votes": kodi_ratings["themoviedb"]["votes"],
+            "default": False
+        }
+    elif "tmdb" in kodi_ratings and "themoviedb" not in kodi_ratings:
+        kodi_ratings["themoviedb"] = {
+            "rating": kodi_ratings["tmdb"]["rating"],
+            "votes": kodi_ratings["tmdb"]["votes"],
+            "default": False
+        }
+
     return kodi_ratings

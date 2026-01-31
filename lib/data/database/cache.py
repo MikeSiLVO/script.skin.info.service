@@ -31,21 +31,25 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     Dynamic cache TTL based on content status and metadata hints.
 
     Strategy:
+    - TV Shows with next_incomplete_episode: cache until that episode's air_date
     - TV Shows with Ended/Canceled status: 168 hours (7 days)
-    - TV Shows with active status: 24 hours (daily updates for new episodes)
-    - Movies older than 90 days: 168 hours (7 days, stable content)
-    - Movies newer than 90 days: 24 hours (ratings/info may still update)
+    - TV Shows with active status but no schedule: 72 hours (3 days)
+    - Movies by age:
+      - <90 days: 24 hours (ratings/info actively updating)
+      - 90 days - 6 months: 72 hours (3 days)
+      - 6 months - 1 year: 120 hours (5 days)
+      - >1 year: 168 hours (7 days, stable content)
     - Unknown: 24 hours (assume active)
     - Adds ±10% random jitter to prevent thundering herd
 
     Args:
         release_date: Release date in YYYY-MM-DD format
-                     - Movies: used to determine if new vs established
-                     - TV Shows: ignored if status hint provided
+                     - Movies: used to determine age tier
+                     - TV Shows: ignored if schedule hint provided
         hints: Optional dictionary of metadata hints for TTL calculation.
                Supported keys:
                - "status": TMDb status string (e.g., "Ended", "Canceled", "Returning Series")
-               - "next_air_date": Next episode air date (YYYY-MM-DD) - for future use
+               - "next_incomplete_episode": Air date of first episode missing data (YYYY-MM-DD)
                - Additional keys can be added without changing function signature
 
     Returns:
@@ -54,25 +58,43 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     import random
 
     hints = hints or {}
-    status = hints.get("status", "").lower() if hints.get("status") else ""
 
-    # If we have status info (TV shows), use that
-    if status:
+    if hints.get("is_library_item") is False:
+        return 24
+
+    status = hints.get("status", "").lower() if hints.get("status") else ""
+    next_incomplete = hints.get("next_incomplete_episode")
+
+    if next_incomplete:
+        try:
+            air_date = datetime.fromisoformat(next_incomplete)
+            hours_until = (air_date - datetime.now()).total_seconds() / 3600
+            if hours_until > 0:
+                base_ttl = max(1, int(hours_until))
+            else:
+                base_ttl = 1
+        except (ValueError, AttributeError):
+            base_ttl = 24
+    elif status:
         if status in ("ended", "canceled"):
             base_ttl = 168  # 7 days - show is done
         else:
-            base_ttl = 24  # Active show - check daily
-    # No status (movies) - use release date
+            base_ttl = 72  # 3 days - airing but no schedule data
     elif release_date:
         try:
             release = datetime.fromisoformat(release_date)
             days_old = (datetime.now() - release).days
-            # New movies may still get rating updates; old movies are stable
-            base_ttl = 24 if days_old < 90 else 72
+            if days_old < 90:
+                base_ttl = 24  # Very new - ratings still settling
+            elif days_old < 180:
+                base_ttl = 72  # 3 days - moderately stable
+            elif days_old < 365:
+                base_ttl = 120  # 5 days - mostly stable
+            else:
+                base_ttl = 168  # 7 days - established content
         except (ValueError, AttributeError):
             base_ttl = 24
     else:
-        # Unknown - check daily
         base_ttl = 24
 
     jitter = random.uniform(0.9, 1.1)

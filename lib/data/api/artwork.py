@@ -139,15 +139,9 @@ class ApiArtworkFetcher:
 
         all_art: Dict[str, List[dict]] = {}
 
-        if bypass_cache:
-            if media_type == 'movie':
-                complete_data = self.tmdb_api.get_movie_details_extended(tmdb_id)
-            elif media_type == 'tvshow':
-                complete_data = self.tmdb_api.get_tv_details_extended(tmdb_id)
-            else:
-                complete_data = None
-        else:
-            complete_data = self.tmdb_api.get_complete_data(media_type, tmdb_id, release_date)
+        complete_data = self.tmdb_api.get_complete_data(
+            media_type, tmdb_id, release_date, force_refresh=bypass_cache
+        )
 
         if complete_data and 'images' in complete_data:
             images = complete_data['images']
@@ -201,7 +195,7 @@ class ApiArtworkFetcher:
         batch_results = db.get_cached_artwork_batch(media_type, media_ids, CACHE_ART_TYPES)
 
         cached: Dict[str, List[dict]] = {}
-        for (source, art_type), artworks in batch_results.items():
+        for (_source, art_type), artworks in batch_results.items():
             cached.setdefault(art_type, []).extend(artworks)
 
         return cached
@@ -211,12 +205,21 @@ class ApiArtworkFetcher:
         Transform images from complete_data response to artwork format.
 
         Raw TMDB images have file_path but need url/previewurl/source for the dialog.
+
+        All backdrops go to landscape, sorted by language preference:
+        1. User's configured language
+        2. English (if not user's language)
+        3. No language (clean images)
+        4. Other languages (foreign text least useful)
+
+        Only no-language backdrops go to fanart (text-free backgrounds).
         """
+        from lib.kodi.settings import KodiSettings
+
         result: Dict[str, List[dict]] = {}
 
         mapping = (
             ('posters', 'poster', 'w500'),
-            ('backdrops', 'fanart', 'w780'),
             ('logos', 'clearlogo', 'w500'),
         )
 
@@ -226,6 +229,37 @@ class ApiArtworkFetcher:
             formatted = [entry for entry in formatted if entry]
             if formatted:
                 result[result_key] = formatted
+
+        backdrops = images.get('backdrops') or []
+        if not backdrops:
+            return result
+
+        user_lang = KodiSettings.online_metadata_language().split('-')[0].lower()
+
+        formatted_backdrops: List[tuple[dict, str | None]] = []
+        for backdrop in backdrops:
+            formatted = self._format_tmdb_image(backdrop, 'w780')
+            if formatted:
+                lang = backdrop.get('iso_639_1')
+                formatted_backdrops.append((formatted, lang.lower() if lang else None))
+
+        def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
+            lang = item[1]
+            if lang == user_lang:
+                return (0, '')
+            if lang == 'en' and user_lang != 'en':
+                return (1, '')
+            if lang is None or lang == 'xx':
+                return (2, '')
+            return (3, lang or '')
+
+        formatted_backdrops.sort(key=lang_sort_key)
+
+        all_backdrops = [item[0] for item in formatted_backdrops]
+
+        if all_backdrops:
+            result['fanart'] = all_backdrops
+            result['landscape'] = all_backdrops
 
         return result
 
@@ -245,7 +279,7 @@ class ApiArtworkFetcher:
             'width': image.get('width', 0),
             'height': image.get('height', 0),
             'rating': image.get('vote_average', 0),
-            'language': image.get('iso_639_1', ''),
+            'language': image.get('iso_639_1') or '',
             'source': 'TMDB'
         }
 
@@ -263,7 +297,7 @@ class ApiArtworkFetcher:
             art = self.fanart_api.get_movie_artwork(tmdb_id)
         return art or {}
 
-    def _finalise_artwork(self, media_type: str, artwork: Dict[str, List[dict]]) -> Dict[str, List[dict]]:
+    def _finalise_artwork(self, _media_type: str, artwork: Dict[str, List[dict]]) -> Dict[str, List[dict]]:
         """
         Finalize artwork: normalize dimensions and sort by popularity.
 

@@ -83,8 +83,9 @@ def _show_main_menu(
     """Show flattened field menu with all editable fields."""
     fields = get_fields_for_media_type(media_type)
     last_selected = 0
+    monitor = xbmc.Monitor()
 
-    while True:
+    while not monitor.abortRequested():
         menu_items = []
         for field in fields:
             field_def = get_field_def(field)

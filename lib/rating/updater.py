@@ -9,7 +9,7 @@ import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import (
-    request, get_library_items, _get_api_key, log,
+    request, batch_request, get_library_items, _get_api_key, log,
     KODI_GET_DETAILS_METHODS, KODI_SET_DETAILS_METHODS, ADDON
 )
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource, resolve_tmdb_id
@@ -59,6 +59,20 @@ def _build_external_ids(ids: Dict) -> Dict[str, str]:
 def _clear_tvshow_uniqueid_cache() -> None:
     """Clear the tvshow uniqueid cache. Call at start of batch operations."""
     _tvshow_uniqueid_cache.clear()
+
+
+def _prefetch_tvshow_uniqueids() -> None:
+    """Pre-fetch all TV show uniqueids in one request to populate cache."""
+    response = request("VideoLibrary.GetTVShows", {"properties": ["uniqueid"]})
+    if not response:
+        return
+    shows = response.get("result", {}).get("tvshows", [])
+    for show in shows:
+        tvshowid = show.get("tvshowid")
+        uniqueid = show.get("uniqueid", {})
+        if tvshowid:
+            _tvshow_uniqueid_cache[tvshowid] = uniqueid
+    log("Ratings", f"Pre-fetched uniqueids for {len(shows)} TV shows", xbmc.LOGDEBUG)
 
 
 def _get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
@@ -321,12 +335,25 @@ def _select_mode_and_run(media_type: str, sources: List, source_mode: str) -> No
     ]).show()
 
 
+RATINGS_BATCH_MIN = 100
+RATINGS_BATCH_MAX = 1000
+RATINGS_BATCH_PERCENT = 5  # 5% of total items
+BATCH_DELAY_MS = 100
+
+
+def _get_batch_size(total_items: int) -> int:
+    """Calculate batch size as percentage of total, clamped to min/max."""
+    calculated = int(total_items * RATINGS_BATCH_PERCENT / 100)
+    return max(RATINGS_BATCH_MIN, min(calculated, RATINGS_BATCH_MAX))
+
+
 def update_changed_imdb_ratings(media_type: str = "") -> Dict[str, int]:
     """
     Incremental update - only sync items where IMDb rating has changed.
 
     Uses SQL join between ratings_synced and imdb_ratings to find items
-    needing update, then updates only those items. Much faster than full scan.
+    needing update, then updates only those items in batches to avoid
+    overwhelming Kodi.
 
     Args:
         media_type: Optional filter for "movie", "tvshow", or "episode".
@@ -344,67 +371,130 @@ def update_changed_imdb_ratings(media_type: str = "") -> Dict[str, int]:
 
     log("Ratings", f"Found {len(changed_items)} items with changed IMDb ratings", xbmc.LOGINFO)
 
+    items_by_type: Dict[str, List[Dict]] = {}
     for item in changed_items:
         item_media_type = item["media_type"]
-        dbid = item["dbid"]
-        imdb_id = item.get("imdb_id")
-        new_rating = item["new_rating"]
-        new_votes = item["new_votes"]
+        if item_media_type not in items_by_type:
+            items_by_type[item_media_type] = []
+        items_by_type[item_media_type].append(item)
 
-        if not imdb_id:
-            stats["skipped"] += 1
-            continue
-
-        method_info = KODI_SET_DETAILS_METHODS.get(item_media_type)
-        if not method_info:
-            stats["failed"] += 1
-            continue
-        method, id_key = method_info
-
-        details_method = KODI_GET_DETAILS_METHODS.get(item_media_type)
-        if not details_method:
-            stats["failed"] += 1
-            continue
-
-        details = request(details_method[0], {
-            details_method[1]: dbid,
-            "properties": ["title", "ratings"]
-        })
-
-        if not details:
-            stats["failed"] += 1
-            continue
-
-        result_key = f"{item_media_type}details"
-        item_data = details.get(result_key, {})
-        title = item_data.get("title", "Unknown")
-        existing_ratings = item_data.get("ratings", {})
-
-        kodi_ratings = {
-            "imdb": {
-                "rating": new_rating,
-                "votes": new_votes,
-                "default": True
-            }
-        }
-
-        _preserve_other_ratings(existing_ratings, kodi_ratings)
-
-        response = request(method, {id_key: dbid, "ratings": kodi_ratings})
-
-        if response is not None:
-            db.update_synced_ratings(
-                item_media_type, dbid,
-                {"imdb": {"rating": new_rating, "votes": float(new_votes)}},
-                {"imdb": imdb_id}
-            )
-            old_rating = item["old_rating"]
-            log("Ratings", f"Updated {title}: imdb ({old_rating:.1f} -> {new_rating:.1f})", xbmc.LOGINFO)
-            stats["updated"] += 1
-        else:
-            stats["failed"] += 1
+    for item_media_type, type_items in items_by_type.items():
+        type_stats = _update_changed_ratings_batched(item_media_type, type_items)
+        stats["updated"] += type_stats["updated"]
+        stats["skipped"] += type_stats["skipped"]
+        stats["failed"] += type_stats["failed"]
 
     log("Ratings", f"Incremental update complete: {stats['updated']} updated, {stats['skipped']} skipped, {stats['failed']} failed", xbmc.LOGINFO)
+    return stats
+
+
+def _update_changed_ratings_batched(
+    item_media_type: str,
+    items: List[Dict]
+) -> Dict[str, int]:
+    """
+    Update ratings for a batch of items of the same media type.
+
+    Args:
+        item_media_type: Media type (movie, tvshow, episode)
+        items: List of changed item dicts
+
+    Returns:
+        Stats dict with updated/skipped/failed counts
+    """
+    stats = {"updated": 0, "skipped": 0, "failed": 0}
+
+    details_method = KODI_GET_DETAILS_METHODS.get(item_media_type)
+    set_method_info = KODI_SET_DETAILS_METHODS.get(item_media_type)
+
+    if not details_method or not set_method_info:
+        stats["failed"] = len(items)
+        return stats
+
+    get_method, get_id_key, result_key = details_method
+    set_method, set_id_key = set_method_info
+    batch_size = _get_batch_size(len(items))
+
+    for batch_start in range(0, len(items), batch_size):
+        batch_end = min(batch_start + batch_size, len(items))
+        batch = items[batch_start:batch_end]
+
+        valid_items = []
+        for item in batch:
+            if item.get("imdb_id"):
+                valid_items.append(item)
+            else:
+                stats["skipped"] += 1
+
+        if not valid_items:
+            continue
+
+        get_calls = []
+        for item in valid_items:
+            get_calls.append({
+                "method": get_method,
+                "params": {get_id_key: item["dbid"], "properties": ["title", "ratings"]}
+            })
+
+        get_responses = batch_request(get_calls)
+
+        xbmc.sleep(BATCH_DELAY_MS)
+
+        set_calls = []
+        items_to_update = []
+
+        for i, item in enumerate(valid_items):
+            response = get_responses[i] if i < len(get_responses) else None
+
+            if not response:
+                stats["failed"] += 1
+                continue
+
+            item_data = response.get("result", {}).get(result_key, {})
+            existing_ratings = item_data.get("ratings", {})
+
+            kodi_ratings = {
+                "imdb": {
+                    "rating": item["new_rating"],
+                    "votes": item["new_votes"],
+                    "default": True
+                }
+            }
+
+            _preserve_other_ratings(existing_ratings, kodi_ratings)
+
+            set_calls.append({
+                "method": set_method,
+                "params": {set_id_key: item["dbid"], "ratings": kodi_ratings}
+            })
+            items_to_update.append({
+                "item": item,
+                "title": item_data.get("title", "Unknown")
+            })
+
+        if not set_calls:
+            continue
+
+        set_responses = batch_request(set_calls)
+
+        xbmc.sleep(BATCH_DELAY_MS)
+
+        for i, update_info in enumerate(items_to_update):
+            response = set_responses[i] if i < len(set_responses) else None
+            item = update_info["item"]
+            title = update_info["title"]
+
+            if response is not None and "error" not in response:
+                db.update_synced_ratings(
+                    item_media_type, item["dbid"],
+                    {"imdb": {"rating": item["new_rating"], "votes": float(item["new_votes"])}},
+                    {"imdb": item["imdb_id"]}
+                )
+                log("Ratings", f"Updated {title}: imdb ({item['old_rating']:.1f} -> {item['new_rating']:.1f})", xbmc.LOGDEBUG)
+                stats["updated"] += 1
+            else:
+                stats["failed"] += 1
+
     return stats
 
 
@@ -509,6 +599,7 @@ def update_library_ratings(
 
     if media_type == "episode":
         _ensure_episode_dataset(progress)
+        _prefetch_tvshow_uniqueids()
 
     def process_item(item, ctx, db_cursor=None):
         """Process a single item and return (success, item_stats)."""
@@ -553,51 +644,141 @@ def update_library_ratings(
                     "failures": retryable
                 })
 
+    monitor = xbmc.Monitor()
+
     with task_manager.TaskContext("Update Library Ratings") as ctx:
+
+        def _should_abort() -> bool:
+            return ctx.abort_flag.is_requested() or monitor.abortRequested()
         if source_mode == "imdb":
+            log("Ratings", f"Using BATCHED IMDb update for {len(items)} {media_type} items", xbmc.LOGINFO)
+            batch_items_prepared = 0
+            batch_items_skipped = 0
             id_key = "movieid" if media_type == "movie" else "tvshowid" if media_type == "tvshow" else "episodeid"
-            items_since_save = 0
+            set_method_info = KODI_SET_DETAILS_METHODS.get(media_type)
+            if not set_method_info:
+                log("Ratings", f"Unknown media type for SET: {media_type}", xbmc.LOGERROR)
+            else:
+                set_method, set_id_key = set_method_info
+                items_since_save = 0
+                dataset = get_imdb_dataset()
+                batch_size = _get_batch_size(len(items))
+                log("Ratings", f"Batch size: {batch_size} for {len(items)} items", xbmc.LOGDEBUG)
 
-            with get_db() as (_, db_cursor):
-                for i, item in enumerate(items):
-                    if ctx.abort_flag.is_requested():
-                        results["cancelled"] = True
-                        break
+                with get_db() as (_, db_cursor):
+                    for batch_start in range(0, len(items), batch_size):
+                        if _should_abort():
+                            results["cancelled"] = True
+                            break
 
-                    if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
-                        results["cancelled"] = True
-                        break
+                        if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
+                            results["cancelled"] = True
+                            break
 
-                    dbid = item.get(id_key)
-                    if dbid and dbid in processed_ids:
-                        continue
+                        batch_end = min(batch_start + batch_size, len(items))
+                        batch = items[batch_start:batch_end]
 
-                    total_count = len(items)
-                    current_count = len(processed_ids) + 1
-                    percent = int((current_count / total_count) * 100)
-                    title = item.get("title", "Unknown")
+                        set_calls = []
+                        items_to_update = []
 
-                    if isinstance(progress, xbmcgui.DialogProgressBG):
-                        progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32306).format(current_count, total_count, title))
-                    elif isinstance(progress, xbmcgui.DialogProgress):
-                        progress.update(percent, f"{ADDON.getLocalizedString(32307).format(current_count, total_count)}\n{title}")
+                        for item in batch:
+                            if _should_abort():
+                                log("Ratings", "Abort requested during item preparation", xbmc.LOGINFO)
+                                results["cancelled"] = True
+                                break
 
-                    success, item_stats = process_item(item, ctx, db_cursor)
-                    update_results(item, success, item_stats)
-                    ctx.mark_progress()
+                            dbid = item.get(id_key)
+                            if dbid and dbid in processed_ids:
+                                continue
 
-                    if dbid:
-                        processed_ids.add(dbid)
-                        items_since_save += 1
+                            prepared = _prepare_imdb_update(item, media_type, dataset, db_cursor)
+                            if prepared is None:
+                                results["skipped"] += 1
+                                batch_items_skipped += 1
+                                if dbid:
+                                    processed_ids.add(dbid)
+                                continue
+
+                            batch_items_prepared += 1
+                            dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, year, is_add = prepared
+
+                            set_calls.append({
+                                "method": set_method,
+                                "params": {set_id_key: dbid, "ratings": kodi_ratings}
+                            })
+                            items_to_update.append({
+                                "dbid": dbid,
+                                "imdb_id": imdb_id,
+                                "new_rating": new_rating,
+                                "new_votes": new_votes,
+                                "title": title,
+                                "year": year,
+                                "is_add": is_add
+                            })
+
+                        if results.get("cancelled"):
+                            break
+
+                        if set_calls:
+                            set_responses = batch_request(set_calls)
+
+                            if _should_abort():
+                                log("Ratings", "Abort requested after batch_request", xbmc.LOGINFO)
+                                results["cancelled"] = True
+                                break
+
+                            for i, update_info in enumerate(items_to_update):
+                                if _should_abort():
+                                    log("Ratings", "Abort requested during DB update loop", xbmc.LOGINFO)
+                                    results["cancelled"] = True
+                                    break
+
+                                response = set_responses[i] if i < len(set_responses) else None
+                                dbid = update_info["dbid"]
+
+                                if response is not None and "error" not in response:
+                                    db.update_synced_ratings(
+                                        media_type, dbid,
+                                        {"imdb": {"rating": update_info["new_rating"], "votes": update_info["new_votes"]}},
+                                        {"imdb": update_info["imdb_id"]}
+                                    )
+                                    action = "Added" if update_info["is_add"] else "Updated"
+                                    log("Ratings", f"{action} {update_info['title']}: imdb ({update_info['new_rating']:.1f})", xbmc.LOGDEBUG)
+                                    results["updated"] += 1
+                                    if update_info["is_add"]:
+                                        results["total_ratings_added"] += 1
+                                    else:
+                                        results["total_ratings_updated"] += 1
+                                else:
+                                    results["failed"] += 1
+
+                                processed_ids.add(dbid)
+                                items_since_save += 1
+
+                            if results.get("cancelled"):
+                                break
+
+                            xbmc.sleep(BATCH_DELAY_MS)
+
+                        current_count = len(processed_ids)
+                        percent = int((current_count / len(items)) * 100)
+                        if isinstance(progress, xbmcgui.DialogProgressBG):
+                            progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(current_count, len(items)))
+                        elif isinstance(progress, xbmcgui.DialogProgress):
+                            progress.update(percent, ADDON.getLocalizedString(32309).format(current_count, len(items)))
+
+                        ctx.mark_progress()
 
                         if items_since_save >= PROGRESS_SAVE_INTERVAL:
                             db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
                             items_since_save = 0
 
-            if not results.get("cancelled") and source_mode == "imdb":
-                db.clear_imdb_update_progress(media_type)
-            elif results.get("cancelled") and source_mode == "imdb" and dataset_date:
-                db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
+                log("Ratings", f"BATCHED complete: {batch_items_prepared} to update, {batch_items_skipped} skipped", xbmc.LOGINFO)
+
+                if not results.get("cancelled") and source_mode == "imdb":
+                    db.clear_imdb_update_progress(media_type)
+                elif results.get("cancelled") and source_mode == "imdb" and dataset_date:
+                    db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
         else:
             with RatingBatchExecutor(sources, ctx.abort_flag) as executor:
                 items_submitted = 0
@@ -1085,6 +1266,82 @@ def _prompt_imdb_corrections(pending: List[Dict]) -> int:
             return 0
 
 
+def _prepare_imdb_update(
+    item: Dict,
+    media_type: str,
+    dataset,
+    db_cursor=None
+) -> Optional[Tuple[int, Dict, str, float, int, str, str, bool]]:
+    """
+    Prepare an item for batched IMDb rating update.
+
+    Args:
+        item: Library item dictionary with ratings already fetched
+        media_type: Type of media
+        dataset: IMDb dataset instance
+        db_cursor: Optional database cursor for bulk operations
+
+    Returns:
+        Tuple of (dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, year, is_add)
+        or None if item should be skipped
+    """
+    dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
+    if not dbid:
+        return None
+
+    title = item.get("title", "Unknown")
+    year = item.get("year", "")
+    uniqueid = item.get("uniqueid", {})
+    existing_ratings = item.get("ratings", {})
+
+    lookup_uniqueid = uniqueid
+
+    if media_type == "episode":
+        season_num = item.get("season")
+        episode_num = item.get("episode")
+        tvshow_dbid = item.get("tvshowid")
+        if tvshow_dbid:
+            tvshow_uniqueid = _get_tvshow_uniqueid(tvshow_dbid)
+            if tvshow_uniqueid:
+                lookup_uniqueid = tvshow_uniqueid
+
+        imdb_id = uniqueid.get("imdb")
+        if not imdb_id:
+            show_imdb = lookup_uniqueid.get("imdb")
+            if show_imdb and season_num is not None and episode_num is not None:
+                imdb_id = dataset.get_episode_imdb_id(show_imdb, season_num, episode_num)
+    else:
+        imdb_id = uniqueid.get("imdb")
+
+    if not imdb_id:
+        return None
+
+    imdb_rating = dataset.get_rating(imdb_id, cursor=db_cursor)
+    if not imdb_rating:
+        return None
+
+    new_rating = imdb_rating["rating"]
+    new_votes = imdb_rating["votes"]
+
+    existing_imdb = existing_ratings.get("imdb", {})
+    old_rating = existing_imdb.get("rating") if existing_imdb else None
+
+    is_add = old_rating is None
+    if not is_add and abs(old_rating - new_rating) <= 0.01:
+        return None
+
+    kodi_ratings = {
+        "imdb": {
+            "rating": new_rating,
+            "votes": new_votes,
+            "default": True
+        }
+    }
+    _preserve_other_ratings(existing_ratings, kodi_ratings)
+
+    return (dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, str(year) if year else "", is_add)
+
+
 def _update_single_item_imdb(
     item: Dict,
     media_type: str,
@@ -1402,7 +1659,8 @@ def _update_single_item(
     item: Dict,
     media_type: str,
     sources: List,
-    abort_flag=None
+    abort_flag=None,
+    force_refresh: bool = True
 ) -> tuple[Optional[bool], Optional[Dict]]:
     """
     Update ratings for a single item from API sources.
@@ -1414,8 +1672,8 @@ def _update_single_item(
         item: Library item dictionary
         media_type: Type of media
         sources: List of rating sources
-        use_background: Whether running in background mode
         abort_flag: Optional abort flag to check for cancellation
+        force_refresh: If True, bypass cache read (default True for context menu)
 
     Returns:
         Tuple of (success status, item stats dict)
@@ -1499,7 +1757,7 @@ def _update_single_item(
 
     with ThreadPoolExecutor(max_workers=len(sources)) as executor:
         futures = {
-            executor.submit(source.fetch_ratings, media_type, ids, abort_flag): source
+            executor.submit(source.fetch_ratings, media_type, ids, abort_flag, force_refresh): source
             for source in sources
         }
         pending = set(futures.keys())

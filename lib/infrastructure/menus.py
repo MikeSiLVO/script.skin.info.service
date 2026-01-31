@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Sequence, Tuple, Optional, Any
 import time
+import xbmc
 import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
@@ -71,9 +72,11 @@ class Menu:
 
         Returns:
             - Result from selected action
-            - None if user pressed back/ESC or cancelled
+            - None if user pressed back/ESC or cancelled or Kodi abort requested
         """
-        while True:
+        monitor = xbmc.Monitor()
+
+        while not monitor.abortRequested():
             selected_idx = preselect if preselect is not None else self._last_selected_idx
 
             options: list[tuple[str, Optional[str]]] = [(item.label, str(idx)) for idx, item in enumerate(self.items)]
@@ -128,6 +131,8 @@ class Menu:
                 return result
             else:
                 return item.action
+
+        return None
 
 
 def show_menu_with_cancel(

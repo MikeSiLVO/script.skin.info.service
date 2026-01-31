@@ -82,7 +82,8 @@ class ApiMdblist(RatingSource):
         self,
         media_type: str,
         ids: Dict[str, str],
-        abort_flag=None
+        abort_flag=None,
+        force_refresh: bool = False
     ) -> Optional[dict]:
         """
         Fetch MDBList data for a single item using batch endpoint.
@@ -91,6 +92,7 @@ class ApiMdblist(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (prefers "tmdb", falls back to "imdb")
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Full MDBList response dict or None
@@ -109,9 +111,10 @@ class ApiMdblist(RatingSource):
 
         cache_key = self._get_cache_key(provider, str(media_id))
 
-        cached = self.get_cached_data(cache_key)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self.get_cached_data(cache_key)
+            if cached:
+                return cached
 
         results = self._batch_request(media_type, [str(media_id)], provider, abort_flag)
 
@@ -157,7 +160,8 @@ class ApiMdblist(RatingSource):
         self,
         media_type: str,
         ids: Dict[str, str],
-        abort_flag=None
+        abort_flag=None,
+        force_refresh: bool = False
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """
         Fetch ratings from MDBList (required by RatingSource interface).
@@ -166,11 +170,12 @@ class ApiMdblist(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Dictionary with normalized ratings
         """
-        data = self.fetch_data(media_type, ids, abort_flag)
+        data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
         if not data:
             return None
 

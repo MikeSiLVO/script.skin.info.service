@@ -37,13 +37,13 @@ _PLAYER_SKININFO_PREFIX_MAP = {
 def _make_cache_key(media_type: str, imdb_id: str, tmdb_id: str) -> str:
     """Create a stable cache key using the best available ID.
 
-    Priority: IMDb (universally unique) > TMDb
+    Priority: TMDb (available earlier, consistent) > IMDb
     Format: "{media_type}:{id_type}:{id_value}"
     """
-    if imdb_id:
-        return f"{media_type}:imdb:{imdb_id}"
     if tmdb_id:
         return f"{media_type}:tmdb:{tmdb_id}"
+    if imdb_id:
+        return f"{media_type}:imdb:{imdb_id}"
     return ""
 
 
@@ -209,12 +209,7 @@ class OnlineServiceMain(threading.Thread):
                 self._last_prop_keys = set()
             return
 
-        prefix = _SKININFO_PREFIX_MAP.get(dbtype, "")
-        imdb_id = get_prop(f"{prefix}.UniqueID.IMDB") or ""
-        tmdb_id = get_prop(f"{prefix}.UniqueID.TMDB") or ""
-
-        if not imdb_id and not tmdb_id:
-            imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+        imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
 
         if not imdb_id and not tmdb_id:
             return
@@ -247,6 +242,7 @@ class OnlineServiceMain(threading.Thread):
                 props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
             batch_set_props(props_to_set)
             self._last_prop_keys = new_keys
+            return
 
         if self._fetch_thread and self._fetch_thread.is_alive() and self._fetch_for_key == cache_key:
             return
@@ -367,7 +363,9 @@ class OnlineServiceMain(threading.Thread):
                 _MEMORY_CACHE[cache_key] = props
                 if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
                     _MEMORY_CACHE.popitem(last=False)
-                cache_online_properties(cache_key, props, ttl_hours=1)
+                from lib.kodi.settings import KodiSettings
+                ttl_hours = KodiSettings.provider_cache_days() * 24
+                cache_online_properties(cache_key, props, ttl_hours=ttl_hours)
 
         except Exception as e:
             log("Service", f"Online fetch error: {e}", xbmc.LOGWARNING)
@@ -378,7 +376,8 @@ def fetch_all_online_data(
     imdb_id: str,
     tmdb_id: str,
     abort_flag: Optional[ServiceAbortFlag] = None,
-    is_player: bool = False
+    is_player: bool = False,
+    is_library_item: bool = True
 ) -> Dict[str, str]:
     """
     Fetch all online data and return as property dictionary.
@@ -397,6 +396,7 @@ def fetch_all_online_data(
         tmdb_id: TMDb ID
         abort_flag: Optional abort flag for cancellation
         is_player: If True, also set stinger properties for movies
+        is_library_item: If True, use smart TTL. If False, 24h TTL and skip season fetch.
 
     Returns:
         Dictionary of property key -> value pairs
@@ -436,7 +436,8 @@ def fetch_all_online_data(
                 media_type,
                 resolved_tmdb_id,
                 abort_flag,
-                is_player
+                is_player,
+                is_library_item
             )] = "tmdb"
 
         if imdb_id:
@@ -487,7 +488,8 @@ def _fetch_tmdb_full_data(
     media_type: str,
     tmdb_id: str,
     abort_flag: Optional[ServiceAbortFlag] = None,
-    is_player: bool = False
+    is_player: bool = False,
+    is_library_item: bool = True
 ) -> Dict[str, str]:
     """
     Fetch full TMDb metadata and format as properties.
@@ -497,6 +499,7 @@ def _fetch_tmdb_full_data(
         tmdb_id: TMDb ID
         abort_flag: Optional abort flag for cancellation
         is_player: If True, also set stinger properties for movies
+        is_library_item: If True, use smart TTL. If False, 24h TTL and skip season fetch.
 
     Returns:
         Dictionary of property key -> value pairs
@@ -518,7 +521,9 @@ def _fetch_tmdb_full_data(
 
     try:
         api = ApiTmdb()
-        data = api.get_complete_data(media_type, int(tmdb_id), abort_flag=abort_flag)
+        data = api.get_complete_data(
+            media_type, int(tmdb_id), abort_flag=abort_flag, is_library_item=is_library_item
+        )
 
         if abort_flag and abort_flag.is_requested():
             return props

@@ -118,7 +118,8 @@ class ApiTrakt(RatingSource):
         self,
         media_type: str,
         ids: Dict[str, str],
-        abort_flag=None
+        abort_flag=None,
+        force_refresh: bool = False
     ) -> Optional[dict]:
         """
         Fetch complete Trakt data for an item.
@@ -130,6 +131,7 @@ class ApiTrakt(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (tmdb, imdb, trakt_slug)
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Full Trakt response dict or None
@@ -142,9 +144,10 @@ class ApiTrakt(RatingSource):
             return None
 
         cache_key = self._get_cache_key(media_type, ids)
-        cached = self.get_cached_data(cache_key)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self.get_cached_data(cache_key)
+            if cached:
+                return cached
 
         token = self._get_valid_token(abort_flag)
         if not token:
@@ -213,7 +216,8 @@ class ApiTrakt(RatingSource):
         self,
         media_type: str,
         ids: Dict[str, str],
-        abort_flag=None
+        abort_flag=None,
+        force_refresh: bool = False
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """
         Fetch ratings from Trakt (required by RatingSource interface).
@@ -222,11 +226,12 @@ class ApiTrakt(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (tmdb, imdb, trakt_slug)
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Dictionary with normalized ratings
         """
-        data = self.fetch_data(media_type, ids, abort_flag)
+        data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
         if not data:
             return None
 

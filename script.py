@@ -1010,7 +1010,8 @@ def main() -> None:
                     if resolved_id:
                         tmdb_id = str(resolved_id)
 
-            fetch_all_online_data(media_type, imdb_id, tmdb_id)
+            is_library_item = bool(dbid)
+            fetch_all_online_data(media_type, imdb_id, tmdb_id, is_library_item=is_library_item)
 
             plugin_url = f"plugin://script.skin.info.service/?action=online&dbtype={media_type}"
             if tmdb_id:

@@ -28,13 +28,14 @@ class ApiOmdb(RatingSource):
             rate_limit=(20, 1.0)
         )
 
-    def fetch_data(self, imdb_id: str, abort_flag=None) -> Optional[dict]:
+    def fetch_data(self, imdb_id: str, abort_flag=None, force_refresh: bool = False) -> Optional[dict]:
         """
         Fetch complete OMDb data for an item.
 
         Args:
             imdb_id: IMDb ID (e.g., "tt0111161")
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Full OMDb response dict or None
@@ -45,9 +46,10 @@ class ApiOmdb(RatingSource):
         if usage_tracker.is_provider_skipped("omdb"):
             return None
 
-        cached = self.get_cached_data(imdb_id)
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = self.get_cached_data(imdb_id)
+            if cached:
+                return cached
 
         try:
             usage_tracker.increment_usage("omdb")
@@ -95,7 +97,8 @@ class ApiOmdb(RatingSource):
         self,
         media_type: str,
         ids: Dict[str, str],
-        abort_flag=None
+        abort_flag=None,
+        force_refresh: bool = False
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """
         Fetch ratings from OMDb (required by RatingSource interface).
@@ -104,11 +107,11 @@ class ApiOmdb(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (must contain "imdb" or "imdb_episode" for episodes)
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Dictionary with normalized ratings
         """
-        # For episodes, use episode-specific IMDb ID (don't use show's IMDb ID)
         if media_type == "episode":
             imdb_id = ids.get("imdb_episode")
         else:
@@ -116,7 +119,7 @@ class ApiOmdb(RatingSource):
         if not imdb_id:
             return None
 
-        data = self.fetch_data(imdb_id, abort_flag)
+        data = self.fetch_data(imdb_id, abort_flag, force_refresh=force_refresh)
         if not data:
             return None
 
