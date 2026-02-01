@@ -132,14 +132,22 @@ def move_to_position(
 
         if position_str is None or position_str == "":
             position = 0
+            target_1indexed = "1"
         else:
             try:
                 position_int = int(position_str)
                 position = 0 if position_int <= 0 else position_int - 1
+                target_1indexed = "1" if position_int <= 0 else str(position_int)
             except (ValueError, TypeError):
                 continue
 
-        xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
+        is_updating = xbmc.getCondVisibility(f'Container({cid}).IsUpdating')
+        if is_updating:
+            xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
+        else:
+            current_item = xbmc.getInfoLabel(f'Container({cid}).CurrentItem')
+            if current_item != target_1indexed:
+                xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
 
         if has_pipe_main_action and idx < len(main_action_list) and main_action_list[idx]:
             xbmc.executebuiltin(main_action_list[idx], True)

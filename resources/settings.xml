@@ -248,9 +248,7 @@
 					<default>movies_tvshows</default>
 					<dependencies>
 						<dependency type="visible">
-							<condition operator="is" setting="imdb_auto_update">library_scan</condition>
-							<condition operator="is" setting="imdb_auto_update">when_updated</condition>
-							<condition operator="is" setting="imdb_auto_update">both</condition>
+							<condition operator="isnot" setting="imdb_auto_update">off</condition>
 						</dependency>
 					</dependencies>
 					<constraints>

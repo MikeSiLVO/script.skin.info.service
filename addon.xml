@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta11"
+	   version="2.0.0~beta12"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,18 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta12
+- Smart TTL caching: cache duration now based on content status and age
+- Batched JSON-RPC calls for ratings updates (reduces Kodi load)
+- Improved abort handling during background updates (responds to Kodi shutdown)
+- Backdrop images now sorted by language preference
+- Landscape art type now prioritizes Fanart.tv source
+- Database v2: cache cleared on upgrade (regenerates automatically)
+- Added abort checks to menu loops for cleaner Kodi shutdown
+- Fixed online service cache key consistency
+- Fixed TMDB rating written as both "tmdb" and "themoviedb" for skin compatibility
+- Fixed container_move skipping unnecessary jumps when already at target position
+
 2.0.0~beta11
 - Added actor image download to Download Artwork context menu (movies and TV shows)
 - New setting: Include TV Episode Guest Stars (default off)

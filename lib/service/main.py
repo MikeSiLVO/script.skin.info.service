@@ -943,11 +943,13 @@ class ServiceMain(threading.Thread):
 
 def start_service() -> None:
     from lib.data.database._infrastructure import init_database
+    from lib.data.database.cache import clear_expired_cache
     from lib.service.slideshow import SlideshowMonitor
     from lib.service.online import OnlineServiceMain
     from lib.data.api.settings import sync_configured_flags
 
     init_database()
+    clear_expired_cache()
     sync_configured_flags()
 
     thread = ServiceMain()

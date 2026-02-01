@@ -83,16 +83,12 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
     def onInit(self):
         """Called when dialog opens."""
-        from lib.artwork.utilities import get_available_languages, get_language_display_name
-        from lib.kodi.utils import get_preferred_language_code
+        from lib.artwork.utilities import get_available_languages
 
         if not self.full_artwork_list:
             self.full_artwork_list = self.available_art
 
         self.available_languages = get_available_languages(self.full_artwork_list)
-
-        if self.current_language is None:
-            self.current_language = get_preferred_language_code()
 
         self.setProperty('heading', self.title)
         self.setProperty('year', self.year)
@@ -101,31 +97,6 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         self.setProperty('hascurrentart', 'true' if self.current_url else 'false')
         self.setProperty('currentarturl', decode_image_url(self.current_url) if self.current_url else '')
         self.setProperty('count_total', str(len(self.full_artwork_list)))
-        self.setProperty('count_filtered', str(len(self.available_art)))
-
-        try:
-            prefer_fanart_language = KodiSettings.prefer_fanart_language()
-        except Exception:
-            prefer_fanart_language = False
-
-        is_fanart_no_lang_filter = self.art_type == 'fanart' and not prefer_fanart_language
-
-        language_display = get_language_display_name(self.current_language)
-
-        if len(self.available_art) != len(self.full_artwork_list):
-            if is_fanart_no_lang_filter:
-                count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available (Text-free)"
-            else:
-                count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available ({language_display})"
-        else:
-            count_text = f"{len(self.full_artwork_list)} available"
-        self.setProperty('count', count_text)
-
-        self.setProperty('language', language_display)
-        self.setProperty('language_short', self.current_language)
-        # Show button if multiple languages OR if filtering reduced the list (user needs "All" option)
-        show_lang_button = len(self.available_languages) > 1 or len(self.available_art) != len(self.full_artwork_list)
-        self.setProperty('show_change_language', 'true' if show_lang_button else 'false')
         self.setProperty('show_multiart', 'true' if self.art_type == 'fanart' else 'false')
 
         available_sources = self._get_available_sources()
@@ -152,15 +123,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         except Exception:
             pass
 
-        from lib.artwork.utilities import sort_artwork_by_popularity
-        self.available_art = sort_artwork_by_popularity(
-            self.available_art,
-            art_type=self.art_type,
-            sort_mode=self.sort_mode,
-            source_pref=self.source_pref
-        )
-
-        self._populate_artwork_list()
+        self._resort_artwork()
         self._update_sort_button_label()
         self._update_source_pref_button_label()
 
@@ -337,14 +300,14 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         sorted_languages.extend([lang for lang, _ in other_languages])
 
-        # Only show "All languages" if it would combine multiple language options
+        # Only show "All images" if it would combine multiple language options
         if is_filtered and len(sorted_languages) > 1:
             sorted_languages.append('all')
 
         labels = []
         for lang in sorted_languages:
             if lang == 'all':
-                labels.append(f"All languages ({len(self.full_artwork_list)})")
+                labels.append(f"All images ({len(self.full_artwork_list)})")
             else:
                 count = count_language(lang)
                 display = "Text-free" if lang == '' else get_language_display_name(lang)
@@ -461,6 +424,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
     def _refresh_ui(self) -> None:
         """Update UI properties and repopulate list without filtering."""
         from lib.artwork.utilities import get_language_display_name
+        from lib.kodi.utils import get_preferred_language_code
 
         self.setProperty('count_filtered', str(len(self.available_art)))
 
@@ -472,12 +436,21 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         is_fanart_no_lang_filter = self.art_type == 'fanart' and not prefer_fanart_language
 
         if self.current_language == 'all':
-            language_display = 'All languages'
+            language_display = 'All images'
+            language_short = 'all'
+        elif self.current_language is not None:
+            language_display = get_language_display_name(self.current_language)
+            language_short = self.current_language
+        elif is_fanart_no_lang_filter:
+            language_display = 'Text-free'
+            language_short = ''
         else:
-            language_display = get_language_display_name(self.current_language or '')
+            preferred = get_preferred_language_code()
+            language_display = get_language_display_name(preferred)
+            language_short = preferred
 
         if len(self.available_art) != len(self.full_artwork_list):
-            if is_fanart_no_lang_filter:
+            if is_fanart_no_lang_filter and self.current_language is None:
                 count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available (Text-free)"
             else:
                 count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available ({language_display})"
@@ -485,7 +458,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             count_text = f"{len(self.full_artwork_list)} available"
         self.setProperty('count', count_text)
         self.setProperty('language', language_display)
-        self.setProperty('language_short', self.current_language or '')
+        self.setProperty('language_short', language_short)
 
         # Update Change Language button visibility
         show_lang_button = len(self.available_languages) > 1 or len(self.available_art) != len(self.full_artwork_list)

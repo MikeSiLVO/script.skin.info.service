@@ -53,13 +53,21 @@ class RatingSource(ABC):
         self.addon = KodiSettings._get_addon()
 
     @abstractmethod
-    def fetch_ratings(self, media_type: str, ids: Dict[str, str]) -> Optional[Dict[str, Dict[str, float]]]:
+    def fetch_ratings(
+        self,
+        media_type: str,
+        ids: Dict[str, str],
+        abort_flag=None,
+        force_refresh: bool = False
+    ) -> Optional[Dict[str, Dict[str, float]]]:
         """
         Fetch ratings from the source.
 
         Args:
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (tmdb, imdb, trakt_slug, etc.)
+            abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Dictionary mapping source names to rating/votes dicts, e.g.:

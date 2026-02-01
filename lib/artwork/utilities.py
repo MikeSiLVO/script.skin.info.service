@@ -107,6 +107,7 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mo
     - 'fanart': Only Fanart.tv items (excludes TMDB)
 
     Popularity mode sorting priority:
+    - Source preference (landscape only): Fanart.tv first, then TMDB
     - Language preference (if enabled for art type)
     - Weighted popularity:
       * TMDB: Bayesian formula (m=3, C=2.3)
@@ -179,6 +180,11 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mo
                 lang_match = 2
         else:
             lang_match = 0
+
+        if art_type == 'landscape':
+            source = art.get('source', '').lower()
+            source_priority = 0 if source in ('fanart.tv', 'fanarttv') else 1
+            return (source_priority, lang_match, -popularity, -pixels)
 
         return (lang_match, -popularity, -pixels)
 

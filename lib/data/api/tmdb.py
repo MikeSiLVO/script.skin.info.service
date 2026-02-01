@@ -227,12 +227,20 @@ class ApiTmdb(RatingSource):
         return self._transform_images(data)
 
     def _transform_images(self, data: dict) -> dict:
-        """Transform TMDB image response to common format."""
+        """Transform TMDB image response to common format.
+
+        All backdrops go to landscape, sorted by language preference:
+        1. User's configured language
+        2. English (if not user's language)
+        3. No language (clean images)
+        4. Other languages (foreign text least useful)
+
+        Only no-language backdrops go to fanart (text-free backgrounds).
+        """
         result: Dict[str, List[dict]] = {}
 
         mapping = (
             ('posters', 'poster', 'w500'),
-            ('backdrops', 'fanart', 'w780'),
             ('logos', 'clearlogo', 'w500'),
         )
 
@@ -242,6 +250,37 @@ class ApiTmdb(RatingSource):
             formatted = [entry for entry in formatted if entry]
             if formatted:
                 result[result_key] = formatted
+
+        backdrops = data.get('backdrops') or []
+        if not backdrops:
+            return result
+
+        user_lang = _get_metadata_language().split('-')[0].lower()
+
+        formatted_backdrops: List[tuple[dict, str | None]] = []
+        for backdrop in backdrops:
+            formatted = self._format_image(backdrop, 'w780')
+            if formatted:
+                lang = backdrop.get('iso_639_1')
+                formatted_backdrops.append((formatted, lang.lower() if lang else None))
+
+        def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
+            lang = item[1]
+            if lang == user_lang:
+                return (0, '')
+            if lang == 'en' and user_lang != 'en':
+                return (1, '')
+            if lang is None or lang == 'xx':
+                return (2, '')
+            return (3, lang or '')
+
+        formatted_backdrops.sort(key=lang_sort_key)
+
+        all_backdrops = [item[0] for item in formatted_backdrops]
+
+        if all_backdrops:
+            result['fanart'] = all_backdrops
+            result['landscape'] = all_backdrops
 
         return result
 
@@ -261,11 +300,17 @@ class ApiTmdb(RatingSource):
             'width': image.get('width', 0),
             'height': image.get('height', 0),
             'rating': image.get('vote_average', 0),
-            'language': image.get('iso_639_1', ''),
+            'language': image.get('iso_639_1') or '',
             'source': 'TMDB'
         }
 
-    def fetch_ratings(self, media_type: str, ids: Dict[str, str], abort_flag=None) -> Optional[Dict[str, Dict[str, float]]]:
+    def fetch_ratings(
+        self,
+        media_type: str,
+        ids: Dict[str, str],
+        abort_flag=None,
+        force_refresh: bool = False
+    ) -> Optional[Dict[str, Dict[str, float]]]:
         """
         Fetch ratings from TMDB using centralized fetch.
 
@@ -276,6 +321,7 @@ class ApiTmdb(RatingSource):
             media_type: Type of media ("movie", "tvshow", "episode")
             ids: Dictionary of available IDs (must contain "tmdb")
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, bypass cache read but still write to cache
 
         Returns:
             Dictionary with TMDB ratings:
@@ -294,7 +340,9 @@ class ApiTmdb(RatingSource):
         try:
             usage_tracker.increment_usage("tmdb")
 
-            complete_data = self.get_complete_data(media_type, int(tmdb_id_str), abort_flag=abort_flag)
+            complete_data = self.get_complete_data(
+                media_type, int(tmdb_id_str), abort_flag=abort_flag, force_refresh=force_refresh
+            )
 
             if not complete_data:
                 return None
@@ -372,7 +420,15 @@ class ApiTmdb(RatingSource):
             log("TMDB", f"Find by IMDB error: {str(e)}", xbmc.LOGWARNING)
             return None
 
-    def get_complete_data(self, media_type: str, tmdb_id: int, release_date: Optional[str] = None, abort_flag=None) -> Optional[dict]:
+    def get_complete_data(
+        self,
+        media_type: str,
+        tmdb_id: int,
+        release_date: Optional[str] = None,
+        abort_flag=None,
+        force_refresh: bool = False,
+        is_library_item: bool = True
+    ) -> Optional[dict]:
         """
         Get complete TMDb data - checks cache first, fetches if needed.
 
@@ -384,6 +440,9 @@ class ApiTmdb(RatingSource):
             tmdb_id: TMDb ID
             release_date: Optional release date from Kodi (for TTL calculation)
             abort_flag: Optional abort flag for cancellation
+            force_refresh: If True, skip cache read but still write to cache
+            is_library_item: If True, use smart TTL and fetch season data.
+                           If False, use 24h TTL and skip season fetch.
 
         Returns:
             Complete TMDb data dict with everything, or None
@@ -393,9 +452,10 @@ class ApiTmdb(RatingSource):
 
         from lib.data import database as db
 
-        cached = db.get_cached_metadata(media_type, str(tmdb_id))
-        if cached:
-            return cached
+        if not force_refresh:
+            cached = db.get_cached_metadata(media_type, str(tmdb_id))
+            if cached:
+                return cached
 
         if abort_flag and abort_flag.is_requested():
             return None
@@ -404,6 +464,8 @@ class ApiTmdb(RatingSource):
             data = self.get_movie_details_extended(tmdb_id, abort_flag)
         elif media_type == 'tvshow':
             data = self.get_tv_details_extended(tmdb_id, abort_flag)
+            if data and is_library_item:
+                self._attach_current_season_data(data, tmdb_id, abort_flag)
         else:
             return None
 
@@ -413,10 +475,10 @@ class ApiTmdb(RatingSource):
         if not release_date:
             release_date = self._extract_release_date(data, media_type)
 
-        # Build cache hints from metadata
-        hints = {}
-        if data.get("status"):
-            hints["status"] = data["status"]
+        if is_library_item:
+            hints = self._build_cache_hints(data, media_type)
+        else:
+            hints = {"is_library_item": False}
 
         db.cache_metadata(media_type, str(tmdb_id), data, release_date, hints)
 
@@ -433,6 +495,68 @@ class ApiTmdb(RatingSource):
         elif media_type == 'episode':
             return data.get('air_date')
         return None
+
+    def _attach_current_season_data(self, data: dict, tmdb_id: int, abort_flag=None) -> None:
+        """
+        Fetch and attach current season's episode data for airing shows.
+
+        Only fetches for actively airing shows (not ended/canceled) since
+        ended shows have complete data and don't benefit from episode tracking.
+        """
+        status = (data.get('status') or '').lower()
+        if status in ('ended', 'canceled'):
+            return
+
+        next_ep = data.get('next_episode_to_air')
+        last_ep = data.get('last_episode_to_air')
+
+        if next_ep:
+            season_num = next_ep.get('season_number')
+        elif last_ep:
+            season_num = last_ep.get('season_number')
+        else:
+            return
+
+        if not season_num:
+            return
+
+        season_data = self.get_season_details(tmdb_id, season_num, abort_flag)
+        if season_data and 'episodes' in season_data:
+            data['_current_season'] = {
+                'season_number': season_num,
+                'episodes': season_data['episodes']
+            }
+
+    def _build_cache_hints(self, data: dict, media_type: str) -> Dict[str, str]:
+        """
+        Build cache hints dict for TTL calculation.
+
+        For TV shows with season data, finds the first episode missing
+        overview/still and uses its air_date for cache invalidation.
+        """
+        hints: Dict[str, str] = {}
+
+        if data.get("status"):
+            hints["status"] = data["status"]
+
+        if media_type != 'tvshow':
+            return hints
+
+        current_season = data.get('_current_season')
+        if not current_season:
+            return hints
+
+        episodes = current_season.get('episodes', [])
+        for ep in episodes:
+            overview = ep.get('overview') or ''
+            still = ep.get('still_path')
+            air_date = ep.get('air_date')
+
+            if air_date and (not overview or not still):
+                hints['next_incomplete_episode'] = air_date
+                break
+
+        return hints
 
     def _cache_components(self, media_type: str, tmdb_id: int, data: dict, release_date: Optional[str], hints: Optional[dict] = None) -> None:
         """
@@ -494,9 +618,15 @@ class ApiTmdb(RatingSource):
         append = "credits,videos,keywords,release_dates,images,external_ids,recommendations"
         api_key = self.get_api_key()
         language = _get_metadata_language()
+        lang_code = language.split('-')[0]
         return self.session.get(
             f"/movie/{tmdb_id}",
-            params={"api_key": api_key, "language": language, "append_to_response": append},
+            params={
+                "api_key": api_key,
+                "language": language,
+                "append_to_response": append,
+                "include_image_language": f"{lang_code},en,null"
+            },
             abort_flag=abort_flag
         )
 
@@ -509,9 +639,15 @@ class ApiTmdb(RatingSource):
         append = "credits,videos,keywords,content_ratings,images,external_ids,recommendations"
         api_key = self.get_api_key()
         language = _get_metadata_language()
+        lang_code = language.split('-')[0]
         return self.session.get(
             f"/tv/{tmdb_id}",
-            params={"api_key": api_key, "language": language, "append_to_response": append},
+            params={
+                "api_key": api_key,
+                "language": language,
+                "append_to_response": append,
+                "include_image_language": f"{lang_code},en,null"
+            },
             abort_flag=abort_flag
         )
 

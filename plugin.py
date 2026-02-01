@@ -459,7 +459,10 @@ def handle_online(handle: int, params: dict) -> None:
 
     log("Plugin", f"Online: Resolved IDs - IMDB: {imdb_id}, TMDB: {tmdb_id}", xbmc.LOGDEBUG)
 
-    online_data = fetch_all_online_data(media_type, imdb_id, tmdb_id)
+    is_library_item = bool(dbid)
+    online_data = fetch_all_online_data(
+        media_type, imdb_id, tmdb_id, is_library_item=is_library_item
+    )
 
     if not online_data:
         xbmcplugin.endOfDirectory(handle, succeeded=True)

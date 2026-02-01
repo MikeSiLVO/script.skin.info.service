@@ -12,8 +12,10 @@ from contextlib import contextmanager
 from typing import Generator, Tuple
 from lib.kodi.client import log
 
-DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v1.db')
-DB_VERSION = 1
+DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v2.db')
+DB_VERSION = 2
+
+_OLD_DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v1.db')
 
 
 def _generate_guid() -> str:
@@ -365,11 +367,23 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_online_cache_expires ON online_properties_cache(expires_at)')
 
 
+def _cleanup_old_database() -> None:
+    """Delete old v1 database if it exists."""
+    if xbmcvfs.exists(_OLD_DB_PATH):
+        try:
+            xbmcvfs.delete(_OLD_DB_PATH)
+            log("Database", "Deleted old v1 database", xbmc.LOGINFO)
+        except Exception as e:
+            log("Database", f"Failed to delete old database: {e}", xbmc.LOGWARNING)
+
+
 def init_database() -> None:
     """
     Initialize unified database schema (queue, cache, and operation history).
-    Creates skininfo_v1.db with all tables.
+    Creates skininfo_v2.db with all tables. Deletes old v1 database if present.
     """
+    _cleanup_old_database()
+
     conn = get_connection(DB_PATH)
     cursor = conn.cursor()
 
