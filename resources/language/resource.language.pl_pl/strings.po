@@ -241,7 +241,7 @@ msgstr "Oceny"
 
 msgctxt "#32065"
 msgid "Not configured"
-msgstr "Nieskonfigurowano"
+msgstr "Nie skonfigurowano"
 
 msgctxt "#32066"
 msgid "Provider data cache duration (days)"
