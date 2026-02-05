@@ -361,4 +361,7 @@ class PathBuilder:
 
             return vfs_join(movie_sets_folder, sanitized_title, clean_art_type)
 
+        elif media_type in ('artist', 'album'):
+            return None
+
         return None

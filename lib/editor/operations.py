@@ -56,8 +56,10 @@ def save_field(
 
     params: dict[str, Any] = {id_key: dbid, api_name: value}
 
-    # Kodi ignores year if premiered exists, so set both
-    if field_name == "year" and isinstance(value, int):
+    # Kodi ignores year if premiered exists, so set both (video types only)
+    if field_name == "year" and isinstance(value, int) and media_type in (
+        "movie", "tvshow", "episode", "musicvideo"
+    ):
         original = item.get("premiered", "") if item else ""
         if original and re.match(r'^\d{4}-\d{2}-\d{2}', original):
             params["premiered"] = f"{value}{original[4:10]}"
@@ -76,11 +78,14 @@ def save_field(
 
 def fetch_library_genres(media_type: str) -> list[str]:
     """Fetch existing genres from library."""
-    if media_type not in ("movie", "tvshow", "musicvideo"):
+    if media_type in ("movie", "tvshow", "musicvideo"):
+        response = request("VideoLibrary.GetGenres", {"type": media_type})
+        genres = extract_result(response, "genres", [])
+    elif media_type in ("artist", "album", "song"):
+        response = request("AudioLibrary.GetGenres", {})
+        genres = extract_result(response, "genres", [])
+    else:
         return []
-
-    response = request("VideoLibrary.GetGenres", {"type": media_type})
-    genres = extract_result(response, "genres", [])
 
     if not genres:
         return []
@@ -106,6 +111,9 @@ def _aggregate_field_values(media_type: str, field: str) -> list[str]:
         "tvshow": ("VideoLibrary.GetTVShows", "tvshows"),
         "musicvideo": ("VideoLibrary.GetMusicVideos", "musicvideos"),
         "episode": ("VideoLibrary.GetEpisodes", "episodes"),
+        "artist": ("AudioLibrary.GetArtists", "artists"),
+        "album": ("AudioLibrary.GetAlbums", "albums"),
+        "song": ("AudioLibrary.GetSongs", "songs"),
     }
 
     method_info = method_map.get(media_type)
@@ -142,5 +150,11 @@ def fetch_library_values_for_field(
 
     if field_name in ("studio", "director", "writer", "country"):
         return _aggregate_field_values(media_type, field_name)
+
+    if field_name in ("style", "mood", "instrument", "yearsactive", "theme"):
+        return _aggregate_field_values(media_type, field_name)
+
+    if field_name == "artistlist":
+        return _aggregate_field_values(media_type, "artist")
 
     return []

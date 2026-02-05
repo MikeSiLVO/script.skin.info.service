@@ -204,7 +204,7 @@ msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
 msgstr ""
 
 msgctxt "#32056"
-msgid "Fanart.tv"
+msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
 msgstr ""
 
 msgctxt "#32057"
@@ -1795,4 +1795,8 @@ msgstr ""
 
 msgctxt "#32986"
 msgid "Download episode thumbnail artwork during bulk operations"
+msgstr ""
+
+msgctxt "#32987"
+msgid "Text too long to fully display"
 msgstr ""

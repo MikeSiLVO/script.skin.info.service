@@ -17,6 +17,7 @@ from lib.editor.config import (
 )
 from lib.editor.handlers import (
     handle_date,
+    handle_duration,
     handle_integer,
     handle_list,
     handle_ratings,
@@ -27,6 +28,7 @@ from lib.editor.handlers import (
 )
 from lib.editor.operations import get_item_for_editing, save_field
 from lib.editor.utilities import (
+    format_duration_for_edit,
     format_runtime_value_for_display,
     format_value_for_display,
 )
@@ -71,7 +73,7 @@ def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
         )
         return
 
-    title = item.get("title", "Unknown")
+    title = item.get("title") or item.get("artist") or "Unknown"
     log("Editor", f"Editing {media_type} '{title}' (dbid={dbid_int})", xbmc.LOGDEBUG)
 
     _show_main_menu(dbid_int, media_type, item, title)
@@ -98,6 +100,8 @@ def _show_main_menu(
 
             if field == "runtime":
                 value_display = format_runtime_value_for_display(current or 0)
+            elif field == "duration":
+                value_display = format_duration_for_edit(current or 0)
             else:
                 value_display = format_value_for_display(current, field_type)
 
@@ -144,6 +148,8 @@ def _edit_field(
     elif field_type == FieldType.INTEGER:
         if field == "runtime":
             new_value, cancelled = handle_runtime(display_name, current)
+        elif field == "duration":
+            new_value, cancelled = handle_duration(display_name, current)
         elif field == "year":
             new_value, cancelled = handle_integer(display_name, current, validator="year")
         elif field == "top250":

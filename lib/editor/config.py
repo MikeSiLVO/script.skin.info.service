@@ -43,6 +43,13 @@ FIELD_DEFINITIONS: dict[str, FieldDef] = {
         "category": CATEGORY_CORE_TEXT,
         "get_property": "title",
     },
+    "artist": {
+        "api_name": "artist",
+        "display_name": "Artist Name",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "artist",
+    },
     "plot": {
         "api_name": "plot",
         "display_name": "Plot",
@@ -63,6 +70,69 @@ FIELD_DEFINITIONS: dict[str, FieldDef] = {
         "field_type": FieldType.TEXT,
         "category": CATEGORY_CORE_TEXT,
         "get_property": "sorttitle",
+    },
+    "sortname": {
+        "api_name": "sortname",
+        "display_name": "Sort Name",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "sortname",
+    },
+    "description": {
+        "api_name": "description",
+        "display_name": "Description",
+        "field_type": FieldType.TEXT_LONG,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "description",
+    },
+    "disambiguation": {
+        "api_name": "disambiguation",
+        "display_name": "Disambiguation",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "disambiguation",
+    },
+    "displayartist": {
+        "api_name": "displayartist",
+        "display_name": "Display Artist",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "displayartist",
+    },
+    "sortartist": {
+        "api_name": "sortartist",
+        "display_name": "Sort Artist",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "sortartist",
+    },
+    "albumlabel": {
+        "api_name": "albumlabel",
+        "display_name": "Record Label",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "albumlabel",
+    },
+    "comment": {
+        "api_name": "comment",
+        "display_name": "Comment",
+        "field_type": FieldType.TEXT_LONG,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "comment",
+    },
+    "songmood": {
+        "api_name": "mood",
+        "display_name": "Mood",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "mood",
+    },
+    "disctitle": {
+        "api_name": "disctitle",
+        "display_name": "Disc Title",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_CORE_TEXT,
+        "get_property": "disctitle",
     },
     "originaltitle": {
         "api_name": "originaltitle",
@@ -107,12 +177,103 @@ FIELD_DEFINITIONS: dict[str, FieldDef] = {
         "category": CATEGORY_DATES_NUMBERS,
         "get_property": "mpaa",
     },
+    "born": {
+        "api_name": "born",
+        "display_name": "Born",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "born",
+    },
+    "formed": {
+        "api_name": "formed",
+        "display_name": "Formed",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "formed",
+    },
+    "died": {
+        "api_name": "died",
+        "display_name": "Died",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "died",
+    },
+    "disbanded": {
+        "api_name": "disbanded",
+        "display_name": "Disbanded",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "disbanded",
+    },
+    "artisttype": {
+        "api_name": "type",
+        "display_name": "Type",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "type",
+    },
+    "gender": {
+        "api_name": "gender",
+        "display_name": "Gender",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "gender",
+    },
     "top250": {
         "api_name": "top250",
         "display_name": "Top 250",
         "field_type": FieldType.INTEGER,
         "category": CATEGORY_DATES_NUMBERS,
         "get_property": "top250",
+    },
+    "track": {
+        "api_name": "track",
+        "display_name": "Track Number",
+        "field_type": FieldType.INTEGER,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "track",
+    },
+    "disc": {
+        "api_name": "disc",
+        "display_name": "Disc Number",
+        "field_type": FieldType.INTEGER,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "disc",
+    },
+    "duration": {
+        "api_name": "duration",
+        "display_name": "Duration",
+        "field_type": FieldType.INTEGER,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "duration",
+    },
+    "bpm": {
+        "api_name": "bpm",
+        "display_name": "BPM",
+        "field_type": FieldType.INTEGER,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "bpm",
+    },
+    "releasedate": {
+        "api_name": "releasedate",
+        "display_name": "Release Date",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "releasedate",
+    },
+    "originaldate": {
+        "api_name": "originaldate",
+        "display_name": "Original Date",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "originaldate",
+    },
+    "albumtype": {
+        "api_name": "type",
+        "display_name": "Album Type",
+        "field_type": FieldType.TEXT,
+        "category": CATEGORY_DATES_NUMBERS,
+        "get_property": "type",
     },
     # Lists
     "genre": {
@@ -156,6 +317,48 @@ FIELD_DEFINITIONS: dict[str, FieldDef] = {
         "field_type": FieldType.LIST,
         "category": CATEGORY_LISTS,
         "get_property": "tag",
+    },
+    "style": {
+        "api_name": "style",
+        "display_name": "Style",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "style",
+    },
+    "mood": {
+        "api_name": "mood",
+        "display_name": "Mood",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "mood",
+    },
+    "instrument": {
+        "api_name": "instrument",
+        "display_name": "Instrument",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "instrument",
+    },
+    "yearsactive": {
+        "api_name": "yearsactive",
+        "display_name": "Years Active",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "yearsactive",
+    },
+    "theme": {
+        "api_name": "theme",
+        "display_name": "Theme",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "theme",
+    },
+    "artistlist": {
+        "api_name": "artist",
+        "display_name": "Artist",
+        "field_type": FieldType.LIST,
+        "category": CATEGORY_LISTS,
+        "get_property": "artist",
     },
     # Ratings
     "userrating": {
@@ -244,6 +447,58 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "tag",
         "userrating",
     ],
+    "artist": [
+        "artist",
+        "sortname",
+        "description",
+        "disambiguation",
+        "born",
+        "formed",
+        "died",
+        "disbanded",
+        "artisttype",
+        "gender",
+        "genre",
+        "style",
+        "mood",
+        "instrument",
+        "yearsactive",
+    ],
+    "album": [
+        "title",
+        "description",
+        "displayartist",
+        "sortartist",
+        "albumlabel",
+        "albumtype",
+        "year",
+        "releasedate",
+        "originaldate",
+        "genre",
+        "theme",
+        "mood",
+        "style",
+        "artistlist",
+        "userrating",
+    ],
+    "song": [
+        "title",
+        "displayartist",
+        "sortartist",
+        "comment",
+        "songmood",
+        "disctitle",
+        "year",
+        "track",
+        "disc",
+        "duration",
+        "releasedate",
+        "originaldate",
+        "bpm",
+        "genre",
+        "artistlist",
+        "userrating",
+    ],
 }
 
 TVSHOW_STATUS_VALUES = [
@@ -295,14 +550,20 @@ def get_fields_for_category(media_type: str, category: str) -> list[str]:
     return result
 
 
+ALWAYS_RETURNED_PROPERTIES: dict[str, set[str]] = {
+    "artist": {"artist"},
+}
+
+
 def get_properties_for_media_type(media_type: str) -> list[str]:
     """Get JSON-RPC properties to fetch for a media type."""
     fields = get_fields_for_media_type(media_type)
-    properties = ["title"]
+    skip = ALWAYS_RETURNED_PROPERTIES.get(media_type, set())
+    properties: list[str] = [] if media_type == "artist" else ["title"]
     for field in fields:
         field_def = get_field_def(field)
         if field_def:
             prop = field_def["get_property"]
-            if prop not in properties:
+            if prop not in properties and prop not in skip:
                 properties.append(prop)
     return properties

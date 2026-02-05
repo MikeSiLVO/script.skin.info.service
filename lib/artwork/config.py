@@ -65,30 +65,6 @@ ACTION_CANCEL = 'cancel'
 REVIEW_MODE_MISSING = 'missing_only'
 
 
-FANART_DIMENSIONS_MIN = {
-    'poster': (1000, 1426),
-    'fanart': (1920, 1080),
-    'clearart': (1000, 562),
-    'landscape': (1000, 562),
-    'banner': (1000, 185),
-    'discart': (1000, 1000),
-    'clearlogo': (800, 310),
-    'characterart': (1000, 1399),
-    'keyart': (1000, 1426)
-}
-
-FANART_DIMENSIONS_IDEAL = {
-    'poster': (2000, 3000),
-    'fanart': (3840, 2160),
-    'clearart': (1000, 562),
-    'landscape': (1000, 562),
-    'banner': (1000, 185),
-    'discart': (1000, 1000),
-    'clearlogo': (800, 310),
-    'characterart': (1000, 1000),
-    'keyart': (2000, 3000)
-}
-
 FANART_DIMENSIONS_VARIANTS = {
     'fanart': [(1920, 1080), (1280, 720), (3840, 2160)],
     'poster': [(1000, 1500), (2000, 3000), (680, 1000)],
@@ -100,8 +76,6 @@ FANART_DIMENSIONS_VARIANTS = {
     'keyart': [(1000, 1500), (2000, 3000), (680, 1000)],
     'discart': [(1000, 1000), (512, 512), (2000, 2000)],
 }
-
-FANART_DIMENSIONS = FANART_DIMENSIONS_MIN
 
 # Auto-fetch language policies
 AUTO_LANG_REQUIRED_TYPES = {

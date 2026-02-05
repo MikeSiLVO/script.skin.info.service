@@ -28,6 +28,7 @@ KODI_GET_DETAILS_METHODS = {
     'set': ('VideoLibrary.GetMovieSetDetails', 'setid', 'setdetails'),
     'artist': ('AudioLibrary.GetArtistDetails', 'artistid', 'artistdetails'),
     'album': ('AudioLibrary.GetAlbumDetails', 'albumid', 'albumdetails'),
+    'song': ('AudioLibrary.GetSongDetails', 'songid', 'songdetails'),
 }
 
 KODI_SET_DETAILS_METHODS = {
@@ -37,6 +38,9 @@ KODI_SET_DETAILS_METHODS = {
     'episode': ('VideoLibrary.SetEpisodeDetails', 'episodeid'),
     'musicvideo': ('VideoLibrary.SetMusicVideoDetails', 'musicvideoid'),
     'set': ('VideoLibrary.SetMovieSetDetails', 'setid'),
+    'artist': ('AudioLibrary.SetArtistDetails', 'artistid'),
+    'album': ('AudioLibrary.SetAlbumDetails', 'albumid'),
+    'song': ('AudioLibrary.SetSongDetails', 'songid'),
 }
 
 KODI_ID_KEYS = {
@@ -48,6 +52,7 @@ KODI_ID_KEYS = {
     'set': 'setid',
     'artist': 'artistid',
     'album': 'albumid',
+    'song': 'songid',
 }
 
 KODI_GET_LIBRARY_METHODS = {
@@ -59,6 +64,7 @@ KODI_GET_LIBRARY_METHODS = {
     'set': ('VideoLibrary.GetMovieSets', 'sets'),
     'artist': ('AudioLibrary.GetArtists', 'artists'),
     'album': ('AudioLibrary.GetAlbums', 'albums'),
+    'song': ('AudioLibrary.GetSongs', 'songs'),
 }
 
 KODI_MOVIE_PROPERTIES = [

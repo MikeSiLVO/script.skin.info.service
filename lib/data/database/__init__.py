@@ -22,6 +22,7 @@ from lib.data.database._infrastructure import (
 
 from lib.data.database.cache import (
     get_cache_ttl_hours,
+    get_fanarttv_cache_ttl_hours,
     get_cached_artwork,
     get_cached_artwork_batch,
     cache_artwork,
@@ -30,6 +31,9 @@ from lib.data.database.cache import (
     cache_person_data,
     get_cached_person_data,
     clear_expired_cache,
+    get_mb_id_mapping,
+    get_mb_id_mappings_by_canonical,
+    save_mb_id_mapping,
 )
 
 from lib.data.database.queue import (
@@ -81,6 +85,7 @@ __all__ = [
     'init_database',
     'vacuum_database',
     'get_cache_ttl_hours',
+    'get_fanarttv_cache_ttl_hours',
     'get_cached_artwork',
     'get_cached_artwork_batch',
     'cache_artwork',
@@ -89,6 +94,9 @@ __all__ = [
     'cache_person_data',
     'get_cached_person_data',
     'clear_expired_cache',
+    'get_mb_id_mapping',
+    'get_mb_id_mappings_by_canonical',
+    'save_mb_id_mapping',
     'ARTITEM_REVIEW_MISSING',
     'clear_queue',
     'clear_queue_for_media',

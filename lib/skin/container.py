@@ -6,7 +6,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import request
+from lib.kodi.client import log, request
 
 
 def move_to_position(
@@ -141,13 +141,9 @@ def move_to_position(
             except (ValueError, TypeError):
                 continue
 
-        is_updating = xbmc.getCondVisibility(f'Container({cid}).IsUpdating')
-        if is_updating:
+        current_item = xbmc.getInfoLabel(f'Container({cid}).CurrentItem')
+        if current_item != target_1indexed:
             xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
-        else:
-            current_item = xbmc.getInfoLabel(f'Container({cid}).CurrentItem')
-            if current_item != target_1indexed:
-                xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
 
         if has_pipe_main_action and idx < len(main_action_list) and main_action_list[idx]:
             xbmc.executebuiltin(main_action_list[idx], True)
@@ -163,8 +159,7 @@ def move_to_position(
             break
 
     if next_focus and properties_found:
-        from lib.kodi.client import log
-        log("container_move", "Both next_focus parameter and CM_Focus properties set - using parameter, ignoring properties", xbmc.LOGWARNING)
+        log("ContainerMove", "Both next_focus parameter and CM_Focus properties set - using parameter, ignoring properties", xbmc.LOGWARNING)
         for i, _ in properties_found:
             xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
         properties_found = []
