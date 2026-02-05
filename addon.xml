@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta12"
+	   version="2.0.0~beta13"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -17,7 +17,7 @@
 		<menu id="kodi.core.main">
 			<item library="context.py">
 				<label>$ADDON[script.skin.info.service 32102]</label>
-				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,set)]</visible>
+				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,set) | String.IsEqual(ListItem.DBType,artist) | String.IsEqual(ListItem.DBType,album) | String.IsEqual(ListItem.DBType,song)]</visible>
 			</item>
 		</menu>
 	</extension>
@@ -33,6 +33,20 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta13
+- Music artwork: fetch artist and album artwork from Fanart.tv and TheAudioDB
+- Extended album art types: discart, back, spine, 3dcase, 3dflat, 3dface, 3dthumb
+- Stale MusicBrainz ID resolution via TheAudioDB name search with permanent cache
+- Context menu now available for artist, album, and song items
+- Artwork scanner support for music artists and albums
+- Metadata editor support for music artists, albums, and songs
+- Artwork selection dialog layout categories for skin-side layout control
+- Reworked settings layout for API key management
+- Fixed bypass_cache not forwarded to music artwork fetch methods
+- Fixed settings dependency operator (isnot → !is)
+- Fixed smart quote encoding in TheAudioDB search
+- Database init for standalone script entry points (service not required)
+
 2.0.0~beta12
 - Smart TTL caching: cache duration now based on content status and age
 - Batched JSON-RPC calls for ratings updates (reduces Kodi load)

@@ -366,6 +366,15 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_online_cache_expires ON online_properties_cache(expires_at)')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mb_id_mappings (
+            old_id TEXT PRIMARY KEY,
+            canonical_id TEXT NOT NULL,
+            cached_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_mb_id_canonical ON mb_id_mappings(canonical_id)')
+
 
 def _cleanup_old_database() -> None:
     """Delete old v1 database if it exists."""

@@ -12,7 +12,9 @@ Control IDs:
   206 - Source button (visibility controlled by show_source_button property)
 Window Properties Available:
   - property(heading): Title (e.g., "The Matrix")
-  - property(arttype): Art type being selected (e.g., "Poster", "Fanart")
+  - property(arttype): Art type being selected (e.g., "poster", "fanart", "spine")
+  - property(artlayout): Layout category for shared layouts (e.g., "poster", "fanart", "landscape", "square")
+                         Empty for unique types (banner, clearlogo, characterart, spine, 3dcase, 3dflat, 3dface)
   - property(mediatype): Media type (movie, tvshow, etc.)
   - property(year): Release year
   - property(hascurrentart): "true" or "false" - whether item already has this art type
@@ -42,6 +44,20 @@ from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.dialogs.multi import show_multiart_dialog
 from lib.kodi.settings import KodiSettings
 from lib.kodi.client import decode_image_url, log, ADDON
+
+
+ARTLAYOUT_MAP = {
+    'poster': 'poster',
+    'keyart': 'poster',
+    'fanart': 'fanart',
+    'thumb': 'fanart',
+    'landscape': 'landscape',
+    'clearart': 'landscape',
+    'discart': 'square',
+    'cutout': 'square',
+    'back': 'square',
+    '3dthumb': 'square',
+}
 
 
 class ArtworkDialogSelect(ArtworkDialogBase):
@@ -93,7 +109,11 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         self.setProperty('heading', self.title)
         self.setProperty('year', self.year)
         self.setProperty('mediatype', self.media_type)
-        self.setProperty('arttype', self.art_type.capitalize())
+        self.setProperty('arttype', self.art_type.lower())
+        art_layout = ARTLAYOUT_MAP.get(self.art_type.lower(), '')
+        if self.art_type.lower() == 'thumb' and self.media_type in ('artist', 'album'):
+            art_layout = 'square'
+        self.setProperty('artlayout', art_layout)
         self.setProperty('hascurrentart', 'true' if self.current_url else 'false')
         self.setProperty('currentarturl', decode_image_url(self.current_url) if self.current_url else '')
         self.setProperty('count_total', str(len(self.full_artwork_list)))

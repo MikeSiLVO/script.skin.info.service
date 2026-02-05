@@ -208,6 +208,9 @@ class ArtworkScanner:
             media_types.append("movie")
         if media_type in ("tvshows", "all"):
             media_types.append("tvshow")
+        if media_type in ("music", "all"):
+            media_types.append("artist")
+            media_types.append("album")
 
         if resume_session_id:
             session_id = resume_session_id
@@ -240,6 +243,20 @@ class ArtworkScanner:
                 scan_steps.append((
                     'seasons',
                     lambda art_types=season_art_types: self._scan_seasons(art_types, session_id, scope_label='seasons')
+                ))
+
+            if "artist" in media_types:
+                artist_art_types = self._get_art_types_to_check("artist")
+                scan_steps.append((
+                    'artists',
+                    lambda art_types=artist_art_types: self._scan_artists(art_types, session_id, scope_label='artists')
+                ))
+
+            if "album" in media_types:
+                album_art_types = self._get_art_types_to_check("album")
+                scan_steps.append((
+                    'albums',
+                    lambda art_types=album_art_types: self._scan_albums(art_types, session_id, scope_label='albums')
                 ))
 
             for _, runner in scan_steps:
@@ -403,7 +420,7 @@ class ArtworkScanner:
                 'musicvideo': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'keyart'],
                 'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
                 'artist': ['thumb', 'fanart', 'clearlogo', 'banner'],
-                'album': ['thumb'],
+                'album': ['thumb', 'discart'],
             }
             art_types = defaults.get(media_type if media_type else 'movie', ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'])
 
@@ -498,5 +515,59 @@ class ArtworkScanner:
             session_id=session_id,
             scope_label=scope_label,
             progress_title="Scanning Seasons",
+        )
+
+    def _scan_artists(self, art_types: List[str], session_id: int, scope_label: str = 'artists') -> bool:
+        """Scan music artists for missing artwork."""
+        try:
+            artists = get_library_items(
+                media_types=['artist'],
+                properties=["artist", "art"],
+                decode_urls=True
+            )
+        except Exception as e:
+            log("Artwork", f"Error fetching artists: {e}", xbmc.LOGWARNING)
+            return True
+
+        if not artists:
+            return True
+
+        return self._scan_media_collection(
+            items=artists,
+            db_media_type='artist',
+            id_key='artistid',
+            title_key='artist',
+            year_key=None,
+            art_types=art_types,
+            session_id=session_id,
+            scope_label=scope_label,
+            progress_title="Scanning Artists",
+        )
+
+    def _scan_albums(self, art_types: List[str], session_id: int, scope_label: str = 'albums') -> bool:
+        """Scan music albums for missing artwork."""
+        try:
+            albums = get_library_items(
+                media_types=['album'],
+                properties=["title", "artist", "art", "year"],
+                decode_urls=True
+            )
+        except Exception as e:
+            log("Artwork", f"Error fetching albums: {e}", xbmc.LOGWARNING)
+            return True
+
+        if not albums:
+            return True
+
+        return self._scan_media_collection(
+            items=albums,
+            db_media_type='album',
+            id_key='albumid',
+            title_key='label',
+            year_key='year',
+            art_types=art_types,
+            session_id=session_id,
+            scope_label=scope_label,
+            progress_title="Scanning Albums",
         )
 

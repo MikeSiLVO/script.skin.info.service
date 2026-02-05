@@ -234,6 +234,7 @@ class ApiSession:
                 headers=headers,
                 timeout=request_timeout
             )
+
             elapsed = time.time() - start
 
             if elapsed > 5.0:

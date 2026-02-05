@@ -101,6 +101,32 @@ def parse_runtime_from_edit(minutes_str: str) -> int:
         return 0
 
 
+def format_duration_for_edit(seconds: int) -> str:
+    """Format duration seconds as MM:SS for editing."""
+    if not seconds:
+        return "0:00"
+    minutes = seconds // 60
+    secs = seconds % 60
+    return f"{minutes}:{secs:02d}"
+
+
+def parse_duration_from_edit(text: str) -> int:
+    """Parse MM:SS or plain seconds string to duration seconds."""
+    if not text:
+        return 0
+    text = text.strip()
+    try:
+        if ':' in text:
+            parts = text.split(':')
+            if len(parts) == 2:
+                return int(parts[0]) * 60 + int(parts[1])
+            elif len(parts) == 3:
+                return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        return int(text)
+    except ValueError:
+        return 0
+
+
 def format_list_display(values: list[str] | None, max_items: int = 3) -> str:
     """Format list values for display in menu."""
     if not values:

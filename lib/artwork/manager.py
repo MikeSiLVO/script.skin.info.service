@@ -651,6 +651,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
+    db.init_database()
+
     dbtype_lower = dbtype.lower()
     dbid_int = int(dbid)
 
@@ -661,6 +663,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
         'episode': ['thumb'],
         'musicvideo': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
         'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
+        'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
+        'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],
     }
 
     art_types = art_type_options.get(dbtype_lower)
@@ -677,9 +681,15 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     method_name, id_key, result_key = method_info
 
-    properties = ["title", "art"]
-    if dbtype_lower in ('movie', 'tvshow', 'musicvideo'):
-        properties.append("year")
+    properties = ["art"]
+    if dbtype_lower == 'album':
+        properties.extend(["title", "year", "musicbrainzalbumartistid", "musicbrainzreleasegroupid"])
+    elif dbtype_lower == 'artist':
+        properties.append("musicbrainzartistid")
+    else:
+        properties.append("title")
+        if dbtype_lower in ('movie', 'tvshow', 'musicvideo'):
+            properties.append("year")
 
     details = extract_result(
         request(method_name, {id_key: dbid_int, "properties": properties}),
@@ -695,9 +705,40 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
-    title = details.get("title", "Unknown")
+    title = details.get("artist") or details.get("title") or "Unknown"
     year = details.get("year", "")
     current_art = details.get("art", {})
+
+    if dbtype_lower == 'artist':
+        mbid = details.get('musicbrainzartistid')
+        if isinstance(mbid, list):
+            mbid = mbid[0] if mbid else None
+        if not mbid:
+            show_notification(
+                "Artwork",
+                "No MusicBrainz ID for this artist",
+                xbmcgui.NOTIFICATION_WARNING,
+                4000
+            )
+            return
+    elif dbtype_lower == 'album':
+        artist_mbid = details.get('musicbrainzalbumartistid')
+        if isinstance(artist_mbid, list):
+            artist_mbid = artist_mbid[0] if artist_mbid else None
+        release_group_id = details.get('musicbrainzreleasegroupid')
+        if not artist_mbid or not release_group_id:
+            missing = []
+            if not artist_mbid:
+                missing.append("artist")
+            if not release_group_id:
+                missing.append("release group")
+            show_notification(
+                "Artwork",
+                f"Missing MusicBrainz {' & '.join(missing)} ID",
+                xbmcgui.NOTIFICATION_WARNING,
+                4000
+            )
+            return
 
     from lib.data.api.artwork import create_default_fetcher
     from lib.artwork.auto import ArtworkAuto

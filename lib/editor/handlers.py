@@ -11,7 +11,9 @@ from lib.kodi.client import ADDON
 from lib.editor.config import TVSHOW_STATUS_VALUES
 from lib.editor.operations import fetch_library_values_for_field
 from lib.editor.utilities import (
+    format_duration_for_edit,
     format_runtime_for_edit,
+    parse_duration_from_edit,
     parse_runtime_from_edit,
     validate_date,
     validate_rating,
@@ -28,13 +30,26 @@ def handle_text(
     heading = f"Edit {field_name}"
     default = current_value or ""
 
-    kb = xbmc.Keyboard(default, heading)
+    # xbmc.Keyboard can't handle actual newlines - use [CR] placeholder
+    default_display = default.replace('\r\n', '[CR]').replace('\n', '[CR]').replace('\r', '[CR]')
+
+    if len(default_display) > 100:
+        xbmcgui.Dialog().notification(
+            ADDON.getLocalizedString(32258),
+            ADDON.getLocalizedString(32987),
+            xbmcgui.NOTIFICATION_WARNING,
+            3000
+        )
+
+    kb = xbmc.Keyboard(default_display, heading)
     kb.doModal()
 
     if not kb.isConfirmed():
         return None, True
 
-    return kb.getText(), False
+    # Convert [CR] back to newlines
+    result = kb.getText().replace('[CR]', '\n')
+    return result, False
 
 
 def handle_integer(
@@ -83,6 +98,28 @@ def handle_runtime(
         return None, True
 
     seconds = parse_runtime_from_edit(result)
+
+    valid, error = validate_runtime(seconds)
+    if not valid:
+        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
+        return None, True
+
+    return seconds, False
+
+
+def handle_duration(
+    field_name: str, current_value: int | None
+) -> tuple[int | None, bool]:
+    """Handle duration input (edit in MM:SS format, store in seconds)."""
+    heading = f"Edit {field_name} (MM:SS)"
+    default = format_duration_for_edit(current_value or 0)
+
+    result = xbmcgui.Dialog().input(heading, default)
+
+    if not result:
+        return None, True
+
+    seconds = parse_duration_from_edit(result)
 
     valid, error = validate_runtime(seconds)
     if not valid:

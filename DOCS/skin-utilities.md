@@ -446,18 +446,17 @@ Move containers to specific positions and execute builtins sequentially.
 
 **Execution Order:**
 
-All builtins execute sequentially:
+All operations execute sequentially:
 
 1. **Main containers loop:**
 
-   - SetFocus(main_focus[i])
-   - Control.Move(main_focus[i], offset)
+   - Move to target position (skipped if already there)
    - Execute main_action[i] (if provided)
 
 2. **Next containers loop:**
 
-   - SetFocus(next_focus[i])
-   - Control.Move(next_focus[i], offset) (if next_position provided)
+   - Focus container
+   - Move to target position (if next_position provided)
    - Execute next_action[i] (if provided)
 
 **Examples:**
@@ -616,6 +615,7 @@ For complex conditions, use `SkinInfo.CM_Focus.N` properties on home window:
 - Position indices are 1-based (matching `Container.CurrentItem`)
 - Empty position values default to position 1 (reset)
 - InfoLabels (e.g., `$INFO[...]`) are automatically resolved
+- If targeting position > 1 on a container that's still loading, the position may not be set correctly (items not yet available)
 
 ---
 

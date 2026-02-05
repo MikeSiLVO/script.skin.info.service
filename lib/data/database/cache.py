@@ -101,6 +101,20 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     return int(base_ttl * jitter)
 
 
+def get_fanarttv_cache_ttl_hours() -> int:
+    """
+    Get cache TTL for Fanart.tv based on user's API key tier.
+
+    Returns:
+        48 hours if personal key configured (2-day tier)
+        168 hours if no key (7-day project tier)
+    """
+    from lib.kodi.settings import KodiSettings
+    if KodiSettings.fanarttv_api_key():
+        return 48
+    return 168
+
+
 def get_cached_artwork(media_type: str, media_id: str, source: str, art_type: str) -> Optional[list]:
     """
     Get cached artwork if available and not expired.
@@ -379,6 +393,30 @@ def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
         except Exception as e:
             log("Cache", f"Failed to decompress online properties: {e}", xbmc.LOGERROR)
             return None
+
+
+def get_mb_id_mapping(old_id: str) -> Optional[str]:
+    """Get canonical ID for an old/merged MusicBrainz release group ID."""
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.execute('SELECT canonical_id FROM mb_id_mappings WHERE old_id = ?', (old_id,))
+        row = cursor.fetchone()
+        return row['canonical_id'] if row else None
+
+
+def get_mb_id_mappings_by_canonical(canonical_id: str) -> List[str]:
+    """Get all known old IDs that redirect to this canonical ID."""
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.execute('SELECT old_id FROM mb_id_mappings WHERE canonical_id = ?', (canonical_id,))
+        return [row['old_id'] for row in cursor.fetchall()]
+
+
+def save_mb_id_mapping(old_id: str, canonical_id: str) -> None:
+    """Store an old->canonical MusicBrainz ID mapping. Permanent — merges never reverse."""
+    with get_db(DB_PATH) as (conn, cursor):
+        cursor.execute(
+            'INSERT OR REPLACE INTO mb_id_mappings (old_id, canonical_id) VALUES (?, ?)',
+            (old_id, canonical_id)
+        )
 
 
 def cache_online_properties(item_key: str, props: Dict[str, str], ttl_hours: int = 1) -> None:
