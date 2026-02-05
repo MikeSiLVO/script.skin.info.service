@@ -204,8 +204,8 @@ msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
 msgstr "Uzyskaj swój klucz API z http://www.omdbapi.com/apikey.aspx"
 
 msgctxt "#32056"
-msgid "Fanart.tv"
-msgstr "Fanart.tv"
+msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
+msgstr "Fanart.tv · fanart.tv/get-an-api-key[CR]Brak klucza: 7 dni · Osobisty: 2 dni · VIP: natychmiast"
 
 msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
@@ -1796,3 +1796,7 @@ msgstr "Uwzględnij miniatury odcinków"
 msgctxt "#32986"
 msgid "Download episode thumbnail artwork during bulk operations"
 msgstr "Pobierz miniaturę odcinka podczas operacji zbiorczych"
+
+msgctxt "#32987"
+msgid "Text too long to fully display"
+msgstr "Tekst jest zbyt długi, by wyświetlić go w całości."
