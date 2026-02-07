@@ -378,7 +378,10 @@ def main() -> None:
 
         elif action == "person_info":
             from lib.data.api import person as person_api
+            from lib.data.database._infrastructure import init_database
             import xbmcgui
+
+            init_database()
 
             xbmc.executebuiltin('ClearProperty(SkinInfo.person_id,home)')
             xbmc.executebuiltin('ClearProperty(SkinInfo.Person.Details,home)')
@@ -573,7 +576,10 @@ def main() -> None:
 
         elif action == "person_search":
             from lib.data.api import person as person_api
+            from lib.data.database._infrastructure import init_database
             import urllib.parse
+
+            init_database()
 
             name = urllib.parse.unquote(args.get('name', ''))
             role = urllib.parse.unquote(args.get('role', ''))
@@ -936,6 +942,9 @@ def main() -> None:
             from lib.service.online import fetch_all_online_data
             from lib.kodi.client import get_item_details
             from lib.data.api.tmdb import ApiTmdb
+            from lib.data.database._infrastructure import init_database
+
+            init_database()
 
             media_type = args.get("dbtype", "")
             dbid = args.get("dbid", "")

@@ -262,18 +262,20 @@ def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
             return None
 
 
-def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Optional[str], hints: Optional[Dict[str, Any]] = None) -> None:
+def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Optional[str], hints: Optional[Dict[str, Any]] = None, ttl_hours: Optional[int] = None) -> None:
     """
     Cache extended metadata with dynamic TTL and compression.
 
     Args:
-        media_type: 'movie', 'tvshow', 'episode'
-        tmdb_id: TMDb ID as string
-        data: Complete TMDb response dict
-        release_date: YYYY-MM-DD from Kodi or TMDb response
+        media_type: 'movie', 'tvshow', 'episode', 'artist', 'album'
+        tmdb_id: TMDb ID or MusicBrainz ID as string
+        data: Complete API response dict
+        release_date: YYYY-MM-DD from Kodi or API response
         hints: Optional metadata hints for TTL calculation (see get_cache_ttl_hours)
+        ttl_hours: Manual TTL override (if None, calculated from release_date/hints)
     """
-    ttl_hours = get_cache_ttl_hours(release_date, hints)
+    if ttl_hours is None:
+        ttl_hours = get_cache_ttl_hours(release_date, hints)
     expires_at = datetime.now() + timedelta(hours=ttl_hours)
     compressed = _compress_data(data)
 

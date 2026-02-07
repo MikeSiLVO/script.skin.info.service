@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta13"
+	   version="2.0.0~beta14"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,15 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta14
+- Music player library properties (artist bio, fanart, album discography)
+- Music player online properties (TheAudioDB bio, rotating fanart slideshow)
+- On-demand artist artwork fetching during playback (Fanart.tv/TheAudioDB)
+- Support for library, local files, and radio addon streams
+- Artist/album artwork download path building
+- Multi-art dialog crash fix on add/remove while editing focused list
+- Rating executor timeout handling improvements
+
 2.0.0~beta13
 - Music artwork: fetch artist and album artwork from Fanart.tv and TheAudioDB
 - Extended album art types: discart, back, spine, 3dcase, 3dflat, 3dface, 3dthumb

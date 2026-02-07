@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import xbmc
 import xbmcgui
-from typing import Optional
+from typing import Optional, cast
 from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.utilities import parse_art_slot_index
 from lib.artwork.config import FANART_DIMENSIONS_VARIANTS
@@ -338,38 +338,71 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             self._toggle_source_pref()
 
     def _add_from_available(self) -> None:
-        """Add selected item from available art to working set."""
+        """Add selected item from available art to working set.
+
+        Uses removeItem() on the active list (available) to avoid resetting
+        the control the user is navigating. The inactive list (current) is
+        safe to reset+rebuild since no navigation events are queued for it.
+        """
         try:
-            control = self.getControl(self.AVAILABLE_ART_LIST)
-            item = control.getSelectedItem()
+            available_control = cast(xbmcgui.ControlList, self.getControl(self.AVAILABLE_ART_LIST))
+            item = available_control.getSelectedItem()
             if not item:
                 return
 
             url = item.getProperty('fullurl')
-            if url:
-                self.working_art.append(url)
+            if not url:
+                return
 
-                self._populate_current_art()
-                self._populate_available_art()
-                self._update_selection_count()
+            self.working_art.append(url)
+
+            selected_pos = available_control.getSelectedPosition()
+            xbmc.sleep(50)
+            available_control.removeItem(selected_pos)
+
+            remaining = available_control.size()
+            if remaining > 0:
+                available_control.selectItem(min(selected_pos, remaining - 1))
+
+            self._populate_current_art()
+            self._update_selection_count()
 
         except Exception as e:
             log("Artwork", f"Error adding from available: {str(e)}", xbmc.LOGERROR)
 
     def _remove_from_current(self) -> None:
-        """Remove selected item from working set."""
+        """Remove selected item from working set.
+
+        Uses removeItem() on the active list (current) then renumbers
+        remaining items. The inactive list (available) is safe to
+        reset+rebuild since no navigation events are queued for it.
+        """
         try:
-            control = self.getControl(self.CURRENT_ART_LIST)
-            item = control.getSelectedItem()
+            current_control = cast(xbmcgui.ControlList, self.getControl(self.CURRENT_ART_LIST))
+            item = current_control.getSelectedItem()
             if not item:
                 return
 
             index = int(item.getProperty('index'))
 
-            if 0 <= index < len(self.working_art):
-                self.working_art.pop(index)
+            if not (0 <= index < len(self.working_art)):
+                return
 
-            self._populate_current_art()
+            self.working_art.pop(index)
+
+            selected_pos = current_control.getSelectedPosition()
+            xbmc.sleep(50)
+            current_control.removeItem(selected_pos)
+
+            remaining = current_control.size()
+            if remaining > 0:
+                current_control.selectItem(min(selected_pos, remaining - 1))
+
+            for i in range(remaining):
+                li = current_control.getListItem(i)
+                li.setLabel(f"{self.art_type}{i + 1}")
+                li.setProperty('index', str(i))
+
             self._populate_available_art()
             self._update_selection_count()
 

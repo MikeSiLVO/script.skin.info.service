@@ -9,9 +9,9 @@ import xbmcgui
 import xbmcvfs
 from typing import Optional, List, Dict, Tuple, Any
 
-from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items
+from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items, request, extract_result
 from lib.download.queue import DownloadQueue
-from lib.infrastructure.paths import PathBuilder
+from lib.infrastructure.paths import PathBuilder, vfs_dirname
 from lib.infrastructure.tasks import TaskContext
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 from lib.kodi.client import log, ADDON
@@ -31,7 +31,7 @@ DOWNLOAD_PROPERTIES = {
     'musicvideo': ['art', 'title', 'file'],
     'set': ['art', 'title'],
     'season': ['art', 'title', 'season', 'episode', 'tvshowid'],
-    'artist': ['art'],
+    'artist': ['art', 'musicbrainzartistid'],
     'album': ['art', 'title'],
 }
 
@@ -121,6 +121,23 @@ def write_download_log(
         return None
 
 
+def _resolve_album_folders(album_ids: List[int]) -> Dict[int, str]:
+    """Batch-resolve album folders by querying one song file path per album."""
+    folder_map: Dict[int, str] = {}
+    for album_id in album_ids:
+        if album_id in folder_map:
+            continue
+        resp = request("AudioLibrary.GetSongs", {
+            "filter": {"albumid": album_id},
+            "properties": ["file"],
+            "limits": {"start": 0, "end": 1}
+        })
+        songs = extract_result(resp, "songs", [])
+        if songs and songs[0].get("file"):
+            folder_map[album_id] = vfs_dirname(songs[0]["file"])
+    return folder_map
+
+
 def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any]]:
     """
     Query Kodi library for items with artwork and file paths.
@@ -159,10 +176,18 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
 
             all_items.extend(items)
 
+        album_ids = [item['dbid'] for item in all_items
+                     if item.get('media_type') == 'album' and item.get('dbid')]
+        album_folder_map = _resolve_album_folders(album_ids) if album_ids else {}
+
         for item in all_items:
             file_path = item.get("file", "")
             if item['media_type'] == 'set' and not file_path:
                 file_path = item.get("title", "")
+            elif item['media_type'] == 'artist' and not file_path:
+                file_path = item.get("label", "")
+            elif item['media_type'] == 'album' and not file_path:
+                file_path = album_folder_map.get(item.get('dbid', 0), "")
             item['file'] = file_path
 
             if 'title' not in item:
@@ -232,13 +257,20 @@ def build_download_jobs(
             if media_type == 'season' and art_type.startswith('tvshow.'):
                 continue
 
+            mbid = None
+            if media_type == 'artist':
+                mbid = item.get('musicbrainzartistid', '')
+                if isinstance(mbid, list):
+                    mbid = mbid[0] if mbid else ''
+
             local_path = path_builder.build_path(
                 media_type=media_type,
                 media_file=file_path,
                 artwork_type=art_type,
                 season_number=item.get('season'),
                 episode_number=item.get('episode'),
-                use_basename=use_basename
+                use_basename=use_basename,
+                mbid=mbid
             )
 
             if not local_path:

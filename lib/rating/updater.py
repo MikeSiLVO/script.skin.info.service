@@ -171,6 +171,8 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
 
     log("Ratings", f"Updating ratings for single item - dbid={dbid}, dbtype={media_type}", xbmc.LOGINFO)
 
+    init_database()
+
     # Check if IMDb dataset needs refresh
     imdb_dataset = get_imdb_dataset()
     imdb_dataset.refresh_if_stale()
@@ -850,7 +852,7 @@ def update_library_ratings(
                             items_finalized += 1
                             ctx.mark_progress()
 
-                while executor.get_pending_count() > 0 or executor.get_unfinalized_items():
+                while executor.get_unfinalized_items():
                     if executor.is_cancelled():
                         results["cancelled"] = True
                         break

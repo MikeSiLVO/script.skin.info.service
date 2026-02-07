@@ -149,89 +149,104 @@ class PathBuilder:
     References:
     - https://kodi.wiki/view/Movie_artwork
     - https://kodi.wiki/view/TV_show_artwork
+    - xbmc/music/MusicDatabase.cpp (GetArtistFolderName, GetAlbumFolder)
     """
 
-    @staticmethod
-    def _get_movie_sets_folder() -> str:
-        """
-        Query Kodi for the movie sets folder setting.
+    _music_thumb_filename: Optional[str] = None
 
-        Returns:
-            Movie sets folder path, or empty string if not configured
-        """
-        response = request("Settings.GetSettingValue", {"setting": "videolibrary.moviesetsfolder"})
+    @staticmethod
+    def _get_kodi_folder_setting(setting: str) -> str:
+        response = request("Settings.GetSettingValue", {"setting": setting})
         if response and "value" in response.get("result", {}):
             return response["result"]["value"]
         return ""
 
     @staticmethod
-    def _configure_movie_sets_folder() -> str | None:
-        """
-        Prompt user to select and configure movie sets folder if not set.
-
-        Returns:
-            Selected folder path, or None if user cancelled
-        """
+    def _configure_kodi_folder_setting(
+        setting: str,
+        heading: str,
+        message: str,
+        browse_heading: str
+    ) -> Optional[str]:
         dialog = xbmcgui.Dialog()
 
-        configure = dialog.yesno(
-            "Movie Set Information Folder Not Configured",
-            "MSIF (Movie Set Information Folder) is not configured in Kodi settings.[CR][CR]"
-            "This folder stores artwork for movie sets (like 'The Matrix Collection').[CR][CR]"
-            "Would you like to select a folder now?"
-        )
-
-        if not configure:
+        if not dialog.yesno(heading, message):
             return None
 
-        folder = dialog.browse(
-            0,
-            "Select Movie Sets Folder",
-            "files",
-            "",
-            False,
-            False,
-            ""
-        )
-
+        folder = dialog.browse(0, browse_heading, "files", "", False, False, "")
         if not folder or not isinstance(folder, str):
             return None
 
         response = request("Settings.SetSettingValue", {
-            "setting": "videolibrary.moviesetsfolder",
+            "setting": setting,
             "value": folder
         })
 
         if response and response.get("result") is True:
             dialog.notification(
-                "Movie Sets Folder",
+                heading,
                 "Folder configured successfully",
                 xbmcgui.NOTIFICATION_INFO,
                 3000
             )
             return folder
-        else:
-            dialog.ok(
-                "Error",
-                "Failed to save movie sets folder setting.[CR][CR]Please configure manually in Kodi settings."
-            )
-            return None
+
+        dialog.ok(
+            "Error",
+            "Failed to save setting.[CR][CR]Please configure manually in Kodi settings."
+        )
+        return None
 
     @staticmethod
-    def _make_legal_filename(title: str) -> str:
-        """
-        Sanitize set title to legal filename using Kodi's native function.
+    def _resolve_named_item_folder(setting: str, heading: str, message: str, browse_heading: str) -> Optional[str]:
+        folder = PathBuilder._get_kodi_folder_setting(setting)
+        if not folder:
+            folder = PathBuilder._configure_kodi_folder_setting(
+                setting, heading, message, browse_heading
+            )
+        return folder
 
-        Args:
-            title: Movie set title
+    @staticmethod
+    def _get_music_thumb_filename() -> str:
+        if PathBuilder._music_thumb_filename is not None:
+            return PathBuilder._music_thumb_filename
+        # Kodi discovers thumb art by matching filenames from this setting,
+        # so we must save using a name from the user's configured list.
+        value = PathBuilder._get_kodi_folder_setting("musiclibrary.musicthumbs")
+        result = "folder"
+        if value:
+            first = value[0].strip() if isinstance(value, list) else value.split(",")[0].strip()
+            dot = first.rfind(".")
+            if dot > 0:
+                result = first[:dot]
+        PathBuilder._music_thumb_filename = result
+        return result
 
-        Returns:
-            Sanitized filename safe for the current platform
-        """
-        sanitized = xbmcvfs.makeLegalFilename(title)
-        # Extract just the filename part (makeLegalFilename returns full path on some platforms)
+    @staticmethod
+    def _make_legal_filename(name: str, fallback: str = "Unknown", parent_dir: str = "") -> str:
+        if not name:
+            return fallback
+        # makeLegalFilename wraps CUtil::MakeLegalPath which skips
+        # sanitization for bare names (no HD/SMB/NFS prefix detected).
+        full_path = vfs_join(parent_dir, name) if parent_dir else name
+        sanitized = xbmcvfs.makeLegalFilename(full_path)
         sanitized = vfs_basename(sanitized)
-        return sanitized if sanitized else "Unnamed Set"
+        return sanitized if sanitized else fallback
+
+    @staticmethod
+    def _make_music_folder_name(name: str, fallback: str = "Unknown", parent_dir: str = "") -> str:
+        sanitized = PathBuilder._make_legal_filename(name, fallback, parent_dir)
+        sanitized = sanitized.replace(' _ ', '_')
+        return sanitized
+
+    @staticmethod
+    def _count_library_artists(artist_name: str) -> int:
+        response = request("AudioLibrary.GetArtists", {
+            "filter": {"field": "artist", "operator": "is", "value": artist_name}
+        })
+        if response and "artists" in response.get("result", {}):
+            return len(response["result"]["artists"])
+        return 1
 
     @staticmethod
     def _find_movie_root(path: str) -> str:
@@ -271,29 +286,22 @@ class PathBuilder:
         artwork_type: str,
         season_number: Optional[int] = None,
         episode_number: Optional[int] = None,
-        use_basename: bool = True
+        use_basename: bool = True,
+        mbid: Optional[str] = None
     ) -> Optional[str]:
         """
         Build complete path for artwork file.
 
         Returns base path WITHOUT extension (extension added by downloader based on content-type).
 
-        Examples:
-            Movie basename: /Movies/Avatar.mkv -> /Movies/Avatar-poster
-            Movie folder: /Movies/Avatar/ -> /Movies/Avatar/poster
-            Movie BDMV: /Movies/Avatar/BDMV/STREAM/00001.m2ts -> /Movies/Avatar/poster
-            Movie VIDEO_TS: /Movies/Avatar/VIDEO_TS/VTS_01_1.VOB -> /Movies/Avatar/poster
-            TV Show: /TV/Show/ -> /TV/Show/poster
-            Season: /TV/Show/ -> /TV/Show/season01-poster
-            Episode basename: /TV/Show/S01E01.mkv -> /TV/Show/S01E01-thumb
-
         Args:
-            media_type: 'movie', 'tvshow', 'season', 'episode', 'musicvideo', 'set'
-            media_file: Full path to media file/directory, or set title for 'set' media_type
+            media_type: 'movie', 'tvshow', 'season', 'episode', 'musicvideo', 'set', 'artist', 'album'
+            media_file: Full path to media file/directory, or title/name for 'set'/'artist'
             artwork_type: Artwork type ('poster', 'fanart', 'clearlogo', etc.)
             season_number: Season number (for season/episode artwork)
             episode_number: Episode number (for episode artwork)
             use_basename: Whether to use basename mode (Movie-poster vs poster in folder)
+            mbid: MusicBrainz ID (for artist duplicate name disambiguation)
 
         Returns:
             Base path string (without extension) or None if cannot build
@@ -343,16 +351,18 @@ class PathBuilder:
                 return vfs_join(dir_path, artwork_type)
 
         elif media_type == 'set':
-            movie_sets_folder = PathBuilder._get_movie_sets_folder()
-
-            if not movie_sets_folder:
-                movie_sets_folder = PathBuilder._configure_movie_sets_folder()
-
+            movie_sets_folder = PathBuilder._resolve_named_item_folder(
+                "videolibrary.moviesetsfolder",
+                "Movie Set Information Folder Not Configured",
+                "MSIF (Movie Set Information Folder) is not configured in Kodi settings.[CR][CR]"
+                "This folder stores artwork for movie sets (like 'The Matrix Collection').[CR][CR]"
+                "Would you like to select a folder now?",
+                "Select Movie Sets Folder"
+            )
             if not movie_sets_folder:
                 return None
 
-            set_title = media_file
-            sanitized_title = PathBuilder._make_legal_filename(set_title)
+            sanitized_title = PathBuilder._make_legal_filename(media_file, "Unnamed Set", movie_sets_folder)
 
             if artwork_type.startswith('set.'):
                 clean_art_type = artwork_type[4:]
@@ -361,7 +371,28 @@ class PathBuilder:
 
             return vfs_join(movie_sets_folder, sanitized_title, clean_art_type)
 
-        elif media_type in ('artist', 'album'):
-            return None
+        elif media_type == 'artist':
+            artist_folder = PathBuilder._resolve_named_item_folder(
+                "musiclibrary.artistsfolder",
+                "Artist Information Folder Not Configured",
+                "Artist Information Folder is not configured in Kodi settings.[CR][CR]"
+                "This folder stores artwork and metadata for music artists.[CR][CR]"
+                "Would you like to select a folder now?",
+                "Select Artist Information Folder"
+            )
+            if not artist_folder:
+                return None
+
+            folder_name = PathBuilder._make_music_folder_name(media_file, "Unknown Artist", artist_folder)
+
+            if mbid and PathBuilder._count_library_artists(media_file) > 1:
+                folder_name += '_' + mbid[:4]
+
+            art_name = PathBuilder._get_music_thumb_filename() if artwork_type == 'thumb' else artwork_type
+            return vfs_join(artist_folder, folder_name, art_name)
+
+        elif media_type == 'album':
+            art_name = PathBuilder._get_music_thumb_filename() if artwork_type == 'thumb' else artwork_type
+            return vfs_join(vfs_rstrip_sep(media_file), art_name)
 
         return None

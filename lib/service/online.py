@@ -6,13 +6,14 @@ Sets properties with SkinInfo.Online.* prefix on Home window.
 from __future__ import annotations
 
 import threading
+import time
 from collections import OrderedDict
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utils import clear_group, get_prop, wait_for_kodi_ready, batch_set_props
+from lib.kodi.utils import clear_group, get_prop, set_prop, wait_for_kodi_ready, batch_set_props
 from lib.data.database.cache import get_cached_online_properties, cache_online_properties
 
 _MEMORY_CACHE: OrderedDict[str, Dict[str, str]] = OrderedDict()
@@ -21,6 +22,7 @@ _MEMORY_CACHE_MAX = 20
 ONLINE_POLL_INTERVAL = 0.10
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
 PLAYER_ONLINE_PROPERTY_PREFIX = "SkinInfo.Player.Online."
+PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
 
 _SKININFO_PREFIX_MAP = {
     "movie": "SkinInfo.Movie",
@@ -179,6 +181,12 @@ class OnlineServiceMain(threading.Thread):
         self._player_fetch_thread: Optional[threading.Thread] = None
         self._player_fetch_for_key: Optional[str] = None
         self._last_prop_keys: set = set()
+        self._last_music_key: Optional[str] = None
+        self._music_fetch_thread: Optional[threading.Thread] = None
+        self._music_fetch_for_key: Optional[str] = None
+        self._music_fanart_urls: List[str] = []
+        self._music_fanart_index: int = 0
+        self._music_fanart_last_rotate: float = 0.0
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
@@ -197,6 +205,8 @@ class OnlineServiceMain(threading.Thread):
     def _loop(self) -> None:
         self._handle_library_item()
         self._handle_player()
+        self._handle_music_player()
+        self._rotate_music_fanart()
 
     def _handle_library_item(self) -> None:
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
@@ -315,6 +325,147 @@ class OnlineServiceMain(threading.Thread):
 
     def _clear_player_properties(self) -> None:
         clear_group(PLAYER_ONLINE_PROPERTY_PREFIX)
+
+    def _handle_music_player(self) -> None:
+        if not xbmc.getCondVisibility("Player.HasAudio"):
+            if self._last_music_key:
+                self._clear_music_properties()
+                self._last_music_key = None
+            return
+
+        artist_name = xbmc.getInfoLabel("MusicPlayer.Artist") or ""
+        if not artist_name:
+            if self._last_music_key:
+                self._clear_music_properties()
+                self._last_music_key = None
+            return
+
+        if artist_name == self._last_music_key:
+            return
+
+        self._last_music_key = artist_name
+        self._music_fanart_urls = []
+        self._music_fanart_index = 0
+
+        if (self._music_fetch_thread and self._music_fetch_thread.is_alive()
+                and self._music_fetch_for_key == artist_name):
+            return
+
+        self._music_fetch_for_key = artist_name
+        self._music_fetch_thread = threading.Thread(
+            target=self._music_fetch_worker,
+            args=(artist_name,),
+            daemon=True,
+        )
+        self._music_fetch_thread.start()
+
+    def _music_fetch_worker(self, artist_name: str) -> None:
+        try:
+            if self._abort_flag.is_requested():
+                return
+
+            mbids = _get_playing_artist_mbids()
+
+            if not mbids:
+                mbids = _resolve_artist_mbids_from_library(artist_name)
+
+            online_artist_data: Optional[dict] = None
+
+            if not mbids:
+                online_artist_data = _search_artist_by_name(artist_name, self._abort_flag)
+                if online_artist_data:
+                    mbid = online_artist_data.get('strMusicBrainzID', '')
+                    if mbid:
+                        mbids = [mbid]
+
+            if self._abort_flag.is_requested():
+                return
+
+            if not mbids:
+                return
+
+            fanart_urls = _read_cached_fanart(mbids)
+
+            if not fanart_urls:
+                artist_data = _fetch_and_cache_artist_artwork(
+                    mbids, self._abort_flag, online_artist_data
+                )
+                if not online_artist_data and artist_data:
+                    online_artist_data = artist_data
+
+                if self._abort_flag.is_requested():
+                    return
+
+                fanart_urls = _read_cached_fanart(mbids)
+
+            if artist_name != self._last_music_key:
+                return
+
+            bio = ''
+            if online_artist_data:
+                bio = online_artist_data.get('strBiographyEN', '') or ''
+            if not bio and mbids:
+                bio = _get_artist_bio_online(mbids[0], self._abort_flag)
+
+            self._music_fanart_urls = fanart_urls
+            self._music_fanart_index = 0
+            self._music_fanart_last_rotate = time.time()
+            self._set_music_online_properties(artist_name, bio, fanart_urls)
+
+        except Exception as e:
+            log("Service", f"Music player online fetch error: {e}", xbmc.LOGWARNING)
+
+    def _set_music_online_properties(
+        self,
+        artist_name: str,
+        bio: str,
+        fanart_urls: List[str],
+    ) -> None:
+        props: Dict[str, Optional[str]] = {
+            f"{PLAYER_MUSIC_ONLINE_PREFIX}Artist": artist_name,
+        }
+
+        if bio:
+            props[f"{PLAYER_MUSIC_ONLINE_PREFIX}Bio"] = bio
+
+        props[f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt.Count"] = str(len(fanart_urls))
+
+        if fanart_urls:
+            props[f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt"] = fanart_urls[0]
+
+        batch_set_props(props)
+
+    def _rotate_music_fanart(self) -> None:
+        if len(self._music_fanart_urls) <= 1:
+            return
+
+        now = time.time()
+
+        interval_str = xbmc.getInfoLabel(
+            'Skin.String(SkinInfo.SlideshowRefreshInterval)'
+        ) or '10'
+        try:
+            interval = int(interval_str)
+            interval = max(5, min(interval, 3600))
+        except ValueError:
+            interval = 10
+
+        if now - self._music_fanart_last_rotate < interval:
+            return
+
+        self._music_fanart_last_rotate = now
+        self._music_fanart_index = (
+            (self._music_fanart_index + 1) % len(self._music_fanart_urls)
+        )
+        set_prop(
+            f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt",
+            self._music_fanart_urls[self._music_fanart_index],
+        )
+
+    def _clear_music_properties(self) -> None:
+        clear_group(PLAYER_MUSIC_ONLINE_PREFIX)
+        self._music_fanart_urls = []
+        self._music_fanart_index = 0
 
     def _fetch_worker(
         self,
@@ -600,3 +751,167 @@ def set_stinger_properties_from_tmdb(data: dict) -> bool:
 
     log("Service", f"Stinger detected from TMDB: {stinger_type}", xbmc.LOGDEBUG)
     return True
+
+
+def _get_playing_artist_mbids() -> List[str]:
+    try:
+        player = xbmc.Player()
+        if not player.isPlayingAudio():
+            return []
+        tag = player.getMusicInfoTag()
+        mbids = tag.getMusicBrainzArtistID()
+        if isinstance(mbids, list):
+            return [m for m in mbids if m]
+        return []
+    except Exception:
+        return []
+
+
+def _resolve_artist_mbids_from_library(artist_name: str) -> List[str]:
+    from lib.kodi.client import request
+
+    artists = [a.strip() for a in artist_name.split(" / ")]
+    mbids: List[str] = []
+
+    for name in artists:
+        if not name:
+            continue
+
+        result = request("AudioLibrary.GetArtists", {
+            "filter": {"field": "artist", "operator": "is", "value": name},
+            "properties": ["musicbrainzartistid"],
+            "limits": {"end": 1},
+        })
+
+        if not result:
+            continue
+
+        artists_list = result.get("result", {}).get("artists")
+        if not artists_list:
+            continue
+
+        mbid = artists_list[0].get("musicbrainzartistid")
+        if isinstance(mbid, list):
+            mbid = mbid[0] if mbid else None
+        if mbid:
+            mbids.append(mbid)
+
+    return mbids
+
+
+def _get_artist_bio_online(
+    mbid: str, abort_flag: ServiceAbortFlag
+) -> str:
+    from lib.data.api.audiodb import ApiAudioDb
+
+    try:
+        audiodb = ApiAudioDb()
+        artist = audiodb.get_artist(mbid, abort_flag)
+        if artist:
+            return artist.get('strBiographyEN', '') or ''
+    except Exception as e:
+        log("Service", f"TheAudioDB bio fetch error: {e}", xbmc.LOGWARNING)
+    return ''
+
+
+def _search_artist_by_name(
+    artist_name: str, abort_flag: ServiceAbortFlag
+) -> Optional[dict]:
+    from lib.data.api.audiodb import ApiAudioDb
+
+    primary_name = artist_name.split(" / ")[0].strip()
+    if not primary_name:
+        return None
+
+    try:
+        audiodb = ApiAudioDb()
+        return audiodb.search_artist(primary_name, abort_flag)
+    except Exception as e:
+        log("Service", f"TheAudioDB artist search error: {e}", xbmc.LOGWARNING)
+        return None
+
+
+def _read_cached_fanart(mbids: List[str]) -> List[str]:
+    from lib.data.database import cache as db_cache
+
+    seen: set = set()
+    urls: List[str] = []
+
+    for mbid in mbids:
+        cached = db_cache.get_cached_artwork('artist', mbid, 'fanarttv', 'fanart')
+        if cached:
+            for art in cached:
+                url = art.get('url', '')
+                if url and url not in seen:
+                    seen.add(url)
+                    urls.append(url)
+
+    if urls:
+        return urls
+
+    for mbid in mbids:
+        cached = db_cache.get_cached_artwork('artist', mbid, 'theaudiodb', 'fanart')
+        if cached:
+            for art in cached:
+                url = art.get('url', '')
+                if url and url not in seen:
+                    seen.add(url)
+                    urls.append(url)
+
+    return urls
+
+
+def _fetch_and_cache_artist_artwork(
+    mbids: List[str],
+    abort_flag: ServiceAbortFlag,
+    cached_artist_data: Optional[dict] = None,
+) -> Optional[dict]:
+    from lib.data.api.fanarttv import ApiFanarttv
+    from lib.data.api.audiodb import ApiAudioDb
+    from lib.data.database import cache as db_cache
+
+    ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
+    fanart_api = ApiFanarttv()
+    audiodb = ApiAudioDb()
+    artist_data = cached_artist_data
+
+    for mbid in mbids:
+        if abort_flag.is_requested():
+            return artist_data
+
+        marker = db_cache.get_cached_artwork(
+            'artist', mbid, 'system', '_full_fetch_complete'
+        )
+        if marker is not None:
+            continue
+
+        try:
+            fanart_art = fanart_api.get_artist_artwork(mbid, abort_flag)
+            for art_type, artworks in fanart_art.items():
+                if art_type != 'albums' and artworks:
+                    db_cache.cache_artwork(
+                        'artist', mbid, 'fanarttv', art_type, artworks, None, ttl_hours
+                    )
+        except Exception as e:
+            log("Service", f"Fanart.tv artist fetch error for {mbid}: {e}", xbmc.LOGWARNING)
+
+        try:
+            tadb_artist = audiodb.get_artist(mbid, abort_flag)
+            if tadb_artist:
+                if not artist_data:
+                    artist_data = tadb_artist
+                tadb_art = audiodb.get_artist_artwork_from_data(tadb_artist)
+                for art_type, artworks in tadb_art.items():
+                    if artworks:
+                        db_cache.cache_artwork(
+                            'artist', mbid, 'theaudiodb', art_type, artworks, None, ttl_hours
+                        )
+        except Exception as e:
+            log("Service", f"TheAudioDB artist fetch error for {mbid}: {e}", xbmc.LOGWARNING)
+
+        db_cache.cache_artwork(
+            'artist', mbid, 'system', '_full_fetch_complete',
+            [{'marker': 'complete'}], None, ttl_hours
+        )
+
+    return artist_data

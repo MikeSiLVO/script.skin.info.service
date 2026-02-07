@@ -589,17 +589,20 @@ class ApiArtworkFetcher:
         from lib.data.api.audiodb import ApiAudioDb
         audiodb = ApiAudioDb()
 
-        # Use artwork from search response if we already have it
+        album_data: Optional[dict] = None
         if audiodb_search_result:
-            audiodb_art = audiodb.get_album_artwork_from_data(audiodb_search_result)
+            album_data = audiodb_search_result
         else:
             lookup_id = resolved_old_id or release_group_id
-            audiodb_art = audiodb.get_album_artwork(lookup_id)
-            if not audiodb_art and resolved_old_id:
-                audiodb_art = audiodb.get_album_artwork(release_group_id)
+            album_data = audiodb.get_album(lookup_id)
+            if not album_data and resolved_old_id:
+                album_data = audiodb.get_album(release_group_id)
 
-        if not audiodb_art:
-            log("Artwork", f"Album {album_dbid}: no artwork on TheAudioDB for release_group={release_group_id}", xbmc.LOGDEBUG)
+        audiodb_art: Dict[str, List[dict]] = {}
+        if album_data:
+            audiodb_art = audiodb.get_album_artwork_from_data(album_data)
+        else:
+            log("Artwork", f"Album {album_dbid}: no data on TheAudioDB for release_group={release_group_id}", xbmc.LOGDEBUG)
 
         for art_type, artworks in audiodb_art.items():
             if artworks:

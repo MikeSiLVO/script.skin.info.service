@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import List
+from typing import Dict, List, Optional
 import xbmc
 import xbmcgui
 
@@ -81,6 +81,7 @@ class ServiceMain(threading.Thread):
         self._refresh_start_time = None
         self._last_imdb_check = 0.0
         self._stinger_monitor = StingerMonitor()
+        self._last_music_artist: Optional[str] = None
 
     def _increment_library_refresh(self) -> None:
         """Increment library refresh counter to trigger widget/path stats refresh."""
@@ -259,6 +260,7 @@ class ServiceMain(threading.Thread):
     def _loop(self) -> None:
         self._handle_blur_player()
         self._handle_player()
+        self._handle_music_player()
 
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
         if not dbid:
@@ -481,6 +483,90 @@ class ServiceMain(threading.Thread):
 
         # Set TV show ratings with Player.TVShow prefix
         set_ratings_properties(details, "Player.TVShow")
+
+    def _handle_music_player(self) -> None:
+        if not xbmc.getCondVisibility("Player.HasAudio"):
+            if self._last_music_artist:
+                clear_group("SkinInfo.Player.Music.")
+                self._last_music_artist = None
+            return
+
+        artist_name = xbmc.getInfoLabel("MusicPlayer.Artist") or ""
+        if not artist_name:
+            if self._last_music_artist:
+                clear_group("SkinInfo.Player.Music.")
+                self._last_music_artist = None
+            return
+
+        if artist_name == self._last_music_artist:
+            return
+
+        clear_group("SkinInfo.Player.Music.")
+        self._last_music_artist = artist_name
+        self._set_music_player_details(artist_name)
+
+    def _set_music_player_details(self, artist_name: str) -> None:
+        from lib.kodi.utils import batch_set_props
+
+        artists = [a.strip() for a in artist_name.split(" / ")]
+        bio = ""
+        library_fanart = ""
+        all_albums: List[dict] = []
+
+        for name in artists:
+            if not name:
+                continue
+
+            result = request("AudioLibrary.GetArtists", {
+                "filter": {"field": "artist", "operator": "is", "value": name},
+                "properties": ["description", "fanart"],
+                "limits": {"end": 1},
+            })
+
+            if not result:
+                continue
+
+            artists_list = result.get("result", {}).get("artists")
+            if not artists_list:
+                continue
+
+            artist = artists_list[0]
+            artist_id = artist.get("artistid")
+
+            if not bio:
+                bio = artist.get("description", "") or ""
+
+            if not library_fanart:
+                library_fanart = artist.get("fanart", "") or ""
+
+            if artist_id:
+                albums_result = request("AudioLibrary.GetAlbums", {
+                    "filter": {"artistid": artist_id},
+                    "properties": ["title", "year", "art"],
+                    "sort": {"method": "year", "order": "ascending"},
+                })
+                if albums_result:
+                    album_list = albums_result.get("result", {}).get("albums")
+                    if isinstance(album_list, list):
+                        all_albums.extend(album_list)
+
+        prefix = "SkinInfo.Player.Music."
+        props: Dict[str, Optional[str]] = {
+            f"{prefix}Artist": artist_name,
+            f"{prefix}Bio": bio,
+            f"{prefix}FanArt": library_fanart,
+        }
+
+        album_count = min(len(all_albums), 20)
+        props[f"{prefix}Album.Count"] = str(album_count)
+
+        for i, album in enumerate(all_albums[:20]):
+            props[f"{prefix}Album.{i + 1}.Title"] = album.get('title', '')
+            year = album.get('year')
+            props[f"{prefix}Album.{i + 1}.Year"] = str(year) if year else ''
+            props[f"{prefix}Album.{i + 1}.Thumb"] = album.get('art', {}).get('thumb', '')
+
+        batch_set_props(props)
 
     def _clear_blur_props(self, prop_base: str) -> None:
         """Clear blur properties for a given property base."""
