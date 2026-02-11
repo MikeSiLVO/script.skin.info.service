@@ -24,7 +24,7 @@ from lib.service.properties import (
     set_ratings_properties,
 )
 from lib.service.stinger import StingerMonitor
-from lib.kodi.utils import clear_group, set_prop, clear_prop, extract_media_ids, wait_for_kodi_ready
+from lib.kodi.utils import clear_group, set_prop, get_prop, clear_prop, extract_media_ids, wait_for_kodi_ready
 
 SERVICE_POLL_INTERVAL = 0.10
 MAX_CONSECUTIVE_ERRORS = 10
@@ -98,10 +98,16 @@ class ServiceMain(threading.Thread):
         def _do_refresh():
             try:
                 from lib.data.api.imdb import get_imdb_dataset
+                from lib.data.database import workflow as db
                 dataset = get_imdb_dataset()
                 if dataset.refresh_if_stale():
                     log("Service", "IMDb dataset updated after library scan", xbmc.LOGINFO)
-                    self._run_imdb_auto_update()
+                    synced_count = db.get_synced_items_count()
+                    if synced_count == 0:
+                        self._run_imdb_auto_update()
+                    else:
+                        from lib.rating.updater import update_changed_imdb_ratings
+                        update_changed_imdb_ratings(monitor=xbmc.Monitor())
             except Exception as e:
                 log("Service", f"IMDb dataset refresh failed: {e}", xbmc.LOGWARNING)
 
@@ -153,11 +159,7 @@ class ServiceMain(threading.Thread):
                 from lib.data.database import workflow as db
                 dataset = get_imdb_dataset()
 
-                dataset_updated = dataset.refresh_if_stale()
-                if dataset_updated:
-                    log("Service", "IMDb dataset updated, running full sync", xbmc.LOGINFO)
-                    self._run_imdb_auto_update()
-                    return
+                dataset.refresh_if_stale()
 
                 synced_count = db.get_synced_items_count()
                 if synced_count == 0:
@@ -167,7 +169,7 @@ class ServiceMain(threading.Thread):
 
                 from lib.rating.updater import update_changed_imdb_ratings
                 log("Service", "Running incremental IMDb rating sync", xbmc.LOGINFO)
-                update_changed_imdb_ratings()
+                update_changed_imdb_ratings(monitor=xbmc.Monitor())
 
             except Exception as e:
                 log("Service", f"IMDb dataset check failed: {e}", xbmc.LOGWARNING)
@@ -194,6 +196,8 @@ class ServiceMain(threading.Thread):
         prefix = _MEDIA_TYPE_PREFIXES.get(media_type)
         if prefix:
             clear_group(prefix)
+        if media_type == "season":
+            clear_group(_MEDIA_TYPE_PREFIXES["tvshow"])
 
     def run(self) -> None:
         version = ADDON.getAddonInfo("version")
@@ -209,11 +213,10 @@ class ServiceMain(threading.Thread):
         worker.start()
 
         try:
+            xbmc.executebuiltin('Skin.SetBool(SkinInfo.Service)')
             set_prop("SkinInfo.Service.Running", "true")
-        except RuntimeError as e:
-            log("Service",f" Error setting service running flag: {str(e)}", xbmc.LOGWARNING)
         except Exception as e:
-            log("Service",f" Unexpected error setting service flag: {str(e)}", xbmc.LOGERROR)
+            log("Service", f"Error setting service flags: {e}", xbmc.LOGWARNING)
 
         self._populate_slideshow_pool_if_needed()
 
@@ -232,6 +235,9 @@ class ServiceMain(threading.Thread):
         try:
             while not monitor.waitForAbort(SERVICE_POLL_INTERVAL):
                 if self.abort.is_set():
+                    break
+                if not xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.Service)'):
+                    log("Service", "SkinInfo.Service disabled, stopping", xbmc.LOGINFO)
                     break
                 try:
                     self._loop()
@@ -256,6 +262,7 @@ class ServiceMain(threading.Thread):
                 clear_prop("SkinInfo.Service.Running")
             except Exception:
                 pass
+            log("Service", "Stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
         self._handle_blur_player()
@@ -946,6 +953,10 @@ class ServiceMain(threading.Thread):
 
         set_season_properties(details)
 
+        tvshowid = details.get("tvshowid")
+        if tvshowid and tvshowid != -1:
+            self._set_tvshow_details(str(tvshowid))
+
     def _set_episode_details(self, episodeid: str) -> None:
         details = get_item_details(
             'episode',
@@ -1028,6 +1039,10 @@ class ServiceMain(threading.Thread):
 
 
 def start_service() -> None:
+    if get_prop("SkinInfo.Service.Running"):
+        log("Service", "Already running, ignoring duplicate RunScript", xbmc.LOGINFO)
+        return
+
     from lib.data.database._infrastructure import init_database
     from lib.data.database.cache import clear_expired_cache
     from lib.service.slideshow import SlideshowMonitor

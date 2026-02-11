@@ -10,8 +10,8 @@ Basic setup for integrating Skin Info Service into your skin.
 
 - [Overview](#overview)
 - [Starting the Service](#starting-the-service)
-- [Integration Types](#integration-types)
 - [Service Properties](#service-properties)
+- [Integration Types](#integration-types)
 - [Plugin Paths](#plugin-paths)
 - [RunScript Actions](#runscript-actions)
 
@@ -29,28 +29,31 @@ Skin Info Service provides three integration methods:
 
 ## Starting the Service
 
-The service must be started via RunScript. Add to any window that loads
-early in your skin:
-
-**Home.xml:**
+The service must be started via RunScript. Add to any window that loads early in your skin:
 
 ```xml
 <onload>RunScript(script.skin.info.service)</onload>
 ```
 
-**Startup.xml:**
-
-```xml
-<onload>RunScript(script.skin.info.service)</onload>
-```
-
-**With user toggle:**
+**With user toggle (recommended):**
 
 ```xml
 <onload condition="Skin.HasSetting(SkinInfo.Service)">RunScript(script.skin.info.service)</onload>
 ```
 
-The service runs in the background once started and monitors focused items automatically.
+The service sets `Skin.SetBool(SkinInfo.Service)` on start and checks it each loop iteration. If the setting is toggled off, the service stops automatically. This allows skins to provide a toggle that both prevents starting and stops a running service.
+
+A duplicate RunScript call is ignored if the service is already running.
+
+## Service Properties
+
+| Property | Description |
+|----------|-------------|
+| `SkinInfo.Service.Running` | Set to `true` while the service is running, cleared on stop |
+
+```xml
+<visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Service.Running))</visible>
+```
 
 ---
 

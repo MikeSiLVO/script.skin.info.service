@@ -395,6 +395,49 @@ class ApiSession:
         except Exception as e:
             raise RetryableError(self.service_name, str(e))
 
+    def head(
+        self,
+        endpoint: str,
+        abort_flag=None,
+        timeout: Optional[Tuple[float, float]] = None
+    ) -> Optional[requests.Response]:
+        self._check_abort(abort_flag)
+
+        if self.rate_limiter:
+            self.rate_limiter.wait_if_needed(self.service_name)
+
+        url = self._build_url(endpoint)
+        request_timeout = timeout or self.timeout
+
+        try:
+            response = self.session.head(
+                url,
+                timeout=request_timeout,
+                allow_redirects=True
+            )
+
+            if response.status_code == 429:
+                raise RateLimitHit(self.service_name)
+
+            if response.status_code >= 400:
+                log(
+                    "API",
+                    f"{self.service_name}: HEAD {response.status_code}",
+                    xbmc.LOGWARNING
+                )
+                return None
+
+            return response
+
+        except (AbortRequested, RateLimitHit, RetryableError):
+            raise
+        except requests.exceptions.Timeout:
+            raise RetryableError(self.service_name, "timeout")
+        except requests.exceptions.ConnectionError as e:
+            raise RetryableError(self.service_name, f"connection error: {e}")
+        except Exception as e:
+            raise RetryableError(self.service_name, str(e))
+
     def close(self) -> None:
         """Close the session and release connections."""
         self.session.close()
@@ -402,6 +445,6 @@ class ApiSession:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *_args):
         self.close()
         return False

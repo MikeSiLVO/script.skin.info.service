@@ -18,6 +18,7 @@ Window properties set automatically by the service when library items are focuse
 - [Music Videos](#music-videos)
 - [Artists](#artists)
 - [Albums](#albums)
+- [Music Player](#music-player)
 - [Property Clearing](#property-clearing)
 
 ---
@@ -649,6 +650,59 @@ Use `%d` as placeholder for index (1-based):
 | `Song.%d.Duration` | Duration (mm:ss) |
 | `Song.%d.Track` | Track number |
 | `Song.%d.FileExtension` | File extension |
+
+---
+
+## Music Player
+
+**Prefix:** `SkinInfo.Player.Music.*`
+
+Properties from the Kodi music library, set automatically during music playback when the artist changes. Only populated for library artists.
+
+### Artist
+
+| Property | Description |
+|----------|-------------|
+| `Artist` | Current artist name |
+| `Bio` | Artist biography from library |
+| `FanArt` | Artist fanart from library |
+
+### Album Discography
+
+| Property | Description |
+|----------|-------------|
+| `Album.Count` | Number of albums (up to 20) |
+| `Album.{N}.Title` | Album title |
+| `Album.{N}.Year` | Album year |
+| `Album.{N}.Thumb` | Album thumbnail |
+
+Albums are sorted by year (ascending).
+
+### Example
+
+```xml
+<control type="group">
+    <visible>Player.HasAudio</visible>
+
+    <!-- Artist fanart from library -->
+    <control type="image">
+        <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Player.Music.FanArt))</visible>
+        <texture>$INFO[Window(Home).Property(SkinInfo.Player.Music.FanArt)]</texture>
+    </control>
+
+    <!-- Artist bio from library -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Music.Bio)]</label>
+    </control>
+
+    <!-- Album count -->
+    <control type="label">
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Music.Album.Count)] Albums</label>
+    </control>
+</control>
+```
+
+Properties clear automatically when playback stops or the artist changes.
 
 ---
 

@@ -105,13 +105,26 @@ def _jsonrpc_get_uniqueids(dbtype: str, dbid: str) -> Tuple[str, str]:
 
     try:
         result = request(method, {id_key: int(dbid), "properties": ["uniqueid"]})
-        if result and result_key in result:
-            uniqueid = result[result_key].get("uniqueid", {})
+        inner = result.get("result", {}) if result else {}
+        if inner and result_key in inner:
+            uniqueid = inner[result_key].get("uniqueid", {})
             return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")
     except Exception as e:
         log("Service", f"JSON-RPC uniqueid lookup failed: {e}", xbmc.LOGDEBUG)
 
     return "", ""
+
+
+def _resolve_season_ids(seasonid: str) -> Tuple[str, str]:
+    """Resolve IMDb/TMDb IDs for a season via its parent tvshow."""
+    from lib.kodi.client import get_item_details
+    details = get_item_details('season', int(seasonid), ["tvshowid"])
+    if not details or not isinstance(details, dict):
+        return "", ""
+    tvshowid = details.get("tvshowid")
+    if not tvshowid or tvshowid == -1:
+        return "", ""
+    return _jsonrpc_get_uniqueids("tvshow", str(tvshowid))
 
 
 def _resolve_player_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
@@ -212,19 +225,24 @@ class OnlineServiceMain(threading.Thread):
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
         dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
 
-        if not dbid or dbtype not in ("movie", "tvshow", "episode"):
+        if not dbid or dbtype not in ("movie", "tvshow", "episode", "season"):
             if self._last_item_key:
                 self._clear_properties()
                 self._last_item_key = None
                 self._last_prop_keys = set()
             return
 
-        imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+        if dbtype == "season":
+            imdb_id, tmdb_id = _resolve_season_ids(dbid)
+            effective_type = "tvshow"
+        else:
+            imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+            effective_type = dbtype
 
         if not imdb_id and not tmdb_id:
             return
 
-        cache_key = _make_cache_key(dbtype, imdb_id, tmdb_id)
+        cache_key = _make_cache_key(effective_type, imdb_id, tmdb_id)
         if not cache_key:
             return
 
@@ -260,7 +278,7 @@ class OnlineServiceMain(threading.Thread):
         self._fetch_for_key = cache_key
         self._fetch_thread = threading.Thread(
             target=self._fetch_worker,
-            args=(dbtype, imdb_id, tmdb_id, cache_key, ONLINE_PROPERTY_PREFIX, "_last_item_key", self._abort_flag),
+            args=(effective_type, imdb_id, tmdb_id, cache_key, ONLINE_PROPERTY_PREFIX, "_last_item_key", self._abort_flag),
             daemon=True
         )
         self._fetch_thread.start()

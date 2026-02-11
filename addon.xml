@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta14"
+	   version="2.0.0~beta15"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,15 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta15
+- IMDb Top 250: update movie rankings from Trakt's official daily-updated list (Tools menu)
+- Incremental IMDb sync now picks up new library items (not just changed ratings)
+- Service skin toggle: Skin.SetBool(SkinInfo.Service) controls start/stop
+- Duplicate RunScript ignored when service already running
+- SkinInfo.Service.Running window property for skin visibility conditions
+- Post-scan uses incremental sync instead of full update when items already synced
+- Abort handling throughout rating update pipeline for cleaner Kodi shutdown
+
 2.0.0~beta14
 - Music player library properties (artist bio, fanart, album discography)
 - Music player online properties (TheAudioDB bio, rotating fanart slideshow)

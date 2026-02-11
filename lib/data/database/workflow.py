@@ -484,7 +484,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
                 FROM ratings_synced s
                 JOIN imdb_ratings r ON s.external_id = r.imdb_id
                 WHERE s.media_type = ? AND s.source = 'imdb'
-                  AND (ABS(s.rating - r.rating) > 0.01 OR s.votes != r.votes)
+                  AND ABS(s.rating - r.rating) > 0.01
             ''', (media_type,))
         else:
             cursor.execute('''
@@ -494,7 +494,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
                 FROM ratings_synced s
                 JOIN imdb_ratings r ON s.external_id = r.imdb_id
                 WHERE s.source = 'imdb'
-                  AND (ABS(s.rating - r.rating) > 0.01 OR s.votes != r.votes)
+                  AND ABS(s.rating - r.rating) > 0.01
             ''')
 
         return [dict(row) for row in cursor.fetchall()]
@@ -510,7 +510,7 @@ def get_synced_items_count(media_type: Optional[str] = None) -> int:
     Returns:
         Number of unique (media_type, dbid) in ratings_synced
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as (_, cursor):
         if media_type:
             cursor.execute('''
                 SELECT COUNT(DISTINCT dbid) as cnt
@@ -526,6 +526,24 @@ def get_synced_items_count(media_type: Optional[str] = None) -> int:
         return row['cnt'] if row else 0
 
 
+def get_synced_dbids(media_type: str) -> Set[int]:
+    """
+    Get all dbids that have been synced for IMDb ratings.
+
+    Args:
+        media_type: Filter for "movie", "tvshow", or "episode"
+
+    Returns:
+        Set of dbids with existing IMDb sync entries
+    """
+    with get_db(DB_PATH) as (_, cursor):
+        cursor.execute('''
+            SELECT DISTINCT dbid FROM ratings_synced
+            WHERE media_type = ? AND source = 'imdb'
+        ''', (media_type,))
+        return {row['dbid'] for row in cursor.fetchall()}
+
+
 def clear_synced_ratings(media_type: Optional[str] = None, dbid: Optional[int] = None) -> None:
     """
     Clear synced ratings tracking.
@@ -534,7 +552,7 @@ def clear_synced_ratings(media_type: Optional[str] = None, dbid: Optional[int] =
         media_type: Optional filter - if None, clears all
         dbid: Optional specific item - requires media_type
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as (_, cursor):
         if media_type and dbid:
             cursor.execute(
                 'DELETE FROM ratings_synced WHERE media_type = ? AND dbid = ?',

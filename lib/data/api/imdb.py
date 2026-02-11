@@ -8,10 +8,8 @@ Data is stored in SQLite for minimal RAM usage on low-end devices.
 """
 from __future__ import annotations
 
-import os
 import gzip
 import xbmc
-import xbmcvfs
 from datetime import datetime
 from typing import Optional
 
@@ -24,13 +22,14 @@ EPISODE_DATASET_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
 BATCH_SIZE = 10000
 
 
+class _ImportAborted(Exception):
+    pass
+
+
 class ApiImdbDataset:
     """Handles IMDb dataset download, caching, and lookup via SQLite."""
 
     def __init__(self):
-        self._cache_dir = xbmcvfs.translatePath(
-            "special://profile/addon_data/script.skin.info.service/imdb_dataset/"
-        )
         self.session = ApiSession(
             service_name="IMDb Dataset",
             base_url="https://datasets.imdbws.com",
@@ -61,7 +60,7 @@ class ApiImdbDataset:
                 return {"rating": row["rating"], "votes": row["votes"]}
             return None
 
-        with get_db() as (conn, cur):
+        with get_db() as (_, cur):
             cur.execute(
                 "SELECT rating, votes FROM imdb_ratings WHERE imdb_id = ?",
                 (imdb_id,)
@@ -84,20 +83,23 @@ class ApiImdbDataset:
         if not imdb_ids:
             return {}
 
+        CHUNK_SIZE = 900
         results = {}
-        with get_db() as (conn, cursor):
-            placeholders = ",".join(["?" for _ in imdb_ids])
-            cursor.execute(
-                f"SELECT imdb_id, rating, votes FROM imdb_ratings WHERE imdb_id IN ({placeholders})",
-                imdb_ids
-            )
-            for row in cursor.fetchall():
-                results[row["imdb_id"]] = {"rating": row["rating"], "votes": row["votes"]}
+        with get_db() as (_, cursor):
+            for start in range(0, len(imdb_ids), CHUNK_SIZE):
+                chunk = imdb_ids[start:start + CHUNK_SIZE]
+                placeholders = ",".join(["?" for _ in chunk])
+                cursor.execute(
+                    f"SELECT imdb_id, rating, votes FROM imdb_ratings WHERE imdb_id IN ({placeholders})",
+                    chunk
+                )
+                for row in cursor.fetchall():
+                    results[row["imdb_id"]] = {"rating": row["rating"], "votes": row["votes"]}
         return results
 
     def is_dataset_available(self) -> bool:
         """Check if the dataset has been imported to the database."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute("SELECT COUNT(*) as cnt FROM imdb_ratings")
             row = cursor.fetchone()
             return row["cnt"] > 0 if row else False
@@ -141,7 +143,7 @@ class ApiImdbDataset:
         Returns:
             True if download succeeded, False otherwise
         """
-        return self._download_and_import(abort_flag)
+        return self._download_and_import(abort_flag, force=True)
 
     def get_stats(self) -> dict[str, int | float | str | bool | None]:
         """
@@ -156,7 +158,7 @@ class ApiImdbDataset:
             "downloaded_at": None,
         }
 
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
                 ("ratings",)
@@ -169,25 +171,14 @@ class ApiImdbDataset:
 
         return stats
 
-    def _download_and_import(self, abort_flag=None) -> bool:
-        """
-        Download, extract, and import the dataset to SQLite.
-
-        Args:
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            True if successful, False otherwise
-        """
-        os.makedirs(self._cache_dir, exist_ok=True)
-        gzip_path = os.path.join(self._cache_dir, "title.ratings.tsv.gz")
-        tsv_path = os.path.join(self._cache_dir, "title.ratings.tsv")
-
+    def _download_and_import(self, abort_flag=None, force: bool = False) -> bool:
         try:
             log("IMDb", f"Downloading dataset from {DATASET_URL}...")
 
-            local_mod = self._get_local_last_modified()
-            headers = {"If-Modified-Since": local_mod} if local_mod else None
+            headers = None
+            if not force:
+                local_mod = self._get_local_last_modified()
+                headers = {"If-Modified-Since": local_mod} if local_mod else None
 
             response = self.session.get_raw(
                 "/title.ratings.tsv.gz",
@@ -205,20 +196,7 @@ class ApiImdbDataset:
 
             last_mod = response.headers.get("Last-Modified")
 
-            with open(gzip_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if abort_flag and abort_flag.is_requested():
-                        log("IMDb", "Download aborted by user")
-                        return False
-                    f.write(chunk)
-
-            log("IMDb", "Extracting dataset...", xbmc.LOGDEBUG)
-            with gzip.open(gzip_path, "rb") as gz:
-                with open(tsv_path, "wb") as out:
-                    out.write(gz.read())
-
-            log("IMDb", "Importing to database...", xbmc.LOGDEBUG)
-            count = self._import_tsv_to_db(tsv_path)
+            count = self._stream_and_import_ratings(response, abort_flag)
 
             if last_mod:
                 self._save_local_last_modified(last_mod, count)
@@ -226,44 +204,38 @@ class ApiImdbDataset:
             log("IMDb", f"Imported {count:,} ratings to database")
             return True
 
+        except _ImportAborted:
+            return False
         except Exception as e:
             log("IMDb", f"Failed to download dataset: {e}", xbmc.LOGERROR)
             return False
 
-        finally:
-            for path in (gzip_path, tsv_path):
-                if os.path.exists(path):
-                    try:
-                        os.remove(path)
-                    except OSError:
-                        pass
-
-    def _import_tsv_to_db(self, tsv_path: str) -> int:
-        """
-        Import TSV file to SQLite database.
-
-        Args:
-            tsv_path: Path to the extracted TSV file
-
-        Returns:
-            Number of rows imported
-        """
+    def _stream_and_import_ratings(self, response, abort_flag=None) -> int:
         count = 0
         batch: list[tuple[str, float, int]] = []
 
-        with get_db() as (conn, cursor):
-            cursor.execute("DELETE FROM imdb_ratings")
+        with get_db() as (_, cursor):
+            cursor.execute("DROP TABLE IF EXISTS imdb_ratings")
+            cursor.execute('''
+                CREATE TABLE imdb_ratings (
+                    imdb_id TEXT PRIMARY KEY,
+                    rating REAL NOT NULL,
+                    votes INTEGER NOT NULL
+                )
+            ''')
+            cursor.execute("PRAGMA synchronous = OFF")
 
-            with open(tsv_path, "r", encoding="utf-8") as f:
-                next(f)  # Skip header
+            with gzip.open(response.raw, "rt", encoding="utf-8") as f:
+                next(f)
                 for line in f:
+                    if abort_flag and abort_flag.is_requested():
+                        log("IMDb", "Ratings import aborted by user")
+                        raise _ImportAborted()
+
                     parts = line.strip().split("\t")
                     if len(parts) >= 3:
                         try:
-                            imdb_id = parts[0]
-                            rating = float(parts[1])
-                            votes = int(parts[2])
-                            batch.append((imdb_id, rating, votes))
+                            batch.append((parts[0], float(parts[1]), int(parts[2])))
                             count += 1
 
                             if len(batch) >= BATCH_SIZE:
@@ -281,12 +253,14 @@ class ApiImdbDataset:
                     batch
                 )
 
+            cursor.execute("PRAGMA synchronous = NORMAL")
+
         return count
 
     def _get_remote_last_modified(self, abort_flag=None) -> Optional[str]:
-        """Get Last-Modified header from remote server."""
+        """Get Last-Modified header from remote server via HEAD request."""
         try:
-            response = self.session.get_raw(
+            response = self.session.head(
                 "/title.ratings.tsv.gz",
                 abort_flag=abort_flag,
                 timeout=(5.0, 10.0)
@@ -300,7 +274,7 @@ class ApiImdbDataset:
 
     def _get_local_last_modified(self) -> Optional[str]:
         """Get stored Last-Modified from previous download."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 "SELECT last_modified FROM imdb_meta WHERE dataset = ?",
                 ("ratings",)
@@ -312,13 +286,17 @@ class ApiImdbDataset:
 
     def _save_local_last_modified(self, last_mod: str, entry_count: int = 0) -> None:
         """Store Last-Modified and entry count in database."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 """INSERT OR REPLACE INTO imdb_meta
                    (dataset, last_modified, downloaded_at, entry_count)
                    VALUES (?, ?, ?, ?)""",
                 ("ratings", last_mod, datetime.now().isoformat(), entry_count)
             )
+
+    def _clear_meta(self, dataset: str) -> None:
+        with get_db() as (_, cursor):
+            cursor.execute("DELETE FROM imdb_meta WHERE dataset = ?", (dataset,))
 
     # Episode dataset methods
 
@@ -345,7 +323,7 @@ class ApiImdbDataset:
             row = cursor.fetchone()
             return row["episode_id"] if row else None
 
-        with get_db() as (conn, cur):
+        with get_db() as (_, cur):
             cur.execute(
                 "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
                 (show_imdb_id, season, episode)
@@ -364,7 +342,7 @@ class ApiImdbDataset:
             Dict mapping (season, episode) tuples to episode IMDb IDs
         """
         result: dict[tuple[int, int], str] = {}
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 "SELECT season, episode, episode_id FROM imdb_episodes WHERE parent_id = ?",
                 (show_imdb_id,)
@@ -375,7 +353,7 @@ class ApiImdbDataset:
 
     def is_episode_dataset_available(self) -> bool:
         """Check if the episode dataset has been imported."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute("SELECT COUNT(*) as cnt FROM imdb_episodes")
             row = cursor.fetchone()
             return row["cnt"] > 0 if row else False
@@ -387,7 +365,7 @@ class ApiImdbDataset:
             "last_modified": None,
             "downloaded_at": None,
         }
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
                 ("episodes",)
@@ -442,10 +420,7 @@ class ApiImdbDataset:
             if progress_callback:
                 progress_callback("Processing episodes...")
 
-            count = self._stream_and_filter_episodes(response, user_show_ids, progress_callback, abort_flag)
-
-            if count < 0:
-                return -1
+            count = self._stream_and_filter_episodes(response, user_show_ids, abort_flag)
 
             if last_mod:
                 self._save_episode_meta(last_mod, count, library_episode_count)
@@ -453,12 +428,15 @@ class ApiImdbDataset:
             log("IMDb", f"Imported {count:,} episode IDs for {len(user_show_ids)} shows")
             return count
 
+        except _ImportAborted:
+            self._clear_meta("episodes")
+            return -1
         except Exception as e:
             log("IMDb", f"Failed to download episode dataset: {e}", xbmc.LOGERROR)
             return -1
 
     def _stream_and_filter_episodes(
-        self, response, user_show_ids: set[str], progress_callback=None, abort_flag=None
+        self, response, user_show_ids: set[str], abort_flag=None
     ) -> int:
         """
         Stream gzip response and filter to user's shows.
@@ -467,10 +445,19 @@ class ApiImdbDataset:
         """
         count = 0
         batch: list[tuple[str, int, int, str]] = []
-        lines_processed = 0
 
-        with get_db() as (conn, cursor):
-            cursor.execute("DELETE FROM imdb_episodes")
+        with get_db() as (_, cursor):
+            cursor.execute("DROP TABLE IF EXISTS imdb_episodes")
+            cursor.execute('''
+                CREATE TABLE imdb_episodes (
+                    parent_id TEXT NOT NULL,
+                    season INTEGER NOT NULL,
+                    episode INTEGER NOT NULL,
+                    episode_id TEXT NOT NULL,
+                    PRIMARY KEY (parent_id, season, episode)
+                )
+            ''')
+            cursor.execute("PRAGMA synchronous = OFF")
 
             with gzip.open(response.raw, "rt", encoding="utf-8") as f:
                 next(f)  # Skip header: tconst, parentTconst, seasonNumber, episodeNumber
@@ -478,9 +465,7 @@ class ApiImdbDataset:
                 for line in f:
                     if abort_flag and abort_flag.is_requested():
                         log("IMDb", "Episode import aborted by user")
-                        return -1
-
-                    lines_processed += 1
+                        raise _ImportAborted()
 
                     parts = line.strip().split("\t")
                     if len(parts) >= 4:
@@ -508,11 +493,14 @@ class ApiImdbDataset:
                     batch
                 )
 
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)")
+            cursor.execute("PRAGMA synchronous = NORMAL")
+
         return count
 
     def _get_episode_meta(self) -> tuple[Optional[str], int]:
         """Get stored Last-Modified and library episode count for episode dataset."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 "SELECT last_modified, library_episode_count FROM imdb_meta WHERE dataset = ?",
                 ("episodes",)
@@ -540,7 +528,7 @@ class ApiImdbDataset:
                 log("IMDb", f"Library episode count changed ({stored_ep_count} -> {library_episode_count})")
                 return True
 
-            response = self.session.get_raw(
+            response = self.session.head(
                 "/title.episode.tsv.gz",
                 abort_flag=abort_flag,
                 timeout=(5.0, 10.0)
@@ -560,7 +548,7 @@ class ApiImdbDataset:
 
     def _save_episode_meta(self, last_mod: str, entry_count: int, library_episode_count: int) -> None:
         """Store Last-Modified and library episode count for episode dataset."""
-        with get_db() as (conn, cursor):
+        with get_db() as (_, cursor):
             cursor.execute(
                 """INSERT OR REPLACE INTO imdb_meta
                    (dataset, last_modified, downloaded_at, entry_count, library_episode_count)

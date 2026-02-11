@@ -36,7 +36,7 @@ def _is_valid_tmdb_id(tmdb_id: str | None) -> bool:
 def get_corrected_tmdb_id(imdb_id: str) -> int | None:
     """Get cached TMDB ID correction for an IMDB ID."""
     from lib.data.database._infrastructure import get_db
-    with get_db() as (conn, cursor):
+    with get_db() as (_, cursor):
         cursor.execute(
             "SELECT tmdb_id FROM id_corrections WHERE imdb_id = ?",
             (imdb_id,)
@@ -48,7 +48,7 @@ def get_corrected_tmdb_id(imdb_id: str) -> int | None:
 def save_corrected_tmdb_id(imdb_id: str, tmdb_id: int, media_type: str) -> None:
     """Cache a corrected TMDB ID for an IMDB ID."""
     from lib.data.database._infrastructure import get_db
-    with get_db() as (conn, cursor):
+    with get_db() as (_, cursor):
         cursor.execute(
             """INSERT OR REPLACE INTO id_corrections (imdb_id, tmdb_id, media_type)
                VALUES (?, ?, ?)""",
@@ -726,7 +726,7 @@ class ApiTmdb(RatingSource):
         if not seasons:
             return []
 
-        cast_check: list[str] = []
+        cast_check: set[str] = set()
         combined_cast: list[dict] = []
 
         for season in reversed(seasons):
@@ -746,7 +746,7 @@ class ApiTmdb(RatingSource):
                 name = cast_member.get('name', '')
                 if name and name not in cast_check:
                     combined_cast.append(cast_member)
-                    cast_check.append(name)
+                    cast_check.add(name)
 
         return combined_cast
 

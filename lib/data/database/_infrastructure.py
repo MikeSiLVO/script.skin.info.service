@@ -42,6 +42,7 @@ def get_connection(db_path: str = DB_PATH) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute('PRAGMA journal_mode = WAL')
     return conn
 
 
@@ -409,5 +410,5 @@ def init_database() -> None:
 
 
 def vacuum_database() -> None:
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as (_, cursor):
         cursor.execute('VACUUM')

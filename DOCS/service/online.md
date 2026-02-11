@@ -10,6 +10,7 @@ Window properties from external APIs, updated automatically when library items a
 
 - [Overview](#overview)
 - [Player Online Properties](#player-online-properties)
+- [Music Player Online Properties](#music-player-online-properties)
 - [Enabling the Service](#enabling-the-service)
 - [TMDb Properties](#tmdb-properties)
 - [Ratings](#ratings)
@@ -74,6 +75,55 @@ Both contexts can be active simultaneously - you can browse the library while pl
     <control type="label">
         <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Awards)]</label>
     </control>
+</control>
+```
+
+---
+
+## Music Player Online Properties
+
+**Prefix:** `SkinInfo.Player.Online.Music.*`
+
+Properties fetched from TheAudioDB and Fanart.tv during music playback. Works with library items, local files, and radio addon streams.
+
+| Property | Description |
+|----------|-------------|
+| `Artist` | Current artist name |
+| `Bio` | Artist biography from TheAudioDB |
+| `FanArt` | Current fanart image URL (rotates automatically) |
+| `FanArt.Count` | Total fanart images available |
+
+Fanart rotation interval is controlled by the skin string `SkinInfo.SlideshowRefreshInterval` (seconds, default 10, range 5-3600).
+
+Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv returns no results.
+
+### Example
+
+```xml
+<control type="group">
+    <visible>Player.HasAudio</visible>
+
+    <!-- Rotating artist fanart background -->
+    <control type="image">
+        <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Player.Online.Music.FanArt))</visible>
+        <texture>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.FanArt)]</texture>
+    </control>
+
+    <!-- Artist bio -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.Bio)]</label>
+    </control>
+</control>
+```
+
+### Slideshow Interval
+
+Set the rotation interval via a skin string:
+
+```xml
+<control type="button">
+    <label>Slideshow Interval</label>
+    <onclick>Skin.SetNumeric(SkinInfo.SlideshowRefreshInterval)</onclick>
 </control>
 ```
 
