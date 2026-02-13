@@ -2,6 +2,8 @@
 
 Window properties, plugin paths, and utilities for Kodi skins.
 
+If you find this useful, [buy me a coffee](https://ko-fi.com/mikesilvo) ☕
+
 ![Kodi Version](https://img.shields.io/badge/Kodi-Omega%2B-blue?logo=kodi)
 ![Python](https://img.shields.io/badge/Python-3.0%2B-blue?logo=python)
 ![License](https://img.shields.io/badge/License-GPL--3.0-green)
