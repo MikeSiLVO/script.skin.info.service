@@ -1635,6 +1635,54 @@ msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
 msgstr "Skanowanie zakończone! Znaleziono: {0} | Zbuforowano: {1} | Istniejące: {2}"
 
+msgctxt "#32600"
+msgid "IMDb Top 250"
+msgstr "IMDb Top 250"
+
+msgctxt "#32601"
+msgid "Fetching Top 250 from Trakt..."
+msgstr "Pobieranie Top 250 z Trakt..."
+
+msgctxt "#32602"
+msgid "Loading library..."
+msgstr "Ładowanie biblioteki..."
+
+msgctxt "#32603"
+msgid "Matching movies..."
+msgstr "Dopasowywanie filmów..."
+
+msgctxt "#32604"
+msgid "Updating: {0}/{1}"
+msgstr "Aktualizacja: {0}/{1}"
+
+msgctxt "#32605"
+msgid "Top 250 Update Complete"
+msgstr "Aktualizacja Top 250 zakończona"
+
+msgctxt "#32606"
+msgid "Updated: {0} | Cleared: {1} | Already correct: {2}"
+msgstr "Zaktualizowano: {0} | Wyczyszczono: {1} | Już poprawione: {2}"
+
+msgctxt "#32607"
+msgid "Failed to fetch Top 250 list from Trakt."
+msgstr "Nie udało się pobrać Top 250 z Trakt."
+
+msgctxt "#32608"
+msgid "No movies found in library."
+msgstr "Nie znaleziono filmów w bibliotece."
+
+msgctxt "#32609"
+msgid "Update IMDb Top 250?"
+msgstr "Zaktualizować listę Top 250 IMDb?"
+
+msgctxt "#32610"
+msgid "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
+msgstr "Do dodania/zaktualizowania: {0} filmów[CR]Do wyczyszczenia: {1} filmów[CR]Już poprawne: {2} filmów[CR][CR]Spowoduje to nadpisanie istniejących wartości Top 250."
+
+msgctxt "#32611"
+msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
+msgstr "Anulowane. Zaktualizowano: {0} | Wyczyszczono: {1} przed anulowaniem."
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr "Włącz wyjście debugowania"
