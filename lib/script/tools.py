@@ -6,6 +6,7 @@ Provides a single menu for accessing:
 - Animated Art Scanner: Scan for animated GIF posters in media folders
 - Download Artwork to Filesystem: Bulk download artwork to local files
 - Ratings Updater: Update library ratings from multiple sources
+- IMDb Top 250: Update Top 250 rankings from Trakt's official list
 """
 from __future__ import annotations
 
@@ -20,11 +21,13 @@ def run_tools() -> None:
     Show main Tools menu and route to selected tool.
 
     Main menu options:
-    - Artwork Reviewer: Access artwork scanning, review, and fetching workflows
-    - Texture Cache Manager: Pre-cache or clean up texture cache
-    - Animated Art Scanner: Scan for animated GIF posters in media folders
-    - Download Artwork to Filesystem: Bulk download artwork to local files
     - Ratings Updater: Update library ratings from multiple sources
+    - Missing Artwork: Access artwork scanning, review, and fetching workflows
+    - Texture Cache Manager: Pre-cache or clean up texture cache
+    - Download Artwork to Filesystem: Bulk download artwork to local files
+    - Animated Art Scanner: Scan for animated GIF posters in media folders
+    - Add/Fix IMDb & TMDB IDs: Fix missing or invalid library IDs
+    - IMDb Top 250: Update Top 250 rankings from Trakt's official list
 
     If a background task is running, "Cancel Current Task" appears at the top.
     """
@@ -35,6 +38,7 @@ def run_tools() -> None:
     from lib.download.menu import run_download_menu
     from lib.rating.updater import run_ratings_menu
     from lib.rating.ids import run_fix_library_ids
+    from lib.script.top250 import run_top250_update
 
     task_manager.cleanup_stale_tasks()
 
@@ -45,6 +49,7 @@ def run_tools() -> None:
         MenuItem(ADDON.getLocalizedString(32522), run_download_menu, loop=True),
         MenuItem(ADDON.getLocalizedString(32192), run_scanner, loop=True),
         MenuItem(ADDON.getLocalizedString(32532), run_fix_library_ids, loop=True),
+        MenuItem(ADDON.getLocalizedString(32600), run_top250_update, loop=True),
     ], is_main_menu=True)
 
     _HOME.setProperty("SkinInfo.ToolsMenuActive", "true")

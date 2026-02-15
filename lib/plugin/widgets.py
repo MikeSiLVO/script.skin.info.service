@@ -665,20 +665,24 @@ def handle_by_director(handle: int, params: dict) -> None:
         })
         episodes = episode_result.get('result', {}).get('episodes', []) if episode_result else []
 
+        show_art_cache: dict[int, dict] = {}
         for episode in episodes:
             if episode.get('episodeid') != dbid or dbtype != 'episode':
                 listitem = _create_episode_listitem(episode)
 
                 tvshowid = episode.get('tvshowid')
                 if tvshowid:
-                    show_result = request('VideoLibrary.GetTVShowDetails', {
-                        'tvshowid': tvshowid,
-                        'properties': ['art']
-                    })
-                    show = show_result.get('result', {}).get('tvshowdetails', {}) if show_result else {}
+                    if tvshowid not in show_art_cache:
+                        show_result = request('VideoLibrary.GetTVShowDetails', {
+                            'tvshowid': tvshowid,
+                            'properties': ['art']
+                        })
+                        show = show_result.get('result', {}).get('tvshowdetails', {}) if show_result else {}
+                        show_art_cache[tvshowid] = show.get('art', {})
 
-                    if show:
-                        _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
+                    show_art = show_art_cache[tvshowid]
+                    if show_art:
+                        _set_episode_artwork_from_show(listitem, show_art, episode['art'])
 
                 all_items.append((episode['file'], listitem, False))
 

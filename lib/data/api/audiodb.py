@@ -113,6 +113,40 @@ class ApiAudioDb:
 
         return albums[0] if albums else None
 
+    def search_artist(self, artist_name: str, abort_flag=None) -> Optional[dict]:
+        """
+        Search for an artist by name.
+
+        Args:
+            artist_name: Artist name
+            abort_flag: Optional abort flag for cancellation
+
+        Returns:
+            Artist data dict or None if not found
+        """
+        artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
+
+        data = self.session.get(
+            "/search.php",
+            params={"s": artist_name},
+            abort_flag=abort_flag
+        )
+        if not data:
+            return None
+
+        artists = data.get('artists')
+        if not artists or not isinstance(artists, list):
+            return None
+
+        search_lower = artist_name.lower()
+        for artist in artists:
+            if isinstance(artist, dict):
+                name = artist.get('strArtist', '')
+                if name and name.lower() == search_lower:
+                    return artist
+
+        return None
+
     def get_artist_artwork(self, musicbrainz_id: str, abort_flag=None) -> Dict[str, List[dict]]:
         """
         Get artwork for an artist from TheAudioDB.
@@ -128,6 +162,10 @@ class ApiAudioDb:
         if not artist:
             return {}
 
+        return self.get_artist_artwork_from_data(artist)
+
+    def get_artist_artwork_from_data(self, artist: dict) -> Dict[str, List[dict]]:
+        """Extract artwork from an already-fetched artist dict (no API call)."""
         result: Dict[str, List[dict]] = {}
 
         artwork_map = {

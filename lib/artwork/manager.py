@@ -301,11 +301,31 @@ def _download_selected_artwork(
     if media_type not in KODI_GET_DETAILS_METHODS:
         return
 
-    # Sets use title for MSIF path building, no item details needed
+    mbid: Optional[str] = None
+    season: Optional[int] = None
+    episode: Optional[int] = None
+
     if media_type == 'set':
         media_file = title
-        season = None
-        episode = None
+    elif media_type == 'artist':
+        media_file = title
+        artist_details = get_item_details(media_type, dbid, ["musicbrainzartistid"])
+        if isinstance(artist_details, dict):
+            mbid = artist_details.get("musicbrainzartistid", "")
+            if isinstance(mbid, list):
+                mbid = mbid[0] if mbid else ""
+    elif media_type == 'album':
+        songs_resp = request("AudioLibrary.GetSongs", {
+            "filter": {"albumid": dbid},
+            "properties": ["file"],
+            "limits": {"start": 0, "end": 1}
+        })
+        songs = extract_result(songs_resp, "songs", [])
+        if songs and songs[0].get("file"):
+            from lib.infrastructure.paths import vfs_dirname
+            media_file = vfs_dirname(songs[0]["file"])
+        else:
+            media_file = ""
     else:
         properties = []
         if media_type in ('movie', 'tvshow', 'episode', 'musicvideo'):
@@ -326,7 +346,6 @@ def _download_selected_artwork(
         season = item.get("season")
         episode = item.get("episode")
 
-        # For seasons, get the tvshow's folder path
         if media_type == 'season' and not media_file:
             tvshowid = item.get("tvshowid")
             if tvshowid:
@@ -334,7 +353,7 @@ def _download_selected_artwork(
                 if isinstance(tvshow, dict):
                     media_file = tvshow.get("file", "")
 
-    if not media_file and media_type not in ('tvshow', 'set'):
+    if not media_file and media_type not in ('tvshow', 'set', 'artist'):
         log("Artwork", f"No file path for {media_type} '{title}', skipping download")
         return
 
@@ -365,7 +384,8 @@ def _download_selected_artwork(
             artwork_type=artwork_type,
             season_number=season,
             episode_number=episode,
-            use_basename=use_basename
+            use_basename=use_basename,
+            mbid=mbid
         )
 
         if not local_path:
@@ -427,6 +447,8 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
+    db.init_database()
+
     media_type = dbtype.lower()
     dbid_int = int(dbid)
 
@@ -446,8 +468,15 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
     progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32297))
 
     try:
+        if media_type == 'artist':
+            detail_properties = ["art"]
+        elif media_type == 'album':
+            detail_properties = ["title", "art"]
+        else:
+            detail_properties = ["title", "art", "file"]
+
         details = extract_result(
-            request(method_name, {id_key: dbid_int, "properties": ["title", "art", "file"]}),
+            request(method_name, {id_key: dbid_int, "properties": detail_properties}),
             result_key
         )
 
@@ -461,7 +490,10 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             )
             return
 
-        title = details.get("title", "Unknown")
+        if media_type == 'artist':
+            title = details.get("artist", details.get("label", "Unknown"))
+        else:
+            title = details.get("title", details.get("label", "Unknown"))
         current_art = details.get("art", {})
 
         skip_prefixes = None

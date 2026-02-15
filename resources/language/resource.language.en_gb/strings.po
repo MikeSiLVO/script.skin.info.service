@@ -924,6 +924,14 @@ msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr ""
 
+msgctxt "#32318"
+msgid "Collecting items..."
+msgstr ""
+
+msgctxt "#32319"
+msgid "Checking {0}s..."
+msgstr ""
+
 msgctxt "#32330"
 msgid "Analyzing Textures"
 msgstr ""
@@ -1633,6 +1641,54 @@ msgstr ""
 
 msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
+msgstr ""
+
+msgctxt "#32600"
+msgid "IMDb Top 250"
+msgstr ""
+
+msgctxt "#32601"
+msgid "Fetching Top 250 from Trakt..."
+msgstr ""
+
+msgctxt "#32602"
+msgid "Loading library..."
+msgstr ""
+
+msgctxt "#32603"
+msgid "Matching movies..."
+msgstr ""
+
+msgctxt "#32604"
+msgid "Updating: {0}/{1}"
+msgstr ""
+
+msgctxt "#32605"
+msgid "Top 250 Update Complete"
+msgstr ""
+
+msgctxt "#32606"
+msgid "Updated: {0} | Cleared: {1} | Already correct: {2}"
+msgstr ""
+
+msgctxt "#32607"
+msgid "Failed to fetch Top 250 list from Trakt."
+msgstr ""
+
+msgctxt "#32608"
+msgid "No movies found in library."
+msgstr ""
+
+msgctxt "#32609"
+msgid "Update IMDb Top 250?"
+msgstr ""
+
+msgctxt "#32610"
+msgid "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
+msgstr ""
+
+msgctxt "#32611"
+msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
 msgstr ""
 
 msgctxt "#32901"

@@ -236,6 +236,9 @@ class RatingBatchExecutor:
             if state.finalized:
                 continue
 
+            if time.time() - state.submitted_at > ITEM_TIMEOUT:
+                continue
+
             pending_copy = set(state.pending_sources)
             for source_name in pending_copy:
                 if self.active_per_source[source_name] < MAX_PER_SOURCE:

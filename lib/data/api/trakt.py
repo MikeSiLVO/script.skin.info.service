@@ -327,3 +327,53 @@ class ApiTrakt(RatingSource):
         except Exception as e:
             log("Ratings", f"Trakt test connection error: {str(e)}", xbmc.LOGWARNING)
             return False
+
+
+_top250_session: Optional[ApiSession] = None
+
+
+def _get_top250_session() -> ApiSession:
+    """Get or create the singleton session for Top 250 list fetches."""
+    global _top250_session
+    if _top250_session is None:
+        _top250_session = ApiSession(
+            service_name="Trakt Top250",
+            base_url="https://api.trakt.tv",
+            timeout=(10.0, 30.0),
+            max_retries=2,
+            backoff_factor=1.0,
+            default_headers={
+                "Content-Type": "application/json",
+                "trakt-api-key": TRAKT_CLIENT_ID,
+                "trakt-api-version": "2"
+            }
+        )
+    return _top250_session
+
+
+def fetch_top250_list(abort_flag=None) -> Optional[list[dict]]:
+    """Fetch IMDb Top 250 from Trakt's official curated list.
+
+    Uses the list maintained by Trakt founder Justin Nemeth, updated daily.
+    No OAuth required - uses only the client ID.
+
+    Args:
+        abort_flag: Optional abort flag for cancellation.
+
+    Returns:
+        List of dicts with 'rank' and 'movie' keys, or None on error.
+        Each movie has 'ids' dict with 'imdb' and 'tmdb'.
+    """
+    session = _get_top250_session()
+
+    try:
+        data = session.get(
+            "/users/justin/lists/imdb-top-rated-movies/items",
+            abort_flag=abort_flag
+        )
+        if data and isinstance(data, list):
+            return data
+        return None
+    except Exception as e:
+        log("Trakt", f"Failed to fetch Top 250 list: {e}", xbmc.LOGERROR)
+        return None
