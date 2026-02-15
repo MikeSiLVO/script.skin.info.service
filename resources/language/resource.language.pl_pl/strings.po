@@ -924,6 +924,14 @@ msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr "Aktualizator ocen - Zakończono"
 
+msgctxt "#32318"
+msgid "Collecting items..."
+msgstr "Gromadzenie pozycji..."
+
+msgctxt "#32319"
+msgid "Checking {0}s..."
+msgstr "Sprawdzanie {0}s..."
+
 msgctxt "#32330"
 msgid "Analyzing Textures"
 msgstr "Analizowanie tekstur"
