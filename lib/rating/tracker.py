@@ -5,12 +5,11 @@ from datetime import date
 from typing import Tuple, Sequence
 import xbmcgui
 
-from lib.data.database._infrastructure import get_db
+from lib.data.database.rating import increment_api_usage, mark_api_limit_hit
 from lib.kodi.client import _get_api_key, ADDON
 
 
 _session_skip_providers = set()
-_session_warned_providers = set()
 
 
 def get_api_key_hash(provider: str) -> str:
@@ -55,27 +54,7 @@ def increment_usage(provider: str) -> Tuple[int, bool]:
     """
     api_key_hash = get_api_key_hash(provider)
     today = date.today().isoformat()
-
-    with get_db() as (conn, cursor):
-        cursor.execute(
-            """
-            INSERT INTO ratings_api_usage (provider, api_key_hash, date, request_count, limit_hit)
-            VALUES (?, ?, ?, 1, 0)
-            ON CONFLICT(provider, api_key_hash, date)
-            DO UPDATE SET request_count = request_count + 1
-            """,
-            (provider, api_key_hash, today)
-        )
-
-        cursor.execute(
-            "SELECT request_count, limit_hit FROM ratings_api_usage WHERE provider = ? AND api_key_hash = ? AND date = ?",
-            (provider, api_key_hash, today)
-        )
-        row = cursor.fetchone()
-        if row:
-            return row["request_count"], bool(row["limit_hit"])
-
-    return 1, False
+    return increment_api_usage(provider, api_key_hash, today)
 
 
 def mark_limit_hit(provider: str) -> None:
@@ -87,16 +66,7 @@ def mark_limit_hit(provider: str) -> None:
     """
     api_key_hash = get_api_key_hash(provider)
     today = date.today().isoformat()
-
-    with get_db() as (conn, cursor):
-        cursor.execute(
-            """
-            UPDATE ratings_api_usage
-            SET limit_hit = 1
-            WHERE provider = ? AND api_key_hash = ? AND date = ?
-            """,
-            (provider, api_key_hash, today)
-        )
+    mark_api_limit_hit(provider, api_key_hash, today)
 
 
 def handle_rate_limit_error(provider: str, current: int, total: int) -> str:
@@ -164,4 +134,3 @@ def is_provider_skipped(provider: str) -> bool:
 def reset_session_skip() -> None:
     """Clear session skip flags."""
     _session_skip_providers.clear()
-    _session_warned_providers.clear()

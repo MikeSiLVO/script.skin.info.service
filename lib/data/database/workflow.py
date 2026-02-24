@@ -464,7 +464,14 @@ def update_synced_ratings_batch(items: List[tuple]) -> None:
 
 def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
     """
-    Get items where IMDb rating has changed since last sync.
+    Get items where IMDb data has changed since last sync.
+
+    Matches items where:
+    - Rating changed (>0.01 difference)
+    - Vote change tiered by magnitude:
+      - Under 100 votes: any change
+      - 100-1000 votes: >10% change
+      - 1000+ votes: >5% change
 
     Uses SQL join between ratings_synced and imdb_ratings for efficiency.
     Only returns items that were previously synced and have changes.
@@ -475,27 +482,26 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
     Returns:
         List of dicts with: media_type, dbid, imdb_id, new_rating, new_votes, old_rating, old_votes
     """
+    query = '''
+        SELECT s.media_type, s.dbid, s.external_id AS imdb_id,
+               r.rating AS new_rating, r.votes AS new_votes,
+               s.rating AS old_rating, s.votes AS old_votes
+        FROM ratings_synced s
+        JOIN imdb_ratings r ON s.external_id = r.imdb_id
+        WHERE s.source = 'imdb'
+          AND (
+              ABS(s.rating - r.rating) > 0.01
+              OR (s.votes = 0 AND r.votes > 0)
+              OR (s.votes > 0 AND s.votes < 100 AND r.votes != s.votes)
+              OR (s.votes >= 100 AND s.votes < 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.1)
+              OR (s.votes >= 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.05)
+          )
+    '''
     with get_db(DB_PATH) as (conn, cursor):
         if media_type:
-            cursor.execute('''
-                SELECT s.media_type, s.dbid, s.external_id AS imdb_id,
-                       r.rating AS new_rating, r.votes AS new_votes,
-                       s.rating AS old_rating, s.votes AS old_votes
-                FROM ratings_synced s
-                JOIN imdb_ratings r ON s.external_id = r.imdb_id
-                WHERE s.media_type = ? AND s.source = 'imdb'
-                  AND ABS(s.rating - r.rating) > 0.01
-            ''', (media_type,))
+            cursor.execute(query + '  AND s.media_type = ?', (media_type,))
         else:
-            cursor.execute('''
-                SELECT s.media_type, s.dbid, s.external_id AS imdb_id,
-                       r.rating AS new_rating, r.votes AS new_votes,
-                       s.rating AS old_rating, s.votes AS old_votes
-                FROM ratings_synced s
-                JOIN imdb_ratings r ON s.external_id = r.imdb_id
-                WHERE s.source = 'imdb'
-                  AND ABS(s.rating - r.rating) > 0.01
-            ''')
+            cursor.execute(query)
 
         return [dict(row) for row in cursor.fetchall()]
 

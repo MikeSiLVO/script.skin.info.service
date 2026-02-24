@@ -358,10 +358,6 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
-				<setting id="download.savewith_basefilename_mvids" type="boolean" label="32029" help="32030">
-					<default>true</default>
-					<control type="toggle" />
-				</setting>
 				<setting id="download.include_guest_stars" type="boolean" label="32983" help="32984">
 					<default>false</default>
 					<control type="toggle" />

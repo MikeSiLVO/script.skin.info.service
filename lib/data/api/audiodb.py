@@ -14,6 +14,14 @@ from typing import Optional, List, Dict
 
 from lib.data.api.client import ApiSession
 
+_OLD_CDN = "www.theaudiodb.com/images/"
+_NEW_CDN = "r2.theaudiodb.com/images/"
+
+
+def _normalize_tadb_url(url: str) -> str:
+    """Rewrite legacy www.theaudiodb.com image URLs to r2.theaudiodb.com."""
+    return url.replace(_OLD_CDN, _NEW_CDN) if _OLD_CDN in url else url
+
 
 class ApiAudioDb:
     """TheAudioDB API client with rate limiting."""
@@ -112,6 +120,34 @@ class ApiAudioDb:
             return None
 
         return albums[0] if albums else None
+
+    def search_track(self, artist_name: str, track_name: str, abort_flag=None) -> Optional[dict]:
+        """Search for a track by artist and track name.
+
+        Args:
+            artist_name: Artist name
+            track_name: Track name
+            abort_flag: Optional abort flag for cancellation
+
+        Returns:
+            Track data dict or None if not found
+        """
+        artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
+        track_name = track_name.replace('\u2018', "'").replace('\u2019', "'")
+
+        data = self.session.get(
+            "/searchtrack.php",
+            params={"s": artist_name, "t": track_name},
+            abort_flag=abort_flag
+        )
+        if not data:
+            return None
+
+        tracks = data.get('track')
+        if not tracks or not isinstance(tracks, list):
+            return None
+
+        return tracks[0] if tracks else None
 
     def search_artist(self, artist_name: str, abort_flag=None) -> Optional[dict]:
         """
@@ -248,8 +284,20 @@ class ApiAudioDb:
 
         return result
 
+    def get_track_artwork_from_data(self, track: dict) -> Dict[str, List[dict]]:
+        """Extract music video screenshot artwork from an already-fetched track dict."""
+        result: Dict[str, List[dict]] = {}
+
+        for i in [''] + list(range(2, 13)):
+            url = track.get(f'strMusicVidScreen{i}')
+            if url:
+                result.setdefault('thumb', []).append(self._format_artwork_item(url))
+
+        return result
+
     def _format_artwork_item(self, url: str) -> dict:
         """Format a TheAudioDB artwork URL to common format."""
+        url = _normalize_tadb_url(url)
         return {
             'url': url,
             'previewurl': f"{url}/preview",

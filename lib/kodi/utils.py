@@ -254,6 +254,9 @@ def format_date(date_str: str, include_time: bool = False) -> str:
         return date_str
 
 
+_version_logged = threading.Event()
+
+
 def wait_for_kodi_ready(
     monitor: xbmc.Monitor,
     initial_wait: float = 1.0,
@@ -277,6 +280,11 @@ def wait_for_kodi_ready(
         try:
             result = xbmc.executeJSONRPC('{"jsonrpc":"2.0","method":"JSONRPC.Ping","id":1}')
             if "pong" in result.lower():
+                if not _version_logged.is_set():
+                    _version_logged.set()
+                    from lib.kodi.client import ADDON, log
+                    version = ADDON.getAddonInfo("version")
+                    log("Service", f"Starting services (version={version})", xbmc.LOGINFO)
                 return True
         except Exception:
             pass

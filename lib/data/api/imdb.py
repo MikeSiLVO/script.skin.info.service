@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import gzip
 import xbmc
-from datetime import datetime
 from typing import Optional
 
 from lib.data.api.client import ApiSession
 from lib.kodi.client import log
 from lib.data.database._infrastructure import get_db
+from lib.data.database import imdb as db_imdb
 
 DATASET_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 EPISODE_DATASET_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
@@ -51,24 +51,8 @@ class ApiImdbDataset:
             {"rating": 9.3, "votes": 2800000}
         """
         if cursor:
-            cursor.execute(
-                "SELECT rating, votes FROM imdb_ratings WHERE imdb_id = ?",
-                (imdb_id,)
-            )
-            row = cursor.fetchone()
-            if row:
-                return {"rating": row["rating"], "votes": row["votes"]}
-            return None
-
-        with get_db() as (_, cur):
-            cur.execute(
-                "SELECT rating, votes FROM imdb_ratings WHERE imdb_id = ?",
-                (imdb_id,)
-            )
-            row = cur.fetchone()
-            if row:
-                return {"rating": row["rating"], "votes": row["votes"]}
-        return None
+            return db_imdb.get_rating_with_cursor(imdb_id, cursor)
+        return db_imdb.get_rating(imdb_id)
 
     def get_ratings_batch(self, imdb_ids: list[str]) -> dict[str, dict[str, float | int]]:
         """
@@ -80,29 +64,11 @@ class ApiImdbDataset:
         Returns:
             Dict mapping IMDb IDs to rating dicts (missing IDs not included)
         """
-        if not imdb_ids:
-            return {}
-
-        CHUNK_SIZE = 900
-        results = {}
-        with get_db() as (_, cursor):
-            for start in range(0, len(imdb_ids), CHUNK_SIZE):
-                chunk = imdb_ids[start:start + CHUNK_SIZE]
-                placeholders = ",".join(["?" for _ in chunk])
-                cursor.execute(
-                    f"SELECT imdb_id, rating, votes FROM imdb_ratings WHERE imdb_id IN ({placeholders})",
-                    chunk
-                )
-                for row in cursor.fetchall():
-                    results[row["imdb_id"]] = {"rating": row["rating"], "votes": row["votes"]}
-        return results
+        return db_imdb.get_ratings_batch(imdb_ids)
 
     def is_dataset_available(self) -> bool:
         """Check if the dataset has been imported to the database."""
-        with get_db() as (_, cursor):
-            cursor.execute("SELECT COUNT(*) as cnt FROM imdb_ratings")
-            row = cursor.fetchone()
-            return row["cnt"] > 0 if row else False
+        return db_imdb.is_dataset_available()
 
     def refresh_if_stale(self, abort_flag=None) -> bool:
         """
@@ -121,7 +87,7 @@ class ApiImdbDataset:
             if not remote_mod:
                 return False
 
-            local_mod = self._get_local_last_modified()
+            local_mod = db_imdb.get_meta_last_modified("ratings")
 
             if local_mod == remote_mod:
                 return False
@@ -152,24 +118,7 @@ class ApiImdbDataset:
         Returns:
             Dict with entry count, last modified date, and downloaded timestamp
         """
-        stats: dict[str, int | float | str | bool | None] = {
-            "entries": 0,
-            "last_modified": None,
-            "downloaded_at": None,
-        }
-
-        with get_db() as (_, cursor):
-            cursor.execute(
-                "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
-                ("ratings",)
-            )
-            row = cursor.fetchone()
-            if row:
-                stats["last_modified"] = row["last_modified"]
-                stats["downloaded_at"] = row["downloaded_at"]
-                stats["entries"] = row["entry_count"] or 0
-
-        return stats
+        return db_imdb.get_dataset_stats()
 
     def _download_and_import(self, abort_flag=None, force: bool = False) -> bool:
         try:
@@ -177,7 +126,7 @@ class ApiImdbDataset:
 
             headers = None
             if not force:
-                local_mod = self._get_local_last_modified()
+                local_mod = db_imdb.get_meta_last_modified("ratings")
                 headers = {"If-Modified-Since": local_mod} if local_mod else None
 
             response = self.session.get_raw(
@@ -199,7 +148,7 @@ class ApiImdbDataset:
             count = self._stream_and_import_ratings(response, abort_flag)
 
             if last_mod:
-                self._save_local_last_modified(last_mod, count)
+                db_imdb.save_meta("ratings", last_mod, count)
 
             log("IMDb", f"Imported {count:,} ratings to database")
             return True
@@ -215,15 +164,7 @@ class ApiImdbDataset:
         batch: list[tuple[str, float, int]] = []
 
         with get_db() as (_, cursor):
-            cursor.execute("DROP TABLE IF EXISTS imdb_ratings")
-            cursor.execute('''
-                CREATE TABLE imdb_ratings (
-                    imdb_id TEXT PRIMARY KEY,
-                    rating REAL NOT NULL,
-                    votes INTEGER NOT NULL
-                )
-            ''')
-            cursor.execute("PRAGMA synchronous = OFF")
+            db_imdb.import_ratings_begin(cursor)
 
             with gzip.open(response.raw, "rt", encoding="utf-8") as f:
                 next(f)
@@ -239,21 +180,13 @@ class ApiImdbDataset:
                             count += 1
 
                             if len(batch) >= BATCH_SIZE:
-                                cursor.executemany(
-                                    "INSERT INTO imdb_ratings (imdb_id, rating, votes) VALUES (?, ?, ?)",
-                                    batch
-                                )
+                                db_imdb.import_ratings_batch(cursor, batch)
                                 batch = []
                         except ValueError:
                             continue
 
             if batch:
-                cursor.executemany(
-                    "INSERT INTO imdb_ratings (imdb_id, rating, votes) VALUES (?, ?, ?)",
-                    batch
-                )
-
-            cursor.execute("PRAGMA synchronous = NORMAL")
+                db_imdb.import_ratings_batch(cursor, batch)
 
         return count
 
@@ -271,32 +204,6 @@ class ApiImdbDataset:
         except Exception as e:
             log("IMDb", f"Failed to check remote Last-Modified: {e}", xbmc.LOGWARNING)
             return None
-
-    def _get_local_last_modified(self) -> Optional[str]:
-        """Get stored Last-Modified from previous download."""
-        with get_db() as (_, cursor):
-            cursor.execute(
-                "SELECT last_modified FROM imdb_meta WHERE dataset = ?",
-                ("ratings",)
-            )
-            row = cursor.fetchone()
-            if row and row["last_modified"]:
-                return row["last_modified"]
-        return None
-
-    def _save_local_last_modified(self, last_mod: str, entry_count: int = 0) -> None:
-        """Store Last-Modified and entry count in database."""
-        with get_db() as (_, cursor):
-            cursor.execute(
-                """INSERT OR REPLACE INTO imdb_meta
-                   (dataset, last_modified, downloaded_at, entry_count)
-                   VALUES (?, ?, ?, ?)""",
-                ("ratings", last_mod, datetime.now().isoformat(), entry_count)
-            )
-
-    def _clear_meta(self, dataset: str) -> None:
-        with get_db() as (_, cursor):
-            cursor.execute("DELETE FROM imdb_meta WHERE dataset = ?", (dataset,))
 
     # Episode dataset methods
 
@@ -316,20 +223,8 @@ class ApiImdbDataset:
             Episode IMDb ID (e.g., "tt4283088") or None if not found
         """
         if cursor:
-            cursor.execute(
-                "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
-                (show_imdb_id, season, episode)
-            )
-            row = cursor.fetchone()
-            return row["episode_id"] if row else None
-
-        with get_db() as (_, cur):
-            cur.execute(
-                "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
-                (show_imdb_id, season, episode)
-            )
-            row = cur.fetchone()
-            return row["episode_id"] if row else None
+            return db_imdb.get_episode_imdb_id_with_cursor(show_imdb_id, season, episode, cursor)
+        return db_imdb.get_episode_imdb_id(show_imdb_id, season, episode)
 
     def get_episodes_for_show(self, show_imdb_id: str) -> dict[tuple[int, int], str]:
         """
@@ -341,41 +236,15 @@ class ApiImdbDataset:
         Returns:
             Dict mapping (season, episode) tuples to episode IMDb IDs
         """
-        result: dict[tuple[int, int], str] = {}
-        with get_db() as (_, cursor):
-            cursor.execute(
-                "SELECT season, episode, episode_id FROM imdb_episodes WHERE parent_id = ?",
-                (show_imdb_id,)
-            )
-            for row in cursor.fetchall():
-                result[(row["season"], row["episode"])] = row["episode_id"]
-        return result
+        return db_imdb.get_episodes_for_show(show_imdb_id)
 
     def is_episode_dataset_available(self) -> bool:
         """Check if the episode dataset has been imported."""
-        with get_db() as (_, cursor):
-            cursor.execute("SELECT COUNT(*) as cnt FROM imdb_episodes")
-            row = cursor.fetchone()
-            return row["cnt"] > 0 if row else False
+        return db_imdb.is_episode_dataset_available()
 
     def get_episode_dataset_stats(self) -> dict[str, int | str | None]:
         """Get episode dataset statistics."""
-        stats: dict[str, int | str | None] = {
-            "entries": 0,
-            "last_modified": None,
-            "downloaded_at": None,
-        }
-        with get_db() as (_, cursor):
-            cursor.execute(
-                "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
-                ("episodes",)
-            )
-            row = cursor.fetchone()
-            if row:
-                stats["last_modified"] = row["last_modified"]
-                stats["downloaded_at"] = row["downloaded_at"]
-                stats["entries"] = row["entry_count"] or 0
-        return stats
+        return db_imdb.get_episode_dataset_stats()
 
     def refresh_episode_dataset(
         self,
@@ -423,13 +292,13 @@ class ApiImdbDataset:
             count = self._stream_and_filter_episodes(response, user_show_ids, abort_flag)
 
             if last_mod:
-                self._save_episode_meta(last_mod, count, library_episode_count)
+                db_imdb.save_meta("episodes", last_mod, count, library_episode_count=library_episode_count)
 
             log("IMDb", f"Imported {count:,} episode IDs for {len(user_show_ids)} shows")
             return count
 
         except _ImportAborted:
-            self._clear_meta("episodes")
+            db_imdb.clear_meta("episodes")
             return -1
         except Exception as e:
             log("IMDb", f"Failed to download episode dataset: {e}", xbmc.LOGERROR)
@@ -447,20 +316,10 @@ class ApiImdbDataset:
         batch: list[tuple[str, int, int, str]] = []
 
         with get_db() as (_, cursor):
-            cursor.execute("DROP TABLE IF EXISTS imdb_episodes")
-            cursor.execute('''
-                CREATE TABLE imdb_episodes (
-                    parent_id TEXT NOT NULL,
-                    season INTEGER NOT NULL,
-                    episode INTEGER NOT NULL,
-                    episode_id TEXT NOT NULL,
-                    PRIMARY KEY (parent_id, season, episode)
-                )
-            ''')
-            cursor.execute("PRAGMA synchronous = OFF")
+            db_imdb.import_episodes_begin(cursor)
 
             with gzip.open(response.raw, "rt", encoding="utf-8") as f:
-                next(f)  # Skip header: tconst, parentTconst, seasonNumber, episodeNumber
+                next(f)
 
                 for line in f:
                     if abort_flag and abort_flag.is_requested():
@@ -479,36 +338,17 @@ class ApiImdbDataset:
                                 count += 1
 
                                 if len(batch) >= BATCH_SIZE:
-                                    cursor.executemany(
-                                        "INSERT OR REPLACE INTO imdb_episodes (parent_id, season, episode, episode_id) VALUES (?, ?, ?, ?)",
-                                        batch
-                                    )
+                                    db_imdb.import_episodes_batch(cursor, batch)
                                     batch = []
                             except ValueError:
                                 continue
 
             if batch:
-                cursor.executemany(
-                    "INSERT OR REPLACE INTO imdb_episodes (parent_id, season, episode, episode_id) VALUES (?, ?, ?, ?)",
-                    batch
-                )
+                db_imdb.import_episodes_batch(cursor, batch)
 
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)")
-            cursor.execute("PRAGMA synchronous = NORMAL")
+            db_imdb.import_episodes_finalize(cursor)
 
         return count
-
-    def _get_episode_meta(self) -> tuple[Optional[str], int]:
-        """Get stored Last-Modified and library episode count for episode dataset."""
-        with get_db() as (_, cursor):
-            cursor.execute(
-                "SELECT last_modified, library_episode_count FROM imdb_meta WHERE dataset = ?",
-                ("episodes",)
-            )
-            row = cursor.fetchone()
-            if row:
-                return row["last_modified"], row["library_episode_count"] or 0
-            return None, 0
 
     def needs_episode_refresh(self, library_episode_count: int, abort_flag=None) -> bool:
         """
@@ -522,7 +362,7 @@ class ApiImdbDataset:
             True if refresh needed, False if current
         """
         try:
-            local_mod, stored_ep_count = self._get_episode_meta()
+            local_mod, stored_ep_count = db_imdb.get_episode_meta()
 
             if stored_ep_count != library_episode_count:
                 log("IMDb", f"Library episode count changed ({stored_ep_count} -> {library_episode_count})")
@@ -545,16 +385,6 @@ class ApiImdbDataset:
         except Exception as e:
             log("IMDb", f"Error checking episode dataset status: {e}", xbmc.LOGWARNING)
             return False
-
-    def _save_episode_meta(self, last_mod: str, entry_count: int, library_episode_count: int) -> None:
-        """Store Last-Modified and library episode count for episode dataset."""
-        with get_db() as (_, cursor):
-            cursor.execute(
-                """INSERT OR REPLACE INTO imdb_meta
-                   (dataset, last_modified, downloaded_at, entry_count, library_episode_count)
-                   VALUES (?, ?, ?, ?, ?)""",
-                ("episodes", last_mod, datetime.now().isoformat(), entry_count, library_episode_count)
-            )
 
 
 _imdb_dataset: ApiImdbDataset | None = None

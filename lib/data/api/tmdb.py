@@ -33,29 +33,6 @@ def _is_valid_tmdb_id(tmdb_id: str | None) -> bool:
     return str(tmdb_id).isdigit() and len(str(tmdb_id)) <= 10
 
 
-def get_corrected_tmdb_id(imdb_id: str) -> int | None:
-    """Get cached TMDB ID correction for an IMDB ID."""
-    from lib.data.database._infrastructure import get_db
-    with get_db() as (_, cursor):
-        cursor.execute(
-            "SELECT tmdb_id FROM id_corrections WHERE imdb_id = ?",
-            (imdb_id,)
-        )
-        row = cursor.fetchone()
-        return row["tmdb_id"] if row else None
-
-
-def save_corrected_tmdb_id(imdb_id: str, tmdb_id: int, media_type: str) -> None:
-    """Cache a corrected TMDB ID for an IMDB ID."""
-    from lib.data.database._infrastructure import get_db
-    with get_db() as (_, cursor):
-        cursor.execute(
-            """INSERT OR REPLACE INTO id_corrections (imdb_id, tmdb_id, media_type)
-               VALUES (?, ?, ?)""",
-            (imdb_id, tmdb_id, media_type)
-        )
-
-
 def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -> str | None:
     """
     Resolve a valid TMDB ID, correcting invalid ones if possible.
@@ -74,6 +51,7 @@ def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -
     if not imdb_id:
         return None
 
+    from lib.data.database.correction import get_corrected_tmdb_id, save_corrected_tmdb_id
     corrected = get_corrected_tmdb_id(imdb_id)
     if corrected:
         return str(corrected)
@@ -858,6 +836,78 @@ class ApiTmdb(RatingSource):
             List of search results with id, name, known_for_department, profile_path
         """
         return self.search(name, 'person')
+
+    def _get_list(
+        self,
+        endpoint: str,
+        page: int = 1,
+        extra_params: Optional[Dict[str, str]] = None,
+        abort_flag=None
+    ) -> list:
+        api_key = self.get_api_key()
+        language = _get_metadata_language()
+        params: Dict[str, str | int] = {
+            "api_key": api_key,
+            "language": language,
+            "page": page
+        }
+        if extra_params:
+            params.update(extra_params)
+        data = self.session.get(endpoint, params=params, abort_flag=abort_flag)
+        if not data:
+            return []
+        if isinstance(data, dict):
+            return data.get("results", [])
+        return []
+
+    def get_trending(self, media_type: str, window: str = 'week', page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/trending/{media_type}/{window}", page=page, abort_flag=abort_flag)
+
+    def get_popular(self, media_type: str, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}/popular", page=page, abort_flag=abort_flag)
+
+    def get_top_rated(self, media_type: str, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}/top_rated", page=page, abort_flag=abort_flag)
+
+    def get_now_playing(self, page: int = 1, abort_flag=None) -> list:
+        return self._get_list("/movie/now_playing", page=page, abort_flag=abort_flag)
+
+    def get_upcoming(self, page: int = 1, abort_flag=None) -> list:
+        return self._get_list("/movie/upcoming", page=page, abort_flag=abort_flag)
+
+    def get_airing_today(self, page: int = 1, abort_flag=None) -> list:
+        return self._get_list("/tv/airing_today", page=page, abort_flag=abort_flag)
+
+    def get_on_the_air(self, page: int = 1, abort_flag=None) -> list:
+        return self._get_list("/tv/on_the_air", page=page, abort_flag=abort_flag)
+
+    def get_genre_list(self, media_type: str) -> Dict[int, str]:
+        api_key = self.get_api_key()
+        language = _get_metadata_language()
+        data = self.session.get(
+            f"/genre/{media_type}/list",
+            params={"api_key": api_key, "language": language}
+        )
+        if not data or not isinstance(data, dict):
+            return {}
+        return {g["id"]: g["name"] for g in data.get("genres", []) if "id" in g and "name" in g}
+
+    def get_item_images(self, media_type: str, tmdb_id: int, abort_flag=None) -> Dict[str, str]:
+        """Lightweight image fetch - just poster and backdrop paths."""
+        api_key = self.get_api_key()
+        data = self.session.get(
+            f"/{media_type}/{tmdb_id}",
+            params={"api_key": api_key},
+            abort_flag=abort_flag
+        )
+        if not data or not isinstance(data, dict):
+            return {}
+        result: Dict[str, str] = {}
+        if data.get("poster_path"):
+            result["poster_path"] = data["poster_path"]
+        if data.get("backdrop_path"):
+            result["backdrop_path"] = data["backdrop_path"]
+        return result
 
     @staticmethod
     def get_attribution() -> str:

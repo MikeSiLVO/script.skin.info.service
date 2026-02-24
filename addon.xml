@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta15"
+	   version="2.0.0~beta16"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -17,7 +17,7 @@
 		<menu id="kodi.core.main">
 			<item library="context.py">
 				<label>$ADDON[script.skin.info.service 32102]</label>
-				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,set) | String.IsEqual(ListItem.DBType,artist) | String.IsEqual(ListItem.DBType,album) | String.IsEqual(ListItem.DBType,song)]</visible>
+				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,musicvideo) | String.IsEqual(ListItem.DBType,set) | String.IsEqual(ListItem.DBType,artist) | String.IsEqual(ListItem.DBType,album) | String.IsEqual(ListItem.DBType,song)]</visible>
 			</item>
 		</menu>
 	</extension>
@@ -33,6 +33,14 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta16
+- Music video online properties: track wiki, tags, album wiki from Last.fm, Wikipedia, AudioDB
+- Wikipedia API: track and album summaries as fallback source (Last.fm → Wikipedia → AudioDB)
+- New player online prefixes: SkinInfo.Player.Online.MusicVideo.*
+- Artist online properties use Artist.* grouping (Artist.Bio, Artist.Clearlogo, etc.)
+- Music video focus: online track/album properties (SkinInfo.MusicVideo.Online.Track/Album.*)
+- Music metadata cache: Wikipedia source with language support
+
 2.0.0~beta15
 - IMDb Top 250: update movie rankings from Trakt's official daily-updated list (Tools menu)
 - Incremental IMDb sync now picks up new library items (not just changed ratings)

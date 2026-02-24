@@ -19,8 +19,10 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 from lib.rating.source import RetryableError, RateLimitHit
+
+_USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
 
 
 class RateLimiter:
@@ -138,7 +140,7 @@ class ApiSession:
         if default_headers:
             self.session.headers.update(default_headers)
 
-        self.session.headers.setdefault("User-Agent", "script.skin.info.service/2.0.0")
+        self.session.headers["User-Agent"] = _USER_AGENT
 
     def _build_url(self, endpoint: str) -> str:
         """Build full URL from endpoint."""

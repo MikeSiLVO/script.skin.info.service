@@ -1,14 +1,24 @@
-"""Database package for queue management and API caching.
+"""Database package for queue management, API caching, and data operations.
 
-Unified database (skininfo_v1.db) containing:
+Unified database (skininfo_v2.db) containing:
 - Queue management for artwork review workflow
 - API response caching (TMDB, fanart.tv)
 - Workflow tracking for sessions and operations
+- IMDb dataset storage and lookups
+- Ratings provider caching and API usage tracking
+- Slideshow pool management
+- ID correction cache
 
 Modules:
 - _infrastructure: Database connections and schema
 - cache: API response caching and TTL management
+- correction: TMDB/IMDB ID correction cache
+- gif: GIF scan cache
+- imdb: IMDb dataset operations (ratings, episodes, metadata)
+- music: Music metadata cache (AudioDB/Last.fm, separate DB)
 - queue: Queue CRUD operations for artwork workflow
+- rating: Ratings API usage tracking and provider caching
+- slideshow: Slideshow pool operations
 - workflow: Session and operation history tracking
 """
 from lib.data.database._infrastructure import (
@@ -77,6 +87,14 @@ from lib.data.database.workflow import (
     get_last_operation_stats,
 )
 
+# New modules exported as namespaces (callers use e.g. `from lib.data.database import imdb`)
+from lib.data.database import correction  # noqa: F401
+from lib.data.database import gif  # noqa: F401
+from lib.data.database import imdb  # noqa: F401
+from lib.data.database import music  # noqa: F401
+from lib.data.database import rating  # noqa: F401
+from lib.data.database import slideshow  # noqa: F401
+
 __all__ = [
     'DB_PATH',
     'DB_VERSION',
@@ -132,4 +150,10 @@ __all__ = [
     'get_last_manual_review_session',
     'save_operation_stats',
     'get_last_operation_stats',
+    'correction',
+    'gif',
+    'imdb',
+    'music',
+    'rating',
+    'slideshow',
 ]

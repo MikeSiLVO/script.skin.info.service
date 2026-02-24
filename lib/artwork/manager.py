@@ -365,11 +365,10 @@ def _download_selected_artwork(
         existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
-    savewith_basefilename_mvids = ADDON.getSettingBool('download.savewith_basefilename_mvids')
 
     use_basename = media_type == 'episode' \
         or media_type == 'movie' and savewith_basefilename \
-        or media_type == 'musicvideo' and savewith_basefilename_mvids
+        or media_type == 'musicvideo'
 
     path_builder = PathBuilder()
     downloader = DownloadArtwork()
@@ -693,7 +692,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
         'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart'],
         'season': ['poster', 'banner', 'landscape', 'fanart'],
         'episode': ['thumb'],
-        'musicvideo': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
+        'musicvideo': ['thumb', 'fanart'],
         'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
         'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
         'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],

@@ -516,6 +516,24 @@ Use `%d` as placeholder for index (1-based):
 | `Art(clearart)` | Clear art |
 | `Art(thumb)` | Thumbnail |
 
+### Music Library Cross-Reference
+
+When the music video's artist exists in the music library, additional properties are set:
+
+| Property           | Description                          |
+|--------------------|--------------------------------------|
+| `Artist.Fanart`    | Artist fanart from music library     |
+| `Artist.Thumb`     | Artist thumbnail from music library  |
+| `Artist.Clearlogo` | Artist clearlogo from music library  |
+| `Artist.Banner`    | Artist banner from music library     |
+| `Album.Thumb`      | Album thumbnail (matched by title)   |
+
+### Music Video Artist/Album Nodes
+
+When browsing `videodb://musicvideos/artists/` or `videodb://musicvideos/albums/`, the service detects these nodes using `ListItem.Property(musicvideomediatype)` and sets the same `SkinInfo.MusicVideo.*` prefix properties from the music library cross-reference above.
+
+Artist nodes also trigger an online data fetch for artist bio and fanart (see [Online Properties](online.md)).
+
 ---
 
 ## Artists

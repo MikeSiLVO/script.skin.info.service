@@ -149,10 +149,6 @@ class ApiTrakt(RatingSource):
             if cached:
                 return cached
 
-        token = self._get_valid_token(abort_flag)
-        if not token:
-            return None
-
         try:
             usage_tracker.increment_usage("trakt")
 
@@ -169,10 +165,15 @@ class ApiTrakt(RatingSource):
             else:
                 return None
 
+            headers = {}
+            token = self._get_valid_token(abort_flag)
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
             data = self.session.get(
                 endpoint,
                 params={"extended": "full"},
-                headers={"Authorization": f"Bearer {token}"},
+                headers=headers,
                 abort_flag=abort_flag
             )
 
@@ -306,6 +307,65 @@ class ApiTrakt(RatingSource):
             return subgenres
 
         return None
+
+    def _get_list(
+        self,
+        endpoint: str,
+        limit: int = 20,
+        page: int = 1,
+        extended: str = '',
+        requires_auth: bool = False,
+        abort_flag=None
+    ) -> list:
+        headers: Dict[str, str] = {}
+        if requires_auth:
+            token = self._get_valid_token(abort_flag)
+            if not token:
+                return []
+            headers["Authorization"] = f"Bearer {token}"
+
+        params: Dict[str, str | int] = {"limit": limit, "page": page}
+        if extended:
+            params["extended"] = extended
+
+        try:
+            data = self.session.get(
+                endpoint,
+                params=params,
+                headers=headers if headers else None,
+                abort_flag=abort_flag
+            )
+            if data and isinstance(data, list):
+                return data
+            return []
+        except Exception as e:
+            log("Trakt", f"List fetch error for {endpoint}: {e}", xbmc.LOGWARNING)
+            return []
+
+    def get_trending(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/trending", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_popular(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/popular", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_anticipated(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/anticipated", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_most_watched(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/watched/{period}", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_most_collected(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/collected/{period}", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_box_office(self, limit: int = 20, abort_flag=None) -> list:
+        return self._get_list("/movies/boxoffice", limit=limit, extended="full", abort_flag=abort_flag)
+
+    def get_recommendations(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(
+            f"/recommendations/{media_type}s",
+            limit=limit, page=page, extended="full",
+            requires_auth=True, abort_flag=abort_flag
+        )
 
     def test_connection(self) -> bool:
         """

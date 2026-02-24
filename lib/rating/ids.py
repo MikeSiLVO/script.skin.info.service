@@ -9,7 +9,8 @@ from lib.kodi.client import request, get_library_items, log, KODI_SET_DETAILS_ME
 from lib.data.api.tmdb import ApiTmdb, resolve_tmdb_id, _is_valid_tmdb_id
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import cache as db_cache
-from lib.data.database._infrastructure import init_database, get_db
+from lib.data.database._infrastructure import init_database
+from lib.data.database import imdb as db_imdb
 from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno
 
 
@@ -323,7 +324,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
             last_percent = -1
             update_interval = max(1, total // 100)
 
-            with get_db() as (_, cursor):
+            with db_imdb.bulk_episode_lookup() as lookup_episode:
                 for i, ep in enumerate(missing_imdb_episodes):
                     if progress.iscanceled():
                         break
@@ -335,11 +336,10 @@ def run_fix_library_ids(prompt: bool = True) -> None:
                             last_percent = percent
 
                     if ep["show_imdb"]:
-                        ep_imdb = dataset.get_episode_imdb_id(
+                        ep_imdb = lookup_episode(
                             ep["show_imdb"],
                             ep["season"],
-                            ep["episode"],
-                            cursor
+                            ep["episode"]
                         )
 
                         if ep_imdb:

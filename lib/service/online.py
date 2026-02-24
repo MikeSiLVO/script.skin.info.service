@@ -23,6 +23,7 @@ ONLINE_POLL_INTERVAL = 0.10
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
 PLAYER_ONLINE_PROPERTY_PREFIX = "SkinInfo.Player.Online."
 PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
+PLAYER_MUSICVIDEO_ONLINE_PREFIX = "SkinInfo.Player.Online.MusicVideo."
 
 _SKININFO_PREFIX_MAP = {
     "movie": "SkinInfo.Movie",
@@ -200,12 +201,18 @@ class OnlineServiceMain(threading.Thread):
         self._music_fanart_urls: List[str] = []
         self._music_fanart_index: int = 0
         self._music_fanart_last_rotate: float = 0.0
+        self._active_music_online_prefix: str = PLAYER_MUSIC_ONLINE_PREFIX
+        self._last_musicvideo_player_key: Optional[str] = None
+        self._musicvideo_player_fetch_thread: Optional[threading.Thread] = None
+        self._musicvideo_player_fetch_for_key: Optional[str] = None
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
 
         if not wait_for_kodi_ready(monitor):
             return
+
+        log("Service", "Online service started", xbmc.LOGINFO)
 
         while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
             if self.abort.is_set():
@@ -215,10 +222,13 @@ class OnlineServiceMain(threading.Thread):
             except Exception as e:
                 log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
 
+        log("Service", "Online service stopped", xbmc.LOGINFO)
+
     def _loop(self) -> None:
         self._handle_library_item()
         self._handle_player()
         self._handle_music_player()
+        self._handle_musicvideo_player()
         self._rotate_music_fanart()
 
     def _handle_library_item(self) -> None:
@@ -382,74 +392,155 @@ class OnlineServiceMain(threading.Thread):
             if self._abort_flag.is_requested():
                 return
 
+            from lib.service.music import fetch_artist_online_data
+
             mbids = _get_playing_artist_mbids()
+            album = xbmc.getInfoLabel("MusicPlayer.Album") or None
+            track = xbmc.getInfoLabel("MusicPlayer.Title") or None
 
-            if not mbids:
-                mbids = _resolve_artist_mbids_from_library(artist_name)
-
-            online_artist_data: Optional[dict] = None
-
-            if not mbids:
-                online_artist_data = _search_artist_by_name(artist_name, self._abort_flag)
-                if online_artist_data:
-                    mbid = online_artist_data.get('strMusicBrainzID', '')
-                    if mbid:
-                        mbids = [mbid]
-
-            if self._abort_flag.is_requested():
-                return
-
-            if not mbids:
-                return
-
-            fanart_urls = _read_cached_fanart(mbids)
-
-            if not fanart_urls:
-                artist_data = _fetch_and_cache_artist_artwork(
-                    mbids, self._abort_flag, online_artist_data
-                )
-                if not online_artist_data and artist_data:
-                    online_artist_data = artist_data
-
-                if self._abort_flag.is_requested():
-                    return
-
-                fanart_urls = _read_cached_fanart(mbids)
+            result = fetch_artist_online_data(
+                artist_name,
+                mbids=mbids or None,
+                album=album,
+                track=track,
+                abort_flag=self._abort_flag,
+            )
 
             if artist_name != self._last_music_key:
                 return
+            if not result:
+                return
 
-            bio = ''
-            if online_artist_data:
-                bio = online_artist_data.get('strBiographyEN', '') or ''
-            if not bio and mbids:
-                bio = _get_artist_bio_online(mbids[0], self._abort_flag)
-
-            self._music_fanart_urls = fanart_urls
-            self._music_fanart_index = 0
-            self._music_fanart_last_rotate = time.time()
-            self._set_music_online_properties(artist_name, bio, fanart_urls)
+            self._apply_music_online_result(artist_name, result, track, album, PLAYER_MUSIC_ONLINE_PREFIX)
 
         except Exception as e:
             log("Service", f"Music player online fetch error: {e}", xbmc.LOGWARNING)
 
-    def _set_music_online_properties(
+    def _handle_musicvideo_player(self) -> None:
+        """Handle music video playback — set artist online data."""
+        is_musicvideo = (
+            xbmc.getCondVisibility("Player.HasVideo")
+            and xbmc.getCondVisibility("VideoPlayer.Content(musicvideos)")
+        )
+
+        if not is_musicvideo:
+            if self._last_musicvideo_player_key:
+                self._clear_musicvideo_online_properties()
+                self._last_musicvideo_player_key = None
+            return
+
+        artist_name = xbmc.getInfoLabel("VideoPlayer.Artist") or ""
+        if not artist_name:
+            if self._last_musicvideo_player_key:
+                self._clear_musicvideo_online_properties()
+                self._last_musicvideo_player_key = None
+            return
+
+        if artist_name == self._last_musicvideo_player_key:
+            return
+
+        self._last_musicvideo_player_key = artist_name
+        self._music_fanart_urls = []
+        self._music_fanart_index = 0
+
+        if (self._musicvideo_player_fetch_thread
+                and self._musicvideo_player_fetch_thread.is_alive()
+                and self._musicvideo_player_fetch_for_key == artist_name):
+            return
+
+        self._musicvideo_player_fetch_for_key = artist_name
+        self._musicvideo_player_fetch_thread = threading.Thread(
+            target=self._musicvideo_player_fetch_worker,
+            args=(artist_name,),
+            daemon=True,
+        )
+        self._musicvideo_player_fetch_thread.start()
+
+    def _musicvideo_player_fetch_worker(self, artist_name: str) -> None:
+        try:
+            if self._abort_flag.is_requested():
+                return
+
+            from lib.service.music import fetch_artist_online_data
+
+            album = xbmc.getInfoLabel("VideoPlayer.Album") or None
+            track = xbmc.getInfoLabel("VideoPlayer.Title") or None
+
+            result = fetch_artist_online_data(
+                artist_name,
+                album=album,
+                track=track,
+                abort_flag=self._abort_flag,
+            )
+
+            if artist_name != self._last_musicvideo_player_key:
+                return
+            if not result:
+                return
+
+            self._apply_music_online_result(artist_name, result, track, album, PLAYER_MUSICVIDEO_ONLINE_PREFIX)
+
+        except Exception as e:
+            log("Service", f"Music video player online fetch error: {e}", xbmc.LOGWARNING)
+
+    def _apply_music_online_result(
         self,
         artist_name: str,
-        bio: str,
-        fanart_urls: List[str],
+        result: object,
+        track: Optional[str],
+        album: Optional[str],
+        prefix: str,
     ) -> None:
+        """Apply fetched music online data to window properties."""
+        from lib.service.music import (
+            fetch_track_online_data,
+            fetch_album_online_data,
+            extract_track_properties,
+            extract_album_properties,
+        )
+
+        self._music_fanart_urls = result.fanart_urls  # type: ignore[attr-defined]
+        self._music_fanart_index = 0
+        self._music_fanart_last_rotate = time.time()
+        self._active_music_online_prefix = prefix
+        self._set_music_online_properties(
+            artist_name, result.bio, result.fanart_urls, result.artist_art,  # type: ignore[attr-defined]
+            prefix,
+        )
+
+        if track:
+            fetch_track_online_data(artist_name, track, abort_flag=self._abort_flag)
+            track_props = extract_track_properties(artist_name, track)
+            if track_props:
+                batch_set_props({
+                    f"{prefix}Track.{k}": v
+                    for k, v in track_props.items()
+                })
+
+        if album:
+            fetch_album_online_data(artist_name, album, abort_flag=self._abort_flag)
+            album_props = extract_album_properties(artist_name, album)
+            if album_props:
+                batch_set_props({
+                    f"{prefix}Album.{k}": v
+                    for k, v in album_props.items()
+                })
+
+    def _set_music_online_properties(self, artist_name: str, bio: str,
+                                     fanart_urls: List[str],
+                                     artist_art: Dict[str, str],
+                                     prefix: str) -> None:
+        ap = f"{prefix}Artist."
         props: Dict[str, Optional[str]] = {
-            f"{PLAYER_MUSIC_ONLINE_PREFIX}Artist": artist_name,
+            f"{ap}Name": artist_name,
+            f"{ap}FanArt.Count": str(len(fanart_urls)),
+            f"{ap}FanArt": fanart_urls[0] if fanart_urls else "",
+            f"{ap}Bio": bio or "",
         }
 
-        if bio:
-            props[f"{PLAYER_MUSIC_ONLINE_PREFIX}Bio"] = bio
-
-        props[f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt.Count"] = str(len(fanart_urls))
-
-        if fanart_urls:
-            props[f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt"] = fanart_urls[0]
+        for art_type in ('thumb', 'clearlogo', 'banner'):
+            key = art_type[0].upper() + art_type[1:]
+            props[f"{ap}{key}"] = artist_art.get(art_type, '')
 
         batch_set_props(props)
 
@@ -476,12 +567,17 @@ class OnlineServiceMain(threading.Thread):
             (self._music_fanart_index + 1) % len(self._music_fanart_urls)
         )
         set_prop(
-            f"{PLAYER_MUSIC_ONLINE_PREFIX}FanArt",
+            f"{self._active_music_online_prefix}Artist.FanArt",
             self._music_fanart_urls[self._music_fanart_index],
         )
 
     def _clear_music_properties(self) -> None:
         clear_group(PLAYER_MUSIC_ONLINE_PREFIX)
+        self._music_fanart_urls = []
+        self._music_fanart_index = 0
+
+    def _clear_musicvideo_online_properties(self) -> None:
+        clear_group(PLAYER_MUSICVIDEO_ONLINE_PREFIX)
         self._music_fanart_urls = []
         self._music_fanart_index = 0
 
@@ -785,151 +881,3 @@ def _get_playing_artist_mbids() -> List[str]:
         return []
 
 
-def _resolve_artist_mbids_from_library(artist_name: str) -> List[str]:
-    from lib.kodi.client import request
-
-    artists = [a.strip() for a in artist_name.split(" / ")]
-    mbids: List[str] = []
-
-    for name in artists:
-        if not name:
-            continue
-
-        result = request("AudioLibrary.GetArtists", {
-            "filter": {"field": "artist", "operator": "is", "value": name},
-            "properties": ["musicbrainzartistid"],
-            "limits": {"end": 1},
-        })
-
-        if not result:
-            continue
-
-        artists_list = result.get("result", {}).get("artists")
-        if not artists_list:
-            continue
-
-        mbid = artists_list[0].get("musicbrainzartistid")
-        if isinstance(mbid, list):
-            mbid = mbid[0] if mbid else None
-        if mbid:
-            mbids.append(mbid)
-
-    return mbids
-
-
-def _get_artist_bio_online(
-    mbid: str, abort_flag: ServiceAbortFlag
-) -> str:
-    from lib.data.api.audiodb import ApiAudioDb
-
-    try:
-        audiodb = ApiAudioDb()
-        artist = audiodb.get_artist(mbid, abort_flag)
-        if artist:
-            return artist.get('strBiographyEN', '') or ''
-    except Exception as e:
-        log("Service", f"TheAudioDB bio fetch error: {e}", xbmc.LOGWARNING)
-    return ''
-
-
-def _search_artist_by_name(
-    artist_name: str, abort_flag: ServiceAbortFlag
-) -> Optional[dict]:
-    from lib.data.api.audiodb import ApiAudioDb
-
-    primary_name = artist_name.split(" / ")[0].strip()
-    if not primary_name:
-        return None
-
-    try:
-        audiodb = ApiAudioDb()
-        return audiodb.search_artist(primary_name, abort_flag)
-    except Exception as e:
-        log("Service", f"TheAudioDB artist search error: {e}", xbmc.LOGWARNING)
-        return None
-
-
-def _read_cached_fanart(mbids: List[str]) -> List[str]:
-    from lib.data.database import cache as db_cache
-
-    seen: set = set()
-    urls: List[str] = []
-
-    for mbid in mbids:
-        cached = db_cache.get_cached_artwork('artist', mbid, 'fanarttv', 'fanart')
-        if cached:
-            for art in cached:
-                url = art.get('url', '')
-                if url and url not in seen:
-                    seen.add(url)
-                    urls.append(url)
-
-    if urls:
-        return urls
-
-    for mbid in mbids:
-        cached = db_cache.get_cached_artwork('artist', mbid, 'theaudiodb', 'fanart')
-        if cached:
-            for art in cached:
-                url = art.get('url', '')
-                if url and url not in seen:
-                    seen.add(url)
-                    urls.append(url)
-
-    return urls
-
-
-def _fetch_and_cache_artist_artwork(
-    mbids: List[str],
-    abort_flag: ServiceAbortFlag,
-    cached_artist_data: Optional[dict] = None,
-) -> Optional[dict]:
-    from lib.data.api.fanarttv import ApiFanarttv
-    from lib.data.api.audiodb import ApiAudioDb
-    from lib.data.database import cache as db_cache
-
-    ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
-    fanart_api = ApiFanarttv()
-    audiodb = ApiAudioDb()
-    artist_data = cached_artist_data
-
-    for mbid in mbids:
-        if abort_flag.is_requested():
-            return artist_data
-
-        marker = db_cache.get_cached_artwork(
-            'artist', mbid, 'system', '_full_fetch_complete'
-        )
-        if marker is not None:
-            continue
-
-        try:
-            fanart_art = fanart_api.get_artist_artwork(mbid, abort_flag)
-            for art_type, artworks in fanart_art.items():
-                if art_type != 'albums' and artworks:
-                    db_cache.cache_artwork(
-                        'artist', mbid, 'fanarttv', art_type, artworks, None, ttl_hours
-                    )
-        except Exception as e:
-            log("Service", f"Fanart.tv artist fetch error for {mbid}: {e}", xbmc.LOGWARNING)
-
-        try:
-            tadb_artist = audiodb.get_artist(mbid, abort_flag)
-            if tadb_artist:
-                if not artist_data:
-                    artist_data = tadb_artist
-                tadb_art = audiodb.get_artist_artwork_from_data(tadb_artist)
-                for art_type, artworks in tadb_art.items():
-                    if artworks:
-                        db_cache.cache_artwork(
-                            'artist', mbid, 'theaudiodb', art_type, artworks, None, ttl_hours
-                        )
-        except Exception as e:
-            log("Service", f"TheAudioDB artist fetch error for {mbid}: {e}", xbmc.LOGWARNING)
-
-        db_cache.cache_artwork(
-            'artist', mbid, 'system', '_full_fetch_complete',
-            [{'marker': 'complete'}], None, ttl_hours
-        )
-
-    return artist_data

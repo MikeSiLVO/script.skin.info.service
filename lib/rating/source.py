@@ -5,23 +5,9 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict
 import hashlib
 from datetime import datetime, timedelta
-import json
-import zlib
 
-from lib.data.database._infrastructure import get_db
+from lib.data.database.rating import get_provider_cache, save_provider_cache
 from lib.kodi.settings import KodiSettings
-
-
-def _compress_data(data: dict) -> bytes:
-    """Compress JSON data using zlib."""
-    json_str = json.dumps(data, separators=(',', ':'))
-    return zlib.compress(json_str.encode('utf-8'), level=6)
-
-
-def _decompress_data(data: bytes) -> dict:
-    """Decompress zlib-compressed JSON data."""
-    json_str = zlib.decompress(data).decode('utf-8')
-    return json.loads(json_str)
 
 
 class RateLimitHit(Exception):
@@ -119,17 +105,7 @@ class RatingSource(ABC):
             return None
 
         cutoff = (datetime.now() - timedelta(days=cache_days)).isoformat()
-
-        with get_db() as (conn, cursor):
-            cursor.execute(
-                "SELECT data FROM provider_cache WHERE provider = ? AND media_id = ? AND cached_at > ?",
-                (self.provider_name, media_id, cutoff)
-            )
-            row = cursor.fetchone()
-            if row:
-                return _decompress_data(row["data"])
-
-        return None
+        return get_provider_cache(self.provider_name, media_id, cutoff)
 
     def cache_data(self, media_id: str, data: dict, release_date: Optional[str] = None) -> None:
         """
@@ -140,14 +116,7 @@ class RatingSource(ABC):
             data: Full provider response data to cache
             release_date: Optional YYYY-MM-DD release date for TTL calculation
         """
-        with get_db() as (conn, cursor):
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO provider_cache (provider, media_id, data, release_date, cached_at)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """,
-                (self.provider_name, media_id, _compress_data(data), release_date)
-            )
+        save_provider_cache(self.provider_name, media_id, data, release_date)
 
     def get_api_key_hash(self, api_key: str) -> str:
         """

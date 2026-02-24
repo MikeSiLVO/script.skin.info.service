@@ -80,13 +80,6 @@ def get_settings() -> Dict[str, Any]:
     }
 
 
-def is_trakt_configured() -> bool:
-    """Check if Trakt has a valid token configured."""
-    token_path = xbmcvfs.translatePath(
-        "special://profile/addon_data/script.skin.info.service/trakt_tokens.json"
-    )
-    return xbmcvfs.exists(token_path)
-
 
 def get_stinger_from_properties(window_id: int = 12901) -> Optional[StingerInfo]:
     """
@@ -194,8 +187,8 @@ def get_stinger_info(
             log("Service", f"Stinger info from Kodi tags: {info.stinger_type.value}", xbmc.LOGDEBUG)
             return info
 
-    # Try Trakt if configured
-    if ids and is_trakt_configured():
+    # Try Trakt
+    if ids:
         info = get_stinger_from_trakt(ids)
         if info:
             log("Service", f"Stinger info from Trakt: {info.stinger_type.value}", xbmc.LOGDEBUG)

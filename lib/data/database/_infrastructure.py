@@ -68,8 +68,8 @@ def get_db(db_path: str = DB_PATH) -> Generator[Tuple[sqlite3.Connection, sqlite
     except Exception:
         try:
             conn.rollback()
-        except Exception:
-            pass
+        except Exception as rollback_err:
+            log("Database", f"Rollback failed: {rollback_err}", xbmc.LOGWARNING)
         raise
     finally:
         conn.close()
@@ -226,26 +226,8 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         )
     ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ratings_update_history (
-            media_type TEXT,
-            media_id INTEGER,
-            last_updated TEXT,
-            sources_updated TEXT,
-            PRIMARY KEY (media_type, media_id)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ratings_failures (
-            media_type TEXT,
-            media_id INTEGER,
-            reason TEXT,
-            last_attempt TEXT,
-            retry_count INTEGER DEFAULT 0,
-            PRIMARY KEY (media_type, media_id)
-        )
-    ''')
+    cursor.execute('DROP TABLE IF EXISTS ratings_update_history')
+    cursor.execute('DROP TABLE IF EXISTS ratings_failures')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS provider_cache (
@@ -268,8 +250,6 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
 
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_usage_lookup ON ratings_api_usage(provider, api_key_hash, date)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_history_updated ON ratings_update_history(last_updated)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_failures_attempt ON ratings_failures(last_attempt)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)')
 

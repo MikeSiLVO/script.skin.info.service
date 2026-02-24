@@ -33,7 +33,7 @@ if __name__ == '__main__':
     menu_items: list[str] = []
     actions: list[str] = []
 
-    artwork_types = ('movie', 'tvshow', 'episode', 'season', 'set', 'artist', 'album')
+    artwork_types = ('movie', 'tvshow', 'episode', 'season', 'set', 'musicvideo', 'artist', 'album')
     ratings_types = ('movie', 'tvshow', 'episode')
 
     if db_type in artwork_types and addon.getSettingBool('context_show_review_artwork'):

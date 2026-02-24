@@ -111,14 +111,6 @@ msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
 msgstr ""
 
-msgctxt "#32029"
-msgid "Use Music Video Filename Prefix"
-msgstr ""
-
-msgctxt "#32030"
-msgid "Save as 'video-poster.jpg' instead of 'poster.jpg' in video folder"
-msgstr ""
-
 msgctxt "#32035"
 msgid "Always Ask"
 msgstr ""
@@ -1825,7 +1817,7 @@ msgid "Online Service"
 msgstr ""
 
 msgctxt "#32977"
-msgid "Language for titles, plots, and other metadata from TMDb"
+msgid "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
 msgstr ""
 
 #. Actor image download feature (context menu)

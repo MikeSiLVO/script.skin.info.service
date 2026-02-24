@@ -10,6 +10,7 @@ Window properties from external APIs, updated automatically when library items a
 
 - [Overview](#overview)
 - [Player Online Properties](#player-online-properties)
+- [Music Video Online Properties](#music-video-online-properties)
 - [Music Player Online Properties](#music-player-online-properties)
 - [Enabling the Service](#enabling-the-service)
 - [TMDb Properties](#tmdb-properties)
@@ -45,7 +46,7 @@ The online service fetches metadata from external APIs when library items are fo
 <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Rating.imdb)]</label>
 ```
 
-Supported media types: `movie`, `tvshow`, `episode`
+Supported media types: `movie`, `tvshow`, `episode`, `musicvideo`
 
 ---
 
@@ -80,24 +81,114 @@ Both contexts can be active simultaneously - you can browse the library while pl
 
 ---
 
+## Music Video Online Properties
+
+**Prefix:** `SkinInfo.MusicVideo.Online.*`
+
+Properties fetched from AudioDB, Last.fm, Wikipedia, and Fanart.tv when music video items or music video artist nodes are focused.
+
+### Artist
+
+| Property           | Description                                |
+|--------------------|--------------------------------------------|
+| `Artist.Bio`       | Artist biography (AudioDB / Last.fm)       |
+| `Artist.FanArt`    | Current fanart URL (rotates automatically) |
+| `Artist.FanArt.Count` | Total fanart images available           |
+| `Artist.Thumb`     | Artist thumbnail (Fanart.tv / AudioDB)     |
+| `Artist.Clearlogo` | Artist clearlogo (Fanart.tv / AudioDB)     |
+| `Artist.Banner`    | Artist banner (Fanart.tv / AudioDB)        |
+
+### Track
+
+| Property           | Description                           |
+|--------------------|---------------------------------------|
+| `Track.Wiki`       | Track description (Last.fm / Wikipedia / AudioDB) |
+| `Track.Tags`       | Top tags (" / " separated, up to 10) |
+| `Track.Listeners`  | Last.fm listener count                |
+| `Track.Playcount`  | Last.fm global play count             |
+
+### Album
+
+| Property           | Description                           |
+|--------------------|---------------------------------------|
+| `Album.Wiki`       | Album description (Last.fm / Wikipedia / AudioDB) |
+| `Album.Tags`       | Top tags (" / " separated, up to 10) |
+| `Album.Label`      | Record label                          |
+
+### Example
+
+```xml
+<control type="group">
+    <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.MusicVideo.Online.Artist.Bio))</visible>
+
+    <!-- Artist fanart background -->
+    <control type="image">
+        <texture>$INFO[Window(Home).Property(SkinInfo.MusicVideo.Online.Artist.FanArt)]</texture>
+    </control>
+
+    <!-- Artist bio -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.MusicVideo.Online.Artist.Bio)]</label>
+    </control>
+
+    <!-- Track wiki -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.MusicVideo.Online.Track.Wiki)]</label>
+    </control>
+</control>
+```
+
+---
+
 ## Music Player Online Properties
 
-**Prefix:** `SkinInfo.Player.Online.Music.*`
+Properties fetched from AudioDB, Last.fm, Wikipedia, and Fanart.tv during playback. Works with library items, local files, and radio addon streams.
 
-Properties fetched from TheAudioDB and Fanart.tv during music playback. Works with library items, local files, and radio addon streams.
+Audio and music video playback use separate prefixes:
 
-| Property | Description |
-|----------|-------------|
-| `Artist` | Current artist name |
-| `Bio` | Artist biography from TheAudioDB |
-| `FanArt` | Current fanart image URL (rotates automatically) |
-| `FanArt.Count` | Total fanart images available |
+| Context | Prefix |
+|---------|--------|
+| Audio playback | `SkinInfo.Player.Online.Music.` |
+| Music video playback | `SkinInfo.Player.Online.MusicVideo.` |
+
+### Artist
+
+| Property           | Description                                |
+|--------------------|--------------------------------------------|
+| `Artist.Name`      | Artist name                                |
+| `Artist.Bio`       | Artist biography (AudioDB / Last.fm)       |
+| `Artist.FanArt`    | Current fanart URL (rotates automatically) |
+| `Artist.FanArt.Count` | Total fanart images available           |
+| `Artist.Thumb`     | Artist thumbnail (Fanart.tv / AudioDB)     |
+| `Artist.Clearlogo` | Artist clearlogo (Fanart.tv / AudioDB)     |
+| `Artist.Banner`    | Artist banner (Fanart.tv / AudioDB)        |
+
+### Track
+
+Populated when a track title is available.
+
+| Property           | Description                           |
+|--------------------|---------------------------------------|
+| `Track.Wiki`       | Track description (Last.fm / Wikipedia / AudioDB) |
+| `Track.Tags`       | Top tags (" / " separated, up to 10) |
+| `Track.Listeners`  | Last.fm listener count                |
+| `Track.Playcount`  | Last.fm global play count             |
+
+### Album
+
+Populated when an album name is available.
+
+| Property           | Description                           |
+|--------------------|---------------------------------------|
+| `Album.Wiki`       | Album description (Last.fm / Wikipedia / AudioDB) |
+| `Album.Tags`       | Top tags (" / " separated, up to 10) |
+| `Album.Label`      | Record label                          |
 
 Fanart rotation interval is controlled by the skin string `SkinInfo.SlideshowRefreshInterval` (seconds, default 10, range 5-3600).
 
 Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv returns no results.
 
-### Example
+### Example — Audio Playback
 
 ```xml
 <control type="group">
@@ -105,13 +196,37 @@ Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv ret
 
     <!-- Rotating artist fanart background -->
     <control type="image">
-        <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Player.Online.Music.FanArt))</visible>
-        <texture>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.FanArt)]</texture>
+        <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Player.Online.Music.Artist.FanArt))</visible>
+        <texture>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.Artist.FanArt)]</texture>
     </control>
 
     <!-- Artist bio -->
     <control type="textbox">
-        <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.Bio)]</label>
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.Artist.Bio)]</label>
+    </control>
+
+    <!-- Track info -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Music.Track.Wiki)]</label>
+    </control>
+</control>
+```
+
+### Example — Music Video Playback
+
+```xml
+<control type="group">
+    <visible>Player.HasVideo + VideoPlayer.Content(musicvideos)</visible>
+
+    <!-- Artist clearlogo -->
+    <control type="image">
+        <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Player.Online.MusicVideo.Artist.Clearlogo))</visible>
+        <texture>$INFO[Window(Home).Property(SkinInfo.Player.Online.MusicVideo.Artist.Clearlogo)]</texture>
+    </control>
+
+    <!-- Track wiki -->
+    <control type="textbox">
+        <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.MusicVideo.Track.Wiki)]</label>
     </control>
 </control>
 ```
