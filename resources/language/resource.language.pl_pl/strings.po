@@ -464,14 +464,6 @@ msgctxt "#32124"
 msgid "Cache Management"
 msgstr "Zarządzanie pamięcią podręczną"
 
-msgctxt "#32125"
-msgid "Clear Blur Cache"
-msgstr "Wyczyść pamięć podręczną rozmyć"
-
-msgctxt "#32126"
-msgid "Delete all cached blurred images to free up disk space"
-msgstr "Usuń wszystkie buforowane rozmyte obrazy, aby zwolnić miejsce na dysku"
-
 msgctxt "#32128"
 msgid "Skip"
 msgstr "Pomiń"
@@ -931,6 +923,10 @@ msgstr "Gromadzenie pozycji..."
 msgctxt "#32319"
 msgid "Checking {0}s..."
 msgstr "Sprawdzanie {0}s..."
+
+msgctxt "#32320"
+msgid "Ratings up to date"
+msgstr "Oceny są aktualne"
 
 msgctxt "#32330"
 msgid "Analyzing Textures"
