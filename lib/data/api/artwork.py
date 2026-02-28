@@ -12,8 +12,6 @@ from lib.data import database as db
 from lib.data.api.tmdb import ApiTmdb
 from lib.data.api.fanarttv import ApiFanarttv
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
-from lib.artwork.utilities import sort_artwork_by_popularity
-from lib.artwork.config import CACHE_ART_TYPES
 from lib.kodi.client import log
 
 
@@ -208,6 +206,7 @@ class ApiArtworkFetcher:
             'fanarttv': cache_id
         }
 
+        from lib.artwork.config import CACHE_ART_TYPES
         batch_results = db.get_cached_artwork_batch(media_type, media_ids, CACHE_ART_TYPES)
 
         cached: Dict[str, List[dict]] = {}
@@ -246,17 +245,25 @@ class ApiArtworkFetcher:
 
         result: Dict[str, List[dict]] = {}
 
-        mapping = (
-            ('posters', 'poster', 'w500'),
-            ('logos', 'clearlogo', 'w500'),
-        )
+        logos = images.get('logos') or []
+        formatted_logos = [self._format_tmdb_image(entry, 'w500') for entry in logos]
+        formatted_logos = [entry for entry in formatted_logos if entry]
+        if formatted_logos:
+            result['clearlogo'] = formatted_logos
 
-        for source_key, result_key, preview_size in mapping:
-            entries = images.get(source_key) or []
-            formatted = [self._format_tmdb_image(entry, preview_size) for entry in entries]
-            formatted = [entry for entry in formatted if entry]
+        posters = images.get('posters') or []
+        keyart = []
+        all_posters = []
+        for poster in posters:
+            formatted = self._format_tmdb_image(poster, 'w500')
             if formatted:
-                result[result_key] = formatted
+                all_posters.append(formatted)
+                if not poster.get('iso_639_1'):
+                    keyart.append(formatted)
+        if all_posters:
+            result['poster'] = all_posters
+        if keyart:
+            result['keyart'] = keyart
 
         backdrops = images.get('backdrops') or []
         if not backdrops:
@@ -339,6 +346,7 @@ class ApiArtworkFetcher:
         if not artwork:
             return {}
 
+        from lib.artwork.utilities import sort_artwork_by_popularity
         for art_type, artworks in artwork.items():
             artwork[art_type] = sort_artwork_by_popularity(artworks, art_type)
 

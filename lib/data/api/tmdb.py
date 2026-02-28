@@ -11,8 +11,8 @@ from typing import Optional, Dict, List
 
 from lib.data.api.client import ApiSession
 from lib.kodi.client import log
-from lib.rating.source import RatingSource
-from lib.rating import tracker as usage_tracker
+from lib.data.api.source import RatingSource
+from lib.data.api import tracker as usage_tracker
 from lib.kodi.settings import KodiSettings
 
 
@@ -217,17 +217,25 @@ class ApiTmdb(RatingSource):
         """
         result: Dict[str, List[dict]] = {}
 
-        mapping = (
-            ('posters', 'poster', 'w500'),
-            ('logos', 'clearlogo', 'w500'),
-        )
+        logos = data.get('logos') or []
+        formatted_logos = [self._format_image(entry, 'w500') for entry in logos]
+        formatted_logos = [entry for entry in formatted_logos if entry]
+        if formatted_logos:
+            result['clearlogo'] = formatted_logos
 
-        for source_key, result_key, preview_size in mapping:
-            entries = data.get(source_key) or []
-            formatted = [self._format_image(entry, preview_size) for entry in entries]
-            formatted = [entry for entry in formatted if entry]
+        posters = data.get('posters') or []
+        keyart = []
+        all_posters = []
+        for poster in posters:
+            formatted = self._format_image(poster, 'w500')
             if formatted:
-                result[result_key] = formatted
+                all_posters.append(formatted)
+                if not poster.get('iso_639_1'):
+                    keyart.append(formatted)
+        if all_posters:
+            result['poster'] = all_posters
+        if keyart:
+            result['keyart'] = keyart
 
         backdrops = data.get('backdrops') or []
         if not backdrops:

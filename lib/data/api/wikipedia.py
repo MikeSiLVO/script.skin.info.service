@@ -15,10 +15,23 @@ import xbmc
 
 from lib.data.api.client import ApiSession
 from lib.kodi.client import log
-from lib.rating.source import RateLimitHit, RetryableError
+from lib.data.api.client import RateLimitHit, RetryableError
 
 _SMART_QUOTES = re.compile(r'[\u201c\u201d\u2018\u2019\u00ab\u00bb]')
 _HTML_TAGS = re.compile(r'<[^>]+>')
+
+_NON_SONG_HINTS = re.compile(
+    r'\b(film|movie|album|television|tv series|novel|video game|disambiguation)\b'
+    r'|topics referred to by the same term',
+    re.IGNORECASE,
+)
+_SONG_HINTS = re.compile(r'\b(song|single|track|ep)\b', re.IGNORECASE)
+_NON_ALBUM_HINTS = re.compile(
+    r'\b(film|movie|television|tv series|novel|video game|disambiguation)\b'
+    r'|topics referred to by the same term',
+    re.IGNORECASE,
+)
+_ALBUM_HINTS = re.compile(r'\b(album|ep|compilation)\b', re.IGNORECASE)
 
 _RETRYABLE_CODES = {'readonly', 'maxlag', 'internal_api_error'}
 _NOT_FOUND_CODES = {'missingtitle', 'nosuchsection', 'invalidtitle'}
@@ -137,7 +150,9 @@ class ApiWikipedia:
                 return extract.strip()
         return None
 
-    def _validate_result(self, page: dict, item_name: str, artist: str) -> bool:
+    def _validate_result(
+        self, page: dict, item_name: str, artist: str, context: str = 'track',
+    ) -> bool:
         title = page.get('title', '')
         title_clean = _SMART_QUOTES.sub('', title).lower().strip()
         item_lower = item_name.lower().strip()
@@ -145,11 +160,19 @@ class ApiWikipedia:
         if not title_clean.startswith(item_lower):
             return False
 
+        description = page.get('description', '')
+        if description:
+            if context == 'track':
+                if _NON_SONG_HINTS.search(description) and not _SONG_HINTS.search(description):
+                    return False
+            elif context == 'album':
+                if _NON_ALBUM_HINTS.search(description) and not _ALBUM_HINTS.search(description):
+                    return False
+
         artist_lower = artist.lower()
         if artist_lower in title.lower():
             return True
 
-        description = page.get('description', '')
         if artist_lower in description.lower():
             return True
 
@@ -174,7 +197,7 @@ class ApiWikipedia:
         if not pages:
             return None
         for page in pages:
-            if self._validate_result(page, track, artist):
+            if self._validate_result(page, track, artist, context='track'):
                 return self._get_extract(
                     page.get('title', ''), lang=lang, abort_flag=abort_flag
                 )
@@ -193,7 +216,7 @@ class ApiWikipedia:
         if not pages:
             return None
         for page in pages:
-            if self._validate_result(page, album, artist):
+            if self._validate_result(page, album, artist, context='album'):
                 return self._get_extract(
                     page.get('title', ''), lang=lang, abort_flag=abort_flag
                 )

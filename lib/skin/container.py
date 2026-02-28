@@ -9,6 +9,29 @@ import xbmcplugin
 from lib.kodi.client import log, request
 
 
+def _evaluate_conditional_focus(blocks: list[str]) -> None:
+    """Evaluate condition::focus_id blocks in order, focusing first match."""
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        if '::' in block:
+            condition, fid = block.split('::', 1)
+            condition = condition.strip()
+            fid = fid.strip()
+        else:
+            condition = None
+            fid = block.strip()
+
+        if condition and not xbmc.getCondVisibility(condition):
+            continue
+
+        if fid:
+            xbmc.executebuiltin(f'SetFocus({fid})', True)
+            return
+
+
 def move_to_position(
     main_focus: str,
     main_position: Optional[str] = None,
@@ -166,26 +189,8 @@ def move_to_position(
 
     if next_focus:
         if '::' in next_focus:
-            for block in next_focus.split('||'):
-                block = block.strip()
-                if not block:
-                    continue
-
-                if '::' in block:
-                    condition, fid = block.split('::', 1)
-                    condition = condition.strip()
-                    fid = fid.strip()
-                else:
-                    condition = None
-                    fid = block.strip()
-
-                condition_met = True
-                if condition:
-                    condition_met = xbmc.getCondVisibility(condition)
-
-                if condition_met and fid:
-                    xbmc.executebuiltin(f'SetFocus({fid})', True)
-                    return
+            _evaluate_conditional_focus(next_focus.split('||'))
+            return
         else:
             next_ids = [fid.strip() for fid in next_focus.split('|')]
             next_position_list = [p.strip() for p in next_position.split('|')] if next_position and '|' in next_position else []
@@ -216,29 +221,8 @@ def move_to_position(
                 elif not has_pipe_next_action and next_action:
                     xbmc.executebuiltin(next_action, True)
     elif properties_found:
-        for i, prop_value in properties_found:
-            block = prop_value.strip()
-            if not block:
-                continue
-
-            if '::' in block:
-                condition, fid = block.split('::', 1)
-                condition = condition.strip()
-                fid = fid.strip()
-            else:
-                condition = None
-                fid = block.strip()
-
-            condition_met = True
-            if condition:
-                condition_met = xbmc.getCondVisibility(condition)
-
-            if condition_met and fid:
-                xbmc.executebuiltin(f'SetFocus({fid})', True)
-                for j, _ in properties_found:
-                    xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{j},home)', True)
-                return
-
+        blocks = [prop_value for _, prop_value in properties_found]
+        _evaluate_conditional_focus(blocks)
         for i, _ in properties_found:
             xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
 

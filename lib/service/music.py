@@ -24,7 +24,6 @@ from lib.data.database.music import (
     get_cached_artist,
     get_cached_track,
 )
-from lib.data.api.audiodb import _normalize_tadb_url
 from lib.kodi.client import log
 from lib.kodi.formatters import format_number
 from lib.kodi.settings import KodiSettings
@@ -123,7 +122,7 @@ def read_cached_fanart(mbids: List[str]) -> List[str]:
         cached = db_cache.get_cached_artwork('artist', mbid, 'theaudiodb', 'fanart')
         if cached:
             for art in cached:
-                url = _normalize_tadb_url(art.get('url', ''))
+                url = art.get('url', '')
                 if url and url not in seen:
                     seen.add(url)
                     urls.append(url)
@@ -147,8 +146,6 @@ def read_cached_artist_art(mbids: List[str]) -> Dict[str, str]:
                 if cached:
                     url = cached[0].get('url', '')
                     if url:
-                        if source == 'theaudiodb':
-                            url = _normalize_tadb_url(url)
                         result[art_type] = url
                         break
             if art_type in result:

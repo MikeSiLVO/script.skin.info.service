@@ -508,11 +508,6 @@
 					</constraints>
 					<control type="spinner" format="integer" />
 				</setting>
-				<setting id="blur_clear_cache_action" type="action" label="32125" help="32126">
-					<control type="button" format="action">
-						<data>RunScript(script.skin.info.service,action=settings_action,sub_action=clear_blur_cache)</data>
-					</control>
-				</setting>
 			</group>
 			<group id="3" label="32111">
 				<setting id="context_show_review_artwork" type="boolean" label="32112">

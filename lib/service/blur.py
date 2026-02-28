@@ -2,7 +2,7 @@
 
 import hashlib
 import os
-from typing import Optional, Tuple
+from typing import Optional
 
 import xbmc
 import xbmcvfs
@@ -173,62 +173,3 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
         return None
 
 
-def get_blur_cache_size() -> Tuple[int, int]:
-    """
-    Get blur cache statistics.
-
-    Returns:
-        Tuple of (file_count, total_bytes)
-    """
-    cache_dir = _get_cache_dir()
-    if not cache_dir:
-        return 0, 0
-
-    try:
-        file_count = 0
-        total_size = 0
-
-        for root, dirs, files in os.walk(cache_dir):
-            file_count += len(files)
-            for filename in files:
-                filepath = os.path.join(root, filename)
-                try:
-                    total_size += os.path.getsize(filepath)
-                except Exception:
-                    pass
-
-        return file_count, total_size
-
-    except Exception:
-        return 0, 0
-
-
-def clear_blur_cache() -> int:
-    """
-    Clear all files in the blur cache directory.
-
-    Returns:
-        Number of files deleted
-    """
-    cache_dir = _get_cache_dir()
-    if not cache_dir or not xbmcvfs.exists(cache_dir):
-        log("Blur", "Blur cache directory does not exist", xbmc.LOGWARNING)
-        return 0
-
-    try:
-        deleted_count = 0
-        dirs, files = xbmcvfs.listdir(cache_dir)
-
-        for filename in files:
-            file_path = os.path.join(cache_dir, filename)
-            if xbmcvfs.delete(file_path):
-                deleted_count += 1
-            else:
-                log("Blur", f"Failed to delete blur cache file: {file_path}", xbmc.LOGWARNING)
-
-        log("General", f"Cleared blur cache: {deleted_count} files deleted")
-        return deleted_count
-
-    except Exception as e:
-        log("Blur", f"Failed to clear blur cache: {e}", xbmc.LOGERROR)
-        return 0

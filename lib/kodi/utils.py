@@ -4,13 +4,39 @@ from __future__ import annotations
 import threading
 import xbmc
 import xbmcgui
-from typing import Dict, Optional, List
+from typing import Any, Dict, Optional, List
 from datetime import datetime
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
 from lib.kodi.client import log
 HOME = xbmcgui.Window(10000)
+
+MEDIA_TYPE_LABELS = {
+    'movie': 'Movies',
+    'tvshow': 'TV Shows',
+    'episode': 'Episodes',
+    'season': 'Seasons',
+    'set': 'Movie Sets',
+    'musicvideo': 'Music Videos',
+    'artist': 'Artists',
+    'album': 'Albums',
+}
+
+VALID_MEDIA_TYPES = frozenset(MEDIA_TYPE_LABELS.keys())
+
+
+def validate_media_type(media_type: str) -> bool:
+    """Validate that media_type is a known type."""
+    return media_type in VALID_MEDIA_TYPES
+
+
+def validate_dbid(dbid: Any) -> bool:
+    """Validate that dbid is a positive integer."""
+    try:
+        return int(dbid) > 0
+    except (ValueError, TypeError):
+        return False
 
 
 # Thread safety: Use RLock for reentrant locking (allows same thread to acquire multiple times)

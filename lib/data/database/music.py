@@ -215,12 +215,46 @@ def _track_ttl_hours(source: str) -> int:
 def init_music_database() -> None:
     with get_db(MUSIC_DB_PATH) as (conn, cursor):
         cursor.executescript(_SCHEMA_SQL)
-    log("Database", "Music metadata database initialized", xbmc.LOGINFO)
 
 
 def vacuum_music_database() -> None:
     with get_db(MUSIC_DB_PATH) as (_, cursor):
         cursor.execute('VACUUM')
+
+
+def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int:
+    """Delete cached entries for a specific artist/track/album combination.
+
+    Removes all sources (Last.fm, Wikipedia, AudioDB) and all language variants.
+    """
+    total = 0
+    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+        artist_lower = artist.lower().strip()
+        if track:
+            prefix = _track_key(artist, track)
+            for table in ('music_tracks',):
+                cursor.execute(
+                    f"DELETE FROM {table} WHERE lookup_key = ? OR lookup_key LIKE ?",
+                    (prefix, prefix + ':%'),
+                )
+                total += cursor.rowcount
+        if album:
+            prefix = _album_key('', artist, album)
+            for table in ('music_albums',):
+                cursor.execute(
+                    f"DELETE FROM {table} WHERE lookup_key = ? OR lookup_key LIKE ?",
+                    (prefix, prefix + ':%'),
+                )
+                total += cursor.rowcount
+        if artist_lower:
+            cursor.execute(
+                "DELETE FROM music_artists WHERE lookup_key = ? OR lookup_key LIKE ?",
+                (artist_lower, artist_lower + ':%'),
+            )
+            total += cursor.rowcount
+    if total > 0:
+        log("Database", "Invalidated {} music cache entries for '{}'".format(total, artist))
+    return total
 
 
 def clear_expired_music_cache() -> int:

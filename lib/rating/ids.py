@@ -302,6 +302,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         matched = _fix_missing_ids_via_tmdb(missing_imdb_shows, "tvshow", progress, "TV shows", show_imdb_map)
         total_imdb_fixed += matched
 
+    # Refresh show_imdb mapping for episodes whose shows were just fixed
     for ep in missing_imdb_episodes:
         tvshowid = ep.get("tvshowid")
         if tvshowid and tvshowid in show_imdb_map:
@@ -309,74 +310,9 @@ def run_fix_library_ids(prompt: bool = True) -> None:
             user_show_ids.add(show_imdb_map[tvshowid])
 
     if missing_imdb_episodes and not progress.iscanceled():
-        progress.update(0, ADDON.getLocalizedString(32354))
-
-        def progress_callback(status: str):
-            progress.update(50, status)
-
-        dataset = get_imdb_dataset()
-        result = dataset.refresh_episode_dataset(user_show_ids, progress_callback=progress_callback)
-
-        unmatched_episodes: List[Dict] = []
-
-        if result >= 0:
-            total = len(missing_imdb_episodes)
-            last_percent = -1
-            update_interval = max(1, total // 100)
-
-            with db_imdb.bulk_episode_lookup() as lookup_episode:
-                for i, ep in enumerate(missing_imdb_episodes):
-                    if progress.iscanceled():
-                        break
-
-                    if i % update_interval == 0:
-                        percent = int((i / total) * 100)
-                        if percent != last_percent:
-                            progress.update(percent, ADDON.getLocalizedString(32355).format(f"{i + 1:,}", f"{total:,}"))
-                            last_percent = percent
-
-                    if ep["show_imdb"]:
-                        ep_imdb = lookup_episode(
-                            ep["show_imdb"],
-                            ep["season"],
-                            ep["episode"]
-                        )
-
-                        if ep_imdb:
-                            if update_kodi_uniqueid("episode", ep["episodeid"], ep["uniqueid"], ep_imdb):
-                                total_imdb_fixed += 1
-                            continue
-
-                    if ep.get("show_tmdb"):
-                        unmatched_episodes.append(ep)
-
-        if unmatched_episodes and not progress.iscanceled():
-            total = len(unmatched_episodes)
-            last_percent = -1
-            update_interval = max(1, total // 100)
-
-            for i, ep in enumerate(unmatched_episodes):
-                if progress.iscanceled():
-                    break
-
-                if i % update_interval == 0:
-                    percent = int((i / total) * 100)
-                    if percent != last_percent:
-                        progress.update(percent, ADDON.getLocalizedString(32356).format(f"{i + 1:,}", f"{total:,}"))
-                        last_percent = percent
-
-                show_tmdb = ep.get("show_tmdb")
-                ep_tvdb = ep.get("uniqueid", {}).get("tvdb")
-                if show_tmdb or ep_tvdb:
-                    ep_imdb = get_imdb_id_from_tmdb(
-                        "episode",
-                        {"tmdb": show_tmdb, "tvdb": ep_tvdb},
-                        ep["season"],
-                        ep["episode"]
-                    )
-                    if ep_imdb:
-                        if update_kodi_uniqueid("episode", ep["episodeid"], ep["uniqueid"], ep_imdb):
-                            total_imdb_fixed += 1
+        total_imdb_fixed += _fix_missing_episode_ids(
+            missing_imdb_episodes, user_show_ids, progress
+        )
 
     progress.close()
 
@@ -467,3 +403,82 @@ def _fix_missing_ids_via_tmdb(
                     id_map[item[id_key]] = imdb_id
 
     return matched
+
+
+def _fix_missing_episode_ids(
+    episodes: List[Dict],
+    user_show_ids: Set[str],
+    progress: xbmcgui.DialogProgress,
+) -> int:
+    """Fix missing episode IMDb IDs using dataset bulk lookup, then TMDB fallback."""
+    progress.update(0, ADDON.getLocalizedString(32354))
+
+    def progress_callback(status: str):
+        progress.update(50, status)
+
+    dataset = get_imdb_dataset()
+    result = dataset.refresh_episode_dataset(user_show_ids, progress_callback=progress_callback)
+
+    fixed = 0
+    unmatched: List[Dict] = []
+
+    if result >= 0:
+        total = len(episodes)
+        last_percent = -1
+        update_interval = max(1, total // 100)
+
+        with db_imdb.bulk_episode_lookup() as lookup_episode:
+            for i, ep in enumerate(episodes):
+                if progress.iscanceled():
+                    break
+
+                if i % update_interval == 0:
+                    percent = int((i / total) * 100)
+                    if percent != last_percent:
+                        progress.update(percent, ADDON.getLocalizedString(32355).format(f"{i + 1:,}", f"{total:,}"))
+                        last_percent = percent
+
+                if ep["show_imdb"]:
+                    ep_imdb = lookup_episode(
+                        ep["show_imdb"],
+                        ep["season"],
+                        ep["episode"]
+                    )
+
+                    if ep_imdb:
+                        if update_kodi_uniqueid("episode", ep["episodeid"], ep["uniqueid"], ep_imdb):
+                            fixed += 1
+                        continue
+
+                if ep.get("show_tmdb"):
+                    unmatched.append(ep)
+
+    if unmatched and not progress.iscanceled():
+        total = len(unmatched)
+        last_percent = -1
+        update_interval = max(1, total // 100)
+
+        for i, ep in enumerate(unmatched):
+            if progress.iscanceled():
+                break
+
+            if i % update_interval == 0:
+                percent = int((i / total) * 100)
+                if percent != last_percent:
+                    progress.update(percent, ADDON.getLocalizedString(32356).format(f"{i + 1:,}", f"{total:,}"))
+                    last_percent = percent
+
+            show_tmdb = ep.get("show_tmdb")
+            ep_tvdb = ep.get("uniqueid", {}).get("tvdb")
+            if show_tmdb or ep_tvdb:
+                ep_imdb = get_imdb_id_from_tmdb(
+                    "episode",
+                    {"tmdb": show_tmdb, "tvdb": ep_tvdb},
+                    ep["season"],
+                    ep["episode"]
+                )
+                if ep_imdb:
+                    if update_kodi_uniqueid("episode", ep["episodeid"], ep["uniqueid"], ep_imdb):
+                        fixed += 1
+
+    return fixed

@@ -456,14 +456,6 @@ msgctxt "#32124"
 msgid "Cache Management"
 msgstr ""
 
-msgctxt "#32125"
-msgid "Clear Blur Cache"
-msgstr ""
-
-msgctxt "#32126"
-msgid "Delete all cached blurred images to free up disk space"
-msgstr ""
-
 msgctxt "#32128"
 msgid "Skip"
 msgstr ""
@@ -922,6 +914,10 @@ msgstr ""
 
 msgctxt "#32319"
 msgid "Checking {0}s..."
+msgstr ""
+
+msgctxt "#32320"
+msgid "Ratings up to date"
 msgstr ""
 
 msgctxt "#32330"

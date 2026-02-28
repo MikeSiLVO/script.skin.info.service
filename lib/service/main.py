@@ -59,10 +59,29 @@ class LibraryMonitor(xbmc.Monitor):
         """Handle Kodi notifications for library updates."""
         if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
             self.service_main._increment_library_refresh()
+        if method == 'VideoLibrary.OnUpdate':
+            self._on_video_update(data)
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
                        'AudioLibrary.OnCleanFinished'):
             from lib.plugin.dbid import clear_musicvideo_library_art_cache
             clear_musicvideo_library_art_cache()
+
+    def _on_video_update(self, data: str) -> None:
+        try:
+            import json
+            info = json.loads(data)
+        except Exception:
+            return
+        if info.get('playcount', -1) >= 0:
+            return
+        media_type = info.get('type', '')
+        dbid = info.get('id')
+        if not dbid:
+            return
+        if media_type == 'musicvideo':
+            self.service_main._invalidate_musicvideo_cache(int(dbid))
+        elif media_type in ('movie', 'tvshow', 'episode'):
+            self.service_main._invalidate_online_cache(media_type, str(dbid))
 
 
 IMDB_CHECK_INTERVAL = 86400  # 24 hours in seconds
@@ -783,89 +802,16 @@ class ServiceMain(threading.Thread):
             threading.Thread(target=_fetch_movies_and_update, args=(setid, min_details), daemon=True).start()
 
     def _set_artist_details(self, artistid: str) -> None:
-        ext_props = [
-            "description", "genre", "art", "thumbnail", "fanart",
-            "musicbrainzartistid", "born", "formed", "died", "disbanded",
-            "yearsactive", "instrument", "style", "mood", "type", "gender",
-            "disambiguation", "sortname", "dateadded", "roles", "songgenres",
-            "sourceid", "datemodified", "datenew", "compilationartist", "isalbumartist"
-        ]
-        artist = get_item_details(
-            'artist',
-            int(artistid),
-            ext_props,
-            cache_key=f"artist:{artistid}:details",
-        )
-        if not artist:
-            artist = get_item_details(
-                'artist',
-                int(artistid),
-                ["genre", "art", "thumbnail", "fanart", "description"],
-                cache_key=f"artist:{artistid}:details:min",
-            )
-        if not isinstance(artist, dict):
-            return
-
-        albums_req = {
-            "filter": {"artistid": int(artistid)},
-            "properties": [
-                "title", "year", "artist", "artistid",
-                "genre", "art", "albumlabel", "playcount", "rating",
-            ],
-            "sort": {"method": "year", "order": "ascending"},
-        }
-        albums_resp = request(
-            "AudioLibrary.GetAlbums",
-            albums_req,
-            cache_key=f"artist:{artistid}:albums",
-        )
-        albums = extract_result(albums_resp, "albums") if albums_resp else []
-        if not isinstance(albums, list):
-            albums = []
-
-        set_artist_properties(artist, albums)
+        from lib.plugin.dbid import fetch_artist_details
+        result = fetch_artist_details(int(artistid))
+        if result:
+            set_artist_properties(*result)
 
     def _set_album_details(self, albumid: str) -> None:
-        ext_props = [
-            "title", "art", "year", "artist", "artistid", "genre",
-            "style", "mood", "type", "albumlabel", "playcount", "rating", "userrating",
-            "musicbrainzalbumid", "musicbrainzreleasegroupid", "lastplayed", "dateadded",
-            "description", "votes", "displayartist", "compilation", "releasetype",
-            "sortartist", "songgenres", "totaldiscs", "releasedate", "originaldate", "albumduration",
-        ]
-        album = get_item_details(
-            'album',
-            int(albumid),
-            ext_props,
-            cache_key=f"album:{albumid}:details",
-        )
-        if not album:
-            album = get_item_details(
-                'album',
-                int(albumid),
-                [
-                    "title", "art", "year", "artist", "genre", "albumlabel", "playcount", "rating",
-                ],
-                cache_key=f"album:{albumid}:details:min",
-            )
-        if not isinstance(album, dict):
-            return
-
-        songs_req = {
-            "filter": {"albumid": int(albumid)},
-            "properties": ["title", "duration", "track", "disc", "file", "art", "thumbnail"],
-            "sort": {"method": "track", "order": "ascending"},
-        }
-        songs_resp = request(
-            "AudioLibrary.GetSongs",
-            songs_req,
-            cache_key=f"album:{albumid}:songs",
-        )
-        songs = extract_result(songs_resp, "songs") if songs_resp else []
-        if not isinstance(songs, list):
-            songs = []
-
-        set_album_properties(album, songs)
+        from lib.plugin.dbid import fetch_album_details
+        result = fetch_album_details(int(albumid))
+        if result:
+            set_album_properties(*result)
 
     def _set_tvshow_details(self, tvshowid: str) -> None:
         details = get_item_details(
@@ -945,6 +891,31 @@ class ServiceMain(threading.Thread):
         }
         self._set_musicvideo_library_art(details)
 
+    def _invalidate_musicvideo_cache(self, musicvideoid: int) -> None:
+        from lib.service.properties import _join
+        details = get_item_details(
+            'musicvideo', musicvideoid, ["title", "artist", "album"],
+            cache_key="musicvideo:{}:invalidate".format(musicvideoid),
+        )
+        if not isinstance(details, dict):
+            return
+        artist = _join(details.get("artist"))
+        if not artist:
+            return
+        from lib.data.database.music import invalidate_music_cache
+        invalidate_music_cache(
+            artist,
+            track=details.get("title", ""),
+            album=details.get("album", ""),
+        )
+        self._musicvideo_online_key = None
+
+    def _invalidate_online_cache(self, media_type: str, dbid: str) -> None:
+        from lib.service.online import _jsonrpc_get_uniqueids, invalidate_online_cache
+        imdb_id, tmdb_id = _jsonrpc_get_uniqueids(media_type, dbid)
+        if imdb_id or tmdb_id:
+            invalidate_online_cache(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
+
     def _set_musicvideo_details(self, musicvideoid: str) -> None:
         details = get_item_details(
             'musicvideo',
@@ -991,7 +962,7 @@ class ServiceMain(threading.Thread):
         if artist_name:
             album = details.get("album") or None
             title = details.get("title") or None
-            cache_key = artist_name
+            cache_key = "{}|{}|{}".format(artist_name, title or "", album or "")
 
             if cache_key == self._musicvideo_online_key:
                 for k in self._ONLINE_ART_KEYS:
@@ -1181,8 +1152,19 @@ class ImdbUpdateService(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         self.abort = threading.Event()
-        self._last_check = time.time()
         self._update_lock = threading.Lock()
+
+    def _get_last_check(self) -> float:
+        stored = ADDON.getSetting("imdb_last_auto_check")
+        if stored:
+            try:
+                return float(stored)
+            except (ValueError, TypeError):
+                pass
+        return 0.0
+
+    def _set_last_check(self) -> None:
+        ADDON.setSetting("imdb_last_auto_check", str(time.time()))
 
     def run(self) -> None:
         monitor = ImdbUpdateMonitor(self)
@@ -1198,9 +1180,9 @@ class ImdbUpdateService(threading.Thread):
             setting = ADDON.getSetting("imdb_auto_update")
             if setting in ("when_updated", "both"):
                 now = time.time()
-                if (now - self._last_check) >= IMDB_CHECK_INTERVAL:
-                    self._last_check = now
+                if (now - self._get_last_check()) >= IMDB_CHECK_INTERVAL:
                     self._run_update(monitor)
+                    self._set_last_check()
 
         log("Service", "IMDb auto-update service stopped", xbmc.LOGINFO)
 
@@ -1239,11 +1221,14 @@ class ImdbUpdateService(threading.Thread):
         stats = update_changed_imdb_ratings(monitor=monitor)
         updated = stats.get("updated", 0)
         if updated > 0:
-            self._notify_when_idle(
-                ADDON.getLocalizedString(32300),
-                f"{updated} ratings updated",
-                monitor,
-            )
+            message = f"{updated} ratings updated"
+        else:
+            message = ADDON.getLocalizedString(32320)
+        self._notify_when_idle(
+            ADDON.getLocalizedString(32300),
+            message,
+            monitor,
+        )
 
     def _run_full_update(self) -> None:
         from lib.rating.updater import update_library_ratings

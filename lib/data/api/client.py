@@ -20,9 +20,23 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from lib.kodi.client import log, ADDON
-from lib.rating.source import RetryableError, RateLimitHit
 
 _USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
+
+
+class RateLimitHit(Exception):
+    """Exception raised when a provider's API rate limit is reached."""
+    def __init__(self, provider: str):
+        self.provider = provider
+        super().__init__(f"Rate limit reached for {provider}")
+
+
+class RetryableError(Exception):
+    """Exception raised for transient errors that may succeed on retry (timeouts, connection errors)."""
+    def __init__(self, provider: str, reason: str):
+        self.provider = provider
+        self.reason = reason
+        super().__init__(f"{provider}: {reason}")
 
 
 class RateLimiter:

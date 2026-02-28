@@ -1,4 +1,4 @@
-"""Ratings updater coordinator - main entry point for ratings updates."""
+"""Ratings updater - batch processing, item updates, and incremental sync."""
 from __future__ import annotations
 
 from typing import List, Dict, Optional, Set, Tuple
@@ -10,20 +10,17 @@ import xbmcgui
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import (
     request, batch_request, get_library_items, _get_api_key, log,
-    KODI_GET_DETAILS_METHODS, KODI_SET_DETAILS_METHODS, ADDON
+    KODI_SET_DETAILS_METHODS, ADDON
 )
-from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource, resolve_tmdb_id
+from lib.data.api.tmdb import resolve_tmdb_id
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource, BATCH_SIZE as MDBLIST_BATCH_SIZE
-from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
-from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
 from lib.data.api.imdb import get_imdb_dataset
-from lib.rating.source import RateLimitHit, RetryableError
+from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api.trakt import ApiTrakt
 from lib.rating.merger import merge_ratings, prepare_kodi_ratings
-from lib.rating import tracker as usage_tracker
+from lib.data.api import tracker as usage_tracker
 from lib.infrastructure.dialogs import show_ok, show_textviewer, show_notification, show_yesnocustom
-from lib.infrastructure.menus import Menu, MenuItem
 from lib.data.database import workflow as db
-from lib.data.database._infrastructure import init_database
 from lib.rating.executor import RatingBatchExecutor, ItemState
 from lib.rating.ids import get_imdb_id_from_tmdb, update_kodi_uniqueid
 
@@ -103,7 +100,53 @@ def _get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
     return {}
 
 
-def _update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
+def _prefetch_trakt_seasons(
+    tvshow_dbid: int, episodes: List[Dict], sources: List
+) -> None:
+    """Prefetch Trakt episode data per-season for a show's episodes."""
+    trakt_source = next((s for s in sources if isinstance(s, ApiTrakt)), None)
+    if not trakt_source:
+        return
+
+    show_uniqueid = _get_tvshow_uniqueid(tvshow_dbid)
+    show_imdb = show_uniqueid.get("imdb")
+    if not show_imdb:
+        return
+
+    seasons: Set[int] = set()
+    for ep in episodes:
+        s = ep.get("season")
+        if s is not None:
+            seasons.add(s)
+    for season in sorted(seasons):
+        trakt_source.prefetch_season(show_imdb, season)
+
+
+def _prefetch_trakt_seasons_batch(
+    items: List[Dict], sources: List
+) -> None:
+    """Prefetch Trakt episode data for all show+season combos in a batch."""
+    trakt_source = next((s for s in sources if isinstance(s, ApiTrakt)), None)
+    if not trakt_source:
+        return
+
+    show_seasons: Dict[int, Set[int]] = {}
+    for item in items:
+        tvshow_dbid = item.get("tvshowid")
+        season = item.get("season")
+        if tvshow_dbid and season is not None:
+            show_seasons.setdefault(tvshow_dbid, set()).add(season)
+
+    for tvshow_dbid, seasons in show_seasons.items():
+        show_uniqueid = _get_tvshow_uniqueid(tvshow_dbid)
+        show_imdb = show_uniqueid.get("imdb")
+        if not show_imdb:
+            continue
+        for season in sorted(seasons):
+            trakt_source.prefetch_season(show_imdb, season)
+
+
+def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
     """
     Update ratings for all episodes of a TV show.
 
@@ -128,213 +171,15 @@ def _update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
 
     log("Ratings", f"Updating ratings for {len(episodes)} episodes", xbmc.LOGINFO)
 
+    _prefetch_trakt_seasons(tvshow_dbid, episodes, sources)
+
     updated_count = 0
     for episode in episodes:
-        success, _ = _update_single_item(episode, "episode", sources)
+        success, _ = update_single_item(episode, "episode", sources, force_refresh=False)
         if success:
             updated_count += 1
 
     return updated_count
-
-
-def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """
-    Update ratings for a single item by DBID.
-
-    Args:
-        dbid: Database ID of the item
-        dbtype: Type of the item (movie, tvshow, episode)
-    """
-    if not dbid:
-        dbid = xbmc.getInfoLabel("ListItem.DBID")
-    if not dbtype:
-        dbtype = xbmc.getInfoLabel("ListItem.DBType")
-
-    if not dbid or dbid == "-1" or not dbtype:
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32259),
-            xbmcgui.NOTIFICATION_WARNING,
-            3000
-        )
-        return
-
-    media_type = dbtype.lower()
-    if media_type not in ("movie", "tvshow", "episode"):
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32263).format(media_type),
-            xbmcgui.NOTIFICATION_WARNING,
-            3000
-        )
-        return
-
-    log("Ratings", f"Updating ratings for single item - dbid={dbid}, dbtype={media_type}", xbmc.LOGINFO)
-
-    init_database()
-
-    # Check if IMDb dataset needs refresh
-    imdb_dataset = get_imdb_dataset()
-    imdb_dataset.refresh_if_stale()
-
-    sources = _initialize_sources()
-    if not sources:
-        show_ok(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32400)
-        )
-        return
-
-    if media_type == "episode":
-        properties = ["title", "season", "episode", "tvshowid", "uniqueid", "ratings"]
-    else:
-        properties = ["title", "year", "uniqueid", "ratings"]
-
-    method_info = KODI_GET_DETAILS_METHODS.get(media_type)
-    if not method_info:
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32263).format(media_type),
-            xbmcgui.NOTIFICATION_WARNING,
-            3000
-        )
-        return
-
-    method_name, id_key, result_key = method_info
-
-    response = request(method_name, {id_key: int(dbid), "properties": properties})
-    if not response or result_key not in response.get("result", {}):
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32401).format(media_type.title()),
-            xbmcgui.NOTIFICATION_WARNING,
-            3000
-        )
-        return
-
-    item = response["result"][result_key]
-    title = item.get("title", "Unknown")
-
-    show_notification(
-        ADDON.getLocalizedString(32300),
-        ADDON.getLocalizedString(32402),
-        xbmcgui.NOTIFICATION_INFO,
-        2000
-    )
-
-    success, item_stats = _update_single_item(item, media_type, sources)
-
-    total_added = item_stats.get('added_details', []) if item_stats else []
-    total_updated = item_stats.get('updated_details', []) if item_stats else []
-    episodes_updated = 0
-
-    if media_type == "tvshow" and success:
-        episodes_updated = _update_tvshow_episodes(int(dbid), sources)
-
-    if success:
-        if total_added or total_updated or episodes_updated > 0:
-            message_lines = []
-
-            if total_added:
-                message_lines.append(f"[B]Added:[/B] {', '.join(total_added)}")
-
-            if total_updated:
-                message_lines.append(f"[B]Updated:[/B] {', '.join(total_updated)}")
-
-            if episodes_updated > 0:
-                message_lines.append(f"[B]Episodes:[/B] {episodes_updated} updated")
-
-            show_ok(ADDON.getLocalizedString(32316).format(title), "[CR]".join(message_lines))
-        else:
-            show_notification(
-                ADDON.getLocalizedString(32300),
-                ADDON.getLocalizedString(32403),
-                xbmcgui.NOTIFICATION_INFO,
-                3000
-            )
-
-        xbmc.executebuiltin("Container.Refresh")
-    elif success is None:
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32404),
-            xbmcgui.NOTIFICATION_WARNING,
-            3000
-        )
-    else:
-        show_notification(
-            ADDON.getLocalizedString(32300),
-            ADDON.getLocalizedString(32405),
-            xbmcgui.NOTIFICATION_ERROR,
-            3000
-        )
-
-
-def run_ratings_menu() -> None:
-    """Show ratings updater menu."""
-    init_database()
-
-    items = [
-        MenuItem(ADDON.getLocalizedString(32406), lambda: _run_update("movie")),
-        MenuItem(ADDON.getLocalizedString(32407), lambda: _run_update("tvshow")),
-        MenuItem(ADDON.getLocalizedString(32408), lambda: _run_update("episode")),
-        MenuItem(ADDON.getLocalizedString(32409), _run_update_all),
-    ]
-
-    if db.get_last_operation_stats('ratings_update'):
-        items.append(MenuItem(ADDON.getLocalizedString(32086), show_ratings_report, loop=True))
-
-    menu = Menu(ADDON.getLocalizedString(32300), items)
-    menu.show()
-
-
-def _run_update(media_type: str) -> None:
-    """Run ratings update for a media type."""
-    _select_mode_and_run(media_type, _initialize_sources(), "multi_source")
-
-
-def _run_update_all() -> None:
-    """Run ratings update for all media types."""
-    sources = _initialize_sources()
-
-    def run_foreground():
-        update_library_ratings("movie", sources, use_background=False, source_mode="multi_source")
-        update_library_ratings("tvshow", sources, use_background=False, source_mode="multi_source")
-        update_library_ratings("episode", sources, use_background=False, source_mode="multi_source")
-
-    def run_background():
-        if task_manager.is_task_running():
-            task_info = task_manager.get_task_info()
-            current_task = task_info['name'] if task_info else "Unknown task"
-            show_ok(ADDON.getLocalizedString(32172), f"{ADDON.getLocalizedString(32173)}:[CR]{current_task}")
-            return
-        update_library_ratings("movie", sources, use_background=True, source_mode="multi_source")
-        update_library_ratings("tvshow", sources, use_background=True, source_mode="multi_source")
-        update_library_ratings("episode", sources, use_background=True, source_mode="multi_source")
-
-    Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), run_foreground),
-        MenuItem(ADDON.getLocalizedString(32412), run_background),
-    ]).show()
-
-
-def _select_mode_and_run(media_type: str, sources: List, source_mode: str) -> None:
-    """Select run mode and execute ratings update."""
-    def run_foreground():
-        update_library_ratings(media_type, sources, use_background=False, source_mode=source_mode)
-
-    def run_background():
-        if task_manager.is_task_running():
-            task_info = task_manager.get_task_info()
-            current_task = task_info['name'] if task_info else "Unknown task"
-            show_ok(ADDON.getLocalizedString(32172), f"{ADDON.getLocalizedString(32173)}:[CR]{current_task}")
-            return
-        update_library_ratings(media_type, sources, use_background=True, source_mode=source_mode)
-
-    Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), run_foreground),
-        MenuItem(ADDON.getLocalizedString(32412), run_background),
-    ]).show()
 
 
 _DRIP_DELAY = {
@@ -393,22 +238,30 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
         monitor = xbmc.Monitor()
 
     sync_batch: List[tuple] = []
+    progress = xbmcgui.DialogProgressBG()
+    progress.create(ADDON.getLocalizedString(32300))
 
-    for item_media_type, item in work_items:
+    for idx, (item_media_type, item) in enumerate(work_items):
         if monitor.abortRequested():
             log("Ratings", "Abort requested, stopping incremental update", xbmc.LOGINFO)
             break
+
+        pct = int((idx / combined_total) * 100)
+        progress.update(pct, ADDON.getLocalizedString(32300),
+                        ADDON.getLocalizedString(32307).format(idx + 1, combined_total))
 
         state = _get_kodi_state()
         if state == "playing":
             if sync_batch:
                 db.update_synced_ratings_batch(sync_batch)
                 sync_batch = []
+            progress.close()
             while xbmc.getCondVisibility("Player.HasVideo"):
                 if monitor.waitForAbort(_PLAYBACK_POLL_MS / 1000):
                     break
             if monitor.abortRequested():
                 break
+            progress.create(ADDON.getLocalizedString(32300))
             state = _get_kodi_state()
 
         set_method_info = KODI_SET_DETAILS_METHODS.get(item_media_type)
@@ -449,6 +302,8 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
 
         delay_ms = _DRIP_DELAY.get(state, _DRIP_DELAY["idle"]).get(item_media_type, 100)
         xbmc.sleep(delay_ms)
+
+    progress.close()
 
     if sync_batch:
         db.update_synced_ratings_batch(sync_batch)
@@ -560,24 +415,319 @@ def _collect_new_library_items(
     return all_batch_items, skipped
 
 
+def _run_imdb_batch(
+    media_type: str,
+    items: List[Dict],
+    progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG,
+    results: Dict,
+    ctx: task_manager.TaskContext,
+    monitor: xbmc.Monitor,
+    dataset_date: str,
+    processed_ids: Set[int],
+) -> None:
+    """Run IMDb dataset batch update. Mutates results and processed_ids in place."""
+
+    def _should_abort() -> bool:
+        return ctx.abort_flag.is_requested() or monitor.abortRequested()
+
+    def _update_progress() -> None:
+        current_count = len(processed_ids)
+        percent = int((current_count / len(items)) * 100)
+        if isinstance(progress, xbmcgui.DialogProgressBG):
+            progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(current_count, len(items)))
+        elif isinstance(progress, xbmcgui.DialogProgress):
+            progress.update(percent, ADDON.getLocalizedString(32309).format(current_count, len(items)))
+
+    log("Ratings", f"Using BATCHED IMDb update for {len(items)} {media_type} items", xbmc.LOGINFO)
+    batch_items_prepared = 0
+    batch_items_skipped = 0
+    id_key = "movieid" if media_type == "movie" else "tvshowid" if media_type == "tvshow" else "episodeid"
+    set_method_info = KODI_SET_DETAILS_METHODS.get(media_type)
+    if not set_method_info:
+        log("Ratings", f"Unknown media type for SET: {media_type}", xbmc.LOGERROR)
+        return
+
+    set_method, set_id_key = set_method_info
+    items_since_save = 0
+    dataset = get_imdb_dataset()
+
+    batch_start = 0
+    while batch_start < len(items):
+        if _should_abort():
+            results["cancelled"] = True
+            break
+
+        if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
+            results["cancelled"] = True
+            break
+
+        batch_end = min(batch_start + 1000, len(items))
+        batch = items[batch_start:batch_end]
+
+        set_calls = []
+        items_to_update = []
+        unchanged_syncs: List[tuple] = []
+
+        pending_items = []
+        for item in batch:
+            dbid = item.get(id_key)
+            if dbid and dbid in processed_ids:
+                continue
+            imdb_id = _resolve_imdb_id(item, media_type, dataset)
+            pending_items.append((item, imdb_id))
+
+        all_imdb_ids = [iid for _, iid in pending_items if iid]
+        batch_ratings = dataset.get_ratings_batch(all_imdb_ids) if all_imdb_ids else {}
+
+        for item, resolved_imdb_id in pending_items:
+            if _should_abort():
+                log("Ratings", "Abort requested during item preparation", xbmc.LOGINFO)
+                results["cancelled"] = True
+                break
+
+            dbid = item.get(id_key)
+
+            prepared = _prepare_imdb_update(item, media_type, dataset, ratings_map=batch_ratings, resolved_imdb_id=resolved_imdb_id)
+            if prepared is None:
+                results["skipped"] += 1
+                batch_items_skipped += 1
+                if dbid:
+                    processed_ids.add(dbid)
+                continue
+
+            dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, year, is_add = prepared
+
+            if kodi_ratings is None:
+                unchanged_syncs.append((media_type, dbid, 'imdb', imdb_id, new_rating, new_votes))
+                processed_ids.add(dbid)
+                items_since_save += 1
+                continue
+
+            batch_items_prepared += 1
+            set_calls.append({
+                "method": set_method,
+                "params": {set_id_key: dbid, "ratings": kodi_ratings}
+            })
+            items_to_update.append({
+                "dbid": dbid,
+                "imdb_id": imdb_id,
+                "new_rating": new_rating,
+                "new_votes": new_votes,
+                "title": title,
+                "year": year,
+                "is_add": is_add
+            })
+
+        if results.get("cancelled"):
+            break
+
+        if set_calls:
+            _update_progress()
+            set_responses = batch_request(set_calls)
+
+            if _should_abort():
+                log("Ratings", "Abort requested after batch_request", xbmc.LOGINFO)
+                results["cancelled"] = True
+                break
+
+            sync_batch: List[tuple] = []
+            for i, update_info in enumerate(items_to_update):
+                if _should_abort():
+                    log("Ratings", "Abort requested during DB update loop", xbmc.LOGINFO)
+                    results["cancelled"] = True
+                    break
+
+                response = set_responses[i] if i < len(set_responses) else None
+                dbid = update_info["dbid"]
+
+                if response is not None and "error" not in response:
+                    sync_batch.append((
+                        media_type, dbid, 'imdb',
+                        update_info["imdb_id"], update_info["new_rating"], update_info["new_votes"]
+                    ))
+                    action = "Added" if update_info["is_add"] else "Updated"
+                    log("Ratings", f"{action} {update_info['title']}: imdb ({update_info['new_rating']:.1f})", xbmc.LOGDEBUG)
+                    results["updated"] += 1
+                    if update_info["is_add"]:
+                        results["total_ratings_added"] += 1
+                    else:
+                        results["total_ratings_updated"] += 1
+                else:
+                    results["failed"] += 1
+
+                processed_ids.add(dbid)
+                items_since_save += 1
+
+            if sync_batch:
+                db.update_synced_ratings_batch(sync_batch)
+
+            if results.get("cancelled"):
+                break
+
+        if unchanged_syncs:
+            db.update_synced_ratings_batch(unchanged_syncs)
+
+        ctx.mark_progress()
+        _update_progress()
+
+        if items_since_save >= PROGRESS_SAVE_INTERVAL:
+            db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
+            items_since_save = 0
+
+        batch_start = batch_end
+
+    log("Ratings", f"BATCHED complete: {batch_items_prepared} to update, {batch_items_skipped} skipped", xbmc.LOGINFO)
+
+    if not results.get("cancelled"):
+        db.clear_imdb_update_progress(media_type)
+    elif dataset_date:
+        db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
+
+
+def _run_multi_source_batch(
+    media_type: str,
+    items: List[Dict],
+    sources: List,
+    progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG,
+    results: Dict,
+    retry_queue: List[Dict],
+    ctx: task_manager.TaskContext,
+    mdblist_fetcher: Optional[MdblistBatchFetcher],
+) -> None:
+    """Run multi-source batch update using RatingBatchExecutor. Mutates results and retry_queue in place."""
+
+    def _collect_result(item: Dict, success: Optional[bool], item_stats: Optional[Dict]) -> None:
+        if success:
+            results["updated"] += 1
+        elif success is None:
+            results["skipped"] += 1
+        else:
+            results["failed"] += 1
+
+        if not item_stats:
+            return
+
+        results["total_ratings_added"] += item_stats.get("ratings_added", 0)
+        results["total_ratings_updated"] += item_stats.get("ratings_updated", 0)
+        if item_stats.get("imdb_id_added"):
+            results["imdb_ids_added"] += 1
+        if item_stats.get("pending_correction"):
+            results["pending_corrections"].append(item_stats["pending_correction"])
+
+        for source_name in item_stats.get("sources_used", []):
+            if source_name not in results["source_stats"]:
+                results["source_stats"][source_name] = {"fetched": 0, "failed": 0}
+            results["source_stats"][source_name]["fetched"] += 1
+
+        if item_stats.get("ratings_added", 0) > 0 or item_stats.get("ratings_updated", 0) > 0:
+            results["item_details"].append(item_stats)
+            if len(results["item_details"]) > 20:
+                results["item_details"].pop(0)
+
+        retryable = item_stats.get("retryable_failures", [])
+        if retryable:
+            retry_queue.append({
+                "item": item,
+                "title": item_stats.get("title", "Unknown"),
+                "year": item_stats.get("year", ""),
+                "failures": retryable,
+            })
+
+    def _try_finalize(executor: RatingBatchExecutor, check_dbid: int, finalized_count: int) -> int:
+        check_state = executor.get_item_state(check_dbid)
+        if not check_state:
+            return finalized_count
+
+        all_sources_done = len(check_state.completed_sources) >= len(sources)
+        timed_out = executor.check_item_timeout(check_dbid)
+
+        if not all_sources_done and not timed_out:
+            return finalized_count
+
+        if timed_out and not all_sources_done:
+            executor.timeout_pending_sources(check_dbid)
+
+        success, item_stats = _finalize_item_ratings(check_state, media_type)
+        executor.mark_item_finalized(check_dbid)
+        _collect_result(check_state.item, success, item_stats)
+        ctx.mark_progress()
+        return finalized_count + 1
+
+    with RatingBatchExecutor(sources, ctx.abort_flag) as executor:
+        items_finalized = 0
+
+        for i, item in enumerate(items):
+            if executor.is_cancelled():
+                results["cancelled"] = True
+                break
+
+            if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
+                results["cancelled"] = True
+                break
+
+            if mdblist_fetcher:
+                mdblist_fetcher.fetch_batch_for_index(i, progress)
+
+            prepared = _prepare_item_for_batch(item, media_type)
+            dbid, title, year, ids, existing_ratings, initial_ratings, initial_sources = prepared
+
+            if dbid is None or title is None or ids is None or existing_ratings is None:
+                results["skipped"] += 1
+                continue
+
+            executor.submit_item(
+                item=item, dbid=dbid, title=title, year=year or "",
+                media_type=media_type, ids=ids, existing_ratings=existing_ratings,
+            )
+
+            state = executor.get_item_state(dbid)
+            if state and initial_ratings and initial_sources:
+                state.ratings.extend(initial_ratings)
+                state.sources_used.extend(initial_sources)
+
+            percent = int((i / len(items)) * 100)
+            if isinstance(progress, xbmcgui.DialogProgressBG):
+                progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32306).format(i+1, len(items), title))
+            elif isinstance(progress, xbmcgui.DialogProgress):
+                progress.update(percent, f"{ADDON.getLocalizedString(32307).format(i+1, len(items))}\n{title}")
+
+            collected = executor.collect_results(timeout=0.1)
+            for result_dbid, source_name, result in collected:
+                executor.process_result(result_dbid, source_name, result)
+
+            for check_dbid in executor.get_unfinalized_items():
+                items_finalized = _try_finalize(executor, check_dbid, items_finalized)
+
+        while executor.get_unfinalized_items():
+            if executor.is_cancelled():
+                results["cancelled"] = True
+                break
+
+            if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
+                results["cancelled"] = True
+                break
+
+            collected = executor.collect_results(timeout=1.0)
+            for result_dbid, source_name, result in collected:
+                executor.process_result(result_dbid, source_name, result)
+
+            for check_dbid in executor.get_unfinalized_items():
+                items_finalized = _try_finalize(executor, check_dbid, items_finalized)
+
+                percent = int((items_finalized / len(items)) * 100)
+                if isinstance(progress, xbmcgui.DialogProgressBG):
+                    progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(items_finalized, len(items)))
+                elif isinstance(progress, xbmcgui.DialogProgress):
+                    progress.update(percent, ADDON.getLocalizedString(32309).format(items_finalized, len(items)))
+
+
 def update_library_ratings(
     media_type: str,
     sources: List,
     use_background: bool = False,
     source_mode: str = "multi_source"
 ) -> Dict[str, int]:
-    """
-    Update ratings for all items of a media type.
-
-    Args:
-        media_type: Type of media ("movie", "tvshow", "episode")
-        sources: List of API rating sources to use
-        use_background: Whether to run in background mode
-        source_mode: Source mode identifier for reporting ("imdb", "tmdb", etc.)
-
-    Returns:
-        Dictionary with update statistics
-    """
+    """Update ratings for all items of a media type."""
     start_time = time.time()
     usage_tracker.reset_session_skip()
 
@@ -613,25 +763,16 @@ def update_library_ratings(
         progress.update(0, ADDON.getLocalizedString(32304).format(len(items), media_type))
 
     results: Dict = {
-        "updated": 0,
-        "failed": 0,
-        "skipped": 0,
-        "total_items": len(items),
-        "source_stats": {},
-        "item_details": [],
-        "total_ratings_added": 0,
-        "total_ratings_updated": 0,
-        "imdb_ids_added": 0,
-        "imdb_ids_corrected": 0,
-        "pending_corrections": [],
-        "source_mode": source_mode
+        "updated": 0, "failed": 0, "skipped": 0,
+        "total_items": len(items), "source_stats": {}, "item_details": [],
+        "total_ratings_added": 0, "total_ratings_updated": 0,
+        "imdb_ids_added": 0, "imdb_ids_corrected": 0,
+        "pending_corrections": [], "source_mode": source_mode,
     }
 
     retry_queue: List[Dict] = []
-
     dataset_date: str = ""
     processed_ids: Set[int] = set()
-    resume_count = 0
 
     if source_mode == "imdb":
         dataset = get_imdb_dataset()
@@ -649,8 +790,7 @@ def update_library_ratings(
         if saved_progress:
             if saved_progress["dataset_date"] == dataset_date:
                 processed_ids = saved_progress["processed_ids"]
-                resume_count = len(processed_ids)
-                log("Ratings", f"Resuming IMDb update for {media_type}: {resume_count}/{len(items)} already processed")
+                log("Ratings", f"Resuming IMDb update for {media_type}: {len(processed_ids)}/{len(items)} already processed")
             else:
                 db.clear_imdb_update_progress(media_type)
                 log("Ratings", f"New IMDb dataset detected, starting fresh for {media_type}")
@@ -662,308 +802,16 @@ def update_library_ratings(
     if media_type == "episode":
         _ensure_episode_dataset(progress)
         _prefetch_tvshow_uniqueids()
-
-    def update_results(item, success, item_stats):
-        """Update results dict with item outcome."""
-        if success:
-            results["updated"] += 1
-        elif success is None:
-            results["skipped"] += 1
-        else:
-            results["failed"] += 1
-
-        if item_stats:
-            results["total_ratings_added"] += item_stats.get("ratings_added", 0)
-            results["total_ratings_updated"] += item_stats.get("ratings_updated", 0)
-            if item_stats.get("imdb_id_added"):
-                results["imdb_ids_added"] += 1
-            if item_stats.get("pending_correction"):
-                results["pending_corrections"].append(item_stats["pending_correction"])
-
-            for source_name in item_stats.get("sources_used", []):
-                if source_name not in results["source_stats"]:
-                    results["source_stats"][source_name] = {"fetched": 0, "failed": 0}
-                results["source_stats"][source_name]["fetched"] += 1
-
-            if item_stats.get("ratings_added", 0) > 0 or item_stats.get("ratings_updated", 0) > 0:
-                results["item_details"].append(item_stats)
-                if len(results["item_details"]) > 20:
-                    results["item_details"].pop(0)
-
-            retryable = item_stats.get("retryable_failures", [])
-            if retryable:
-                retry_queue.append({
-                    "item": item,
-                    "title": item_stats.get("title", "Unknown"),
-                    "year": item_stats.get("year", ""),
-                    "failures": retryable
-                })
+        if source_mode == "multi_source":
+            _prefetch_trakt_seasons_batch(items, sources)
 
     monitor = xbmc.Monitor()
 
     with task_manager.TaskContext("Update Library Ratings") as ctx:
-
-        def _should_abort() -> bool:
-            return ctx.abort_flag.is_requested() or monitor.abortRequested()
         if source_mode == "imdb":
-            log("Ratings", f"Using BATCHED IMDb update for {len(items)} {media_type} items", xbmc.LOGINFO)
-            batch_items_prepared = 0
-            batch_items_skipped = 0
-            id_key = "movieid" if media_type == "movie" else "tvshowid" if media_type == "tvshow" else "episodeid"
-            set_method_info = KODI_SET_DETAILS_METHODS.get(media_type)
-            if not set_method_info:
-                log("Ratings", f"Unknown media type for SET: {media_type}", xbmc.LOGERROR)
-            else:
-                set_method, set_id_key = set_method_info
-                items_since_save = 0
-                dataset = get_imdb_dataset()
-
-                batch_start = 0
-                while batch_start < len(items):
-                    if _should_abort():
-                        results["cancelled"] = True
-                        break
-
-                    if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
-                        results["cancelled"] = True
-                        break
-
-                    batch_end = min(batch_start + 1000, len(items))
-                    batch = items[batch_start:batch_end]
-
-                    set_calls = []
-                    items_to_update = []
-                    unchanged_syncs: List[tuple] = []
-
-                    def _update_imdb_progress():
-                        current_count = len(processed_ids)
-                        percent = int((current_count / len(items)) * 100)
-                        if isinstance(progress, xbmcgui.DialogProgressBG):
-                            progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(current_count, len(items)))
-                        elif isinstance(progress, xbmcgui.DialogProgress):
-                            progress.update(percent, ADDON.getLocalizedString(32309).format(current_count, len(items)))
-
-                    pending_items = []
-                    for item in batch:
-                        dbid = item.get(id_key)
-                        if dbid and dbid in processed_ids:
-                            continue
-                        imdb_id = _resolve_imdb_id(item, media_type, dataset)
-                        pending_items.append((item, imdb_id))
-
-                    all_imdb_ids = [iid for _, iid in pending_items if iid]
-                    batch_ratings = dataset.get_ratings_batch(all_imdb_ids) if all_imdb_ids else {}
-
-                    for item, resolved_imdb_id in pending_items:
-                        if _should_abort():
-                            log("Ratings", "Abort requested during item preparation", xbmc.LOGINFO)
-                            results["cancelled"] = True
-                            break
-
-                        dbid = item.get(id_key)
-
-                        prepared = _prepare_imdb_update(item, media_type, dataset, ratings_map=batch_ratings, resolved_imdb_id=resolved_imdb_id)
-                        if prepared is None:
-                            results["skipped"] += 1
-                            batch_items_skipped += 1
-                            if dbid:
-                                processed_ids.add(dbid)
-                            continue
-
-                        dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, year, is_add = prepared
-
-                        if kodi_ratings is None:
-                            unchanged_syncs.append((media_type, dbid, 'imdb', imdb_id, new_rating, new_votes))
-                            processed_ids.add(dbid)
-                            items_since_save += 1
-                            continue
-
-                        batch_items_prepared += 1
-                        set_calls.append({
-                            "method": set_method,
-                            "params": {set_id_key: dbid, "ratings": kodi_ratings}
-                        })
-                        items_to_update.append({
-                            "dbid": dbid,
-                            "imdb_id": imdb_id,
-                            "new_rating": new_rating,
-                            "new_votes": new_votes,
-                            "title": title,
-                            "year": year,
-                            "is_add": is_add
-                        })
-
-                    if results.get("cancelled"):
-                        break
-
-                    if set_calls:
-                        _update_imdb_progress()
-                        set_responses = batch_request(set_calls)
-
-                        if _should_abort():
-                            log("Ratings", "Abort requested after batch_request", xbmc.LOGINFO)
-                            results["cancelled"] = True
-                            break
-
-                        sync_batch: List[tuple] = []
-                        for i, update_info in enumerate(items_to_update):
-                            if _should_abort():
-                                log("Ratings", "Abort requested during DB update loop", xbmc.LOGINFO)
-                                results["cancelled"] = True
-                                break
-
-                            response = set_responses[i] if i < len(set_responses) else None
-                            dbid = update_info["dbid"]
-
-                            if response is not None and "error" not in response:
-                                sync_batch.append((
-                                    media_type, dbid, 'imdb',
-                                    update_info["imdb_id"], update_info["new_rating"], update_info["new_votes"]
-                                ))
-                                action = "Added" if update_info["is_add"] else "Updated"
-                                log("Ratings", f"{action} {update_info['title']}: imdb ({update_info['new_rating']:.1f})", xbmc.LOGDEBUG)
-                                results["updated"] += 1
-                                if update_info["is_add"]:
-                                    results["total_ratings_added"] += 1
-                                else:
-                                    results["total_ratings_updated"] += 1
-                            else:
-                                results["failed"] += 1
-
-                            processed_ids.add(dbid)
-                            items_since_save += 1
-
-                        if sync_batch:
-                            db.update_synced_ratings_batch(sync_batch)
-
-                        if results.get("cancelled"):
-                            break
-
-                    if unchanged_syncs:
-                        db.update_synced_ratings_batch(unchanged_syncs)
-
-                    ctx.mark_progress()
-                    _update_imdb_progress()
-
-                    if items_since_save >= PROGRESS_SAVE_INTERVAL:
-                        db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
-                        items_since_save = 0
-
-                    batch_start = batch_end
-
-                log("Ratings", f"BATCHED complete: {batch_items_prepared} to update, {batch_items_skipped} skipped", xbmc.LOGINFO)
-
-                if not results.get("cancelled") and source_mode == "imdb":
-                    db.clear_imdb_update_progress(media_type)
-                elif results.get("cancelled") and source_mode == "imdb" and dataset_date:
-                    db.save_imdb_update_progress(media_type, dataset_date, processed_ids, len(items))
+            _run_imdb_batch(media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids)
         else:
-            with RatingBatchExecutor(sources, ctx.abort_flag) as executor:
-                items_submitted = 0
-                items_finalized = 0
-                item_to_index: Dict[int, int] = {}
-
-                for i, item in enumerate(items):
-                    if executor.is_cancelled():
-                        results["cancelled"] = True
-                        break
-
-                    if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
-                        results["cancelled"] = True
-                        break
-
-                    if mdblist_fetcher:
-                        mdblist_fetcher.fetch_batch_for_index(i, progress)
-
-                    prepared = _prepare_item_for_batch(item, media_type)
-                    dbid, title, year, ids, existing_ratings, initial_ratings, initial_sources = prepared
-
-                    if dbid is None or title is None or ids is None or existing_ratings is None:
-                        results["skipped"] += 1
-                        continue
-
-                    item_to_index[dbid] = i
-                    executor.submit_item(
-                        item=item,
-                        dbid=dbid,
-                        title=title,
-                        year=year or "",
-                        media_type=media_type,
-                        ids=ids,
-                        existing_ratings=existing_ratings
-                    )
-
-                    state = executor.get_item_state(dbid)
-                    if state and initial_ratings and initial_sources:
-                        state.ratings.extend(initial_ratings)
-                        state.sources_used.extend(initial_sources)
-
-                    items_submitted += 1
-
-                    percent = int((i / len(items)) * 100)
-                    if isinstance(progress, xbmcgui.DialogProgressBG):
-                        progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32306).format(i+1, len(items), title))
-                    elif isinstance(progress, xbmcgui.DialogProgress):
-                        progress.update(percent, f"{ADDON.getLocalizedString(32307).format(i+1, len(items))}\n{title}")
-
-                    collected = executor.collect_results(timeout=0.1)
-                    for result_dbid, source_name, result in collected:
-                        executor.process_result(result_dbid, source_name, result)
-
-                    for check_dbid in executor.get_unfinalized_items():
-                        check_state = executor.get_item_state(check_dbid)
-                        if not check_state:
-                            continue
-
-                        all_sources_done = len(check_state.completed_sources) >= len(sources)
-                        timed_out = executor.check_item_timeout(check_dbid)
-
-                        if all_sources_done or timed_out:
-                            if timed_out and not all_sources_done:
-                                executor.timeout_pending_sources(check_dbid)
-
-                            success, item_stats = _finalize_item_ratings(check_state, media_type)
-                            executor.mark_item_finalized(check_dbid)
-                            update_results(check_state.item, success, item_stats)
-                            items_finalized += 1
-                            ctx.mark_progress()
-
-                while executor.get_unfinalized_items():
-                    if executor.is_cancelled():
-                        results["cancelled"] = True
-                        break
-
-                    if isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled():
-                        results["cancelled"] = True
-                        break
-
-                    collected = executor.collect_results(timeout=1.0)
-                    for result_dbid, source_name, result in collected:
-                        executor.process_result(result_dbid, source_name, result)
-
-                    for check_dbid in executor.get_unfinalized_items():
-                        check_state = executor.get_item_state(check_dbid)
-                        if not check_state:
-                            continue
-
-                        all_sources_done = len(check_state.completed_sources) >= len(sources)
-                        timed_out = executor.check_item_timeout(check_dbid)
-
-                        if all_sources_done or timed_out:
-                            if timed_out and not all_sources_done:
-                                executor.timeout_pending_sources(check_dbid)
-
-                            success, item_stats = _finalize_item_ratings(check_state, media_type)
-                            executor.mark_item_finalized(check_dbid)
-                            update_results(check_state.item, success, item_stats)
-                            items_finalized += 1
-                            ctx.mark_progress()
-
-                            percent = int((items_finalized / len(items)) * 100)
-                            if isinstance(progress, xbmcgui.DialogProgressBG):
-                                progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(items_finalized, len(items)))
-                            elif isinstance(progress, xbmcgui.DialogProgress):
-                                progress.update(percent, ADDON.getLocalizedString(32309).format(items_finalized, len(items)))
+            _run_multi_source_batch(media_type, items, sources, progress, results, retry_queue, ctx, mdblist_fetcher)
 
     if progress:
         progress.close()
@@ -1002,23 +850,6 @@ def update_library_ratings(
     xbmc.executebuiltin("Container.Refresh")
 
     return results
-
-
-def _initialize_sources() -> List:
-    """Initialize all available rating sources."""
-    sources = []
-
-    sources.append(TMDBRatingsSource())
-
-    if _get_api_key("mdblist_api_key"):
-        sources.append(MDBListRatingsSource())
-
-    if _get_api_key("omdb_api_key"):
-        sources.append(OMDbRatingsSource())
-
-    sources.append(TraktRatingsSource())
-
-    return sources
 
 
 class MdblistBatchFetcher:
@@ -1214,7 +1045,7 @@ def _process_retry_queue(
         if source_mode == "imdb":
             success, _ = _update_single_item_imdb(item, media_type)
         else:
-            success, _ = _update_single_item(item, media_type, sources)
+            success, _ = update_single_item(item, media_type, sources)
 
         if success:
             success_count += 1
@@ -1528,33 +1359,21 @@ def _update_single_item_imdb(
     return response is not None, item_stats
 
 
-def _prepare_item_for_batch(
-    item: Dict,
-    media_type: str
-) -> Tuple[Optional[int], Optional[str], Optional[str], Optional[Dict], Optional[Dict], Optional[List[Dict]], Optional[List[str]]]:
-    """
-    Prepare an item for batch processing by extracting IDs and fetching IMDb dataset rating.
+def _resolve_item_ids(item: Dict, media_type: str) -> Optional[Dict]:
+    """Resolve external IDs for a library item.
 
     Returns:
-        Tuple of (dbid, title, year, ids, existing_ratings, initial_ratings, initial_sources)
-        Returns (None, None, None, None, None, None, None) if item should be skipped
+        Dict of external IDs or None if no usable IDs found
     """
-    dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
-    if not dbid:
-        return None, None, None, None, None, None, None
-
-    title = item.get("title", "Unknown")
-    year = item.get("year", "")
     uniqueid = item.get("uniqueid", {})
-    existing_ratings = item.get("ratings", {})
 
     if media_type == "episode":
         tvshow_dbid = item.get("tvshowid")
         if not tvshow_dbid:
-            return None, None, None, None, None, None, None
+            return None
         tvshow_uniqueid = _get_tvshow_uniqueid(tvshow_dbid)
         if not tvshow_uniqueid:
-            return None, None, None, None, None, None, None
+            return None
         show_imdb = tvshow_uniqueid.get("imdb")
         episode_imdb = uniqueid.get("imdb")
         season_num = item.get("season")
@@ -1564,12 +1383,11 @@ def _prepare_item_for_batch(
             episode_imdb = dataset.get_episode_imdb_id(
                 show_imdb,
                 season_num or 0,
-                episode_num or 0
+                episode_num or 0,
             )
-        # TMDB fallback if episode dataset didn't have the IMDb ID
         if not episode_imdb:
             episode_imdb = get_imdb_id_from_tmdb(
-                media_type, tvshow_uniqueid, season_num, episode_num
+                media_type, tvshow_uniqueid, season_num, episode_num,
             )
         ids = {
             "tmdb": tvshow_uniqueid.get("tmdb"),
@@ -1577,7 +1395,7 @@ def _prepare_item_for_batch(
             "imdb_episode": episode_imdb,
             "tvdb": tvshow_uniqueid.get("tvdb"),
             "season": str(item.get("season", "")),
-            "episode": str(item.get("episode", ""))
+            "episode": str(item.get("episode", "")),
         }
     else:
         raw_tmdb = uniqueid.get("tmdb")
@@ -1585,82 +1403,68 @@ def _prepare_item_for_batch(
         ids = {
             "tmdb": resolve_tmdb_id(raw_tmdb, raw_imdb, media_type),
             "imdb": raw_imdb,
-            "tvdb": uniqueid.get("tvdb")
+            "tvdb": uniqueid.get("tvdb"),
         }
 
     if not ids.get("tmdb") and not ids.get("imdb"):
-        return None, None, None, None, None, None, None
+        return None
 
-    initial_ratings: List[Dict] = []
-    initial_sources: List[str] = []
+    return ids
 
-    # For episodes, only use episode-specific IMDb ID (don't fall back to show's IMDb)
+
+def _get_imdb_dataset_rating(ids: Dict, media_type: str) -> Tuple[List[Dict], List[str]]:
+    """Fetch IMDb dataset rating for an item's IDs.
+
+    Returns:
+        Tuple of (initial_ratings list, initial_sources list)
+    """
     imdb_id = ids.get("imdb_episode") if media_type == "episode" else ids.get("imdb")
     if imdb_id:
         imdb_dataset = get_imdb_dataset()
         imdb_rating = imdb_dataset.get_rating(imdb_id)
         if imdb_rating:
-            initial_ratings.append({
-                "imdb": imdb_rating,
-                "_source": "imdb_dataset"
-            })
-            initial_sources.append("imdb_dataset")
-
-    return dbid, title, str(year) if year else "", ids, existing_ratings, initial_ratings, initial_sources
+            return [{"imdb": imdb_rating, "_source": "imdb_dataset"}], ["imdb_dataset"]
+    return [], []
 
 
-def _finalize_item_ratings(
-    state: ItemState,
-    media_type: str
+def _merge_and_apply_ratings(
+    media_type: str,
+    dbid: int,
+    title: str,
+    year: Optional[str],
+    all_ratings: List[Dict],
+    sources_used: List[str],
+    existing_ratings: Dict,
+    ids: Dict,
+    retryable_failures: Optional[List[dict]] = None,
 ) -> Tuple[Optional[bool], Optional[Dict]]:
-    """
-    Finalize ratings for an item by merging and applying to Kodi.
-
-    Args:
-        state: ItemState from batch executor
-        media_type: Type of media
-
-    Returns:
-        Tuple of (success status, item stats dict)
-    """
-    all_ratings = state.ratings
-    sources_used = state.sources_used
-    retryable_failures = state.retryable_failures
-    title = state.title
-    year = state.year
-    dbid = state.dbid
-    existing_ratings = state.existing_ratings
-    ids = state.ids
+    """Merge fetched ratings, apply to Kodi library, and sync to DB."""
+    if retryable_failures is None:
+        retryable_failures = []
 
     if not all_ratings:
         log("Ratings", "No ratings returned from any source", xbmc.LOGDEBUG)
         if retryable_failures:
             return False, {
-                "title": title,
-                "year": year,
-                "sources_used": [],
-                "ratings_added": 0,
-                "ratings_updated": 0,
-                "added_details": [],
-                "updated_details": [],
-                "retryable_failures": retryable_failures
+                "title": title, "year": year,
+                "sources_used": [], "ratings_added": 0, "ratings_updated": 0,
+                "added_details": [], "updated_details": [],
+                "retryable_failures": retryable_failures,
             }
         return False, None
 
     merged = merge_ratings(all_ratings)
 
-    # Start with existing ratings as base to preserve them
     final_ratings: Dict[str, Dict[str, float]] = {}
     for rating_name, rating_data in existing_ratings.items():
         if isinstance(rating_data, dict) and rating_data.get("rating") is not None:
             final_ratings[rating_name] = {
                 "rating": rating_data["rating"],
-                "votes": float(rating_data.get("votes", 0))
+                "votes": float(rating_data.get("votes", 0)),
             }
 
-    # Merge in new ratings, only overwriting if higher vote count
-    added_ratings = []
-    updated_ratings = []
+    added_ratings: List[str] = []
+    updated_ratings: List[str] = []
     for rating_name, rating_data in merged.items():
         new_val = rating_data.get("rating")
         if new_val is None:
@@ -1671,13 +1475,11 @@ def _finalize_item_ratings(
             old_val = final_ratings[rating_name]["rating"]
             old_votes = final_ratings[rating_name]["votes"]
 
-            # Only update if new rating has higher votes
             if new_votes > old_votes:
                 final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
                 if abs(old_val - new_val) > 0.01:
                     updated_ratings.append(f"{rating_name} ({old_val:.1f} -> {new_val:.1f})")
         else:
-            # New rating, add it
             final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
             added_ratings.append(f"{rating_name} ({new_val:.1f})")
 
@@ -1690,16 +1492,11 @@ def _finalize_item_ratings(
 
     if not added_ratings and not updated_ratings:
         db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
-
         return True, {
-            "title": title,
-            "year": year,
-            "sources_used": sources_used,
-            "ratings_added": 0,
-            "ratings_updated": 0,
-            "added_details": [],
-            "updated_details": [],
-            "retryable_failures": retryable_failures
+            "title": title, "year": year,
+            "sources_used": sources_used, "ratings_added": 0, "ratings_updated": 0,
+            "added_details": [], "updated_details": [],
+            "retryable_failures": retryable_failures,
         }
 
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
@@ -1710,23 +1507,62 @@ def _finalize_item_ratings(
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
     if response is not None:
-        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(state.ids))
+        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
 
     item_stats = {
-        "title": title,
-        "year": year,
+        "title": title, "year": year,
         "sources_used": sources_used,
         "ratings_added": len(added_ratings),
         "ratings_updated": len(updated_ratings),
         "added_details": added_ratings,
         "updated_details": updated_ratings,
-        "retryable_failures": retryable_failures
+        "retryable_failures": retryable_failures,
     }
 
     return response is not None, item_stats
 
 
-def _update_single_item(
+def _prepare_item_for_batch(
+    item: Dict,
+    media_type: str
+) -> Tuple[Optional[int], Optional[str], Optional[str], Optional[Dict], Optional[Dict], Optional[List[Dict]], Optional[List[str]]]:
+    """Prepare an item for batch processing by extracting IDs and fetching IMDb dataset rating."""
+    dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
+    if not dbid:
+        return None, None, None, None, None, None, None
+
+    title = item.get("title", "Unknown")
+    year = item.get("year", "")
+    existing_ratings = item.get("ratings", {})
+
+    ids = _resolve_item_ids(item, media_type)
+    if ids is None:
+        return None, None, None, None, None, None, None
+
+    initial_ratings, initial_sources = _get_imdb_dataset_rating(ids, media_type)
+
+    return dbid, title, str(year) if year else "", ids, existing_ratings, initial_ratings, initial_sources
+
+
+def _finalize_item_ratings(
+    state: ItemState,
+    media_type: str
+) -> Tuple[Optional[bool], Optional[Dict]]:
+    """Finalize ratings for an item by merging and applying to Kodi."""
+    return _merge_and_apply_ratings(
+        media_type=media_type,
+        dbid=state.dbid,
+        title=state.title,
+        year=state.year,
+        all_ratings=state.ratings,
+        sources_used=state.sources_used,
+        existing_ratings=state.existing_ratings,
+        ids=state.ids,
+        retryable_failures=state.retryable_failures,
+    )
+
+
+def update_single_item(
     item: Dict,
     media_type: str,
     sources: List,
@@ -1738,18 +1574,6 @@ def _update_single_item(
 
     Note: This is kept for single-item updates (e.g., from context menu).
     For batch updates, use RatingBatchExecutor instead.
-
-    Args:
-        item: Library item dictionary
-        media_type: Type of media
-        sources: List of rating sources
-        abort_flag: Optional abort flag to check for cancellation
-        force_refresh: If True, bypass cache read (default True for context menu)
-
-    Returns:
-        Tuple of (success status, item stats dict)
-        success: True if updated, False if failed, None if skipped
-        item_stats: Dictionary with item details and changes
     """
     dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
     if not dbid:
@@ -1757,69 +1581,18 @@ def _update_single_item(
 
     title = item.get("title", "Unknown")
     year = item.get("year")
-    uniqueid = item.get("uniqueid", {})
     existing_ratings = item.get("ratings", {})
 
-    if media_type == "episode":
-        tvshow_dbid = item.get("tvshowid")
-        if not tvshow_dbid:
-            return None, None
-        tvshow_uniqueid = _get_tvshow_uniqueid(tvshow_dbid)
-        if not tvshow_uniqueid:
-            return None, None
-        show_imdb = tvshow_uniqueid.get("imdb")
-        episode_imdb = uniqueid.get("imdb")
-        season_num = item.get("season")
-        episode_num = item.get("episode")
-        if not episode_imdb and show_imdb:
-            dataset = get_imdb_dataset()
-            episode_imdb = dataset.get_episode_imdb_id(
-                show_imdb,
-                season_num or 0,
-                episode_num or 0
-            )
-        # TMDB fallback if episode dataset didn't have the IMDb ID
-        if not episode_imdb:
-            episode_imdb = get_imdb_id_from_tmdb(
-                media_type, tvshow_uniqueid, season_num, episode_num
-            )
-        ids = {
-            "tmdb": tvshow_uniqueid.get("tmdb"),
-            "imdb": show_imdb,
-            "imdb_episode": episode_imdb,
-            "tvdb": tvshow_uniqueid.get("tvdb"),
-            "season": str(item.get("season", "")),
-            "episode": str(item.get("episode", ""))
-        }
-    else:
-        raw_tmdb = uniqueid.get("tmdb")
-        raw_imdb = uniqueid.get("imdb")
-        ids = {
-            "tmdb": resolve_tmdb_id(raw_tmdb, raw_imdb, media_type),
-            "imdb": raw_imdb,
-            "tvdb": uniqueid.get("tvdb")
-        }
-
-    if not ids.get("tmdb") and not ids.get("imdb"):
+    ids = _resolve_item_ids(item, media_type)
+    if ids is None:
         return None, None
 
     if abort_flag and abort_flag.is_requested():
         return None, None
 
-    all_ratings = []
-    sources_used = []
-
-    # For episodes, only use episode-specific IMDb ID (don't fall back to show's IMDb)
-    imdb_id = ids.get("imdb_episode") if media_type == "episode" else ids.get("imdb")
-    if imdb_id:
-        imdb_dataset = get_imdb_dataset()
-        imdb_rating = imdb_dataset.get_rating(imdb_id)
-        if imdb_rating:
-            all_ratings.append({
-                "imdb": imdb_rating,
-                "_source": "imdb_dataset"
-            })
-            sources_used.append("imdb_dataset")
+    all_ratings, sources_used = _get_imdb_dataset_rating(ids, media_type)
+    all_ratings = list(all_ratings)
+    sources_used = list(sources_used)
 
     retryable_failures: list[dict] = []
 
@@ -1883,217 +1656,14 @@ def _update_single_item(
             except FuturesTimeoutError:
                 continue
 
-    if not all_ratings:
-        log("Ratings", "No ratings returned from any source", xbmc.LOGDEBUG)
-        if retryable_failures:
-            return False, {
-                "title": title,
-                "year": year,
-                "sources_used": [],
-                "ratings_added": 0,
-                "ratings_updated": 0,
-                "added_details": [],
-                "updated_details": [],
-                "retryable_failures": retryable_failures
-            }
-        return False, None
-
-    merged = merge_ratings(all_ratings)
-
-    # Start with existing ratings as base to preserve them
-    final_ratings: Dict[str, Dict[str, float]] = {}
-    for rating_name, rating_data in existing_ratings.items():
-        if isinstance(rating_data, dict) and rating_data.get("rating") is not None:
-            final_ratings[rating_name] = {
-                "rating": rating_data["rating"],
-                "votes": float(rating_data.get("votes", 0))
-            }
-
-    # Merge in new ratings, only overwriting if higher vote count
-    added_ratings = []
-    updated_ratings = []
-    for rating_name, rating_data in merged.items():
-        new_val = rating_data.get("rating")
-        if new_val is None:
-            continue
-        new_votes = float(rating_data.get("votes", 0))
-
-        if rating_name in final_ratings:
-            old_val = final_ratings[rating_name]["rating"]
-            old_votes = final_ratings[rating_name]["votes"]
-
-            # Only update if new rating has higher votes
-            if new_votes > old_votes:
-                final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
-                if abs(old_val - new_val) > 0.01:
-                    updated_ratings.append(f"{rating_name} ({old_val:.1f} -> {new_val:.1f})")
-        else:
-            # New rating, add it
-            final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
-            added_ratings.append(f"{rating_name} ({new_val:.1f})")
-
-    kodi_ratings = prepare_kodi_ratings(final_ratings, default_source="imdb")
-
-    if added_ratings:
-        log("Ratings", f"Added ratings: {', '.join(added_ratings)}", xbmc.LOGDEBUG)
-    if updated_ratings:
-        log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
-
-    if not added_ratings and not updated_ratings:
-        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
-
-        return True, {
-            "title": title,
-            "year": year,
-            "sources_used": sources_used,
-            "ratings_added": 0,
-            "ratings_updated": 0,
-            "added_details": [],
-            "updated_details": [],
-            "retryable_failures": retryable_failures
-        }
-
-    method_info = KODI_SET_DETAILS_METHODS.get(media_type)
-    if not method_info:
-        return False, None
-    method, id_key = method_info
-
-    response = request(method, {id_key: dbid, "ratings": kodi_ratings})
-
-    if response is not None:
-        db.update_synced_ratings(media_type, dbid, final_ratings, _build_external_ids(ids))
-
-    item_stats = {
-        "title": title,
-        "year": year,
-        "sources_used": sources_used,
-        "ratings_added": len(added_ratings),
-        "ratings_updated": len(updated_ratings),
-        "added_details": added_ratings,
-        "updated_details": updated_ratings,
-        "retryable_failures": retryable_failures
-    }
-
-    return response is not None, item_stats
-
-
-def show_ratings_report() -> None:
-    """Show the last ratings update report from operation history."""
-    last_report = db.get_last_operation_stats('ratings_update')
-
-    if not last_report:
-        show_ok(
-            ADDON.getLocalizedString(32430),
-            ADDON.getLocalizedString(32424)
-        )
-        return
-
-    stats = last_report['stats']
-    scope = last_report.get('scope', 'unknown')
-    timestamp = last_report['timestamp']
-
-    scope_label_map = {
-        "movie": "Movies",
-        "tvshow": "TV Shows",
-        "episode": "Episodes"
-    }
-    scope_label = scope_label_map.get(scope, scope.title())
-
-    updated = stats.get('updated', 0)
-    failed = stats.get('failed', 0)
-    skipped = stats.get('skipped', 0)
-    total_items = stats.get('total_items', 0)
-    elapsed_time = stats.get('elapsed_time', 0)
-    cancelled = stats.get('cancelled', False)
-    source_stats = stats.get('source_stats', {})
-    item_details = stats.get('item_details', [])
-    source_mode = stats.get('source_mode', 'multi_source')
-
-    minutes = int(elapsed_time // 60)
-    seconds = int(elapsed_time % 60)
-    time_str = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
-
-    status = "Cancelled" if cancelled else "Complete"
-
-    source_mode_labels = {
-        "imdb": "IMDb Dataset",
-        "tmdb": "TMDB",
-        "trakt": "Trakt",
-        "aggregators": "Aggregators (MDBList, OMDB)",
-        "multi_source": "All Sources"
-    }
-    source_label = source_mode_labels.get(source_mode, source_mode)
-
-    lines = [
-        f"[B]Ratings Update Report - {status}[/B]",
-        "",
-        f"Source: {source_label}",
-        f"Scope: {scope_label}",
-        f"Timestamp: {timestamp}",
-        f"Duration: {time_str}",
-        "",
-        "[B]Summary[/B]",
-        f"Total items found: {total_items}",
-        f"Successfully updated: {updated}",
-        f"Failed: {failed}",
-        f"Skipped (no rating data): {skipped}",
-        ""
-    ]
-
-    if source_stats:
-        lines.extend([
-            "[B]Source Statistics[/B]",
-            ""
-        ])
-
-        sorted_sources = sorted(source_stats.items(), key=lambda x: x[0])
-        for source_name, source_data in sorted_sources:
-            fetched = source_data.get('fetched', 0)
-            lines.append(f"{source_name.upper()}: {fetched} items fetched")
-
-        lines.append("")
-
-    total_ratings_added = stats.get('total_ratings_added', 0)
-    total_ratings_updated = stats.get('total_ratings_updated', 0)
-    imdb_ids_added = stats.get('imdb_ids_added', 0)
-    imdb_ids_corrected = stats.get('imdb_ids_corrected', 0)
-
-    if total_ratings_added > 0 or total_ratings_updated > 0 or imdb_ids_added > 0 or imdb_ids_corrected > 0:
-        lines.extend([
-            "[B]Rating Changes[/B]",
-            f"Total ratings added: {total_ratings_added}",
-            f"Total ratings updated: {total_ratings_updated}",
-        ])
-        if imdb_ids_added > 0:
-            lines.append(f"IMDb IDs added to library: {imdb_ids_added}")
-        if imdb_ids_corrected > 0:
-            lines.append(f"IMDb IDs corrected (redirects): {imdb_ids_corrected}")
-        lines.append("")
-
-    if item_details and len(item_details) <= 20:
-        lines.extend([
-            "[B]Detailed Changes[/B]",
-            ""
-        ])
-
-        for item in item_details:
-            if item.get('ratings_added', 0) > 0 or item.get('ratings_updated', 0) > 0:
-                title = item.get('title', 'Unknown')
-                year = item.get('year', '')
-                year_str = f" ({year})" if year else ""
-
-                lines.append(f"{title}{year_str}:")
-
-                added = item.get('added_details', [])
-                if added:
-                    lines.append(f"  Added: {', '.join(added)}")
-
-                updated = item.get('updated_details', [])
-                if updated:
-                    lines.append(f"  Updated: {', '.join(updated)}")
-
-                lines.append("")
-
-    text = "\n".join(lines)
-
-    show_textviewer(ADDON.getLocalizedString(32430), text)
+    return _merge_and_apply_ratings(
+        media_type=media_type,
+        dbid=dbid,
+        title=title,
+        year=year,
+        all_ratings=all_ratings,
+        sources_used=sources_used,
+        existing_ratings=existing_ratings,
+        ids=ids,
+        retryable_failures=retryable_failures,
+    )

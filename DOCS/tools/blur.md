@@ -201,12 +201,6 @@ Numeric IDs also work: `window_id=12003`
 <onunload>ClearProperty(SkinInfo.movieinfo.BlurredImage.Original,movieinformation)</onunload>
 ```
 
-**Clear Cache:**
-
-```xml
-<onclick>RunScript(script.skin.info.service,action=settings_action,sub_action=clear_blur_cache)</onclick>
-```
-
 ---
 
 ## Complete Example

@@ -13,7 +13,7 @@ import xbmc
 from typing import Optional, Dict, Any
 
 from lib.data.api.client import ApiSession
-from lib.rating.source import RateLimitHit, RetryableError
+from lib.data.api.client import RateLimitHit, RetryableError
 from lib.kodi.client import log
 
 _RETRYABLE_ERRORS = {2, 8, 11, 16}

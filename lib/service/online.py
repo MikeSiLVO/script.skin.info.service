@@ -8,16 +8,35 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from lib.service.music import MusicOnlineResult
 
 import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utils import clear_group, get_prop, set_prop, wait_for_kodi_ready, batch_set_props
-from lib.data.database.cache import get_cached_online_properties, cache_online_properties
+from lib.data.database.cache import get_cached_online_properties, cache_online_properties, invalidate_online_properties
 
 _MEMORY_CACHE: OrderedDict[str, Dict[str, str]] = OrderedDict()
 _MEMORY_CACHE_MAX = 20
+
+
+_INVALIDATED_KEYS: set = set()
+
+
+def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> None:
+    """Invalidate online cache for a specific item (DB + memory + active key)."""
+    invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
+    keys_to_remove = []
+    if tmdb_id:
+        keys_to_remove.append("{}:tmdb:{}".format(media_type, tmdb_id))
+    if imdb_id:
+        keys_to_remove.append("{}:imdb:{}".format(media_type, imdb_id))
+    for key in keys_to_remove:
+        _MEMORY_CACHE.pop(key, None)
+        _INVALIDATED_KEYS.add(key)
 
 ONLINE_POLL_INTERVAL = 0.10
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
@@ -50,27 +69,32 @@ def _make_cache_key(media_type: str, imdb_id: str, tmdb_id: str) -> str:
     return ""
 
 
-def _resolve_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
+def _resolve_ids_from(
+    dbtype: str,
+    dbid: str,
+    info_prefix: str,
+    prefix_map: Dict[str, str],
+) -> Tuple[str, str]:
     """
     Resolve IMDb and TMDb IDs using multiple fallback sources.
 
     Tries in order:
-    1. ListItem.UniqueID(imdb/tmdb)
-    2. ListItem.IMDBNumber if starts with "tt"
-    3. SkinInfo.{MediaType}.UniqueID.IMDB/TMDB
+    1. {info_prefix}.UniqueID(imdb/tmdb)
+    2. {info_prefix}.IMDBNumber if starts with "tt"
+    3. SkinInfo prefix map UniqueID.IMDB/TMDB
     4. Metadata cache via TMDb ID
     5. JSON-RPC lookup
     """
-    imdb_id = xbmc.getInfoLabel("ListItem.UniqueID(imdb)") or ""
-    tmdb_id = xbmc.getInfoLabel("ListItem.UniqueID(tmdb)") or ""
+    imdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(imdb)") or ""
+    tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
 
     if not imdb_id:
-        imdbnumber = xbmc.getInfoLabel("ListItem.IMDBNumber") or ""
+        imdbnumber = xbmc.getInfoLabel(f"{info_prefix}.IMDBNumber") or ""
         if imdbnumber.startswith("tt"):
             imdb_id = imdbnumber
 
     if not imdb_id or not tmdb_id:
-        prefix = _SKININFO_PREFIX_MAP.get(dbtype, "")
+        prefix = prefix_map.get(dbtype, "")
         if prefix:
             if not imdb_id:
                 imdb_id = get_prop(f"{prefix}.UniqueID.IMDB") or ""
@@ -91,29 +115,13 @@ def _resolve_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
 
 
 def _jsonrpc_get_uniqueids(dbtype: str, dbid: str) -> Tuple[str, str]:
-    from lib.kodi.client import request
+    from lib.kodi.client import get_item_details
 
-    method_map = {
-        "movie": ("VideoLibrary.GetMovieDetails", "movieid", "moviedetails"),
-        "tvshow": ("VideoLibrary.GetTVShowDetails", "tvshowid", "tvshowdetails"),
-        "episode": ("VideoLibrary.GetEpisodeDetails", "episodeid", "episodedetails"),
-    }
-
-    if dbtype not in method_map:
+    details = get_item_details(dbtype, int(dbid), ["uniqueid"])
+    if not details or not isinstance(details, dict):
         return "", ""
-
-    method, id_key, result_key = method_map[dbtype]
-
-    try:
-        result = request(method, {id_key: int(dbid), "properties": ["uniqueid"]})
-        inner = result.get("result", {}) if result else {}
-        if inner and result_key in inner:
-            uniqueid = inner[result_key].get("uniqueid", {})
-            return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")
-    except Exception as e:
-        log("Service", f"JSON-RPC uniqueid lookup failed: {e}", xbmc.LOGDEBUG)
-
-    return "", ""
+    uniqueid = details.get("uniqueid", {})
+    return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")
 
 
 def _resolve_season_ids(seasonid: str) -> Tuple[str, str]:
@@ -126,46 +134,6 @@ def _resolve_season_ids(seasonid: str) -> Tuple[str, str]:
     if not tvshowid or tvshowid == -1:
         return "", ""
     return _jsonrpc_get_uniqueids("tvshow", str(tvshowid))
-
-
-def _resolve_player_ids(dbtype: str, dbid: str) -> Tuple[str, str]:
-    """
-    Resolve IMDb and TMDb IDs for currently playing video.
-
-    Tries in order:
-    1. VideoPlayer.UniqueID(imdb/tmdb)
-    2. VideoPlayer.IMDBNumber if starts with "tt"
-    3. SkinInfo.Player.UniqueID.IMDB/TMDB
-    4. Metadata cache via TMDb ID
-    5. JSON-RPC lookup
-    """
-    imdb_id = xbmc.getInfoLabel("VideoPlayer.UniqueID(imdb)") or ""
-    tmdb_id = xbmc.getInfoLabel("VideoPlayer.UniqueID(tmdb)") or ""
-
-    if not imdb_id:
-        imdbnumber = xbmc.getInfoLabel("VideoPlayer.IMDBNumber") or ""
-        if imdbnumber.startswith("tt"):
-            imdb_id = imdbnumber
-
-    if not imdb_id or not tmdb_id:
-        prefix = _PLAYER_SKININFO_PREFIX_MAP.get(dbtype, "")
-        if prefix:
-            if not imdb_id:
-                imdb_id = get_prop(f"{prefix}.UniqueID.IMDB") or ""
-            if not tmdb_id:
-                tmdb_id = get_prop(f"{prefix}.UniqueID.TMDB") or ""
-
-    if not imdb_id and tmdb_id:
-        from lib.data.database import cache as db_cache
-        cache_type = "tvshow" if dbtype == "episode" else dbtype
-        cached = db_cache.get_cached_metadata(cache_type, tmdb_id)
-        if cached:
-            imdb_id = cached.get("external_ids", {}).get("imdb_id") or ""
-
-    if not imdb_id and not tmdb_id:
-        imdb_id, tmdb_id = _jsonrpc_get_uniqueids(dbtype, dbid)
-
-    return imdb_id, tmdb_id
 
 
 class ServiceAbortFlag:
@@ -205,6 +173,9 @@ class OnlineServiceMain(threading.Thread):
         self._last_musicvideo_player_key: Optional[str] = None
         self._musicvideo_player_fetch_thread: Optional[threading.Thread] = None
         self._musicvideo_player_fetch_for_key: Optional[str] = None
+
+    def reset_item_key(self) -> None:
+        self._last_item_key = None
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
@@ -246,7 +217,7 @@ class OnlineServiceMain(threading.Thread):
             imdb_id, tmdb_id = _resolve_season_ids(dbid)
             effective_type = "tvshow"
         else:
-            imdb_id, tmdb_id = _resolve_ids(dbtype, dbid)
+            imdb_id, tmdb_id = _resolve_ids_from(dbtype, dbid, "ListItem", _SKININFO_PREFIX_MAP)
             effective_type = dbtype
 
         if not imdb_id and not tmdb_id:
@@ -256,9 +227,10 @@ class OnlineServiceMain(threading.Thread):
         if not cache_key:
             return
 
-        if cache_key == self._last_item_key:
+        if cache_key == self._last_item_key and cache_key not in _INVALIDATED_KEYS:
             return
 
+        _INVALIDATED_KEYS.discard(cache_key)
         self._last_item_key = cache_key
 
         cached_props = _MEMORY_CACHE.get(cache_key)
@@ -320,7 +292,7 @@ class OnlineServiceMain(threading.Thread):
                 self._last_player_key = None
             return
 
-        imdb_id, tmdb_id = _resolve_player_ids(dbtype, dbid)
+        imdb_id, tmdb_id = _resolve_ids_from(dbtype, dbid, "VideoPlayer", _PLAYER_SKININFO_PREFIX_MAP)
 
         if not imdb_id and not tmdb_id:
             if self._last_player_key:
@@ -486,7 +458,7 @@ class OnlineServiceMain(threading.Thread):
     def _apply_music_online_result(
         self,
         artist_name: str,
-        result: object,
+        result: MusicOnlineResult,
         track: Optional[str],
         album: Optional[str],
         prefix: str,
@@ -499,12 +471,12 @@ class OnlineServiceMain(threading.Thread):
             extract_album_properties,
         )
 
-        self._music_fanart_urls = result.fanart_urls  # type: ignore[attr-defined]
+        self._music_fanart_urls = result.fanart_urls
         self._music_fanart_index = 0
         self._music_fanart_last_rotate = time.time()
         self._active_music_online_prefix = prefix
         self._set_music_online_properties(
-            artist_name, result.bio, result.fanart_urls, result.artist_art,  # type: ignore[attr-defined]
+            artist_name, result.bio, result.fanart_urls, result.artist_art,
             prefix,
         )
 

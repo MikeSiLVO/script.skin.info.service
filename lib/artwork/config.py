@@ -4,32 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-MEDIA_TYPE_LABELS = {
-    'movie': 'Movies',
-    'tvshow': 'TV Shows',
-    'episode': 'Episodes',
-    'season': 'Seasons',
-    'set': 'Movie Sets',
-    'musicvideo': 'Music Videos',
-    'artist': 'Artists',
-    'album': 'Albums',
-}
-
-VALID_MEDIA_TYPES = frozenset(MEDIA_TYPE_LABELS.keys())
-
-
-def validate_media_type(media_type: str) -> bool:
-    """Validate that media_type is a known type."""
-    return media_type in VALID_MEDIA_TYPES
-
-
-def validate_dbid(dbid: Any) -> bool:
-    """Validate that dbid is a positive integer."""
-    try:
-        dbid_int = int(dbid)
-        return dbid_int > 0
-    except (ValueError, TypeError):
-        return False
+from lib.kodi.utils import validate_media_type, validate_dbid  # noqa: F401 - re-exported
 
 
 REVIEW_SCOPE_OPTIONS = [

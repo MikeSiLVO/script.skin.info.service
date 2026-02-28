@@ -14,6 +14,17 @@ from lib.kodi.utils import clear_prop, batch_set_props, format_date, extract_cas
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
 _window = xbmcgui.Window(10000)
 
+
+def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
+    """Scale a raw rating to 0-10 and compute percentage. Returns (scaled, pct) or None."""
+    try:
+        scaled = round(float(val) / (float(max_val) / 10.0), 1)
+        pct = max(0, min(100, int(round(scaled * 10))))
+        return scaled, pct
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+
+
 _RESOLUTION_TABLE = [
     (720, 480, "480"),
     (768, 576, "576"),
@@ -254,53 +265,34 @@ def _build_listitem_unified_data(
 
     if ratings_dict:
         for src, info in ratings_dict.items():
-            val = info.get("rating")
-            max_val = info.get("max") or 10
-            src_votes = info.get("votes")
-
-            if val is None or not max_val:
+            if info.get("rating") is None:
                 continue
-
-            try:
-                scaled = round(float(val) / (float(max_val) / 10.0), 1)
-                pct = max(0, min(100, int(round(scaled * 10))))
-            except (TypeError, ValueError, ZeroDivisionError):
+            result = _scale_rating(info.get("rating"), info.get("max") or 10)
+            if not result:
                 continue
-
-            # Normalize RT source names to canonical tomatoes/popcorn
+            scaled, pct = result
             output_src = RATING_SOURCE_NORMALIZE.get(src, src)
-
             data[f"ListItem.Rating.{output_src}"] = str(scaled)
-            data[f"ListItem.Rating.{output_src}.Votes"] = format_number(src_votes)
+            data[f"ListItem.Rating.{output_src}.Votes"] = format_number(info.get("votes"))
             data[f"ListItem.Rating.{output_src}.Percent"] = str(pct)
 
         tomatometer_info = (
             ratings_dict.get("tomatoes") or
             ratings_dict.get("tomatometerallcritics")
         )
-        if tomatometer_info:
-            tomato_val = tomatometer_info.get("rating")
-            tomato_max = tomatometer_info.get("max") or 10
-            if tomato_val is not None:
-                try:
-                    tomato_pct = int(round(float(tomato_val) / (float(tomato_max) / 10.0) * 10))
-                    data["ListItem.Tomatometer"] = "Fresh" if tomato_pct >= 60 else "Rotten"
-                except (TypeError, ValueError, ZeroDivisionError):
-                    pass
+        if tomatometer_info and tomatometer_info.get("rating") is not None:
+            result = _scale_rating(tomatometer_info["rating"], tomatometer_info.get("max") or 10)
+            if result:
+                data["ListItem.Tomatometer"] = "Fresh" if result[1] >= 60 else "Rotten"
 
         popcorn_info = (
             ratings_dict.get("popcorn") or
             ratings_dict.get("tomatometerallaudience")
         )
-        if popcorn_info:
-            popcorn_val = popcorn_info.get("rating")
-            popcorn_max = popcorn_info.get("max") or 10
-            if popcorn_val is not None:
-                try:
-                    popcorn_pct = int(round(float(popcorn_val) / (float(popcorn_max) / 10.0) * 10))
-                    data["ListItem.Popcornmeter"] = "Fresh" if popcorn_pct >= 60 else "Spilled"
-                except (TypeError, ValueError, ZeroDivisionError):
-                    pass
+        if popcorn_info and popcorn_info.get("rating") is not None:
+            result = _scale_rating(popcorn_info["rating"], popcorn_info.get("max") or 10)
+            if result:
+                data["ListItem.Popcornmeter"] = "Fresh" if result[1] >= 60 else "Spilled"
 
     return data
 
@@ -931,25 +923,16 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
     current_sources: Set[str] = set()
 
     for src, info in ratings.items():
-        val = info.get("rating")
-        max_val = info.get("max") or 10
-        votes = info.get("votes")
-
-        if val is None or not max_val:
+        if info.get("rating") is None:
             continue
-
-        try:
-            scaled = round(float(val) / (float(max_val) / 10.0), 1)
-            pct = max(0, min(100, int(round(scaled * 10))))
-        except (TypeError, ValueError, ZeroDivisionError):
+        result = _scale_rating(info.get("rating"), info.get("max") or 10)
+        if not result:
             continue
-
-        # Normalize RT source names to canonical tomatoes/popcorn
+        scaled, pct = result
         output_src = RATING_SOURCE_NORMALIZE.get(src) or src
         current_sources.add(output_src)
-
         props[f"{prefix}.{output_src}"] = str(scaled)
-        props[f"{prefix}.{output_src}.Votes"] = format_number(votes)
+        props[f"{prefix}.{output_src}.Votes"] = format_number(info.get("votes"))
         props[f"{prefix}.{output_src}.Percent"] = str(pct)
 
     prev_sources = _RATING_STATE.get(media_type, set())

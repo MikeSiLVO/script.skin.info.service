@@ -689,7 +689,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     art_type_options = {
         'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
-        'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart'],
+        'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart', 'keyart'],
         'season': ['poster', 'banner', 'landscape', 'fanart'],
         'episode': ['thumb'],
         'musicvideo': ['thumb', 'fanart'],

@@ -14,15 +14,6 @@ from typing import Optional, List, Dict
 
 from lib.data.api.client import ApiSession
 
-_OLD_CDN = "www.theaudiodb.com/images/"
-_NEW_CDN = "r2.theaudiodb.com/images/"
-
-
-def _normalize_tadb_url(url: str) -> str:
-    """Rewrite legacy www.theaudiodb.com image URLs to r2.theaudiodb.com."""
-    return url.replace(_OLD_CDN, _NEW_CDN) if _OLD_CDN in url else url
-
-
 class ApiAudioDb:
     """TheAudioDB API client with rate limiting."""
 
@@ -297,7 +288,6 @@ class ApiAudioDb:
 
     def _format_artwork_item(self, url: str) -> dict:
         """Format a TheAudioDB artwork URL to common format."""
-        url = _normalize_tadb_url(url)
         return {
             'url': url,
             'previewurl': f"{url}/preview",

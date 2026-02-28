@@ -9,7 +9,7 @@ from typing import Optional, Tuple, Dict
 
 from lib.kodi.client import log
 from lib.data.api.client import ApiSession
-from lib.rating.source import RetryableError
+from lib.data.api.client import RetryableError
 from lib.infrastructure.paths import vfs_ensure_dir_slash
 
 
