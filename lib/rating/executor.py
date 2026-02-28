@@ -8,8 +8,8 @@ from typing import Dict, List, Optional, Set, Any
 import xbmc
 
 from lib.kodi.client import log
-from lib.rating.source import RateLimitHit, RetryableError
-from lib.rating import tracker as usage_tracker
+from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api import tracker as usage_tracker
 
 
 MAX_WORKERS = 6

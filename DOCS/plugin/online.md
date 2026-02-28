@@ -12,6 +12,7 @@ Fetch ratings, awards, and metadata from external APIs via plugin container.
 - [Usage](#usage)
 - [Two-Container Pattern](#two-container-pattern)
 - [Available Properties](#available-properties)
+- [Music Video Properties](#music-video-properties)
 
 ---
 
@@ -64,15 +65,15 @@ Two modes available:
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `action` | Yes | Must be `online` |
-| `dbtype` | Yes | `movie`, `tvshow`, or `episode` |
+| `dbtype` | Yes | `movie`, `tvshow`, `episode`, or `musicvideo` |
 | `dbid` | * | Database ID (library items) |
-| `tmdb_id` | * | TMDb ID (non-library items) |
-| `imdb_id` | * | IMDB ID (non-library items) |
+| `tmdb_id` | * | TMDb ID (non-library items, video only) |
+| `imdb_id` | * | IMDB ID (non-library items, video only) |
 | `reload` | No | Cache buster |
 
 \* Provide one of: `dbid`, `tmdb_id`, or `imdb_id`
 
-**Note:** For episodes, the parent TV show's online data is returned.
+**Note:** For episodes, the parent TV show's online data is returned. For music videos, data comes from AudioDB, Last.fm, and Fanart.tv instead of TMDb.
 
 ---
 
@@ -272,11 +273,56 @@ Each source provides three properties:
 
 ---
 
+## Music Video Properties
+
+Music video online data comes from AudioDB, Last.fm, and Fanart.tv (not TMDb).
+
+```xml
+<control type="list" id="9002">
+    <content>plugin://script.skin.info.service/?action=online&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=musicvideo</content>
+</control>
+```
+
+### Artist
+
+| Property            | Description                        |
+|---------------------|------------------------------------|
+| `Artist.Bio`        | Artist biography                   |
+| `Artist.FanArt`     | Artist fanart URL (first image)    |
+| `Artist.FanArt.Count` | Total fanart images available    |
+| `Artist.Thumb`      | Artist thumbnail                   |
+| `Artist.Clearlogo`  | Artist clearlogo                   |
+| `Artist.Banner`     | Artist banner                      |
+
+### Track
+
+Populated when the music video has a title and artist.
+
+| Property            | Description                          |
+|---------------------|--------------------------------------|
+| `Track.Wiki`        | Track description / wiki             |
+| `Track.Tags`        | Top tags (" / " separated, up to 10) |
+| `Track.Listeners`   | Last.fm listener count               |
+| `Track.Playcount`   | Last.fm global play count            |
+
+### Album
+
+Populated when the music video has an album and artist.
+
+| Property            | Description                          |
+|---------------------|--------------------------------------|
+| `Album.Wiki`        | Album description / wiki             |
+| `Album.Tags`        | Top tags (" / " separated, up to 10) |
+| `Album.Label`       | Record label                         |
+
+---
+
 ## Notes
 
 - **Blocking call** - The online action blocks until all API calls complete
 - **Cached responses** - Data cached 24-72 hours depending on content age
 - **Episode support** - Episodes return parent TV show's online data
+- **Music video support** - Music videos use AudioDB/Last.fm/Fanart.tv, not TMDb
 
 ---
 

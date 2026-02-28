@@ -22,7 +22,8 @@ Window properties and plugin paths for Kodi skins.
 
 | Document                           | Description                          |
 |------------------------------------|--------------------------------------|
-| [Widgets](plugin/widgets.md)       | Next Up, Recent, Similar, Recommended|
+| [Library Widgets](plugin/widgets-library.md) | Next Up, Recent, Similar, Recommended, Music |
+| [Discovery Widgets](plugin/widgets-discovery.md) | Trending, Popular, Upcoming from TMDB/Trakt |
 | [Navigation](plugin/navigation.md) | Letter jump for alphabetical lists   |
 | [Cast](plugin/cast.md)             | Cast lists for items and player      |
 | [DBID Queries](plugin/dbid.md)     | Fetch full metadata by database ID   |

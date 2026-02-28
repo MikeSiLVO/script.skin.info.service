@@ -45,6 +45,19 @@ The service sets `Skin.SetBool(SkinInfo.Service)` on start and checks it each lo
 
 A duplicate RunScript call is ignored if the service is already running.
 
+### Skin-Dependent vs Independent Services
+
+The RunScript starts multiple services:
+
+| Service | Controlled By |
+|---------|---------------|
+| Library properties | `Skin.HasSetting(SkinInfo.Service)` |
+| Online API properties | Runs with library service |
+| Stinger notifications | `stinger_enabled` addon setting |
+| IMDb auto-update | `imdb_auto_update` addon setting |
+
+Library and online properties require a skin that reads `SkinInfo.*` properties. Stinger notifications and IMDb auto-update run on any skin based on their own addon settings.
+
 ## Service Properties
 
 | Property | Description |
@@ -80,8 +93,8 @@ Content sources for containers.
 <content>plugin://script.skin.info.service/?action=next_up</content>
 ```
 
-See: [Widgets](plugin/widgets.md), [Navigation](plugin/navigation.md),
-[Cast](plugin/cast.md), [DBID Queries](plugin/dbid.md)
+See: [Library Widgets](plugin/widgets-library.md), [Discovery Widgets](plugin/widgets-discovery.md),
+[Navigation](plugin/navigation.md), [Cast](plugin/cast.md), [DBID Queries](plugin/dbid.md)
 
 ---
 

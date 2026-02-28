@@ -179,6 +179,11 @@ def handle_dbid_query(handle: int, params: dict) -> None:
 
     # Prevent injection by normalizing input
     media_type = media_type.lower().strip()
+
+    if media_type in ("musicvideo_artist", "musicvideo_album"):
+        _handle_musicvideo_node(handle, params, media_type)
+        return
+
     valid_types = ("movie", "tvshow", "season", "episode", "musicvideo", "artist", "album", "set")
 
     if media_type not in valid_types:
@@ -387,6 +392,11 @@ def handle_online(handle: int, params: dict) -> None:
         return
 
     media_type = media_type.lower().strip()
+
+    if media_type == "musicvideo":
+        _handle_online_musicvideo(handle, params)
+        return
+
     valid_types = ("movie", "tvshow", "episode")
 
     if media_type not in valid_types:
@@ -474,6 +484,118 @@ def handle_online(handle: int, params: dict) -> None:
         list_item.setProperty("dbid", str(dbid))
 
     for prop_key, prop_value in online_data.items():
+        if prop_value:
+            list_item.setProperty(prop_key, str(prop_value))
+
+    xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+
+
+def _handle_online_musicvideo(handle: int, params: dict) -> None:
+    """Fetch online music metadata for a music video and return as ListItem properties."""
+    from lib.kodi.client import get_item_details
+    from lib.service.music import (
+        fetch_artist_online_data,
+        fetch_track_online_data,
+        fetch_album_online_data,
+        extract_track_properties,
+        extract_album_properties,
+    )
+    from lib.service.properties import _join
+
+    dbid = params.get("dbid", [""])[0]
+    if not dbid:
+        log("Plugin", "Online MusicVideo: Missing required parameter 'dbid'", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    try:
+        dbid_int = int(dbid)
+        if dbid_int <= 0:
+            raise ValueError("DBID must be positive")
+    except (ValueError, TypeError) as e:
+        log("Plugin", f"Online MusicVideo: Invalid DBID '{dbid}': {e}", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    details = get_item_details("musicvideo", dbid_int, ["artist", "title", "album"])
+    if not details:
+        log("Plugin", f"Online MusicVideo: No details for DBID {dbid}", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    artist_name = _join(details.get("artist"))
+    title = details.get("title") or None
+    album = details.get("album") or None
+
+    props: dict[str, str] = {}
+
+    if artist_name:
+        result = fetch_artist_online_data(artist_name, album=album, track=title)
+        if result:
+            if result.bio:
+                props["Artist.Bio"] = result.bio
+            props["Artist.FanArt.Count"] = str(len(result.fanart_urls))
+            if result.fanart_urls:
+                props["Artist.FanArt"] = result.fanart_urls[0]
+            for art_type in ("thumb", "clearlogo", "banner"):
+                url = result.artist_art.get(art_type, "")
+                if url:
+                    key = art_type[0].upper() + art_type[1:]
+                    props[f"Artist.{key}"] = url
+
+    if artist_name and title:
+        fetch_track_online_data(artist_name, title)
+        track_props = extract_track_properties(artist_name, title)
+        if track_props:
+            for k, v in track_props.items():
+                props[f"Track.{k}"] = v
+
+    if artist_name and album:
+        fetch_album_online_data(artist_name, album)
+        album_props = extract_album_properties(artist_name, album)
+        if album_props:
+            for k, v in album_props.items():
+                props[f"Album.{k}"] = v
+
+    if not props:
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+        return
+
+    list_item = xbmcgui.ListItem(offscreen=True)
+    list_item.setProperty("dbid", str(dbid))
+
+    for prop_key, prop_value in props.items():
+        if prop_value:
+            list_item.setProperty(prop_key, str(prop_value))
+
+    xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+
+
+def _handle_musicvideo_node(handle: int, params: dict, media_type: str) -> None:
+    """Handle musicvideo artist/album node queries using name-based library lookup."""
+    from lib.plugin.dbid import get_musicvideo_node_data
+
+    artist_name = params.get("artist", [""])[0]
+    album_name = params.get("album", [""])[0]
+
+    if media_type == "musicvideo_artist" and not artist_name:
+        log("Plugin", "MusicVideo node: Missing 'artist' parameter", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    if media_type == "musicvideo_album" and not album_name:
+        log("Plugin", "MusicVideo node: Missing 'album' parameter", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    data = get_musicvideo_node_data(artist_name, album_name)
+
+    label = artist_name if media_type == "musicvideo_artist" else album_name
+    list_item = xbmcgui.ListItem(label=label, offscreen=True)
+
+    for prop_key, prop_value in data.items():
         if prop_value:
             list_item.setProperty(prop_key, str(prop_value))
 
@@ -1732,6 +1854,7 @@ def _handle_search_menu(handle: int) -> None:
 def _handle_widgets_menu(handle: int) -> None:
     """Show widgets submenu."""
     items = [
+        ("Discover", "plugin://script.skin.info.service/?action=discover_menu", "DefaultAddonVideo.png", True),
         ("Next Up", "plugin://script.skin.info.service/?action=next_up", "DefaultInProgressShows.png", True),
         ("Recent Episodes", "plugin://script.skin.info.service/?action=recent_episodes_grouped", "DefaultRecentlyAddedEpisodes.png", True),
         ("Seasonal", "plugin://script.skin.info.service/?action=menu_seasonal", "DefaultYear.png", True),
@@ -1817,6 +1940,15 @@ def main() -> None:
         handle_path_stats(handle, params)
     elif action == 'wrap':
         handle_wrap(handle, params)
+    elif action == 'discover_menu':
+        from lib.plugin.discovery import handle_discover_menu
+        handle_discover_menu(handle, params)
+    elif action == 'discover_movies_menu':
+        from lib.plugin.discovery import handle_discover_movies_menu
+        handle_discover_movies_menu(handle, params)
+    elif action == 'discover_tvshows_menu':
+        from lib.plugin.discovery import handle_discover_tvshows_menu
+        handle_discover_tvshows_menu(handle, params)
     elif action == 'next_up':
         from lib.plugin.widgets import handle_next_up
         handle_next_up(handle, params)
@@ -1838,6 +1970,18 @@ def main() -> None:
     elif action == 'seasonal':
         from lib.plugin.widgets import handle_seasonal
         handle_seasonal(handle, params)
+    elif action == 'similar_artists':
+        from lib.plugin.widgets_music import handle_similar_artists
+        handle_similar_artists(handle, params)
+    elif action == 'artist_albums':
+        from lib.plugin.widgets_music import handle_artist_albums
+        handle_artist_albums(handle, params)
+    elif action == 'artist_musicvideos':
+        from lib.plugin.widgets_music import handle_artist_musicvideos
+        handle_artist_musicvideos(handle, params)
+    elif action == 'genre_artists':
+        from lib.plugin.widgets_music import handle_genre_artists
+        handle_genre_artists(handle, params)
     elif action == 'letter_jump':
         from lib.skin.container import handle_letter_jump_list
         handle_letter_jump_list(handle, params)
@@ -1864,7 +2008,11 @@ def main() -> None:
     elif action == 'crew':
         handle_crew_list(handle, params)
     else:
-        handle_dbid_query(handle, params)
+        from lib.plugin.discovery import WIDGET_REGISTRY, handle_discover
+        if action in WIDGET_REGISTRY:
+            handle_discover(handle, action, params)
+        else:
+            handle_dbid_query(handle, params)
 
 
 if __name__ == "__main__":

@@ -222,7 +222,6 @@ def build_download_jobs(
     path_builder = PathBuilder()
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
-    savewith_basefilename_mvids = ADDON.getSettingBool('download.savewith_basefilename_mvids')
 
     mismatch_counts = {'movie_basename_to_folder': 0, 'movie_folder_to_basename': 0,
                        'mvid_basename_to_folder': 0, 'mvid_folder_to_basename': 0}
@@ -242,7 +241,7 @@ def build_download_jobs(
 
         use_basename = media_type == 'episode' \
             or media_type == 'movie' and savewith_basefilename \
-            or media_type == 'musicvideo' and savewith_basefilename_mvids
+            or media_type == 'musicvideo'
 
         for art_type, url in art.items():
             if not url or not url.startswith('http'):
@@ -388,13 +387,12 @@ def download_scope_artwork(
 
             total_mismatches = sum(mismatch_counts.values())
             savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
-            savewith_basefilename_mvids = ADDON.getSettingBool('download.savewith_basefilename_mvids')
 
             pattern_desc = []
             if mismatch_counts.get('movie_folder_to_basename', 0) > 0 or mismatch_counts.get('movie_basename_to_folder', 0) > 0:
                 pattern_desc.append(f"Movies: {'basename' if savewith_basefilename else 'folder'} mode")
             if mismatch_counts.get('mvid_folder_to_basename', 0) > 0 or mismatch_counts.get('mvid_basename_to_folder', 0) > 0:
-                pattern_desc.append(f"Music videos: {'basename' if savewith_basefilename_mvids else 'folder'} mode")
+                pattern_desc.append("Music videos: basename mode")
 
             pattern_text = ", ".join(pattern_desc)
 

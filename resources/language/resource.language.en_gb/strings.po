@@ -111,14 +111,6 @@ msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
 msgstr ""
 
-msgctxt "#32029"
-msgid "Use Music Video Filename Prefix"
-msgstr ""
-
-msgctxt "#32030"
-msgid "Save as 'video-poster.jpg' instead of 'poster.jpg' in video folder"
-msgstr ""
-
 msgctxt "#32035"
 msgid "Always Ask"
 msgstr ""
@@ -462,14 +454,6 @@ msgstr ""
 
 msgctxt "#32124"
 msgid "Cache Management"
-msgstr ""
-
-msgctxt "#32125"
-msgid "Clear Blur Cache"
-msgstr ""
-
-msgctxt "#32126"
-msgid "Delete all cached blurred images to free up disk space"
 msgstr ""
 
 msgctxt "#32128"
@@ -930,6 +914,10 @@ msgstr ""
 
 msgctxt "#32319"
 msgid "Checking {0}s..."
+msgstr ""
+
+msgctxt "#32320"
+msgid "Ratings up to date"
 msgstr ""
 
 msgctxt "#32330"
@@ -1825,7 +1813,7 @@ msgid "Online Service"
 msgstr ""
 
 msgctxt "#32977"
-msgid "Language for titles, plots, and other metadata from TMDb"
+msgid "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
 msgstr ""
 
 #. Actor image download feature (context menu)

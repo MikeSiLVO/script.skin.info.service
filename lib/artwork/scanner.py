@@ -127,7 +127,7 @@ class ArtworkScanner:
         'tvshow': ["title", "art", "year"],
         'episode': ["title", "art", "showtitle", "season", "episode"],
         'season': ["title", "art", "season", "showtitle"],
-        'musicvideo': ["title", "artist", "art"],
+        'musicvideo': ["title", "art", "artist"],
         'artist': ["artist", "art"],
         'album': ["title", "artist", "art", "year"],
         'set': ["title", "art"],
@@ -414,19 +414,17 @@ class ArtworkScanner:
         else:
             defaults = {
                 'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
-                'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart'],
+                'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart', 'keyart'],
                 'season': ['poster', 'banner', 'landscape', 'fanart'],
                 'episode': ['thumb'],
-                'musicvideo': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'keyart'],
+                'musicvideo': ['thumb', 'fanart'],
                 'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
                 'artist': ['thumb', 'fanart', 'clearlogo', 'banner'],
                 'album': ['thumb', 'discart'],
             }
             art_types = defaults.get(media_type if media_type else 'movie', ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'])
 
-        if media_type == "tvshow":
-            art_types = [t for t in art_types if t != "keyart"]
-        elif media_type == "season":
+        if media_type == "season":
             supported = ['poster', 'banner', 'landscape', 'fanart']
             art_types = [t for t in art_types if t in supported]
 

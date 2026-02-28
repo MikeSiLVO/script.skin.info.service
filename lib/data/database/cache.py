@@ -421,6 +421,25 @@ def save_mb_id_mapping(old_id: str, canonical_id: str) -> None:
         )
 
 
+def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> int:
+    """Delete cached online properties for a specific item."""
+    keys = []
+    if tmdb_id:
+        keys.append("{}:tmdb:{}".format(media_type, tmdb_id))
+    if imdb_id:
+        keys.append("{}:imdb:{}".format(media_type, imdb_id))
+    if not keys:
+        return 0
+    total = 0
+    with get_db(DB_PATH) as (conn, cursor):
+        for key in keys:
+            cursor.execute('DELETE FROM online_properties_cache WHERE item_key = ?', (key,))
+            total += cursor.rowcount
+    if total > 0:
+        log("Cache", "Invalidated {} online cache entries for {}".format(total, media_type))
+    return total
+
+
 def cache_online_properties(item_key: str, props: Dict[str, str], ttl_hours: int = 1) -> None:
     """
     Cache online properties.

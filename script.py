@@ -329,7 +329,7 @@ def main() -> None:
             return
 
         elif action == "update_ratings":
-            from lib.rating.updater import update_single_item_ratings
+            from lib.rating.menu import update_single_item_ratings
             dbid = args.get('dbid')
             dbtype = args.get('dbtype')
             update_single_item_ratings(dbid, dbtype)
@@ -344,7 +344,6 @@ def main() -> None:
 
         elif action == "settings_action":
             from lib.data.api import settings as api_settings
-            from lib.infrastructure import dialogs
             sub_action = args.get('sub_action')
             provider = args.get('provider')
 
@@ -360,8 +359,6 @@ def main() -> None:
                 api_settings.test_trakt_connection()
             elif sub_action == "revoke_trakt_authorization":
                 api_settings.revoke_trakt_authorization()
-            elif sub_action == "clear_blur_cache":
-                dialogs.clear_blur_cache()
             return
 
         elif action == "arttest":

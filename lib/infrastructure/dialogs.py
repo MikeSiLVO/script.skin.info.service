@@ -320,38 +320,3 @@ def show_info(message: str) -> None:
     show_notification(xbmc.getLocalizedString(29915), message, xbmcgui.NOTIFICATION_INFO, 3000)
 
 
-def clear_blur_cache() -> None:
-    """Clear all cached blurred images after confirmation."""
-    from lib.service import blur
-
-    file_count, total_bytes = blur.get_blur_cache_size()
-
-    if file_count == 0:
-        show_notification(
-            "Blur Cache Empty",
-            "No cached blurred images to delete",
-            xbmcgui.NOTIFICATION_INFO,
-            3000
-        )
-        return
-
-    if total_bytes < 1024 * 1024:
-        size_str = f"{total_bytes / 1024:.1f} KB"
-    else:
-        size_str = f"{total_bytes / (1024 * 1024):.1f} MB"
-
-    if show_yesno(
-        "Clear Blur Cache?",
-        f"Cache: {file_count} file{'s' if file_count != 1 else ''} ({size_str})\n\nFrees space by deleting blurred backgrounds.\nRecreates automatically but causes brief delays until rebuilt."
-    ):
-        deleted_count = blur.clear_blur_cache()
-
-        import xbmc
-        xbmc.executebuiltin('Action(Up)')
-
-        show_notification(
-            "Blur Cache Cleared",
-            f"{deleted_count} file{'s' if deleted_count != 1 else ''} deleted",
-            xbmcgui.NOTIFICATION_INFO,
-            3000
-        )

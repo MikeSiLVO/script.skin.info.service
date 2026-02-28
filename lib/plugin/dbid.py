@@ -5,7 +5,7 @@ Queries Kodi library and returns formatted dictionaries for ListItem properties.
 from __future__ import annotations
 
 import xbmc
-from typing import Optional
+from typing import List, Optional, Tuple
 from lib.kodi.client import request, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, log
 from lib.plugin.listitems import (
     build_movie_data,
@@ -171,11 +171,139 @@ def _get_musicvideo_data(musicvideoid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
-    return build_musicvideo_data(details)
+    data = build_musicvideo_data(details)
+    data.update(get_musicvideo_library_art(details))
+    return data
 
 
-def _get_artist_data(artistid: int) -> Optional[dict]:
-    """Get artist data as dictionary for ListItem."""
+_artist_art_cache: dict = {}
+_artist_albums_cache: dict = {}
+_MAX_CACHE_ENTRIES = 200
+
+
+def clear_musicvideo_library_art_cache() -> None:
+    """Clear cached artist art lookups (call on library updates)."""
+    _artist_art_cache.clear()
+    _artist_albums_cache.clear()
+
+
+def get_musicvideo_library_art(details: dict) -> dict:
+    """Query AudioLibrary for artist art and album thumb matching a music video.
+
+    Args:
+        details: dict with 'artist' (list of names) and 'album' (string) keys
+
+    Returns:
+        Dict with keys like 'Artist.Fanart', 'Artist.Thumb', 'Album.Thumb'
+    """
+    artist_art, artist_id = get_musicvideo_artist_art(details)
+    props = dict(artist_art)
+    album_thumb = get_musicvideo_album_art(details, artist_id)
+    if album_thumb:
+        props["Album.Thumb"] = album_thumb
+    return props
+
+
+def get_musicvideo_artist_art(details: dict) -> tuple:
+    """Query AudioLibrary for artist art matching a music video.
+
+    Returns:
+        (artist_props dict, artist_id or None)
+    """
+    from lib.kodi.client import decode_image_url
+    from lib.service.properties import _join
+
+    artist_name = _join(details.get("artist"))
+    if not artist_name:
+        return {}, None
+
+    artist_key = artist_name.lower()
+
+    if artist_key in _artist_art_cache:
+        artist_props, artist_id = _artist_art_cache[artist_key]
+        return dict(artist_props), artist_id
+
+    result = request("AudioLibrary.GetArtists", {
+        "filter": {"field": "artist", "operator": "is", "value": artist_name},
+        "properties": ["art"],
+        "limits": {"end": 1},
+    })
+
+    artists_list = (result or {}).get("result", {}).get("artists")
+    if not artists_list:
+        if len(_artist_art_cache) >= _MAX_CACHE_ENTRIES:
+            _artist_art_cache.clear()
+        _artist_art_cache[artist_key] = ({}, None)
+        return {}, None
+
+    artist = artists_list[0]
+    artist_art_raw = artist.get("art", {})
+    artist_id = artist.get("artistid")
+
+    artist_props: dict = {}
+    for art_type in ("fanart", "thumb", "clearlogo", "banner"):
+        value = artist_art_raw.get(art_type, "")
+        if value:
+            key = art_type[0].upper() + art_type[1:]
+            artist_props[f"Artist.{key}"] = decode_image_url(value)
+
+    if len(_artist_art_cache) >= _MAX_CACHE_ENTRIES:
+        _artist_art_cache.clear()
+    _artist_art_cache[artist_key] = (artist_props, artist_id)
+    return dict(artist_props), artist_id
+
+
+def get_musicvideo_album_art(details: dict, artist_id: object) -> str:
+    """Query AudioLibrary for album thumb matching a music video.
+
+    Returns:
+        Album thumb URL or empty string.
+    """
+    from lib.kodi.client import decode_image_url
+    from lib.service.properties import _join
+
+    artist_name = _join(details.get("artist"))
+    album_name = details.get("album") or ""
+    if not album_name or not artist_id or not artist_name:
+        return ""
+
+    artist_key = artist_name.lower()
+    album_cache_key = (artist_key, album_name.lower())
+
+    if album_cache_key in _artist_albums_cache:
+        return _artist_albums_cache[album_cache_key]
+
+    album_thumb = ""
+    albums_result = request("AudioLibrary.GetAlbums", {
+        "filter": {"artistid": artist_id},
+        "properties": ["title", "art"],
+    })
+    if albums_result:
+        album_list = albums_result.get("result", {}).get("albums")
+        if isinstance(album_list, list):
+            album_lower = album_name.lower()
+            for album in album_list:
+                if album.get("title", "").lower() == album_lower:
+                    thumb = album.get("art", {}).get("thumb", "")
+                    if thumb:
+                        album_thumb = decode_image_url(thumb)
+                    break
+    if len(_artist_albums_cache) >= _MAX_CACHE_ENTRIES:
+        _artist_albums_cache.clear()
+    _artist_albums_cache[album_cache_key] = album_thumb
+    return album_thumb
+
+
+def get_musicvideo_node_data(artist_name: str, album_name: str = "") -> dict:
+    """Get music library art for musicvideo artist/album navigation nodes."""
+    if not artist_name:
+        return {}
+    details: dict = {"artist": [artist_name], "album": album_name}
+    return get_musicvideo_library_art(details)
+
+
+def fetch_artist_details(artistid: int) -> Optional[Tuple[dict, List[dict]]]:
+    """Fetch artist and their albums from library. Returns (artist, albums) or None."""
     ext_props = [
         "description", "genre", "art", "thumbnail", "fanart", "musicbrainzartistid",
         "born", "formed", "died", "disbanded", "yearsactive", "instrument",
@@ -216,11 +344,11 @@ def _get_artist_data(artistid: int) -> Optional[dict]:
     if not isinstance(albums, list):
         albums = []
 
-    return build_artist_data(artist, albums)
+    return artist, albums
 
 
-def _get_album_data(albumid: int) -> Optional[dict]:
-    """Get album data as dictionary for ListItem."""
+def fetch_album_details(albumid: int) -> Optional[Tuple[dict, List[dict]]]:
+    """Fetch album and its songs from library. Returns (album, songs) or None."""
     ext_props = [
         "title", "art", "year", "artist", "artistid", "genre",
         "style", "mood", "type", "albumlabel", "playcount", "rating", "userrating",
@@ -258,4 +386,20 @@ def _get_album_data(albumid: int) -> Optional[dict]:
     if not isinstance(songs, list):
         songs = []
 
-    return build_album_data(album, songs)
+    return album, songs
+
+
+def _get_artist_data(artistid: int) -> Optional[dict]:
+    """Get artist data as dictionary for ListItem."""
+    result = fetch_artist_details(artistid)
+    if not result:
+        return None
+    return build_artist_data(*result)
+
+
+def _get_album_data(albumid: int) -> Optional[dict]:
+    """Get album data as dictionary for ListItem."""
+    result = fetch_album_details(albumid)
+    if not result:
+        return None
+    return build_album_data(*result)

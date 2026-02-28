@@ -11,7 +11,7 @@ import xbmc
 import xbmcvfs
 from typing import Optional, Dict, Any, Set, List
 
-from lib.data.database._infrastructure import get_db, DB_PATH
+from lib.data.database import slideshow as db_slideshow
 from lib.kodi.utils import set_prop, clear_prop
 from lib.kodi.client import decode_image_url, log, request
 
@@ -74,44 +74,16 @@ def get_random_uncached_fanart_urls(count: int = 20) -> List[str]:
     cached_urls = _get_cached_texture_urls()
     uncached = []
 
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute('''
-            SELECT fanart
-            FROM slideshow_pool
-            ORDER BY RANDOM()
-            LIMIT ?
-        ''', (count * 3,))
-
-        rows = cursor.fetchall()
-
-        for row in rows:
-            fanart = row['fanart']
-            if fanart and fanart.strip():
-                decoded = decode_image_url(fanart)
-                if decoded not in cached_urls:
-                    uncached.append(fanart)
-                    if len(uncached) >= count:
-                        break
+    urls = db_slideshow.get_random_fanart_urls(count * 3)
+    for fanart in urls:
+        if fanart.strip():
+            decoded = decode_image_url(fanart)
+            if decoded not in cached_urls:
+                uncached.append(fanart)
+                if len(uncached) >= count:
+                    break
 
     return uncached
-
-
-def _is_url_cached(url: str) -> bool:
-    """
-    Check if a URL exists in Kodi's texture cache.
-
-    Args:
-        url: Image URL (wrapped or decoded)
-
-    Returns:
-        True if URL is in texture cache
-    """
-    if not url:
-        return False
-
-    decoded = decode_image_url(url)
-    cached_urls = _get_cached_texture_urls()
-    return decoded in cached_urls
 
 
 def _cache_image_url(url: str) -> bool:
@@ -139,21 +111,8 @@ def _cache_image_url(url: str) -> bool:
         return False
 
 
-def _insert_pool_records(cursor, media_type: str, items: list, id_key: str, title_key: str,
-                         fanart_key: str, description_key: str, current_time: int) -> None:
-    """
-    Helper to insert records into slideshow_pool.
-
-    Args:
-        cursor: Database cursor
-        media_type: Type of media ('movie', 'tvshow', 'artist')
-        items: List of items from Kodi API
-        id_key: Key for database ID in item dict
-        title_key: Key for title in item dict
-        fanart_key: Key for fanart URL in item dict
-        description_key: Key for description in item dict
-        current_time: Current timestamp
-    """
+def _build_pool_records(media_type: str, items: list, id_key: str, title_key: str,
+                        fanart_key: str, description_key: str, current_time: int) -> List[tuple]:
     records = []
     for item in items:
         if media_type == 'artist':
@@ -174,13 +133,7 @@ def _insert_pool_records(cursor, media_type: str, items: list, id_key: str, titl
             None,
             current_time
         ))
-
-    if records:
-        cursor.executemany('''
-            INSERT OR REPLACE INTO slideshow_pool
-            (kodi_dbid, media_type, title, fanart, description, year, season, episode, last_synced)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', records)
+    return records
 
 
 def populate_slideshow_pool() -> None:
@@ -194,14 +147,11 @@ def populate_slideshow_pool() -> None:
     tvshows = _get_tvshows_with_fanart()
     artists = _get_artists_with_fanart()
 
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute('DELETE FROM slideshow_pool')
+    movie_records = _build_pool_records('movie', movies, 'movieid', 'title', 'fanart', 'plot', current_time)
+    tvshow_records = _build_pool_records('tvshow', tvshows, 'tvshowid', 'title', 'fanart', 'plot', current_time)
+    artist_records = _build_pool_records('artist', artists, 'artistid', 'artist', 'fanart', 'description', current_time)
 
-        _insert_pool_records(cursor, 'movie', movies, 'movieid', 'title', 'fanart', 'plot', current_time)
-        _insert_pool_records(cursor, 'tvshow', tvshows, 'tvshowid', 'title', 'fanart', 'plot', current_time)
-        _insert_pool_records(cursor, 'artist', artists, 'artistid', 'artist', 'fanart', 'description', current_time)
-
-        conn.commit()
+    db_slideshow.populate_pool(movie_records, tvshow_records, artist_records)
 
     log("Service", f"Slideshow: Pool populated with {len(movies)} movies, {len(tvshows)} TV shows, {len(artists)} artists")
 
@@ -285,58 +235,31 @@ def _get_random_item(media_types: List[str], select_fields: List[str], result_ma
         Random item with cached or newly-cached fanart, or None
     """
     cached_urls = _get_cached_texture_urls()
+    media_type_label = '/'.join(media_types)
 
-    if len(media_types) == 1:
-        where_clause = 'WHERE media_type = ?'
-        params = (media_types[0],)
-        media_type_label = media_types[0]
-    else:
-        placeholders = ','.join('?' * len(media_types))
-        where_clause = f'WHERE media_type IN ({placeholders})'
-        params = tuple(media_types)
-        media_type_label = '/'.join(media_types)
+    rows = db_slideshow.get_random_pool_items(media_types, select_fields, attempt_count)
 
-    select_clause = ', '.join(select_fields)
-
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute(f'''
-            SELECT {select_clause}
-            FROM slideshow_pool
-            {where_clause}
-            ORDER BY RANDOM()
-            LIMIT ?
-        ''', params + (attempt_count,))
-
-        rows = cursor.fetchall()
-
-        for row in rows:
-            fanart = row['fanart']
-            if fanart:
-                decoded = decode_image_url(fanart)
-                if decoded in cached_urls:
-                    return {result_mapping[k]: row[k] for k in result_mapping}
-
-        log("Service", f"Slideshow: No cached {media_type_label} fanart found in sample, caching random item")
-
-        cursor.execute(f'''
-            SELECT {select_clause}
-            FROM slideshow_pool
-            {where_clause}
-            ORDER BY RANDOM()
-            LIMIT 1
-        ''', params)
-
-        row = cursor.fetchone()
-        if row and row['fanart']:
-            if _cache_image_url(row['fanart']):
-                with _cache_lock:
-                    if _cached_texture_urls is not None:
-                        decoded = decode_image_url(row['fanart'])
-                        _cached_texture_urls.add(decoded)
-                log("Service", f"Slideshow: Cached {media_type_label} fanart: {row['fanart']}")
+    for row in rows:
+        fanart = row['fanart']
+        if fanart:
+            decoded = decode_image_url(fanart)
+            if decoded in cached_urls:
                 return {result_mapping[k]: row[k] for k in result_mapping}
-            else:
-                log("Service", f"Slideshow: Failed to cache {media_type_label} fanart", xbmc.LOGWARNING)
+
+    log("Service", f"Slideshow: No cached {media_type_label} fanart found in sample, caching random item")
+
+    fallback_rows = db_slideshow.get_random_pool_items(media_types, select_fields, 1)
+    row = fallback_rows[0] if fallback_rows else None
+    if row and row['fanart']:
+        if _cache_image_url(row['fanart']):
+            with _cache_lock:
+                if _cached_texture_urls is not None:
+                    decoded = decode_image_url(row['fanart'])
+                    _cached_texture_urls.add(decoded)
+            log("Service", f"Slideshow: Cached {media_type_label} fanart: {row['fanart']}")
+            return {result_mapping[k]: row[k] for k in result_mapping}
+        else:
+            log("Service", f"Slideshow: Failed to cache {media_type_label} fanart", xbmc.LOGWARNING)
 
     return None
 
@@ -489,14 +412,7 @@ def update_all_slideshow_properties() -> None:
     Uses single optimized query for maximum performance.
     Called by service on configured interval.
     """
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute('''
-            SELECT media_type, title, fanart, description, year
-            FROM slideshow_pool
-            ORDER BY RANDOM()
-            LIMIT 5000
-        ''')
-        all_rows = cursor.fetchall()
+    all_rows = db_slideshow.get_all_pool_items(5000)
 
     random.shuffle(all_rows)
 
@@ -568,10 +484,7 @@ def update_all_slideshow_properties() -> None:
 
 def is_pool_populated() -> bool:
     """Check if slideshow pool has any items."""
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute('SELECT COUNT(*) as count FROM slideshow_pool')
-        row = cursor.fetchone()
-        return row['count'] > 0 if row else False
+    return db_slideshow.is_pool_populated()
 
 
 class SlideshowMonitor(xbmc.Monitor):

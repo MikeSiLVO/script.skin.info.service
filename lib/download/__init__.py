@@ -1,1 +1,0 @@
-"""Artwork filesystem download functionality."""

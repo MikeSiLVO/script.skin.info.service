@@ -8,8 +8,9 @@ import xbmc
 import xbmcvfs
 
 from lib.data.api.client import ApiSession
-from lib.rating.source import RatingSource, RateLimitHit, RetryableError
-from lib.rating import tracker as usage_tracker
+from lib.data.api.source import RatingSource
+from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api import tracker as usage_tracker
 from lib.kodi.client import log
 
 
@@ -33,6 +34,7 @@ class ApiTrakt(RatingSource):
             timeout=(5.0, 10.0),
             max_retries=2,
             backoff_factor=1.0,
+            rate_limit=(900, 300.0),
             default_headers={
                 "Content-Type": "application/json",
                 "trakt-api-key": TRAKT_CLIENT_ID,
@@ -125,7 +127,8 @@ class ApiTrakt(RatingSource):
         Fetch complete Trakt data for an item.
 
         For movies/shows: Uses extended=full endpoint to get ratings + subgenres + extras.
-        For episodes: Uses ratings endpoint (no extra data available).
+        For episodes: Uses per-episode endpoint. Use prefetch_season() before batch
+        operations to cache all episodes in a season with one API call.
 
         Args:
             media_type: Type of media ("movie", "tvshow", "episode")
@@ -149,10 +152,6 @@ class ApiTrakt(RatingSource):
             if cached:
                 return cached
 
-        token = self._get_valid_token(abort_flag)
-        if not token:
-            return None
-
         try:
             usage_tracker.increment_usage("trakt")
 
@@ -169,10 +168,15 @@ class ApiTrakt(RatingSource):
             else:
                 return None
 
+            headers = {}
+            token = self._get_valid_token(abort_flag)
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
             data = self.session.get(
                 endpoint,
                 params={"extended": "full"},
-                headers={"Authorization": f"Bearer {token}"},
+                headers=headers,
                 abort_flag=abort_flag
             )
 
@@ -188,6 +192,61 @@ class ApiTrakt(RatingSource):
         except Exception as e:
             log("Trakt", f"Fetch error: {str(e)}", xbmc.LOGWARNING)
             return None
+
+    def prefetch_season(
+        self,
+        show_id: str,
+        season: int,
+        abort_flag=None
+    ) -> None:
+        """Fetch all episodes for a season in one call and cache each individually.
+
+        Call before batch-processing episodes to avoid per-episode API calls.
+        Uses the same cache keys as fetch_data, so subsequent fetch_data/fetch_ratings
+        calls for these episodes will hit cache.
+        """
+        if usage_tracker.is_provider_skipped("trakt"):
+            return
+
+        try:
+            usage_tracker.increment_usage("trakt")
+
+            headers = {}
+            token = self._get_valid_token(abort_flag)
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
+            data = self.session.get(
+                f"/shows/{show_id}/seasons/{season}",
+                params={"extended": "full"},
+                headers=headers,
+                abort_flag=abort_flag
+            )
+
+            if not data or not isinstance(data, list):
+                return
+
+            for ep in data:
+                if not isinstance(ep, dict):
+                    continue
+                ep_num = ep.get("number")
+                if ep_num is None:
+                    continue
+                ep_key = self._get_cache_key("episode", {
+                    "imdb": show_id,
+                    "season": str(season),
+                    "episode": str(ep_num),
+                })
+                self.cache_data(ep_key, ep)
+
+            log("Trakt", f"Prefetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
+
+        except RateLimitHit:
+            raise
+        except RetryableError:
+            raise
+        except Exception as e:
+            log("Trakt", f"Prefetch season {season} failed: {str(e)}", xbmc.LOGWARNING)
 
     def _get_cache_key(self, media_type: str, ids: Dict[str, str]) -> str:
         """Generate cache key for Trakt data."""
@@ -306,6 +365,65 @@ class ApiTrakt(RatingSource):
             return subgenres
 
         return None
+
+    def _get_list(
+        self,
+        endpoint: str,
+        limit: int = 20,
+        page: int = 1,
+        extended: str = '',
+        requires_auth: bool = False,
+        abort_flag=None
+    ) -> list:
+        headers: Dict[str, str] = {}
+        if requires_auth:
+            token = self._get_valid_token(abort_flag)
+            if not token:
+                return []
+            headers["Authorization"] = f"Bearer {token}"
+
+        params: Dict[str, str | int] = {"limit": limit, "page": page}
+        if extended:
+            params["extended"] = extended
+
+        try:
+            data = self.session.get(
+                endpoint,
+                params=params,
+                headers=headers if headers else None,
+                abort_flag=abort_flag
+            )
+            if data and isinstance(data, list):
+                return data
+            return []
+        except Exception as e:
+            log("Trakt", f"List fetch error for {endpoint}: {e}", xbmc.LOGWARNING)
+            return []
+
+    def get_trending(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/trending", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_popular(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/popular", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_anticipated(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/anticipated", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_most_watched(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/watched/{period}", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_most_collected(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(f"/{media_type}s/collected/{period}", limit=limit, page=page, extended="full", abort_flag=abort_flag)
+
+    def get_box_office(self, limit: int = 20, abort_flag=None) -> list:
+        return self._get_list("/movies/boxoffice", limit=limit, extended="full", abort_flag=abort_flag)
+
+    def get_recommendations(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        return self._get_list(
+            f"/recommendations/{media_type}s",
+            limit=limit, page=page, extended="full",
+            requires_auth=True, abort_flag=abort_flag
+        )
 
     def test_connection(self) -> bool:
         """

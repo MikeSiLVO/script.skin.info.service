@@ -19,7 +19,9 @@ Mid-credits and post-credits scene detection with notification during movie play
 
 ## Overview
 
-Detects movies with post-credits scenes (stingers) and notifies near the end of playback. Supports three stinger types:
+Detects movies with post-credits scenes (stingers) and notifies near the end of playback. Runs as an independent service controlled by the `stinger_enabled` addon setting — works on any skin without requiring the main skin service.
+
+Supports three stinger types:
 
 | Type | Description |
 |------|-------------|
@@ -53,7 +55,7 @@ Stinger data is checked in order:
 2. **Kodi library tags** - Same keywords imported from scrapers
 3. **Trakt** - `during_credits`, `after_credits` fields (requires Trakt authorization)
 
-TMDB is checked during online property fetch. Kodi tags and Trakt are checked on playback start.
+All sources are checked shortly after movie playback begins.
 
 ---
 

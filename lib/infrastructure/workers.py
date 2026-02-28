@@ -4,9 +4,8 @@ from __future__ import annotations
 import time
 import threading
 import xbmc
-import xbmcgui
 from queue import Queue, Empty
-from typing import Optional, Set, List, Dict, Any, Callable
+from typing import Optional, Set, List, Dict, Any
 from multiprocessing import cpu_count
 from lib.kodi.client import log
 
@@ -333,97 +332,3 @@ class WorkerQueue:
             result: Result dict
         """
         pass
-
-
-class SingletonWorker:
-    """
-    Persistent singleton worker thread for background job processing.
-
-    Designed for long-running services that need a single background worker
-    to process jobs asynchronously without blocking the main thread.
-
-    Usage:
-        worker = SingletonWorker.get_instance()
-        worker.start()
-        worker.queue_job(lambda: expensive_operation())
-        # Later...
-        worker.stop()
-    """
-
-    _instance: Optional[SingletonWorker] = None
-    _lock = threading.Lock()
-
-    def __init__(self):
-        self._queue: Queue = Queue()
-        self._thread: Optional[threading.Thread] = None
-        self._stop_event = threading.Event()
-        self._monitor = xbmc.Monitor()
-        self._window = xbmcgui.Window(10000)
-
-    @classmethod
-    def get_instance(cls) -> SingletonWorker:
-        """Get singleton instance."""
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls()
-        return cls._instance
-
-    def start(self) -> None:
-        """Start background worker thread."""
-        if self._thread is None or not self._thread.is_alive():
-            self._stop_event.clear()
-            self._thread = threading.Thread(target=self._worker_loop, daemon=True)
-            self._thread.start()
-            log("Worker", "Singleton worker started", xbmc.LOGDEBUG)
-
-    def stop(self) -> None:
-        """Stop background worker thread."""
-        if self._thread and self._thread.is_alive():
-            self._stop_event.set()
-            self._queue.put(None)
-            self._thread.join(timeout=5.0)
-            log("Worker", "Singleton worker stopped", xbmc.LOGDEBUG)
-
-    def queue_job(self, job: Callable[[], None]) -> None:
-        """
-        Queue a job for background processing.
-
-        Args:
-            job: Callable that takes no arguments and returns None
-        """
-        if not self._thread or not self._thread.is_alive():
-            log("Worker", "Cannot queue job, worker not running", xbmc.LOGWARNING)
-            return
-
-        self._queue.put(job)
-
-    def _worker_loop(self) -> None:
-        """Main worker loop - processes jobs from queue."""
-        while not self._stop_event.is_set():
-            if self._monitor.abortRequested():
-                log("Worker", "Abort requested, stopping worker", xbmc.LOGDEBUG)
-                break
-
-            try:
-                job = self._queue.get(timeout=1.0)
-
-                if job is None:
-                    break
-
-                if self._monitor.abortRequested():
-                    log("Worker", "Abort requested, skipping job", xbmc.LOGDEBUG)
-                    self._queue.task_done()
-                    break
-
-                try:
-                    job()
-                except Exception as e:
-                    log("Worker", f"Job error: {str(e)}", xbmc.LOGWARNING)
-
-                self._queue.task_done()
-
-            except Empty:
-                continue
-            except Exception as e:
-                log("Worker", f"Worker loop error: {str(e)}", xbmc.LOGERROR)

@@ -36,7 +36,7 @@ def run_tools() -> None:
     from lib.texture.menu import run_texture_maintenance
     from lib.artwork.animated import run_scanner
     from lib.download.menu import run_download_menu
-    from lib.rating.updater import run_ratings_menu
+    from lib.rating.menu import run_ratings_menu
     from lib.rating.ids import run_fix_library_ids
     from lib.script.top250 import run_top250_update
 

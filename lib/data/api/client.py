@@ -19,8 +19,24 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from lib.kodi.client import log
-from lib.rating.source import RetryableError, RateLimitHit
+from lib.kodi.client import log, ADDON
+
+_USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
+
+
+class RateLimitHit(Exception):
+    """Exception raised when a provider's API rate limit is reached."""
+    def __init__(self, provider: str):
+        self.provider = provider
+        super().__init__(f"Rate limit reached for {provider}")
+
+
+class RetryableError(Exception):
+    """Exception raised for transient errors that may succeed on retry (timeouts, connection errors)."""
+    def __init__(self, provider: str, reason: str):
+        self.provider = provider
+        self.reason = reason
+        super().__init__(f"{provider}: {reason}")
 
 
 class RateLimiter:
@@ -138,7 +154,7 @@ class ApiSession:
         if default_headers:
             self.session.headers.update(default_headers)
 
-        self.session.headers.setdefault("User-Agent", "script.skin.info.service/2.0.0")
+        self.session.headers["User-Agent"] = _USER_AGENT
 
     def _build_url(self, endpoint: str) -> str:
         """Build full URL from endpoint."""

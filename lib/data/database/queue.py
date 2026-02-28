@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Sequence, Dict, List
 
 from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid, vacuum_database
-from lib.artwork.config import validate_media_type, validate_dbid
+from lib.kodi.utils import validate_media_type, validate_dbid
 from lib.kodi.client import log
 
 ARTITEM_REVIEW_MISSING = 'missing'

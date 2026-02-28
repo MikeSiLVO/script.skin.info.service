@@ -18,6 +18,7 @@ Query media details for any library item using its database ID.
 - [Artists](#artists)
 - [Albums](#albums)
 - [Music Videos](#music-videos)
+- [Music Video Nodes](#music-video-nodes)
 
 ---
 
@@ -478,32 +479,32 @@ Use `%d` as index (1-based):
 
 ### Music Video Properties
 
-| Property        | Description  |
-|-----------------|--------------|
-| `Title`         | Title        |
-| `Artist`        | Artists      |
-| `ArtistPrimary` | First artist |
-| `Album`         | Album        |
-| `Year`          | Year         |
-| `Plot`          | Description  |
-| `Runtime`       | Runtime      |
-| `Premiered`     | Release date |
-| `Track`         | Track number |
-| `Playcount`     | Play count   |
-| `LastPlayed`    | Last played  |
-| `DateAdded`     | Date added   |
-| `Path`          | Path         |
-| `Rating`        | Rating       |
-| `UserRating`    | User rating  |
-| `Genre`         | Genres       |
-| `Director`      | Directors    |
-| `Studio`        | Studios      |
-| `Tag`           | Tags         |
-| `Codec`         | Video codec  |
-| `Resolution`    | Resolution   |
-| `Aspect`        | Aspect ratio |
-| `AudioCodec`    | Audio codec  |
-| `AudioChannels` | Audio channels|
+| Property        | Description    |
+|-----------------|----------------|
+| `Title`         | Title          |
+| `Artist`        | Artists         |
+| `ArtistPrimary` | First artist   |
+| `Album`         | Album          |
+| `Year`          | Year           |
+| `Plot`          | Description    |
+| `Runtime`       | Runtime        |
+| `Premiered`     | Release date   |
+| `Track`         | Track number   |
+| `Playcount`     | Play count     |
+| `LastPlayed`    | Last played    |
+| `DateAdded`     | Date added     |
+| `Path`          | Path           |
+| `Rating`        | Rating         |
+| `UserRating`    | User rating    |
+| `Genre`         | Genres         |
+| `Director`      | Directors      |
+| `Studio`        | Studios        |
+| `Tag`           | Tags           |
+| `Codec`         | Video codec    |
+| `Resolution`    | Resolution     |
+| `Aspect`        | Aspect ratio   |
+| `AudioCodec`    | Audio codec    |
+| `AudioChannels` | Audio channels |
 
 ### Music Video Artwork
 
@@ -515,6 +516,52 @@ Use `%d` as index (1-based):
 - `ListItem.Art(banner)`
 - `ListItem.Art(clearart)`
 - `ListItem.Art(thumb)`
+
+### Music Library Cross-Reference
+
+When the music video's artist exists in the music library, additional properties are returned:
+
+| Property           | Description                          |
+|--------------------|--------------------------------------|
+| `Artist.Fanart`    | Artist fanart from music library     |
+| `Artist.Thumb`     | Artist thumbnail from music library  |
+| `Artist.Clearlogo` | Artist clearlogo from music library  |
+| `Artist.Banner`    | Artist banner from music library     |
+| `Album.Thumb`      | Album thumbnail (matched by title)   |
+
+---
+
+## Music Video Nodes
+
+For music video artist and album navigation nodes (which have `DBType=actor` and `DBType=album` instead of `musicvideo`), use the name-based path:
+
+```xml
+<value condition="!String.IsEmpty(ListItem.Property(musicvideomediatype))">
+  plugin://script.skin.info.service/?action=getdetails
+  &amp;dbtype=musicvideo_$INFO[ListItem.Property(musicvideomediatype)]
+  &amp;artist=$INFO[ListItem.Label]
+  &amp;album=$INFO[ListItem.Album]
+</value>
+```
+
+### Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `action`  | Yes      | Must be `getdetails` |
+| `dbtype`  | Yes      | `musicvideo_artist` or `musicvideo_album` |
+| `artist`  | *        | Artist name (required for `musicvideo_artist`) |
+| `album`   | *        | Album name (required for `musicvideo_album`) |
+
+### Node Properties
+
+| Property           | Condition                             |
+|--------------------|---------------------------------------|
+| `Artist.Fanart`    | Artist found in music library         |
+| `Artist.Thumb`     | Artist found in music library         |
+| `Artist.Clearlogo` | Artist found in music library         |
+| `Artist.Banner`    | Artist found in music library         |
+| `Album.Thumb`      | `musicvideo_album` only, matched by title |
 
 ---
 

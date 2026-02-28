@@ -6,8 +6,9 @@ import re
 import xbmc
 
 from lib.data.api.client import ApiSession
-from lib.rating.source import RatingSource, RateLimitHit, RetryableError
-from lib.rating import tracker as usage_tracker
+from lib.data.api.source import RatingSource
+from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api import tracker as usage_tracker
 from lib.kodi.client import _get_api_key, log
 from lib.kodi.formatters import RT_SOURCE_TOMATOES, RT_SOURCE_POPCORN
 

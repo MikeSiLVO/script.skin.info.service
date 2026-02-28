@@ -1,6 +1,6 @@
-# Widgets
+# Library Widgets
 
-Smart widget content for home screens and info dialogs.
+Widget content sourced from the Kodi library. See also: [Discovery Widgets](widgets-discovery.md) for online content.
 
 [← Back to Index](../index.md)
 
@@ -15,6 +15,10 @@ Smart widget content for home screens and info dialogs.
 - [Similar Items](#similar-items)
 - [Recommended For You](#recommended-for-you)
 - [Seasonal](#seasonal)
+- [Similar Artists](#similar-artists)
+- [Artist Albums](#artist-albums)
+- [Artist Music Videos](#artist-music-videos)
+- [Genre Artists](#genre-artists)
 
 ---
 
@@ -350,6 +354,178 @@ Seasonal movie collections filtered by TMDB tags.
 - Uses OR logic (matches ANY season tag)
 
 **Widget Type:** Movie
+
+---
+
+## Similar Artists
+
+Library artists similar to a given artist, matched via Last.fm data.
+
+### Usage
+
+```xml
+<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;artist=$INFO[ListItem.Artist]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `artist` | No* | - | Artist name |
+| `dbid` | No* | - | Database ID of source item |
+| `dbtype` | No* | - | Source type (musicvideo/artist/album/song) |
+| `limit` | No | 25 | Maximum items |
+
+*Either `artist` or `dbid`+`dbtype` required.
+
+### Examples
+
+```xml
+<!-- From artist name -->
+<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;artist=$INFO[ListItem.Artist]&amp;limit=10</content>
+
+<!-- From musicvideo -->
+<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=musicvideo</content>
+```
+
+### Behavior
+
+1. Resolves artist name from params
+2. Reads similar artists from Last.fm cached data (fetches if not cached)
+3. Matches similar names against AudioLibrary artists (case-insensitive)
+4. Returns matching artists with library artwork
+
+**Widget Type:** Artist
+
+---
+
+## Artist Albums
+
+Albums by a given artist from AudioLibrary.
+
+### Usage
+
+```xml
+<content sortby="none">plugin://script.skin.info.service/?action=artist_albums&amp;artist=$INFO[ListItem.Artist]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `artist` | No* | - | Artist name |
+| `dbid` | No* | - | Database ID of source item |
+| `dbtype` | No* | - | Source type (musicvideo/artist/album/song) |
+| `limit` | No | 25 | Maximum items |
+| `sort` | No | year | Sort method |
+
+*Either `artist` or `dbid`+`dbtype` required.
+
+### Examples
+
+```xml
+<!-- From artist name -->
+<content sortby="none">plugin://script.skin.info.service/?action=artist_albums&amp;artist=$INFO[ListItem.Artist]</content>
+
+<!-- From musicvideo, sorted by title -->
+<content sortby="none">plugin://script.skin.info.service/?action=artist_albums&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=musicvideo&amp;sort=title</content>
+```
+
+### Behavior
+
+1. Resolves artist name from params
+2. Looks up `artistid` in AudioLibrary
+3. Queries albums filtered by `artistid`
+4. Returns album ListItems with cover art
+
+**Widget Type:** Album
+
+---
+
+## Artist Music Videos
+
+Music videos by a given artist from VideoLibrary.
+
+### Usage
+
+```xml
+<content sortby="none">plugin://script.skin.info.service/?action=artist_musicvideos&amp;artist=$INFO[ListItem.Artist]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `artist` | No* | - | Artist name |
+| `dbid` | No* | - | Database ID of source item |
+| `dbtype` | No* | - | Source type (musicvideo/artist/album/song) |
+| `limit` | No | 25 | Maximum items |
+
+*Either `artist` or `dbid`+`dbtype` required.
+
+When `dbid`+`dbtype=musicvideo` is provided, that musicvideo is excluded from results.
+
+### Examples
+
+```xml
+<!-- Other musicvideos by this artist (exclude current) -->
+<content sortby="none">plugin://script.skin.info.service/?action=artist_musicvideos&amp;artist=$INFO[ListItem.Artist]&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=musicvideo&amp;limit=10</content>
+
+<!-- All musicvideos by artist name -->
+<content sortby="none">plugin://script.skin.info.service/?action=artist_musicvideos&amp;artist=$INFO[ListItem.Artist]</content>
+```
+
+### Behavior
+
+1. Resolves artist name from params
+2. Queries VideoLibrary filtered by artist name (sorted by year descending)
+3. Excludes source musicvideo if `dbid`+`dbtype=musicvideo` provided
+4. Returns playable musicvideo ListItems
+
+**Widget Type:** Music Video
+
+---
+
+## Genre Artists
+
+Artists in the same genre as a given artist from AudioLibrary.
+
+### Usage
+
+```xml
+<content sortby="none">plugin://script.skin.info.service/?action=genre_artists&amp;artist=$INFO[ListItem.Artist]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `artist` | No* | - | Artist name (to resolve genre) |
+| `dbid` | No* | - | Database ID of source item |
+| `dbtype` | No* | - | Source type (musicvideo/artist/album/song) |
+| `genre` | No | - | Explicit genre (skips artist lookup) |
+| `limit` | No | 25 | Maximum items |
+
+*Either `artist`, `dbid`+`dbtype`, or `genre` required.
+
+### Examples
+
+```xml
+<!-- From artist name -->
+<content sortby="none">plugin://script.skin.info.service/?action=genre_artists&amp;artist=$INFO[ListItem.Artist]&amp;limit=10</content>
+
+<!-- Explicit genre -->
+<content sortby="none">plugin://script.skin.info.service/?action=genre_artists&amp;genre=Rock&amp;limit=10</content>
+```
+
+### Behavior
+
+1. If no explicit genre: resolves artist name, looks up their genre from AudioLibrary
+2. Queries AudioLibrary artists filtered by genre (random sort)
+3. Excludes source artist
+4. Returns artist ListItems with library artwork
+
+**Widget Type:** Artist
 
 ---
 
