@@ -470,3 +470,7 @@ All discovery ListItems include:
 | `fanart` | TMDB |
 
 Trakt items get artwork via a TMDB lookup using the item's TMDB ID. Previously fetched items are served from cache.
+
+---
+
+[↑ Top](#discovery-widgets) · [Index](../index.md)

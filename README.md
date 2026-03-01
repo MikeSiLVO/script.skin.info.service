@@ -48,12 +48,14 @@ See [Getting Started](DOCS/getting-started.md) for setup details.
 |------------------------------------------------|-------------------------------------|
 | [Library Properties](DOCS/service/library.md)  | Focused item metadata and artwork   |
 | [Online Properties](DOCS/service/online.md)    | TMDb, Trakt, MDBList, OMDb data     |
+| [Stinger Notifications](DOCS/service/stinger.md) | Mid/post-credits scene detection  |
 
 ### 🔌 Plugin Paths
 
 | Document                                    | Description                            |
 |---------------------------------------------|----------------------------------------|
-| [Widgets](DOCS/plugin/widgets.md)           | Next Up, Similar, Recommended, etc.    |
+| [Library Widgets](DOCS/plugin/widgets-library.md) | Next Up, Similar, Recommended, Music |
+| [Discovery Widgets](DOCS/plugin/widgets-discovery.md) | Trending, Popular, Upcoming from TMDB/Trakt |
 | [Navigation](DOCS/plugin/navigation.md)     | Letter jump for containers             |
 | [Cast](DOCS/plugin/cast.md)                 | Cast lists for movies, shows, sets     |
 | [DBID Queries](DOCS/plugin/dbid.md)         | Fetch full metadata by database ID     |
@@ -68,6 +70,7 @@ See [Getting Started](DOCS/getting-started.md) for setup details.
 | [Artwork Review](DOCS/tools/artwork-review.md)  | Browse and manage library artwork  |
 | [Blur](DOCS/tools/blur.md)                      | Generate blurred background images |
 | [Color Picker](DOCS/tools/color-picker.md)      | RGBA color picker dialog           |
+| [Download Artwork](DOCS/tools/download-artwork.md) | Download artwork and actor images to filesystem |
 | [GIF Scanner](DOCS/tools/gif-scanner.md)        | Find animated artwork in library   |
 | [Metadata Editor](DOCS/tools/metadata-editor.md)| Edit library item metadata         |
 | [Slideshow](DOCS/tools/slideshow.md)            | Rotating fanart backgrounds        |

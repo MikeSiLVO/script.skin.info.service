@@ -529,4 +529,4 @@ Artists in the same genre as a given artist from AudioLibrary.
 
 ---
 
-[↑ Top](#widgets) · [Index](../index.md)
+[↑ Top](#library-widgets) · [Index](../index.md)

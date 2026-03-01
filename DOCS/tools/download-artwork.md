@@ -2,6 +2,8 @@
 
 Download library artwork and actor images to the filesystem.
 
+[← Back to Index](../index.md)
+
 ## Context Menu
 
 Right-click a movie, TV show, episode, or season and select **Download Artwork** to download all artwork for that item to local files.
@@ -53,3 +55,7 @@ View results from the last download operation.
 - TMDB image URLs are automatically upgraded to original quality
 - Actor images are skipped if no thumbnail URL exists in the library
 - Duplicate actor names across items share the same image file
+
+---
+
+[↑ Top](#download-artwork) · [Index](../index.md)
