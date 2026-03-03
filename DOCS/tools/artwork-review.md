@@ -34,7 +34,7 @@ Scan library for missing artwork and fetch from TMDB and fanart.tv.
 
 ### API Keys
 
-You must provide your own fanart.tv API key - the addon does not include a built-in key.
+A built-in fanart.tv project key is included. Adding your own personal key gives faster access to newly uploaded artwork (2 days vs 7 days). VIP members get immediate access.
 
 #### Why Both APIs?
 
