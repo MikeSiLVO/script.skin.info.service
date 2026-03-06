@@ -32,15 +32,18 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
 
     Strategy:
     - TV Shows with next_incomplete_episode: cache until that episode's air_date
-    - TV Shows with Ended/Canceled status: 168 hours (7 days)
+    - TV Shows Ended/Canceled + data complete: 2160 hours (90 days)
+    - TV Shows Ended/Canceled + incomplete: 336 hours (14 days)
     - TV Shows with active status but no schedule: 72 hours (3 days)
     - Movies by age:
       - <90 days: 24 hours (ratings/info actively updating)
       - 90 days - 6 months: 72 hours (3 days)
       - 6 months - 1 year: 120 hours (5 days)
-      - >1 year: 168 hours (7 days, stable content)
+      - >1 year + data complete: 2160 hours (90 days)
+      - >1 year + incomplete: 168 hours (7 days)
     - Unknown: 24 hours (assume active)
     - Adds ±10% random jitter to prevent thundering herd
+    - Data completeness: overview, cast, IMDb ID, and (TV) content ratings + last episode
 
     Args:
         release_date: Release date in YYYY-MM-DD format
@@ -50,6 +53,7 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
                Supported keys:
                - "status": TMDb status string (e.g., "Ended", "Canceled", "Returning Series")
                - "next_incomplete_episode": Air date of first episode missing data (YYYY-MM-DD)
+               - "data_complete": "true" if core fields are filled (overview, cast, IDs, etc.)
                - Additional keys can be added without changing function signature
 
     Returns:
@@ -65,6 +69,8 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     status = hints.get("status", "").lower() if hints.get("status") else ""
     next_incomplete = hints.get("next_incomplete_episode")
 
+    data_complete = hints.get("data_complete") == "true"
+
     if next_incomplete:
         try:
             air_date = datetime.fromisoformat(next_incomplete)
@@ -77,7 +83,10 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
             base_ttl = 24
     elif status:
         if status in ("ended", "canceled"):
-            base_ttl = 168  # 7 days - show is done
+            if data_complete:
+                base_ttl = 2160  # 90 days - ended with all data filled
+            else:
+                base_ttl = 336  # 14 days - ended but still filling in
         else:
             base_ttl = 72  # 3 days - airing but no schedule data
     elif release_date:
@@ -91,7 +100,7 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
             elif days_old < 365:
                 base_ttl = 120  # 5 days - mostly stable
             else:
-                base_ttl = 168  # 7 days - established content
+                base_ttl = 2160 if data_complete else 168  # 90 days if complete, else 7 days
         except (ValueError, AttributeError):
             base_ttl = 24
     else:
@@ -128,7 +137,7 @@ def get_cached_artwork(media_type: str, media_id: str, source: str, art_type: st
     Returns:
         List of artwork dicts or None if not cached/expired
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT data, expires_at FROM artwork_cache
             WHERE media_type = ? AND media_id = ? AND source = ? AND art_type = ?
@@ -182,7 +191,7 @@ def get_cached_artwork_batch(
 
     query_params = [media_type] + params + art_types
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute(query, query_params)
         rows = cursor.fetchall()
 
@@ -221,7 +230,7 @@ def cache_artwork(media_type: str, media_id: str, source: str, art_type: str, da
     if ttl_hours is None:
         ttl_hours = get_cache_ttl_hours(release_date)
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         expires_at = datetime.now() + timedelta(hours=ttl_hours)
 
         cursor.execute('''
@@ -241,7 +250,7 @@ def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
     Returns:
         Cached metadata dict or None if not cached/expired
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT data, expires_at FROM metadata_cache
             WHERE media_type = ? AND tmdb_id = ?
@@ -279,12 +288,21 @@ def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Opti
     expires_at = datetime.now() + timedelta(hours=ttl_hours)
     compressed = _compress_data(data)
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT OR REPLACE INTO metadata_cache
             (media_type, tmdb_id, data, release_date, expires_at)
             VALUES (?, ?, ?, ?, ?)
         ''', (media_type, tmdb_id, compressed, release_date, expires_at.isoformat()))
+
+    if media_type in ('movie', 'tvshow') and isinstance(data.get('external_ids'), dict):
+        from lib.data.database.mapping import save_id_mapping
+        ext = data['external_ids']
+        save_id_mapping(
+            tmdb_id, media_type,
+            imdb_id=ext.get('imdb_id') or None,
+            tvdb_id=str(ext['tvdb_id']) if ext.get('tvdb_id') else None,
+        )
 
 
 def clear_expired_cache() -> int:
@@ -294,18 +312,29 @@ def clear_expired_cache() -> int:
     Returns:
         Number of entries removed
     """
-    with get_db(DB_PATH) as (conn, cursor):
-        cursor.execute('''
-            DELETE FROM artwork_cache WHERE expires_at < ?
-        ''', (datetime.now().isoformat(),))
+    now = datetime.now()
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            'DELETE FROM artwork_cache WHERE expires_at < ?',
+            (now.isoformat(),)
+        )
         artwork_deleted = cursor.rowcount
 
-        cursor.execute('''
-            DELETE FROM metadata_cache WHERE expires_at < ?
-        ''', (datetime.now().isoformat(),))
+        cursor.execute(
+            'DELETE FROM metadata_cache WHERE expires_at < ?',
+            (now.isoformat(),)
+        )
         metadata_deleted = cursor.rowcount
 
-        deleted = artwork_deleted + metadata_deleted
+        # Stale online props served until refreshed, but purge very old entries
+        cutoff = (now - timedelta(days=180)).isoformat()
+        cursor.execute(
+            'DELETE FROM online_properties_cache WHERE expires_at < ?',
+            (cutoff,)
+        )
+        online_deleted = cursor.rowcount
+
+        deleted = artwork_deleted + metadata_deleted + online_deleted
 
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")
@@ -328,7 +357,7 @@ def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
     now = int(time.time())
     expires = now + (ttl_days * 86400)
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT OR REPLACE INTO person_cache (person_id, data, cached_at, expires_at)
             VALUES (?, ?, ?, ?)
@@ -347,7 +376,7 @@ def get_cached_person_data(person_id: int) -> Optional[dict]:
     """
     import time
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT data FROM person_cache
             WHERE person_id = ? AND expires_at > ?
@@ -365,29 +394,31 @@ def get_cached_person_data(person_id: int) -> Optional[dict]:
             return None
 
 
-def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
-    """
-    Get cached online properties if not expired.
+def get_cached_online_keys() -> set:
+    """Get all non-expired item_keys from online_properties_cache."""
+    with get_db(DB_PATH) as cursor:
+        now = datetime.now().isoformat()
+        cursor.execute(
+            'SELECT item_key FROM online_properties_cache WHERE expires_at > ?',
+            (now,)
+        )
+        return {row['item_key'] for row in cursor.fetchall()}
 
-    Args:
-        item_key: Unique key for the item (e.g., "movie:123:tt1234567:456")
+
+def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
+    """Get cached online properties, serving stale data until refreshed.
 
     Returns:
-        Cached properties dict or None if not cached/expired
+        Cached properties dict or None if not cached
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
-            SELECT data, expires_at FROM online_properties_cache
+            SELECT data FROM online_properties_cache
             WHERE item_key = ?
         ''', (item_key,))
 
         row = cursor.fetchone()
         if not row:
-            return None
-
-        expires_at = datetime.fromisoformat(row['expires_at'])
-        if datetime.now() > expires_at:
-            cursor.execute('DELETE FROM online_properties_cache WHERE item_key = ?', (item_key,))
             return None
 
         try:
@@ -399,7 +430,7 @@ def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
 
 def get_mb_id_mapping(old_id: str) -> Optional[str]:
     """Get canonical ID for an old/merged MusicBrainz release group ID."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('SELECT canonical_id FROM mb_id_mappings WHERE old_id = ?', (old_id,))
         row = cursor.fetchone()
         return row['canonical_id'] if row else None
@@ -407,14 +438,14 @@ def get_mb_id_mapping(old_id: str) -> Optional[str]:
 
 def get_mb_id_mappings_by_canonical(canonical_id: str) -> List[str]:
     """Get all known old IDs that redirect to this canonical ID."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('SELECT old_id FROM mb_id_mappings WHERE canonical_id = ?', (canonical_id,))
         return [row['old_id'] for row in cursor.fetchall()]
 
 
 def save_mb_id_mapping(old_id: str, canonical_id: str) -> None:
     """Store an old->canonical MusicBrainz ID mapping. Permanent — merges never reverse."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute(
             'INSERT OR REPLACE INTO mb_id_mappings (old_id, canonical_id) VALUES (?, ?)',
             (old_id, canonical_id)
@@ -431,7 +462,7 @@ def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: st
     if not keys:
         return 0
     total = 0
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         for key in keys:
             cursor.execute('DELETE FROM online_properties_cache WHERE item_key = ?', (key,))
             total += cursor.rowcount
@@ -452,7 +483,7 @@ def cache_online_properties(item_key: str, props: Dict[str, str], ttl_hours: int
     expires_at = datetime.now() + timedelta(hours=ttl_hours)
     compressed = _compress_data(props)
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT OR REPLACE INTO online_properties_cache
             (item_key, data, expires_at)

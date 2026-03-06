@@ -4,10 +4,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional, Dict
 import hashlib
-from datetime import datetime, timedelta
 
 from lib.data.database.rating import get_provider_cache, save_provider_cache
-from lib.kodi.settings import KodiSettings
 
 
 class RatingSource(ABC):
@@ -15,7 +13,6 @@ class RatingSource(ABC):
 
     def __init__(self, provider_name: str):
         self.provider_name = provider_name
-        self.addon = KodiSettings._get_addon()
 
     @abstractmethod
     def fetch_ratings(
@@ -37,11 +34,7 @@ class RatingSource(ABC):
         return round(float(value) / float(scale_max) * 10.0, 1)
 
     def get_cached_data(self, media_id: str) -> Optional[dict]:
-        cache_days = KodiSettings.provider_cache_days()
-        if cache_days == 0:
-            return None
-        cutoff = (datetime.now() - timedelta(days=cache_days)).isoformat()
-        return get_provider_cache(self.provider_name, media_id, cutoff)
+        return get_provider_cache(self.provider_name, media_id)
 
     def cache_data(self, media_id: str, data: dict, release_date: Optional[str] = None) -> None:
         save_provider_cache(self.provider_name, media_id, data, release_date)

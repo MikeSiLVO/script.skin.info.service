@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import threading
 import time
-from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -17,28 +16,49 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utils import clear_group, get_prop, set_prop, wait_for_kodi_ready, batch_set_props
-from lib.data.database.cache import get_cached_online_properties, cache_online_properties, invalidate_online_properties
+from lib.data.database.cache import get_cached_online_keys, get_cached_online_properties, cache_online_properties, invalidate_online_properties
 
-_MEMORY_CACHE: OrderedDict[str, Dict[str, str]] = OrderedDict()
-_MEMORY_CACHE_MAX = 20
+def _get_online_ttl(media_type: str, tmdb_id: str) -> int:
+    """Derive smart TTL from cached TMDB metadata for online properties cache."""
+    from lib.data.database.cache import get_cached_metadata, get_cache_ttl_hours
 
+    tmdb_data = get_cached_metadata(media_type, tmdb_id)
+    if not tmdb_data:
+        return 72
 
-_INVALIDATED_KEYS: set = set()
+    hints: Dict[str, str] = {}
+    status = tmdb_data.get("status") or ""
+    if status:
+        hints["status"] = status
+
+    next_ep = tmdb_data.get("next_episode_to_air")
+    if isinstance(next_ep, dict) and next_ep.get("air_date"):
+        hints["next_incomplete_episode"] = next_ep["air_date"]
+
+    has_overview = bool(tmdb_data.get("overview"))
+    has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
+    has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
+    if media_type == "movie":
+        if has_overview and has_cast and has_imdb:
+            hints["data_complete"] = "true"
+    elif media_type == "tvshow":
+        has_content_ratings = len(tmdb_data.get("content_ratings", {}).get("results", [])) > 0
+        last_ep = tmdb_data.get("last_episode_to_air")
+        has_last_ep = bool(last_ep and last_ep.get("overview") and last_ep.get("still_path"))
+        if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
+            hints["data_complete"] = "true"
+
+    release_date = tmdb_data.get("release_date") or tmdb_data.get("first_air_date")
+    return get_cache_ttl_hours(release_date, hints)
 
 
 def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> None:
-    """Invalidate online cache for a specific item (DB + memory + active key)."""
+    """Invalidate online cache for a specific item (DB only)."""
     invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
-    keys_to_remove = []
-    if tmdb_id:
-        keys_to_remove.append("{}:tmdb:{}".format(media_type, tmdb_id))
-    if imdb_id:
-        keys_to_remove.append("{}:imdb:{}".format(media_type, imdb_id))
-    for key in keys_to_remove:
-        _MEMORY_CACHE.pop(key, None)
-        _INVALIDATED_KEYS.add(key)
 
 ONLINE_POLL_INTERVAL = 0.10
+WARMUP_DELAY_MS = 500
+WARMUP_PLAYBACK_POLL_S = 30
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
 PLAYER_ONLINE_PROPERTY_PREFIX = "SkinInfo.Player.Online."
 PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
@@ -102,11 +122,9 @@ def _resolve_ids_from(
                 tmdb_id = get_prop(f"{prefix}.UniqueID.TMDB") or ""
 
     if not imdb_id and tmdb_id:
-        from lib.data.database import cache as db_cache
+        from lib.data.database.mapping import get_imdb_id
         cache_type = "tvshow" if dbtype == "episode" else dbtype
-        cached = db_cache.get_cached_metadata(cache_type, tmdb_id)
-        if cached:
-            imdb_id = cached.get("external_ids", {}).get("imdb_id") or ""
+        imdb_id = get_imdb_id(tmdb_id, cache_type) or ""
 
     if not imdb_id and not tmdb_id:
         imdb_id, tmdb_id = _jsonrpc_get_uniqueids(dbtype, dbid)
@@ -173,9 +191,17 @@ class OnlineServiceMain(threading.Thread):
         self._last_musicvideo_player_key: Optional[str] = None
         self._musicvideo_player_fetch_thread: Optional[threading.Thread] = None
         self._musicvideo_player_fetch_for_key: Optional[str] = None
+        self._warmup_thread: Optional[threading.Thread] = None
+        self._warmup_requested = False
+        # GIL guarantees atomic add/discard/in on CPython sets — no lock needed
+        self._warmup_in_progress: set = set()
 
     def reset_item_key(self) -> None:
         self._last_item_key = None
+
+    def request_warmup(self) -> None:
+        """Request a warmup pass (e.g. after library scan)."""
+        self._warmup_requested = True
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
@@ -185,15 +211,30 @@ class OnlineServiceMain(threading.Thread):
 
         log("Service", "Online service started", xbmc.LOGINFO)
 
+        self._start_warmup()
+
         while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
             if self.abort.is_set():
                 break
             try:
                 self._loop()
+                if self._warmup_requested:
+                    self._warmup_requested = False
+                    self._start_warmup()
             except Exception as e:
                 log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
 
         log("Service", "Online service stopped", xbmc.LOGINFO)
+
+    def _start_warmup(self) -> None:
+        """Start background warmup if not already running."""
+        if self._warmup_thread and self._warmup_thread.is_alive():
+            return
+        self._warmup_thread = threading.Thread(
+            target=self._warmup_worker,
+            daemon=True,
+        )
+        self._warmup_thread.start()
 
     def _loop(self) -> None:
         self._handle_library_item()
@@ -227,19 +268,12 @@ class OnlineServiceMain(threading.Thread):
         if not cache_key:
             return
 
-        if cache_key == self._last_item_key and cache_key not in _INVALIDATED_KEYS:
+        cached_props = get_cached_online_properties(cache_key)
+
+        if cache_key == self._last_item_key and cached_props:
             return
 
-        _INVALIDATED_KEYS.discard(cache_key)
         self._last_item_key = cache_key
-
-        cached_props = _MEMORY_CACHE.get(cache_key)
-        if cached_props is None:
-            cached_props = get_cached_online_properties(cache_key)
-            if cached_props:
-                _MEMORY_CACHE[cache_key] = cached_props
-                if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
-                    _MEMORY_CACHE.popitem(last=False)
 
         if cached_props:
             props_to_set = {}
@@ -255,6 +289,9 @@ class OnlineServiceMain(threading.Thread):
             return
 
         if self._fetch_thread and self._fetch_thread.is_alive() and self._fetch_for_key == cache_key:
+            return
+
+        if cache_key in self._warmup_in_progress:
             return
 
         self._fetch_for_key = cache_key
@@ -553,6 +590,132 @@ class OnlineServiceMain(threading.Thread):
         self._music_fanart_urls = []
         self._music_fanart_index = 0
 
+    def _warmup_worker(self) -> None:
+        """Background warmup: prefetch online data for airing TV shows."""
+        try:
+            self._run_warmup()
+        except Exception as e:
+            log("Service", f"Online warmup error: {e}", xbmc.LOGWARNING)
+
+    def _run_warmup(self) -> None:
+        from lib.data.database.cache import get_cached_metadata
+        from lib.data.database.schedule import get_all_schedule, upsert_schedule
+
+        schedule = get_all_schedule()
+        first_run = not schedule
+
+        if first_run:
+            shows = self._get_all_library_shows()
+        else:
+            from lib.data.database.mapping import get_imdb_ids_batch
+            active = [
+                s for s in schedule
+                if s["status"] not in ("Ended", "Canceled")
+            ]
+            if not active:
+                return
+            imdb_map = get_imdb_ids_batch(
+                {s["tmdb_id"] for s in active}, "tvshow"
+            )
+            shows = [
+                {
+                    "tmdb_id": s["tmdb_id"],
+                    "imdb_id": imdb_map.get(s["tmdb_id"], ""),
+                    "tvshowid": s["tvshowid"],
+                    "title": s["title"],
+                }
+                for s in active
+            ]
+
+        if not shows:
+            return
+
+        if first_run:
+            for show in shows:
+                tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
+                if tmdb_data:
+                    upsert_schedule(
+                        show["tmdb_id"], show["tvshowid"], show["title"],
+                        tmdb_data.get("status") or "",
+                        tmdb_data.get("next_episode_to_air"),
+                        tmdb_data.get("last_episode_to_air"),
+                    )
+
+        cached_keys = get_cached_online_keys()
+        uncached = [
+            s for s in shows
+            if _make_cache_key("tvshow", s.get("imdb_id") or "", s["tmdb_id"]) not in cached_keys
+        ]
+
+        log("Service", f"Online warmup: {len(uncached)} to fetch, {len(shows) - len(uncached)} cached", xbmc.LOGINFO)
+
+        fetched = 0
+        for show in uncached:
+            if self.abort.is_set():
+                break
+
+            while xbmc.getCondVisibility("Player.HasVideo"):
+                if self.abort.is_set():
+                    return
+                xbmc.sleep(WARMUP_PLAYBACK_POLL_S * 1000)
+
+            tmdb_id = show["tmdb_id"]
+            imdb_id = show.get("imdb_id") or ""
+            cache_key = _make_cache_key("tvshow", imdb_id, tmdb_id)
+
+            self._warmup_in_progress.add(cache_key)
+            try:
+                props = fetch_all_online_data("tvshow", imdb_id, tmdb_id, self._abort_flag)
+                if props:
+                    ttl = _get_online_ttl("tvshow", tmdb_id)
+                    cache_online_properties(cache_key, props, ttl_hours=ttl)
+                    fetched += 1
+            finally:
+                self._warmup_in_progress.discard(cache_key)
+
+            tmdb_data = get_cached_metadata("tvshow", tmdb_id)
+            if tmdb_data:
+                upsert_schedule(
+                    tmdb_id, show["tvshowid"], show["title"],
+                    tmdb_data.get("status") or "",
+                    tmdb_data.get("next_episode_to_air"),
+                    tmdb_data.get("last_episode_to_air"),
+                )
+
+            xbmc.sleep(WARMUP_DELAY_MS)
+
+        log("Service", f"Online warmup complete: {fetched} fetched", xbmc.LOGINFO)
+
+    @staticmethod
+    def _get_all_library_shows() -> List[Dict]:
+        """Get all library TV shows with TMDb IDs."""
+        from lib.kodi.client import request, extract_result
+        from lib.data.api.tmdb import resolve_tmdb_id
+
+        resp = request("VideoLibrary.GetTVShows", {
+            "properties": ["title", "uniqueid"],
+        })
+        shows = extract_result(resp, "tvshows")
+        result = []
+        for s in shows:
+            uid = s.get("uniqueid") or {}
+            tmdb_id = uid.get("tmdb") or ""
+            imdb_id = uid.get("imdb") or ""
+            if not tmdb_id:
+                resolved = resolve_tmdb_id("", imdb_id, "tvshow")
+                if resolved:
+                    tmdb_id = resolved
+                else:
+                    continue
+            result.append({
+                "tmdb_id": tmdb_id,
+                "imdb_id": imdb_id,
+                "tvshowid": s.get("tvshowid", 0),
+                "title": s.get("title") or "",
+            })
+        return result
+
+
     def _fetch_worker(
         self,
         media_type: str,
@@ -597,11 +760,7 @@ class OnlineServiceMain(threading.Thread):
             batch_set_props(props_to_set)
 
             if not is_player:
-                _MEMORY_CACHE[cache_key] = props
-                if len(_MEMORY_CACHE) > _MEMORY_CACHE_MAX:
-                    _MEMORY_CACHE.popitem(last=False)
-                from lib.kodi.settings import KodiSettings
-                ttl_hours = KodiSettings.provider_cache_days() * 24
+                ttl_hours = _get_online_ttl(media_type, tmdb_id)
                 cache_online_properties(cache_key, props, ttl_hours=ttl_hours)
 
         except Exception as e:

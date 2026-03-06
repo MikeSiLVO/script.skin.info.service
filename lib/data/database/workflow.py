@@ -57,7 +57,7 @@ def _get_session_art_types(cursor: sqlite3.Cursor, session_id: int) -> List[str]
 
 def get_session_media_types(session_id: int) -> List[str]:
     """Public wrapper to retrieve media types for a session."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         return _get_session_media_types(cursor, session_id)
 
 
@@ -65,7 +65,7 @@ def get_session_media_types_batch(session_ids: List[int]) -> Dict[int, List[str]
     if not session_ids:
         return {}
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         placeholders = ','.join('?' * len(session_ids))
         cursor.execute(f'''
             SELECT session_id, media_type
@@ -83,7 +83,7 @@ def get_session_media_types_batch(session_ids: List[int]) -> Dict[int, List[str]
 
 def get_session_art_types(session_id: int) -> List[str]:
     """Public wrapper to retrieve art types for a session."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         return _get_session_art_types(cursor, session_id)
 
 
@@ -99,7 +99,7 @@ def create_scan_session(scan_type: str, media_types: List[str], art_types: List[
     Returns:
         Session ID
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT INTO scan_sessions (scan_type, last_activity)
             VALUES (?, ?)
@@ -125,7 +125,7 @@ def update_session_stats(session_id: int, stats: dict) -> None:
         session_id: Session ID
         stats: Statistics dict to store (will be JSON encoded)
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             UPDATE scan_sessions
             SET stats = ?, last_activity = ?
@@ -135,7 +135,7 @@ def update_session_stats(session_id: int, stats: dict) -> None:
 
 def complete_session(session_id: int) -> None:
     """Mark session as completed."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             UPDATE scan_sessions
             SET status = 'completed', completed = ?, last_activity = ?
@@ -151,7 +151,7 @@ def pause_session(session_id: int, stats: dict) -> None:
         session_id: Session ID
         stats: Current statistics to store before pausing
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             UPDATE scan_sessions
             SET status = 'paused', stats = ?, last_activity = ?
@@ -161,7 +161,7 @@ def pause_session(session_id: int, stats: dict) -> None:
 
 def cancel_session(session_id: int) -> None:
     """Mark session as cancelled and timestamp completion."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         now = datetime.now().isoformat()
         cursor.execute('''
             UPDATE scan_sessions
@@ -172,7 +172,7 @@ def cancel_session(session_id: int) -> None:
 
 def get_paused_sessions() -> List[sqlite3.Row]:
     """Get all paused review sessions."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT * FROM scan_sessions
             WHERE status = 'paused'
@@ -192,7 +192,7 @@ def get_session(session_id: int) -> Optional[sqlite3.Row]:
     Returns:
         Session row or None if not found
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT *
             FROM scan_sessions
@@ -213,7 +213,7 @@ def get_last_manual_review_session(media_types: Optional[Sequence[str]] = None) 
     Returns:
         Most recent matching session row or None
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         if not media_types:
             cursor.execute('''
                 SELECT *
@@ -261,7 +261,7 @@ def save_operation_stats(operation: str, stats: dict, scope: Optional[str] = Non
     stats_json = json.dumps(stats)
     completed = 0 if stats.get('cancelled') else 1
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT INTO operation_history (operation, timestamp, stats, completed, scope)
             VALUES (?, ?, ?, ?, ?)
@@ -278,7 +278,7 @@ def get_last_operation_stats(operation: str) -> Optional[dict]:
     Returns:
         Dict with 'operation', 'timestamp', 'stats', 'completed', 'scope' or None
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT operation, timestamp, stats, completed, scope
             FROM operation_history
@@ -311,7 +311,7 @@ def get_imdb_update_progress(media_type: str) -> Optional[Dict]:
         Dict with dataset_date, processed_ids (set), total_items, started_at
         or None if no progress saved
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT dataset_date, processed_ids, total_items, started_at
             FROM imdb_update_progress
@@ -347,7 +347,7 @@ def save_imdb_update_progress(
     """
     now = datetime.now().isoformat()
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT started_at FROM imdb_update_progress WHERE media_type = ?
         ''', (media_type,))
@@ -377,7 +377,7 @@ def clear_imdb_update_progress(media_type: str) -> None:
     Args:
         media_type: "movie", "tvshow", or "episode"
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             DELETE FROM imdb_update_progress WHERE media_type = ?
         ''', (media_type,))
@@ -394,7 +394,7 @@ def get_synced_ratings(media_type: str, dbid: int) -> Dict[str, Dict[str, float]
     Returns:
         Dict mapping source name to {rating, votes}
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT source, rating, votes
             FROM ratings_synced
@@ -427,7 +427,7 @@ def update_synced_ratings(
 
     external_ids = external_ids or {}
     now = datetime.now().isoformat()
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         for source, data in ratings.items():
             if source.startswith('_'):
                 continue
@@ -454,7 +454,7 @@ def update_synced_ratings_batch(items: List[tuple]) -> None:
         return
 
     now = datetime.now().isoformat()
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.executemany('''
             INSERT OR REPLACE INTO ratings_synced
             (media_type, dbid, source, external_id, rating, votes, synced_at)
@@ -497,7 +497,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
               OR (s.votes >= 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.05)
           )
     '''
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         if media_type:
             cursor.execute(query + '  AND s.media_type = ?', (media_type,))
         else:
@@ -516,7 +516,7 @@ def get_synced_items_count(media_type: Optional[str] = None) -> int:
     Returns:
         Number of unique (media_type, dbid) in ratings_synced
     """
-    with get_db(DB_PATH) as (_, cursor):
+    with get_db(DB_PATH) as cursor:
         if media_type:
             cursor.execute('''
                 SELECT COUNT(DISTINCT dbid) as cnt
@@ -542,7 +542,7 @@ def get_synced_dbids(media_type: str) -> Set[int]:
     Returns:
         Set of dbids with existing IMDb sync entries
     """
-    with get_db(DB_PATH) as (_, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT DISTINCT dbid FROM ratings_synced
             WHERE media_type = ? AND source = 'imdb'
@@ -558,7 +558,7 @@ def clear_synced_ratings(media_type: Optional[str] = None, dbid: Optional[int] =
         media_type: Optional filter - if None, clears all
         dbid: Optional specific item - requires media_type
     """
-    with get_db(DB_PATH) as (_, cursor):
+    with get_db(DB_PATH) as cursor:
         if media_type and dbid:
             cursor.execute(
                 'DELETE FROM ratings_synced WHERE media_type = ? AND dbid = ?',

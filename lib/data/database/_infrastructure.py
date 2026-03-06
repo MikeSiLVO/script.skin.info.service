@@ -9,7 +9,7 @@ import uuid
 import xbmc
 import xbmcvfs
 from contextlib import contextmanager
-from typing import Generator, Tuple
+from typing import Generator
 from lib.kodi.client import log
 
 DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v2.db')
@@ -47,23 +47,20 @@ def get_connection(db_path: str = DB_PATH) -> sqlite3.Connection:
 
 
 @contextmanager
-def get_db(db_path: str = DB_PATH) -> Generator[Tuple[sqlite3.Connection, sqlite3.Cursor], None, None]:
-    """
-    Context manager for database connections.
-    Ensures connection is always closed, even on exception.
+def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
+    """Context manager for database connections with auto-commit.
 
     Args:
         db_path: Path to database file (defaults to unified DB)
 
     Usage:
-        with get_db() as (conn, cursor):
+        with get_db() as cursor:
             cursor.execute(...)
-            conn.commit()
     """
     conn = get_connection(db_path)
     cursor = conn.cursor()
     try:
-        yield conn, cursor
+        yield cursor
         conn.commit()
     except Exception:
         try:
@@ -249,6 +246,20 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS id_mappings (
+            tmdb_id TEXT NOT NULL,
+            media_type TEXT NOT NULL,
+            imdb_id TEXT,
+            tvdb_id TEXT,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (tmdb_id, media_type)
+        )
+    ''')
+
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_imdb ON id_mappings(imdb_id) WHERE imdb_id IS NOT NULL')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_tvdb ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL')
+
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_usage_lookup ON ratings_api_usage(provider, api_key_hash, date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)')
@@ -356,6 +367,27 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_mb_id_canonical ON mb_id_mappings(canonical_id)')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tv_schedule (
+            tmdb_id TEXT NOT NULL,
+            tvshowid INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT '',
+            next_episode_air_date TEXT,
+            next_episode_title TEXT,
+            next_episode_season INTEGER,
+            next_episode_number INTEGER,
+            last_episode_air_date TEXT,
+            last_episode_title TEXT,
+            last_episode_season INTEGER,
+            last_episode_number INTEGER,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (tmdb_id)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_status ON tv_schedule(status)')
+
 
 def _cleanup_old_database() -> None:
     """Delete old v1 database if it exists."""
@@ -390,5 +422,5 @@ def init_database() -> None:
 
 
 def vacuum_database() -> None:
-    with get_db(DB_PATH) as (_, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('VACUUM')

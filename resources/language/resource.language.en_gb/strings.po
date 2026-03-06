@@ -75,10 +75,6 @@ msgctxt "#32017"
 msgid "{0} episodes"
 msgstr ""
 
-msgctxt "#32018"
-msgid "Processing episodes..."
-msgstr ""
-
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
 msgstr ""
@@ -203,10 +199,6 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr ""
 
-msgctxt "#32058"
-msgid "Get your API key from https://fanart.tv/get-an-api-key/"
-msgstr ""
-
 msgctxt "#32059"
 msgid "Trakt"
 msgstr ""
@@ -233,30 +225,6 @@ msgstr ""
 
 msgctxt "#32065"
 msgid "Not configured"
-msgstr ""
-
-msgctxt "#32066"
-msgid "Provider data cache duration (days)"
-msgstr ""
-
-msgctxt "#32067"
-msgid "How long to cache ratings, awards, and cast/crew data from API providers before fetching again. Minimum 1 day to respect rate limits."
-msgstr ""
-
-msgctxt "#32068"
-msgid "1 day"
-msgstr ""
-
-msgctxt "#32069"
-msgid "3 days"
-msgstr ""
-
-msgctxt "#32070"
-msgid "7 days"
-msgstr ""
-
-msgctxt "#32071"
-msgid "14 days"
 msgstr ""
 
 msgctxt "#32072"
@@ -450,10 +418,6 @@ msgstr ""
 
 msgctxt "#32122"
 msgid "Text-free / Untagged"
-msgstr ""
-
-msgctxt "#32124"
-msgid "Cache Management"
 msgstr ""
 
 msgctxt "#32128"
@@ -906,14 +870,6 @@ msgstr ""
 
 msgctxt "#32317"
 msgid "Ratings Updater - Complete"
-msgstr ""
-
-msgctxt "#32318"
-msgid "Collecting items..."
-msgstr ""
-
-msgctxt "#32319"
-msgid "Checking {0}s..."
 msgstr ""
 
 msgctxt "#32320"
@@ -1755,14 +1711,6 @@ msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 msgstr ""
 
-msgctxt "#32953"
-msgid "Use Personal API Key"
-msgstr ""
-
-msgctxt "#32954"
-msgid "A built-in project key is provided. Personal keys give faster access to newly uploaded artwork (2 days vs 7 days). VIP members get immediate access."
-msgstr ""
-
 msgctxt "#32960"
 msgid "Missing Artwork Types"
 msgstr ""
@@ -1801,10 +1749,6 @@ msgstr ""
 
 msgctxt "#32974"
 msgid "Download Settings"
-msgstr ""
-
-msgctxt "#32975"
-msgid "Replace existing artwork files when downloading after Manage Artwork selection"
 msgstr ""
 
 #. Settings group - language for data from online APIs (TMDb titles, plots, etc.)

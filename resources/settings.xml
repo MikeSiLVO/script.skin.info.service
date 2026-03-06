@@ -494,21 +494,6 @@
 					</dependencies>
 				</setting>
 			</group>
-			<group id="2" label="32124">
-				<setting id="provider_cache_days" type="integer" label="32066" help="32067">
-					<level>3</level>
-					<default>3</default>
-					<constraints>
-						<options>
-							<option label="32068">1</option>
-							<option label="32069">3</option>
-							<option label="32070">7</option>
-							<option label="32071">14</option>
-						</options>
-					</constraints>
-					<control type="spinner" format="integer" />
-				</setting>
-			</group>
 			<group id="3" label="32111">
 				<setting id="context_show_review_artwork" type="boolean" label="32112">
 					<level>0</level>

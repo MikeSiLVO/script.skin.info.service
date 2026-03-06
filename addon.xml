@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta17"
+	   version="2.0.0~beta18"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,13 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta18
+- Smarter caching, the manual "cache days" setting has been removed
+- TV show warmup for active/returning shows
+- Cross-provider ID mapping table for faster IMDB/TMDB/TVDB lookups
+- New properties: TVShow.TotalRuntime, Season.TotalRuntime (with .Hours/.Minutes)
+- Removed 14 orphaned language strings
+
 2.0.0~beta17
 - Cache invalidation: online and music caches refresh when library items are edited
 - Trakt season prefetching: batch episode rating updates use one API call per season

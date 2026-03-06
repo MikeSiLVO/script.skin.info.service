@@ -12,7 +12,7 @@ from lib.data.database._infrastructure import get_db
 # --- Rating lookups ---
 
 def get_rating(imdb_id: str) -> Optional[Dict[str, float | int]]:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT rating, votes FROM imdb_ratings WHERE imdb_id = ?",
             (imdb_id,)
@@ -40,7 +40,7 @@ def get_ratings_batch(imdb_ids: List[str]) -> Dict[str, Dict[str, float | int]]:
 
     CHUNK_SIZE = 900
     results: Dict[str, Dict[str, float | int]] = {}
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         for start in range(0, len(imdb_ids), CHUNK_SIZE):
             chunk = imdb_ids[start:start + CHUNK_SIZE]
             placeholders = ",".join(["?" for _ in chunk])
@@ -56,7 +56,7 @@ def get_ratings_batch(imdb_ids: List[str]) -> Dict[str, Dict[str, float | int]]:
 # --- Episode lookups ---
 
 def get_episode_imdb_id(show_imdb_id: str, season: int, episode: int) -> Optional[str]:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
             (show_imdb_id, season, episode)
@@ -78,7 +78,7 @@ def get_episode_imdb_id_with_cursor(
 
 def get_episodes_for_show(show_imdb_id: str) -> Dict[Tuple[int, int], str]:
     result: Dict[Tuple[int, int], str] = {}
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT season, episode, episode_id FROM imdb_episodes WHERE parent_id = ?",
             (show_imdb_id,)
@@ -91,7 +91,7 @@ def get_episodes_for_show(show_imdb_id: str) -> Dict[Tuple[int, int], str]:
 @contextmanager
 def bulk_episode_lookup() -> Generator[Callable[..., Optional[str]], None, None]:
     """Context manager yielding a lookup function with a shared connection."""
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         def lookup(show_imdb_id: str, season: int, episode: int) -> Optional[str]:
             cursor.execute(
                 "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
@@ -105,7 +105,7 @@ def bulk_episode_lookup() -> Generator[Callable[..., Optional[str]], None, None]
 # --- Dataset availability/stats ---
 
 def is_dataset_available() -> bool:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute("SELECT COUNT(*) as cnt FROM imdb_ratings")
         row = cursor.fetchone()
         return row["cnt"] > 0 if row else False
@@ -117,7 +117,7 @@ def get_dataset_stats() -> Dict[str, int | float | str | bool | None]:
         "last_modified": None,
         "downloaded_at": None,
     }
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
             ("ratings",)
@@ -131,7 +131,7 @@ def get_dataset_stats() -> Dict[str, int | float | str | bool | None]:
 
 
 def is_episode_dataset_available() -> bool:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute("SELECT COUNT(*) as cnt FROM imdb_episodes")
         row = cursor.fetchone()
         return row["cnt"] > 0 if row else False
@@ -143,7 +143,7 @@ def get_episode_dataset_stats() -> Dict[str, int | str | None]:
         "last_modified": None,
         "downloaded_at": None,
     }
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT last_modified, downloaded_at, entry_count FROM imdb_meta WHERE dataset = ?",
             ("episodes",)
@@ -159,7 +159,7 @@ def get_episode_dataset_stats() -> Dict[str, int | str | None]:
 # --- Meta operations ---
 
 def get_meta_last_modified(dataset: str) -> Optional[str]:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT last_modified FROM imdb_meta WHERE dataset = ?",
             (dataset,)
@@ -176,7 +176,7 @@ def save_meta(
     entry_count: int = 0,
     library_episode_count: Optional[int] = None
 ) -> None:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         if library_episode_count is not None:
             cursor.execute(
                 """INSERT OR REPLACE INTO imdb_meta
@@ -194,12 +194,12 @@ def save_meta(
 
 
 def clear_meta(dataset: str) -> None:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute("DELETE FROM imdb_meta WHERE dataset = ?", (dataset,))
 
 
 def get_episode_meta() -> Tuple[Optional[str], int]:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(
             "SELECT last_modified, library_episode_count FROM imdb_meta WHERE dataset = ?",
             ("episodes",)
