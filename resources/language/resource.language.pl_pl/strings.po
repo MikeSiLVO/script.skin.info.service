@@ -75,10 +75,6 @@ msgctxt "#32017"
 msgid "{0} episodes"
 msgstr "{0} odcink(i/ów)"
 
-msgctxt "#32018"
-msgid "Processing episodes..."
-msgstr "Przetwarzanie odcinków..."
-
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
 msgstr "Dodaj opcję 'Pobierz' do brakujących grafik i wstępnego buforowania"
@@ -211,10 +207,6 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "Skonfiguruj klucz API Fanart.tv"
 
-msgctxt "#32058"
-msgid "Get your API key from https://fanart.tv/get-an-api-key/"
-msgstr "Uzyskaj swój klucz API z https://fanart.tv/get-an-api-key/"
-
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -242,30 +234,6 @@ msgstr "Oceny"
 msgctxt "#32065"
 msgid "Not configured"
 msgstr "Nie skonfigurowano"
-
-msgctxt "#32066"
-msgid "Provider data cache duration (days)"
-msgstr "Czas przechowywania pamięci podręcznej danych dostawcy (dni)"
-
-msgctxt "#32067"
-msgid "How long to cache ratings, awards, and cast/crew data from API providers before fetching again. Minimum 1 day to respect rate limits."
-msgstr "Jak długo przechowywać w pamięci podręcznej oceny, nagrody i dane obsady/ekipy od dostawców API przed ponownym pobraniem. Minimum 1 dzień, aby przestrzegać limitów żądań."
-
-msgctxt "#32068"
-msgid "1 day"
-msgstr "1 dzień"
-
-msgctxt "#32069"
-msgid "3 days"
-msgstr "3 dni"
-
-msgctxt "#32070"
-msgid "7 days"
-msgstr "7 dni"
-
-msgctxt "#32071"
-msgid "14 days"
-msgstr "14 dni"
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
