@@ -163,7 +163,7 @@ class ApiImdbDataset:
         count = 0
         batch: list[tuple[str, float, int]] = []
 
-        with get_db() as (_, cursor):
+        with get_db() as cursor:
             db_imdb.import_ratings_begin(cursor)
 
             with gzip.open(response.raw, "rt", encoding="utf-8") as f:
@@ -315,7 +315,7 @@ class ApiImdbDataset:
         count = 0
         batch: list[tuple[str, int, int, str]] = []
 
-        with get_db() as (_, cursor):
+        with get_db() as cursor:
             db_imdb.import_episodes_begin(cursor)
 
             with gzip.open(response.raw, "rt", encoding="utf-8") as f:

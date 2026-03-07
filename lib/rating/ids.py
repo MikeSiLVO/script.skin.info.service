@@ -36,18 +36,28 @@ def get_imdb_id_from_tmdb(
 
     tmdb_client = ApiTmdb()
 
+    cache_media_type = "tvshow" if media_type == "episode" else media_type
+
     if not tmdb_id and tvdb_id:
-        find_type = "episode" if media_type == "episode" else media_type
-        result = tmdb_client.find_by_external_id(str(tvdb_id), "tvdb_id", find_type)
-        if result:
-            tmdb_id = str(result.get("id") or result.get("show_id", ""))
-            if media_type == "episode" and result.get("show_id"):
-                tmdb_id = str(result["show_id"])
+        from lib.data.database.mapping import get_tmdb_id_by_tvdb
+        tmdb_id = get_tmdb_id_by_tvdb(str(tvdb_id), cache_media_type)
+        if not tmdb_id:
+            find_type = "episode" if media_type == "episode" else media_type
+            result = tmdb_client.find_by_external_id(str(tvdb_id), "tvdb_id", find_type)
+            if result:
+                tmdb_id = str(result.get("id") or result.get("show_id", ""))
+                if media_type == "episode" and result.get("show_id"):
+                    tmdb_id = str(result["show_id"])
 
     if not tmdb_id:
         return None
 
-    cache_media_type = "tvshow" if media_type == "episode" else media_type
+    if media_type != "episode":
+        from lib.data.database.mapping import get_imdb_id
+        mapped_imdb = get_imdb_id(tmdb_id, cache_media_type)
+        if mapped_imdb:
+            return mapped_imdb
+
     cached = db_cache.get_cached_metadata(cache_media_type, tmdb_id)
 
     if cached:

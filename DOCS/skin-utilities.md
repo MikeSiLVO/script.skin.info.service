@@ -1548,3 +1548,7 @@ Auto-increment properties on fixed time intervals for periodic widget refresh.
 - All utilities support both positional and named arguments
 - InfoLabels starting with `$` are automatically resolved
 - Empty input clears properties (where applicable)
+
+---
+
+[↑ Top](#skin-utilities) · [Index](index.md)

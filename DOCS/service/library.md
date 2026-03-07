@@ -53,9 +53,9 @@ Media-type-agnostic properties that work regardless of what item is focused.
 
 | Property | Description | Available For |
 |----------|-------------|---------------|
-| `Runtime` | Total runtime in minutes | Movie, TVShow, Episode, Set, MusicVideo |
-| `Runtime.Hours` | Hours component | Movie, TVShow, Episode, Set, MusicVideo |
-| `Runtime.Minutes` | Minutes component | Movie, TVShow, Episode, Set, MusicVideo |
+| `Runtime` | Total runtime in minutes | Movie, TVShow, Season, Episode, Set, MusicVideo |
+| `Runtime.Hours` | Hours component | Movie, TVShow, Season, Episode, Set, MusicVideo |
+| `Runtime.Minutes` | Minutes component | Movie, TVShow, Season, Episode, Set, MusicVideo |
 
 ### Duration (Music)
 
@@ -306,7 +306,12 @@ Use `%d` as placeholder for index (1-based):
 | `Episode` | Total episode count |
 | `Season` | Total season count |
 | `WatchedEpisodes` | Number of watched episodes |
-| `Runtime` | Episode runtime in minutes |
+| `Runtime` | Average episode runtime in minutes (calculated from library) |
+| `Runtime.Hours` | Hours component of average runtime |
+| `Runtime.Minutes` | Minutes component of average runtime |
+| `TotalRuntime` | Total runtime of all episodes in minutes |
+| `TotalRuntime.Hours` | Hours component of total runtime |
+| `TotalRuntime.Minutes` | Minutes component of total runtime |
 | `EpisodeGuide` | Episode guide URL |
 | `Trailer` | Trailer URL |
 
@@ -359,6 +364,12 @@ Use `%d` as placeholder for index (1-based):
 | `ShowTitle` | Parent TV show title |
 | `Episode` | Total episodes in season |
 | `WatchedEpisodes` | Number of watched episodes |
+| `Runtime` | Average episode runtime in minutes (from parent show) |
+| `Runtime.Hours` | Hours component of average runtime |
+| `Runtime.Minutes` | Minutes component of average runtime |
+| `TotalRuntime` | Total runtime of all season episodes in minutes |
+| `TotalRuntime.Hours` | Hours component of total runtime |
+| `TotalRuntime.Minutes` | Minutes component of total runtime |
 | `Playcount` | Play count |
 | `UserRating` | User's rating (0-10) |
 | `TVShowID` | Parent TV show database ID |

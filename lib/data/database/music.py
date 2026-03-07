@@ -213,12 +213,12 @@ def _track_ttl_hours(source: str) -> int:
 # -- Init / cleanup --
 
 def init_music_database() -> None:
-    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         cursor.executescript(_SCHEMA_SQL)
 
 
 def vacuum_music_database() -> None:
-    with get_db(MUSIC_DB_PATH) as (_, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         cursor.execute('VACUUM')
 
 
@@ -228,7 +228,7 @@ def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int
     Removes all sources (Last.fm, Wikipedia, AudioDB) and all language variants.
     """
     total = 0
-    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         artist_lower = artist.lower().strip()
         if track:
             prefix = _track_key(artist, track)
@@ -260,7 +260,7 @@ def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int
 def clear_expired_music_cache() -> int:
     now = datetime.now().isoformat()
     total = 0
-    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         for table in ('music_artists', 'music_albums', 'music_tracks'):
             cursor.execute(f'DELETE FROM {table} WHERE expires_at < ?', (now,))
             total += cursor.rowcount
@@ -273,7 +273,7 @@ def clear_expired_music_cache() -> int:
 # -- Generic CRUD helpers --
 
 def _get_cached(table: str, source: str, lookup_key: str) -> Optional[dict]:
-    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         cursor.execute(
             f'SELECT data, expires_at FROM {table} WHERE source = ? AND lookup_key = ?',
             (source, lookup_key),
@@ -300,7 +300,7 @@ def _cache_entry(
 ) -> None:
     now = datetime.now()
 
-    with get_db(MUSIC_DB_PATH) as (conn, cursor):
+    with get_db(MUSIC_DB_PATH) as cursor:
         old_miss = 0
         if not has_content:
             cursor.execute(

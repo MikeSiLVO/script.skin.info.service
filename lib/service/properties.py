@@ -647,6 +647,8 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         "genres_count": len(genres_sorted),
         "countries_count": len(countries_sorted),
         "movies_count": total_count,
+        "total_runtime_min": total_runtime_min,
+        "genres_sorted": genres_sorted,
     }
 
     return data
@@ -683,17 +685,11 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     _trim_indexed("SkinInfo.Set.Movie", _STATE["set_movies"], metadata["movies_count"])
     _STATE["set_movies"] = metadata["movies_count"]
 
-    total_runtime_min = sum(int(m.get("runtime") or 0) // 60 for m in movies)
-    genres_set: Set[str] = set()
-    for m in movies:
-        genres_set.update(m.get("genre") or [])
-    genres_sorted = sorted(genres_set, key=str.casefold) if genres_set else []
-
     unified = _build_listitem_unified_data(
         title=set_details.get("title") or set_details.get("label") or "",
         plot=set_details.get("plot") or "",
-        genre=_join(genres_sorted),
-        runtime_minutes=total_runtime_min,
+        genre=_join(metadata["genres_sorted"]),
+        runtime_minutes=metadata["total_runtime_min"],
     )
     set_listitem_unified_properties(unified)
 
@@ -977,7 +973,18 @@ def build_tvshow_data(details: dict) -> dict:
     data["Studio"] = _join(details.get("studio"))
     data["MPAA"] = details.get("mpaa") or ""
     data["Status"] = details.get("status") or ""
+    hrs = runtime_minutes // 60
+    mins = runtime_minutes % 60
     data["Runtime"] = str(runtime_minutes) if runtime_minutes else ""
+    data["Runtime.Hours"] = str(hrs) if hrs else ""
+    data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
+    total_seconds = int(details.get("total_runtime") or 0)
+    total_minutes = total_seconds // 60
+    total_hrs = total_minutes // 60
+    total_mins = total_minutes % 60
+    data["TotalRuntime"] = str(total_minutes) if total_minutes else ""
+    data["TotalRuntime.Hours"] = str(total_hrs) if total_hrs else ""
+    data["TotalRuntime.Minutes"] = str(total_mins) if total_mins >= 1 else ""
     data["Episode"] = str(episode) if episode else ""
     data["Season"] = str(season) if season else ""
     data["WatchedEpisodes"] = str(watchedepisodes) if watchedepisodes else ""
@@ -1051,12 +1058,26 @@ def build_season_data(details: dict) -> dict:
     playcount = details.get("playcount")
     tvshowid = details.get("tvshowid")
     userrating = details.get("userrating")
+    runtime_seconds = int(details.get("runtime") or 0)
+    runtime_minutes = runtime_seconds // 60
 
+    hrs = runtime_minutes // 60
+    mins = runtime_minutes % 60
     data["Title"] = details.get("title") or ""
     data["Season"] = str(season) if season is not None else ""
     data["ShowTitle"] = details.get("showtitle") or ""
     data["Episode"] = str(episode) if episode else ""
     data["WatchedEpisodes"] = str(watchedepisodes) if watchedepisodes else ""
+    data["Runtime"] = str(runtime_minutes) if runtime_minutes else ""
+    data["Runtime.Hours"] = str(hrs) if hrs else ""
+    data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
+    total_seconds = int(details.get("total_runtime") or 0)
+    total_minutes = total_seconds // 60
+    total_hrs = total_minutes // 60
+    total_mins = total_minutes % 60
+    data["TotalRuntime"] = str(total_minutes) if total_minutes else ""
+    data["TotalRuntime.Hours"] = str(total_hrs) if total_hrs else ""
+    data["TotalRuntime.Minutes"] = str(total_mins) if total_mins >= 1 else ""
     data["Playcount"] = str(playcount) if playcount else ""
     data["UserRating"] = str(userrating) if userrating else ""
     data["TVShowID"] = str(tvshowid) if tvshowid and tvshowid != -1 else ""
@@ -1071,8 +1092,10 @@ def set_season_properties(details: dict) -> None:
     batch_set_props(props)
     _set_art_props("SkinInfo.Season", details.get("art"), _VIDEO_ART_KEYS)
 
+    runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
+        runtime_minutes=runtime_seconds // 60,
         userrating=details.get("userrating"),
     )
     set_listitem_unified_properties(unified)

@@ -11,7 +11,7 @@ def populate_pool(
     tvshows: List[tuple],
     artists: List[tuple]
 ) -> None:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute('DELETE FROM slideshow_pool')
 
         if movies:
@@ -37,7 +37,7 @@ def populate_pool(
 
 
 def get_random_fanart_urls(limit: int) -> List[str]:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute('''
             SELECT fanart
             FROM slideshow_pool
@@ -62,7 +62,7 @@ def get_random_pool_items(
         where_clause = f'WHERE media_type IN ({placeholders})'
         params = tuple(media_types)
 
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute(f'''
             SELECT {select_clause}
             FROM slideshow_pool
@@ -74,7 +74,7 @@ def get_random_pool_items(
 
 
 def get_all_pool_items(limit: int) -> list:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute('''
             SELECT media_type, title, fanart, description, year
             FROM slideshow_pool
@@ -85,7 +85,7 @@ def get_all_pool_items(limit: int) -> list:
 
 
 def is_pool_populated() -> bool:
-    with get_db() as (_, cursor):
+    with get_db() as cursor:
         cursor.execute('SELECT COUNT(*) as count FROM slideshow_pool')
         row = cursor.fetchone()
         return row['count'] > 0 if row else False

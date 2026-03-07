@@ -51,18 +51,29 @@ def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -
     if not imdb_id:
         return None
 
+    from lib.data.database.mapping import get_tmdb_id_by_imdb, save_id_mapping
+    mapped = get_tmdb_id_by_imdb(imdb_id, media_type)
+    if mapped:
+        return mapped
+
     from lib.data.database.correction import get_corrected_tmdb_id, save_corrected_tmdb_id
     corrected = get_corrected_tmdb_id(imdb_id)
-    if corrected:
-        return str(corrected)
+    if corrected is not None:
+        if corrected > 0:
+            save_id_mapping(str(corrected), media_type, imdb_id=imdb_id)
+            return str(corrected)
+        return None
 
     api = ApiTmdb()
     found_id = api.find_by_imdb(imdb_id, media_type)
     if found_id:
         save_corrected_tmdb_id(imdb_id, found_id, media_type)
+        save_id_mapping(str(found_id), media_type, imdb_id=imdb_id)
         log("TMDB", f"Corrected invalid TMDB ID for {imdb_id} -> {found_id}", xbmc.LOGDEBUG)
         return str(found_id)
 
+    # Cache the miss so we don't retry
+    save_corrected_tmdb_id(imdb_id, 0, media_type)
     return None
 
 
@@ -519,14 +530,32 @@ class ApiTmdb(RatingSource):
 
         For TV shows with season data, finds the first episode missing
         overview/still and uses its air_date for cache invalidation.
+        Also checks data completeness for extended TTL on ended shows.
         """
         hints: Dict[str, str] = {}
 
         if data.get("status"):
             hints["status"] = data["status"]
 
+        if media_type == 'movie':
+            has_overview = bool(data.get("overview"))
+            has_cast = len(data.get("credits", {}).get("cast", [])) > 0
+            has_imdb = bool((data.get("external_ids") or {}).get("imdb_id"))
+            if has_overview and has_cast and has_imdb:
+                hints["data_complete"] = "true"
+            return hints
+
         if media_type != 'tvshow':
             return hints
+
+        has_overview = bool(data.get("overview"))
+        has_cast = len(data.get("credits", {}).get("cast", [])) > 0
+        has_imdb = bool((data.get("external_ids") or {}).get("imdb_id"))
+        has_content_ratings = len(data.get("content_ratings", {}).get("results", [])) > 0
+        last_ep = data.get("last_episode_to_air")
+        has_last_ep = bool(last_ep and last_ep.get("overview") and last_ep.get("still_path"))
+        if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
+            hints["data_complete"] = "true"
 
         current_season = data.get('_current_season')
         if not current_season:

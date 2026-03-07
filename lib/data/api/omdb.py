@@ -114,9 +114,8 @@ class ApiOmdb(RatingSource):
             Dictionary with normalized ratings
         """
         if media_type == "episode":
-            imdb_id = ids.get("imdb_episode")
-        else:
-            imdb_id = ids.get("imdb")
+            return None
+        imdb_id = ids.get("imdb")
         if not imdb_id:
             return None
 

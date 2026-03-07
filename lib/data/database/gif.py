@@ -14,7 +14,7 @@ def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
     Returns:
         Dict with 'mtime' and 'scanned_at', or None if not cached
     """
-    with get_db() as (conn, cursor):
+    with get_db() as cursor:
         cursor.execute(
             'SELECT mtime, scanned_at FROM gif_cache WHERE path = ?',
             (gif_path,)
@@ -37,7 +37,7 @@ def update_gif_cache(gif_path: str, mtime: float, scanned_at: str) -> None:
         mtime: File modification time
         scanned_at: Timestamp when scanned
     """
-    with get_db() as (conn, cursor):
+    with get_db() as cursor:
         cursor.execute('''
             INSERT INTO gif_cache (path, mtime, scanned_at)
             VALUES (?, ?, ?)
@@ -55,7 +55,7 @@ def get_all_cached_gifs() -> Dict[str, Dict[str, Union[float, str]]]:
         Dict mapping paths to metadata dicts
     """
     cache = {}
-    with get_db() as (conn, cursor):
+    with get_db() as cursor:
         cursor.execute('SELECT path, mtime, scanned_at FROM gif_cache')
         for row in cursor.fetchall():
             cache[row['path']] = {
@@ -75,7 +75,7 @@ def cleanup_stale_gifs(accessed_paths: Set[str]) -> int:
     Returns:
         Number of stale entries removed
     """
-    with get_db() as (conn, cursor):
+    with get_db() as cursor:
         if not accessed_paths:
             cursor.execute('SELECT COUNT(*) as count FROM gif_cache')
             count = cursor.fetchone()['count']
@@ -97,7 +97,7 @@ def clear_gif_cache() -> int:
     Returns:
         Number of entries removed
     """
-    with get_db() as (conn, cursor):
+    with get_db() as cursor:
         cursor.execute('SELECT COUNT(*) as count FROM gif_cache')
         count = cursor.fetchone()['count']
         cursor.execute('DELETE FROM gif_cache')

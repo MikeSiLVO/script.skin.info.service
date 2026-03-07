@@ -33,6 +33,30 @@ SERVICE_POLL_INTERVAL = 0.10
 MAX_CONSECUTIVE_ERRORS = 10
 CACHE_MOVIESET_TTL = 300
 
+
+def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> List[int]:
+    """Get episode runtimes for a TV show (or specific season) from library."""
+    params: Dict = {"tvshowid": tvshowid, "properties": ["runtime"]}
+    cache_key = f"tvshow:{tvshowid}:episode_runtimes"
+    if season is not None:
+        params["season"] = season
+        cache_key = f"tvshow:{tvshowid}:s{season}:episode_runtimes"
+    resp = request("VideoLibrary.GetEpisodes", params, cache_key=cache_key)
+    episodes = extract_result(resp, "episodes")
+    return [e["runtime"] for e in episodes if e.get("runtime", 0) > 0]
+
+
+def _get_avg_episode_runtime(tvshowid: int) -> int:
+    runtimes = _get_episode_runtimes(tvshowid)
+    if not runtimes:
+        return 0
+    return sum(runtimes) // len(runtimes)
+
+
+def _get_total_runtime(tvshowid: int, season: Optional[int] = None) -> int:
+    """Get total runtime in seconds for all episodes of a show or season."""
+    return sum(_get_episode_runtimes(tvshowid, season))
+
 _MEDIA_TYPE_PREFIXES = {
     "movie": "SkinInfo.Movie.",
     "set": "SkinInfo.Set.",
@@ -51,14 +75,17 @@ _MEDIA_TYPE_PREFIXES = {
 class LibraryMonitor(xbmc.Monitor):
     """Monitor for library update notifications to trigger widget refresh."""
 
-    def __init__(self, service_main):
+    def __init__(self, service_main, online_service=None):
         super().__init__()
         self.service_main = service_main
+        self.online_service = online_service
 
     def onNotification(self, sender: str, method: str, data: str) -> None:
         """Handle Kodi notifications for library updates."""
         if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
             self.service_main._increment_library_refresh()
+        if method == 'VideoLibrary.OnScanFinished' and self.online_service:
+            self.online_service.request_warmup()
         if method == 'VideoLibrary.OnUpdate':
             self._on_video_update(data)
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
@@ -88,9 +115,10 @@ IMDB_CHECK_INTERVAL = 86400  # 24 hours in seconds
 
 
 class ServiceMain(threading.Thread):
-    def __init__(self):
+    def __init__(self, online_service=None):
         super().__init__(daemon=True)
         self.abort = threading.Event()
+        self._online_service = online_service
         self._last_id = None
         self._last_type = None
         self._last_player_id = None
@@ -140,7 +168,7 @@ class ServiceMain(threading.Thread):
             self._musicvideo_online_key = None
 
     def run(self) -> None:
-        monitor = LibraryMonitor(self)
+        monitor = LibraryMonitor(self, self._online_service)
         if not wait_for_kodi_ready(monitor):
             return
 
@@ -427,6 +455,13 @@ class ServiceMain(threading.Thread):
         )
         if not isinstance(details, dict):
             return
+
+        if not details.get("runtime"):
+            avg = _get_avg_episode_runtime(int(tvshowid))
+            if avg:
+                details["runtime"] = avg
+
+        details["total_runtime"] = _get_total_runtime(int(tvshowid))
 
         # Set TV show properties with Player.TVShow prefix
         from lib.service.properties import build_tvshow_data, batch_set_props
@@ -830,6 +865,13 @@ class ServiceMain(threading.Thread):
         if not isinstance(details, dict):
             return
 
+        if not details.get("runtime"):
+            avg = _get_avg_episode_runtime(int(tvshowid))
+            if avg:
+                details["runtime"] = avg
+
+        details["total_runtime"] = _get_total_runtime(int(tvshowid))
+
         set_tvshow_properties(details)
         set_ratings_properties(details, "TVShow")
 
@@ -846,9 +888,16 @@ class ServiceMain(threading.Thread):
         if not isinstance(details, dict):
             return
 
+        tvshowid = details.get("tvshowid")
+        season_num = details.get("season")
+        if tvshowid and tvshowid != -1:
+            avg = _get_avg_episode_runtime(int(tvshowid))
+            if avg:
+                details["runtime"] = avg
+            details["total_runtime"] = _get_total_runtime(int(tvshowid), season_num)
+
         set_season_properties(details)
 
-        tvshowid = details.get("tvshowid")
         if tvshowid and tvshowid != -1:
             self._set_tvshow_details(str(tvshowid))
 
@@ -1136,7 +1185,8 @@ class ImdbUpdateMonitor(xbmc.Monitor):
         super().__init__()
         self._service = service
 
-    def onNotification(self, sender: str, method: str, data: str) -> None:  # noqa: ARG002
+    def onNotification(self, sender: str, method: str, data: str) -> None:
+        _ = sender, data
         if method == 'VideoLibrary.OnScanFinished':
             self._service._on_library_scan_finished()
 
@@ -1353,11 +1403,11 @@ def start_service() -> None:
 
     sync_configured_flags()
 
-    thread = ServiceMain()
-    thread.start()
-
     online_thread = OnlineServiceMain()
     online_thread.start()
+
+    thread = ServiceMain(online_service=online_thread)
+    thread.start()
 
     imdb_thread: Optional[ImdbUpdateService] = None
     if ADDON.getSetting("imdb_auto_update") != "off":

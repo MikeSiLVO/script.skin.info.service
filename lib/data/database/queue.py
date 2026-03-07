@@ -87,7 +87,7 @@ def _row_to_art_item(row: sqlite3.Row) -> ArtItemEntry:
 
 def clear_queue() -> None:
     """Clear all queue data."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('DELETE FROM art_items')
         cursor.execute('DELETE FROM art_queue')
         cursor.execute('DELETE FROM scan_sessions')
@@ -102,7 +102,7 @@ def clear_queue_for_media(media_types: Sequence[str]) -> None:
 
     placeholders = _build_placeholders(len(media_types))
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute(f'''
             DELETE FROM art_queue
             WHERE media_type IN ({placeholders})
@@ -153,7 +153,7 @@ def add_art_item(
     scan_session_id: Optional[int] = None,
 ) -> None:
     """Add art item to queue or update if exists (UPSERT operation)."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT INTO art_items (queue_id, art_type, review_mode, requires_manual, status, scan_session_id)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -185,7 +185,7 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
     if not items:
         return []
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         prepared_items = []
         for item in items:
             media_type = item['media_type']
@@ -244,7 +244,7 @@ def add_art_items_batch(art_items: List[dict]) -> None:
     if not art_items:
         return
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         queue_ids = list(set(item['queue_id'] for item in art_items))
         placeholders = _build_placeholders(len(queue_ids))
         cursor.execute(f'''
@@ -306,7 +306,7 @@ def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING, media_ty
     Returns:
         List of QueueEntry dataclasses
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         query = '''
             SELECT * FROM art_queue
             WHERE status = ?
@@ -328,7 +328,7 @@ def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING, media_ty
 
 def get_art_items_for_queue(queue_id: int) -> List[ArtItemEntry]:
     """Get all art items for a queue entry."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT * FROM art_items
             WHERE queue_id = ?
@@ -350,7 +350,7 @@ def get_art_items_for_queue_batch(queue_ids: List[int]) -> Dict[int, List[ArtIte
     if not queue_ids:
         return {}
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         placeholders = _build_placeholders(len(queue_ids))
         cursor.execute(f'''
             SELECT * FROM art_items
@@ -370,7 +370,7 @@ def get_art_items_for_queue_batch(queue_ids: List[int]) -> Dict[int, List[ArtIte
 
 def update_queue_status(queue_id: int, status: str) -> None:
     """Update queue item status."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         now = datetime.now().isoformat()
         cursor.execute('''
             UPDATE art_queue
@@ -381,7 +381,7 @@ def update_queue_status(queue_id: int, status: str) -> None:
 
 def update_art_item(art_item_id: int, selected_url: str, auto_applied: bool = False) -> None:
     """Update art item with selected URL."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         now = datetime.now().isoformat()
         cursor.execute('''
             UPDATE art_items
@@ -392,7 +392,7 @@ def update_art_item(art_item_id: int, selected_url: str, auto_applied: bool = Fa
 
 def update_art_item_status(art_item_id: int, status: str) -> None:
     """Update art item status without changing selected URL."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         now = datetime.now().isoformat()
         cursor.execute('''
             UPDATE art_items
@@ -408,7 +408,7 @@ def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, in
     Returns:
         Dict mapping status -> count (e.g., {'pending': 10, 'completed': 5})
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         stats = {}
 
         query = '''
@@ -442,7 +442,7 @@ def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
             'tvshow': {'pending': 30, 'completed': 10, 'skipped': 2}
         }
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT media_type, status, COUNT(*) as count
             FROM art_queue
@@ -464,7 +464,7 @@ def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
 
 def has_pending_queue() -> bool:
     """Check if there are pending items in queue."""
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT COUNT(*) as count FROM art_queue WHERE status = ?
         ''', (STATUS_PENDING,))
@@ -480,7 +480,7 @@ def get_pending_media_counts(status: str = STATUS_PENDING) -> Dict[str, int]:
     Returns:
         Dict mapping media_type -> count (e.g., {'movie': 10, 'tvshow': 5})
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT media_type, COUNT(*) as count
             FROM art_queue
@@ -501,7 +501,7 @@ def count_pending_missing_art(media_types: Optional[Sequence[str]] = None) -> in
     Returns:
         Number of pending art_items with review_mode='missing'
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         query = '''
             SELECT COUNT(*) AS count
             FROM art_items AS ai
@@ -536,7 +536,7 @@ def count_queue_items(
     Returns:
         Number of matching queue items
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         query = 'SELECT COUNT(*) AS count FROM art_queue WHERE 1=1'
         params: List[Any] = []
 
@@ -562,7 +562,7 @@ def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
 
     placeholders = _build_placeholders(len(active_statuses))
 
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cursor.execute(
             f'''
             DELETE FROM art_queue
@@ -594,7 +594,7 @@ def restore_pending_queue_items(media_types: Optional[Sequence[str]] = None) -> 
     Returns:
         Number of queue rows updated
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         query = '''
             UPDATE art_queue
             SET status = ?,
@@ -627,7 +627,7 @@ def cleanup_old_queue_items(days_old: int = 30) -> int:
     Returns:
         Number of items removed
     """
-    with get_db(DB_PATH) as (conn, cursor):
+    with get_db(DB_PATH) as cursor:
         cutoff = datetime.now() - timedelta(days=days_old)
         cutoff_str = cutoff.isoformat()
 

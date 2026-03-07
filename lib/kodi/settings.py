@@ -129,14 +129,6 @@ class KodiSettings:
         return cls.get_string('preferred_language')
 
     @classmethod
-    def provider_cache_days(cls) -> int:
-        """Get provider cache days setting."""
-        try:
-            return cls.get_int('provider_cache_days')
-        except (ValueError, KeyError):
-            return 3
-
-    @classmethod
     def art_types_to_check(cls) -> str:
         """Get enabled art types from individual boolean settings."""
         art_types = []
