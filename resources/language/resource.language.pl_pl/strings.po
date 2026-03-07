@@ -428,10 +428,6 @@ msgctxt "#32122"
 msgid "Text-free / Untagged"
 msgstr "Bez tekstu / Bez tagów"
 
-msgctxt "#32124"
-msgid "Cache Management"
-msgstr "Zarządzanie pamięcią podręczną"
-
 msgctxt "#32128"
 msgid "Skip"
 msgstr "Pomiń"
@@ -883,10 +879,6 @@ msgstr "Oceny zaktualizowane - {0}"
 msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr "Aktualizator ocen - Zakończono"
-
-msgctxt "#32318"
-msgid "Collecting items..."
-msgstr "Gromadzenie pozycji..."
 
 msgctxt "#32319"
 msgid "Checking {0}s..."
@@ -1731,14 +1723,6 @@ msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 msgstr "Wbudowany klucz API TMDb jest dostarczony i działa dla większości użytkowników. Włącz to tylko, jeśli potrzebujesz wyższych limitów żądań lub chcesz użyć własnej dedykowanej puli."
 
-msgctxt "#32953"
-msgid "Use Personal API Key"
-msgstr "Użyj osobistego klucza API"
-
-msgctxt "#32954"
-msgid "A built-in project key is provided. Personal keys give faster access to newly uploaded artwork (2 days vs 7 days). VIP members get immediate access."
-msgstr "Dostępny jest wbudowany klucz projektu. Klucze osobiste zapewniają szybszy dostęp do nowo przesłanych grafik (2 dni zamiast 7). Członkowie VIP otrzymują natychmiastowy dostęp."
-
 msgctxt "#32960"
 msgid "Missing Artwork Types"
 msgstr "Brakujące typy grafik"
@@ -1778,10 +1762,6 @@ msgstr "Automatycznie pobierz wybrane grafiki do systemu plików po wyborze w Za
 msgctxt "#32974"
 msgid "Download Settings"
 msgstr "Ustawienia pobierania"
-
-msgctxt "#32975"
-msgid "Replace existing artwork files when downloading after Manage Artwork selection"
-msgstr "Zastępuj istniejące pliki grafik podczas pobierania po wyborze w Zarządzaj grafikami"
 
 #. Settings group - language for data from online APIs (TMDb titles, plots, etc.)
 msgctxt "#32976"
