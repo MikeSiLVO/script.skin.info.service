@@ -880,10 +880,6 @@ msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr "Aktualizator ocen - Zakończono"
 
-msgctxt "#32319"
-msgid "Checking {0}s..."
-msgstr "Sprawdzanie {0}s..."
-
 msgctxt "#32320"
 msgid "Ratings up to date"
 msgstr "Oceny są aktualne"
