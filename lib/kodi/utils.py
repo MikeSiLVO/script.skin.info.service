@@ -281,6 +281,24 @@ def format_date(date_str: str, include_time: bool = False) -> str:
 
 
 _version_logged = threading.Event()
+_kodi_version: tuple = (0, 0, 0)
+
+
+def get_kodi_version() -> tuple:
+    return _kodi_version
+
+
+def is_kodi_piers_or_later() -> bool:
+    return _kodi_version >= (21, 90, 0)
+
+
+def _parse_kodi_version() -> tuple:
+    raw = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
+    parts = raw.split(".")
+    try:
+        return tuple(int(p) for p in parts[:3])
+    except ValueError:
+        return (0, 0, 0)
 
 
 def wait_for_kodi_ready(
@@ -308,9 +326,11 @@ def wait_for_kodi_ready(
             if "pong" in result.lower():
                 if not _version_logged.is_set():
                     _version_logged.set()
+                    global _kodi_version
+                    _kodi_version = _parse_kodi_version()
                     from lib.kodi.client import ADDON, log
                     version = ADDON.getAddonInfo("version")
-                    log("Service", f"Starting services (version={version})", xbmc.LOGINFO)
+                    log("Service", f"Starting services (version={version}, kodi={'.'.join(str(v) for v in _kodi_version)})", xbmc.LOGINFO)
                 return True
         except Exception:
             pass

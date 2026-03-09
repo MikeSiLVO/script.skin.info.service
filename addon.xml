@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta18"
+	   version="2.0.0~beta19"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -33,6 +33,11 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta19
+- Kodi version detection for adaptive JSON-RPC queries
+- Blur skips Kodi virtual icons (DefaultShortcut.png, etc.)
+- Widget handlers return empty directory instead of error on missing metadata
+
 2.0.0~beta18
 - Smarter caching, the manual "cache days" setting has been removed
 - TV show warmup for active/returning shows

@@ -402,7 +402,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
     """
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     dbid = int(dbid_param)
@@ -428,7 +428,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
         else:
             item = get_item_details(dbtype, dbid, ['cast', 'title'])
             if not item or not item.get('cast'):
-                xbmcplugin.endOfDirectory(handle, succeeded=False)
+                xbmcplugin.endOfDirectory(handle)
                 return
 
             if cast_limit > 0:
@@ -446,7 +446,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
         item = get_item_details(dbtype, dbid, ['cast', 'title'])
 
         if not item or not item.get('cast'):
-            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            xbmcplugin.endOfDirectory(handle)
             return
 
         if cast_limit > 0:
@@ -610,7 +610,7 @@ def handle_by_director(handle: int, params: dict) -> None:
     """
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     dbid = int(dbid_param)
@@ -622,7 +622,7 @@ def handle_by_director(handle: int, params: dict) -> None:
     item = get_item_details(dbtype, dbid, ['director', 'title'])
 
     if not item or not item.get('director'):
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     directors = item['director']
@@ -713,7 +713,7 @@ def handle_similar(handle: int, params: dict) -> None:
     """
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     dbid = int(dbid_param)
@@ -727,7 +727,7 @@ def handle_similar(handle: int, params: dict) -> None:
     item = get_item_details(dbtype, dbid, properties)
 
     if not item:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     genres = item.get('genre', [])
@@ -735,7 +735,7 @@ def handle_similar(handle: int, params: dict) -> None:
         genres = [genres] if genres else []
 
     if not genres:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     source_year = item.get('year', 0)
@@ -865,7 +865,7 @@ def handle_recommended(handle: int, params: dict) -> None:
         history.extend(shows)
 
     if not history:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     genre_counts = {}
@@ -903,7 +903,7 @@ def handle_recommended(handle: int, params: dict) -> None:
                 directors[director] = directors.get(director, 0) + 1
 
     if not genre_counts:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     preferred_genres = set(genre_counts.keys())
@@ -1081,7 +1081,7 @@ def handle_seasonal(handle: int, params: dict) -> None:
     sort_method = params.get('sort', ['random'])[0]
 
     if season not in SEASONAL_TAGS:
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        xbmcplugin.endOfDirectory(handle)
         return
 
     tags = SEASONAL_TAGS[season]
