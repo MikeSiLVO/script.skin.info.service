@@ -99,6 +99,11 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
     if source_path.startswith('resource://'):
         return None
 
+    # Disable blur for Kodi's virtual icons (e.g. DefaultShortcut.png)
+    basename = source_path.rsplit('/', 1)[-1].rsplit('\\', 1)[-1]
+    if basename.startswith('Default') and basename.endswith('.png'):
+        return None
+
     cache_dir = _get_cache_dir()
     if cache_dir:
         cache_filename = _generate_cache_key(source_path, blur_radius)

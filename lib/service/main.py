@@ -27,7 +27,7 @@ from lib.service.properties import (
     set_ratings_properties,
 )
 from lib.service.stinger import StingerMonitor, get_settings as get_stinger_settings
-from lib.kodi.utils import clear_group, set_prop, get_prop, clear_prop, extract_media_ids, wait_for_kodi_ready, batch_set_props
+from lib.kodi.utils import clear_group, set_prop, get_prop, clear_prop, extract_media_ids, wait_for_kodi_ready, batch_set_props, is_kodi_piers_or_later
 
 SERVICE_POLL_INTERVAL = 0.10
 MAX_CONSECUTIVE_ERRORS = 10
@@ -36,7 +36,8 @@ CACHE_MOVIESET_TTL = 300
 
 def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> List[int]:
     """Get episode runtimes for a TV show (or specific season) from library."""
-    params: Dict = {"tvshowid": tvshowid, "properties": ["runtime"]}
+    props = ["runtime"] if is_kodi_piers_or_later() else ["runtime", "streamdetails"]
+    params: Dict = {"tvshowid": tvshowid, "properties": props}
     cache_key = f"tvshow:{tvshowid}:episode_runtimes"
     if season is not None:
         params["season"] = season
