@@ -223,7 +223,9 @@ def request(
 
     if "error" in data:
         error = data.get("error", {})
-        log("General", f"JSON-RPC error for {method}: {error}", xbmc.LOGWARNING)
+        error_code = error.get("code") if isinstance(error, dict) else None
+        level = xbmc.LOGDEBUG if error_code == -32602 else xbmc.LOGWARNING
+        log("General", f"JSON-RPC error for {method}: {error}", level)
         return None
 
     if cache_key:

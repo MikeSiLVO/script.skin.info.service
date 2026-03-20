@@ -5,6 +5,7 @@ Manages skininfo_v1.db cache tables with dynamic TTL based on media age.
 from __future__ import annotations
 
 import json
+import random
 import zlib
 import xbmc
 from datetime import datetime, timedelta
@@ -26,15 +27,72 @@ def _decompress_data(data: bytes) -> Any:
     return json.loads(json_str)
 
 
+def _tv_show_ttl(hints: Dict[str, Any]) -> int:
+    """Calculate TTL for TV shows based on schedule and status hints."""
+
+    data_complete = hints.get("data_complete") == "true"
+    status = hints.get("status", "").lower() if hints.get("status") else ""
+    next_air = hints.get("next_episode_air_date")
+    next_air_incomplete = hints.get("next_episode_air_date_incomplete")
+    last_air = hints.get("last_air_date")
+
+    air_date_str = next_air or next_air_incomplete
+    if air_date_str:
+        try:
+            hours_until = (datetime.fromisoformat(air_date_str) - datetime.now()).total_seconds() / 3600
+        except (ValueError, AttributeError):
+            hours_until = None
+
+        if hours_until is not None:
+            if hours_until <= 0:
+                return 12
+            if next_air:
+                return max(1, int(hours_until))
+            days_until = hours_until / 24
+            if days_until <= 7:
+                return 24
+            if days_until <= 30:
+                return 72
+            if days_until <= 90:
+                return 168
+            return 336
+
+    if status in ("ended", "canceled"):
+        days_since_last = None
+        if last_air:
+            try:
+                days_since_last = (datetime.now() - datetime.fromisoformat(last_air)).days
+            except (ValueError, AttributeError):
+                pass
+
+        if days_since_last is not None and days_since_last < 14:
+            return 24
+        if days_since_last is not None and days_since_last < 30:
+            return 72
+        if data_complete and days_since_last is not None and days_since_last >= 30:
+            return random.randint(60, 90) * 24
+        return 168
+
+    return 72
+
+
 def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, Any]] = None) -> int:
     """
     Dynamic cache TTL based on content status and metadata hints.
 
     Strategy:
-    - TV Shows with next_incomplete_episode: cache until that episode's air_date
-    - TV Shows Ended/Canceled + data complete: 2160 hours (90 days)
-    - TV Shows Ended/Canceled + incomplete: 336 hours (14 days)
-    - TV Shows with active status but no schedule: 72 hours (3 days)
+    - TV Shows (delegated to _tv_show_ttl):
+      - Next ep complete (name+overview+date): cache until air date
+      - Next ep incomplete, air date < 7 days: 24h
+      - Next ep incomplete, air date 7-30 days: 3 days
+      - Next ep incomplete, air date 30-90 days: 7 days
+      - Next ep incomplete, air date > 90 days: 14 days
+      - Next ep air date passed: 12h
+      - Ended, last ep < 14 days: 24h (grace period)
+      - Ended, last ep 14-30 days: 3 days (settling)
+      - Ended, complete + settled (30d+): random 60-90 days
+      - Ended, incomplete + past 30 days: 7 days
+      - Active, no schedule: 3 days
     - Movies by age:
       - <90 days: 24 hours (ratings/info actively updating)
       - 90 days - 6 months: 72 hours (3 days)
@@ -42,24 +100,24 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
       - >1 year + data complete: 2160 hours (90 days)
       - >1 year + incomplete: 168 hours (7 days)
     - Unknown: 24 hours (assume active)
-    - Adds ±10% random jitter to prevent thundering herd
-    - Data completeness: overview, cast, IMDb ID, and (TV) content ratings + last episode
+    - Movies get ±10% random jitter to prevent thundering herd
 
     Args:
         release_date: Release date in YYYY-MM-DD format
                      - Movies: used to determine age tier
-                     - TV Shows: ignored if schedule hint provided
+                     - TV Shows: ignored (schedule hints used instead)
         hints: Optional dictionary of metadata hints for TTL calculation.
                Supported keys:
                - "status": TMDb status string (e.g., "Ended", "Canceled", "Returning Series")
-               - "next_incomplete_episode": Air date of first episode missing data (YYYY-MM-DD)
+               - "next_episode_air_date": Air date of next ep with complete data (YYYY-MM-DD)
+               - "next_episode_air_date_incomplete": Air date of next ep missing name/overview
+               - "last_air_date": Air date of last episode (YYYY-MM-DD)
                - "data_complete": "true" if core fields are filled (overview, cast, IDs, etc.)
-               - Additional keys can be added without changing function signature
+               - "is_library_item": False for non-library items (fixed 24h TTL)
 
     Returns:
-        TTL in hours with ±10% jitter
+        TTL in hours
     """
-    import random
 
     hints = hints or {}
 
@@ -67,40 +125,29 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
         return 24
 
     status = hints.get("status", "").lower() if hints.get("status") else ""
-    next_incomplete = hints.get("next_incomplete_episode")
+    has_tv_hints = (
+        hints.get("next_episode_air_date")
+        or hints.get("next_episode_air_date_incomplete")
+        or status in ("ended", "canceled", "returning series", "in production", "planned", "pilot")
+    )
+
+    if has_tv_hints:
+        return _tv_show_ttl(hints)
 
     data_complete = hints.get("data_complete") == "true"
 
-    if next_incomplete:
-        try:
-            air_date = datetime.fromisoformat(next_incomplete)
-            hours_until = (air_date - datetime.now()).total_seconds() / 3600
-            if hours_until > 0:
-                base_ttl = max(1, int(hours_until))
-            else:
-                base_ttl = 1
-        except (ValueError, AttributeError):
-            base_ttl = 24
-    elif status:
-        if status in ("ended", "canceled"):
-            if data_complete:
-                base_ttl = 2160  # 90 days - ended with all data filled
-            else:
-                base_ttl = 336  # 14 days - ended but still filling in
-        else:
-            base_ttl = 72  # 3 days - airing but no schedule data
-    elif release_date:
+    if release_date:
         try:
             release = datetime.fromisoformat(release_date)
             days_old = (datetime.now() - release).days
             if days_old < 90:
-                base_ttl = 24  # Very new - ratings still settling
+                base_ttl = 24
             elif days_old < 180:
-                base_ttl = 72  # 3 days - moderately stable
+                base_ttl = 72
             elif days_old < 365:
-                base_ttl = 120  # 5 days - mostly stable
+                base_ttl = 120
             else:
-                base_ttl = 2160 if data_complete else 168  # 90 days if complete, else 7 days
+                base_ttl = 2160 if data_complete else 168
         except (ValueError, AttributeError):
             base_ttl = 24
     else:
@@ -468,6 +515,20 @@ def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: st
             total += cursor.rowcount
     if total > 0:
         log("Cache", "Invalidated {} online cache entries for {}".format(total, media_type))
+    return total
+
+
+def invalidate_online_properties_by_keys(keys: List[str]) -> int:
+    """Delete cached online properties by exact cache keys."""
+    if not keys:
+        return 0
+    total = 0
+    with get_db(DB_PATH) as cursor:
+        for key in keys:
+            cursor.execute('DELETE FROM online_properties_cache WHERE item_key = ?', (key,))
+            total += cursor.rowcount
+    if total > 0:
+        log("Cache", f"Invalidated {total} stale online cache entries")
     return total
 
 

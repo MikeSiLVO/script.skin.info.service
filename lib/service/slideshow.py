@@ -103,9 +103,10 @@ def _cache_image_url(url: str) -> bool:
     wrapped_url = encode_image_url(url) if not url.startswith('image://') else url
 
     try:
-        with xbmcvfs.File(wrapped_url):
-            pass
-        return True
+        f = xbmcvfs.File(wrapped_url)
+        cached = f.size() > 0
+        f.close()
+        return cached
     except Exception as e:
         log("Service", f"Slideshow: Failed to cache URL {url}: {e}", xbmc.LOGWARNING)
         return False
