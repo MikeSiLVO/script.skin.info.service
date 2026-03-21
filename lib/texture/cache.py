@@ -353,8 +353,16 @@ class TextureCache(WorkerQueue):
         wrapped_url = encode_image_url(url)
 
         try:
-            with xbmcvfs.File(wrapped_url):
-                pass
+            f = xbmcvfs.File(wrapped_url)
+            success = f.size() > 0
+            f.close()
+
+            if not success:
+                return {
+                    'url': url,
+                    'success': False,
+                    'error': 'file not found or empty'
+                }
 
             return {
                 'url': url,
@@ -489,11 +497,15 @@ class TextureCacheDownload(WorkerQueue):
         wrapped_url = encode_image_url(url)
 
         try:
-            with xbmcvfs.File(wrapped_url):
-                pass
-            cache_success = True
-            self.stats_cached += 1
-            log("Cache",f"TextureCacheDownload worker {worker_id} cached URL")
+            f = xbmcvfs.File(wrapped_url)
+            cached = f.size() > 0
+            f.close()
+            if cached:
+                cache_success = True
+                self.stats_cached += 1
+            else:
+                cache_error = "file not found or empty"
+                self.stats_cache_failed += 1
         except Exception as e:
             cache_error = str(e)
             self.stats_cache_failed += 1
@@ -556,7 +568,7 @@ def precache_library_artwork(
     media_types: Optional[List[str]] = None,
     progress_dialog: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None,
     task_context=None
-) -> Dict[str, int]:
+) -> Dict[str, Any]:
     """
     Pre-cache library artwork URLs not already in texture cache.
 
@@ -703,6 +715,10 @@ def precache_library_artwork(
             queue_stats = cache_queue.get_stats()
             stats['successfully_cached'] = queue_stats['successful']
             stats['failed'] = queue_stats['failed']
+            stats['failed_urls'] = [
+                r['url'] for r in queue_stats['results']
+                if not r.get('success', False) and 'url' in r
+            ]
 
             status = "cancelled" if stats['cancelled'] else "complete"
             log("Artwork",
@@ -725,7 +741,7 @@ def precache_and_download_artwork(
     media_types: Optional[List[str]] = None,
     progress_dialog: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None,
     task_context=None
-) -> Dict[str, int]:
+) -> Dict[str, Any]:
     """
     Pre-cache library artwork AND download to filesystem simultaneously.
 

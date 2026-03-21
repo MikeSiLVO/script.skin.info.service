@@ -212,6 +212,14 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
         message = "[CR]".join(message_parts)
         dialog.ok(title, message)
 
+        failed_urls = stats.get('failed_urls', [])
+        if failed_urls and dialog.yesno(
+            ADDON.getLocalizedString(32460),
+            ADDON.getLocalizedString(32498).format(len(failed_urls))
+        ):
+            report_lines = sorted(failed_urls)
+            show_textviewer(ADDON.getLocalizedString(32499), "\n".join(report_lines))
+
     except Exception as e:
         if progress:
             try:

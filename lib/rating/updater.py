@@ -183,7 +183,7 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
 
 
 _DRIP_DELAY = {
-    "idle": {"movie": 100, "tvshow": 100, "episode": 100},
+    "idle": {"movie": 0, "tvshow": 0, "episode": 0},
     "library": {"movie": 500, "tvshow": 1500, "episode": 1500},
 }
 _PLAYBACK_POLL_MS = 10000

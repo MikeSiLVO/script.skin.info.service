@@ -1,7 +1,7 @@
 """Trakt ratings source with OAuth support."""
 from __future__ import annotations
 
-from typing import Optional, Dict
+from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
 import json
 import xbmc
@@ -142,8 +142,9 @@ class ApiTrakt(RatingSource):
         if usage_tracker.is_provider_skipped("trakt"):
             return None
 
-        trakt_id = ids.get("trakt_slug") or ids.get("imdb") or ids.get("tmdb")
-        if not trakt_id:
+        trakt_id = ids.get("trakt_slug") or ids.get("imdb")
+        tmdb_id = ids.get("tmdb")
+        if not trakt_id and not tmdb_id:
             return None
 
         cache_key = self._get_cache_key(media_type, ids)
@@ -155,30 +156,43 @@ class ApiTrakt(RatingSource):
         try:
             usage_tracker.increment_usage("trakt")
 
-            if media_type == "movie":
-                endpoint = f"/movies/{trakt_id}"
-            elif media_type == "tvshow":
-                endpoint = f"/shows/{trakt_id}"
-            elif media_type == "episode":
-                season = ids.get("season")
-                episode = ids.get("episode")
-                if not season or not episode:
-                    return None
-                endpoint = f"/shows/{trakt_id}/seasons/{season}/episodes/{episode}"
-            else:
-                return None
-
             headers = {}
             token = self._get_valid_token(abort_flag)
             if token:
                 headers["Authorization"] = f"Bearer {token}"
 
-            data = self.session.get(
-                endpoint,
-                params={"extended": "full"},
-                headers=headers,
-                abort_flag=abort_flag
-            )
+            if trakt_id:
+                if media_type == "movie":
+                    endpoint = f"/movies/{trakt_id}"
+                elif media_type == "tvshow":
+                    endpoint = f"/shows/{trakt_id}"
+                elif media_type == "episode":
+                    season = ids.get("season")
+                    episode = ids.get("episode")
+                    if not season or not episode:
+                        return None
+                    endpoint = f"/shows/{trakt_id}/seasons/{season}/episodes/{episode}"
+                else:
+                    return None
+
+                data = self.session.get(
+                    endpoint,
+                    params={"extended": "full"},
+                    headers=headers,
+                    abort_flag=abort_flag
+                )
+            else:
+                search_type = "show" if media_type in ("tvshow", "episode") else media_type
+                # Search endpoint returns a JSON array; session.get is typed as Dict
+                raw: Any = self.session.get(
+                    f"/search/tmdb/{tmdb_id}",
+                    params={"type": search_type, "extended": "full"},
+                    headers=headers,
+                    abort_flag=abort_flag
+                )
+                if not isinstance(raw, list) or not raw:
+                    return None
+                data = raw[0].get(search_type)
 
             if data:
                 self.cache_data(cache_key, data)

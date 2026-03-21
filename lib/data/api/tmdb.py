@@ -538,11 +538,6 @@ class ApiTmdb(RatingSource):
             hints["status"] = data["status"]
 
         if media_type == 'movie':
-            has_overview = bool(data.get("overview"))
-            has_cast = len(data.get("credits", {}).get("cast", [])) > 0
-            has_imdb = bool((data.get("external_ids") or {}).get("imdb_id"))
-            if has_overview and has_cast and has_imdb:
-                hints["data_complete"] = "true"
             return hints
 
         if media_type != 'tvshow':
@@ -553,9 +548,9 @@ class ApiTmdb(RatingSource):
         has_imdb = bool((data.get("external_ids") or {}).get("imdb_id"))
         has_content_ratings = len(data.get("content_ratings", {}).get("results", [])) > 0
         last_ep = data.get("last_episode_to_air")
-        has_last_ep = bool(last_ep and last_ep.get("overview") and last_ep.get("still_path"))
+        has_last_ep = bool(last_ep and last_ep.get("overview"))
         if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
-            hints["data_complete"] = "true"
+            hints["aired_data_complete"] = "true"
 
         current_season = data.get('_current_season')
         if not current_season:

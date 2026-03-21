@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -33,20 +34,23 @@ def _get_online_ttl(media_type: str, tmdb_id: str) -> int:
 
     next_ep = tmdb_data.get("next_episode_to_air")
     if isinstance(next_ep, dict) and next_ep.get("air_date"):
-        hints["next_incomplete_episode"] = next_ep["air_date"]
+        next_ep_complete = bool(next_ep.get("name") and next_ep.get("overview"))
+        if next_ep_complete:
+            hints["next_episode_air_date"] = next_ep["air_date"]
+        else:
+            hints["next_episode_air_date_incomplete"] = next_ep["air_date"]
 
-    has_overview = bool(tmdb_data.get("overview"))
-    has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
-    has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
-    if media_type == "movie":
-        if has_overview and has_cast and has_imdb:
-            hints["data_complete"] = "true"
-    elif media_type == "tvshow":
+    if media_type == "tvshow":
+        has_overview = bool(tmdb_data.get("overview"))
+        has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
+        has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
         has_content_ratings = len(tmdb_data.get("content_ratings", {}).get("results", [])) > 0
         last_ep = tmdb_data.get("last_episode_to_air")
-        has_last_ep = bool(last_ep and last_ep.get("overview") and last_ep.get("still_path"))
+        has_last_ep = bool(last_ep and last_ep.get("overview"))
         if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
-            hints["data_complete"] = "true"
+            hints["aired_data_complete"] = "true"
+        if isinstance(last_ep, dict) and last_ep.get("air_date"):
+            hints["last_air_date"] = last_ep["air_date"]
 
     release_date = tmdb_data.get("release_date") or tmdb_data.get("first_air_date")
     return get_cache_ttl_hours(release_date, hints)
@@ -57,8 +61,9 @@ def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '
     invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
 
 ONLINE_POLL_INTERVAL = 0.10
-WARMUP_DELAY_MS = 500
-WARMUP_PLAYBACK_POLL_S = 30
+UPDATER_DELAY_S = 0.5
+UPDATER_PLAYBACK_POLL_S = 30
+UPDATER_IDLE_S = 3600
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
 PLAYER_ONLINE_PROPERTY_PREFIX = "SkinInfo.Player.Online."
 PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
@@ -191,17 +196,17 @@ class OnlineServiceMain(threading.Thread):
         self._last_musicvideo_player_key: Optional[str] = None
         self._musicvideo_player_fetch_thread: Optional[threading.Thread] = None
         self._musicvideo_player_fetch_for_key: Optional[str] = None
-        self._warmup_thread: Optional[threading.Thread] = None
-        self._warmup_requested = False
+        self._updater_thread: Optional[threading.Thread] = None
+        self._updater_restart = False
         # GIL guarantees atomic add/discard/in on CPython sets — no lock needed
-        self._warmup_in_progress: set = set()
+        self._updater_in_progress: set = set()
 
     def reset_item_key(self) -> None:
         self._last_item_key = None
 
-    def request_warmup(self) -> None:
-        """Request a warmup pass (e.g. after library scan)."""
-        self._warmup_requested = True
+    def request_update(self) -> None:
+        """Request the updater to restart its pass (e.g. after library scan)."""
+        self._updater_restart = True
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
@@ -211,30 +216,27 @@ class OnlineServiceMain(threading.Thread):
 
         log("Service", "Online service started", xbmc.LOGINFO)
 
-        self._start_warmup()
+        self._start_updater()
 
         while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
             if self.abort.is_set():
                 break
             try:
                 self._loop()
-                if self._warmup_requested:
-                    self._warmup_requested = False
-                    self._start_warmup()
             except Exception as e:
                 log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
 
         log("Service", "Online service stopped", xbmc.LOGINFO)
 
-    def _start_warmup(self) -> None:
-        """Start background warmup if not already running."""
-        if self._warmup_thread and self._warmup_thread.is_alive():
+    def _start_updater(self) -> None:
+        """Start the continuous background updater thread."""
+        if self._updater_thread and self._updater_thread.is_alive():
             return
-        self._warmup_thread = threading.Thread(
-            target=self._warmup_worker,
+        self._updater_thread = threading.Thread(
+            target=self._updater_worker,
             daemon=True,
         )
-        self._warmup_thread.start()
+        self._updater_thread.start()
 
     def _loop(self) -> None:
         self._handle_library_item()
@@ -291,7 +293,7 @@ class OnlineServiceMain(threading.Thread):
         if self._fetch_thread and self._fetch_thread.is_alive() and self._fetch_for_key == cache_key:
             return
 
-        if cache_key in self._warmup_in_progress:
+        if cache_key in self._updater_in_progress:
             return
 
         self._fetch_for_key = cache_key
@@ -590,101 +592,162 @@ class OnlineServiceMain(threading.Thread):
         self._music_fanart_urls = []
         self._music_fanart_index = 0
 
-    def _warmup_worker(self) -> None:
-        """Background warmup: prefetch online data for airing TV shows."""
+    def _updater_worker(self) -> None:
+        """Continuous background updater: keeps TV show online data fresh."""
         try:
-            self._run_warmup()
+            self._run_updater()
         except Exception as e:
-            log("Service", f"Online warmup error: {e}", xbmc.LOGWARNING)
+            log("Service", f"Online updater error: {e}", xbmc.LOGWARNING)
 
-    def _run_warmup(self) -> None:
+    def _run_updater(self) -> None:
         from lib.data.database.cache import get_cached_metadata
         from lib.data.database.schedule import get_all_schedule, upsert_schedule
+        from lib.data.database.mapping import get_imdb_ids_batch
 
-        schedule = get_all_schedule()
-        first_run = not schedule
+        monitor = xbmc.Monitor()
 
-        if first_run:
-            shows = self._get_all_library_shows()
-        else:
-            from lib.data.database.mapping import get_imdb_ids_batch
-            active = [
-                s for s in schedule
-                if s["status"] not in ("Ended", "Canceled")
+        while not self.abort.is_set():
+            restart_requested = self._updater_restart
+            self._updater_restart = False
+
+            schedule = get_all_schedule()
+            first_run = not schedule
+
+            if first_run:
+                shows = self._get_all_library_shows()
+                if not shows:
+                    self._idle_wait()
+                    continue
+                for show in shows:
+                    tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
+                    if tmdb_data:
+                        upsert_schedule(
+                            show["tmdb_id"], show["tvshowid"], show["title"],
+                            tmdb_data.get("status") or "",
+                            tmdb_data.get("next_episode_to_air"),
+                            tmdb_data.get("last_episode_to_air"),
+                        )
+            else:
+                if restart_requested:
+                    library_shows = self._get_all_library_shows()
+                    schedule_tmdb_ids = {s["tmdb_id"] for s in schedule}
+                    for show in library_shows:
+                        if show["tmdb_id"] not in schedule_tmdb_ids:
+                            tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
+                            if tmdb_data:
+                                upsert_schedule(
+                                    show["tmdb_id"], show["tvshowid"], show["title"],
+                                    tmdb_data.get("status") or "",
+                                    tmdb_data.get("next_episode_to_air"),
+                                    tmdb_data.get("last_episode_to_air"),
+                                )
+                    schedule = get_all_schedule()
+
+                imdb_map = get_imdb_ids_batch(
+                    {s["tmdb_id"] for s in schedule}, "tvshow"
+                )
+                shows = [
+                    {
+                        "tmdb_id": s["tmdb_id"],
+                        "imdb_id": imdb_map.get(s["tmdb_id"], ""),
+                        "tvshowid": s["tvshowid"],
+                        "title": s["title"],
+                    }
+                    for s in schedule
+                ]
+
+            if not shows:
+                self._idle_wait()
+                continue
+
+            stale_keys = self._get_stale_schedule_keys(schedule, shows)
+            if stale_keys:
+                from lib.data.database.cache import invalidate_online_properties_by_keys
+                invalidate_online_properties_by_keys(stale_keys)
+
+            cached_keys = get_cached_online_keys()
+            uncached = [
+                s for s in shows
+                if _make_cache_key("tvshow", s.get("imdb_id") or "", s["tmdb_id"]) not in cached_keys
             ]
-            if not active:
-                return
-            imdb_map = get_imdb_ids_batch(
-                {s["tmdb_id"] for s in active}, "tvshow"
-            )
-            shows = [
-                {
-                    "tmdb_id": s["tmdb_id"],
-                    "imdb_id": imdb_map.get(s["tmdb_id"], ""),
-                    "tvshowid": s["tvshowid"],
-                    "title": s["title"],
-                }
-                for s in active
-            ]
 
-        if not shows:
-            return
+            if not uncached:
+                self._idle_wait()
+                continue
 
-        if first_run:
-            for show in shows:
-                tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
+            log("Service", f"Online updater: {len(uncached)} expired, {len(shows) - len(uncached)} cached", xbmc.LOGINFO)
+
+            fetched = 0
+            for show in uncached:
+                if self.abort.is_set() or self._updater_restart:
+                    break
+
+                while xbmc.getCondVisibility("Player.HasVideo"):
+                    if monitor.waitForAbort(UPDATER_PLAYBACK_POLL_S) or self.abort.is_set():
+                        return
+
+                tmdb_id = show["tmdb_id"]
+                imdb_id = show.get("imdb_id") or ""
+                cache_key = _make_cache_key("tvshow", imdb_id, tmdb_id)
+
+                self._updater_in_progress.add(cache_key)
+                try:
+                    tmdb_props = fetch_tmdb_online_data("tvshow", imdb_id, tmdb_id, self._abort_flag)
+                    if tmdb_props:
+                        existing = get_cached_online_properties(cache_key) or {}
+                        existing.update(tmdb_props)
+                        ttl = _get_online_ttl("tvshow", tmdb_id)
+                        cache_online_properties(cache_key, existing, ttl_hours=ttl)
+                        fetched += 1
+                finally:
+                    self._updater_in_progress.discard(cache_key)
+
+                tmdb_data = get_cached_metadata("tvshow", tmdb_id)
                 if tmdb_data:
                     upsert_schedule(
-                        show["tmdb_id"], show["tvshowid"], show["title"],
+                        tmdb_id, show["tvshowid"], show["title"],
                         tmdb_data.get("status") or "",
                         tmdb_data.get("next_episode_to_air"),
                         tmdb_data.get("last_episode_to_air"),
                     )
 
-        cached_keys = get_cached_online_keys()
-        uncached = [
-            s for s in shows
-            if _make_cache_key("tvshow", s.get("imdb_id") or "", s["tmdb_id"]) not in cached_keys
-        ]
+                if monitor.waitForAbort(UPDATER_DELAY_S):
+                    break
 
-        log("Service", f"Online warmup: {len(uncached)} to fetch, {len(shows) - len(uncached)} cached", xbmc.LOGINFO)
+            log("Service", f"Online updater pass complete: {fetched} fetched", xbmc.LOGINFO)
 
-        fetched = 0
-        for show in uncached:
-            if self.abort.is_set():
+    def _idle_wait(self) -> None:
+        monitor = xbmc.Monitor()
+        elapsed = 0.0
+        while elapsed < UPDATER_IDLE_S:
+            if self.abort.is_set() or self._updater_restart:
                 break
+            step = min(10.0, UPDATER_IDLE_S - elapsed)
+            if monitor.waitForAbort(step):
+                self.abort.set()
+                break
+            elapsed += step
 
-            while xbmc.getCondVisibility("Player.HasVideo"):
-                if self.abort.is_set():
-                    return
-                xbmc.sleep(WARMUP_PLAYBACK_POLL_S * 1000)
-
-            tmdb_id = show["tmdb_id"]
-            imdb_id = show.get("imdb_id") or ""
-            cache_key = _make_cache_key("tvshow", imdb_id, tmdb_id)
-
-            self._warmup_in_progress.add(cache_key)
-            try:
-                props = fetch_all_online_data("tvshow", imdb_id, tmdb_id, self._abort_flag)
-                if props:
-                    ttl = _get_online_ttl("tvshow", tmdb_id)
-                    cache_online_properties(cache_key, props, ttl_hours=ttl)
-                    fetched += 1
-            finally:
-                self._warmup_in_progress.discard(cache_key)
-
-            tmdb_data = get_cached_metadata("tvshow", tmdb_id)
-            if tmdb_data:
-                upsert_schedule(
-                    tmdb_id, show["tvshowid"], show["title"],
-                    tmdb_data.get("status") or "",
-                    tmdb_data.get("next_episode_to_air"),
-                    tmdb_data.get("last_episode_to_air"),
-                )
-
-            xbmc.sleep(WARMUP_DELAY_MS)
-
-        log("Service", f"Online warmup complete: {fetched} fetched", xbmc.LOGINFO)
+    @staticmethod
+    def _get_stale_schedule_keys(
+        schedule: List[Dict], shows: List[Dict]
+    ) -> List[str]:
+        """Find cache keys for shows whose next_episode_air_date has passed."""
+        today = datetime.now().strftime("%Y-%m-%d")
+        stale_tmdb_ids = set()
+        for entry in schedule:
+            next_air = entry.get("next_episode_air_date") or ""
+            if next_air and next_air < today:
+                stale_tmdb_ids.add(entry["tmdb_id"])
+        if not stale_tmdb_ids:
+            return []
+        keys = []
+        for show in shows:
+            if show["tmdb_id"] in stale_tmdb_ids:
+                keys.append(_make_cache_key(
+                    "tvshow", show.get("imdb_id") or "", show["tmdb_id"]
+                ))
+        return keys
 
     @staticmethod
     def _get_all_library_shows() -> List[Dict]:
@@ -878,6 +941,30 @@ def fetch_all_online_data(
                 log("Service", f"Online fetch error ({source}): {e}", xbmc.LOGWARNING)
 
     return props
+
+
+def fetch_tmdb_online_data(
+    media_type: str,
+    imdb_id: str,
+    tmdb_id: str,
+    abort_flag: Optional[ServiceAbortFlag] = None,
+    is_library_item: bool = True
+) -> Dict[str, str]:
+    """Fetch only TMDB data and return as property dictionary."""
+    from lib.data.api.tmdb import resolve_tmdb_id
+
+    is_episode = media_type == "episode"
+
+    if abort_flag and abort_flag.is_requested():
+        return {}
+
+    resolved_tmdb_id = resolve_tmdb_id(
+        tmdb_id, imdb_id, "tvshow" if is_episode else media_type
+    )
+    if not resolved_tmdb_id or is_episode:
+        return {}
+
+    return _fetch_tmdb_full_data(media_type, resolved_tmdb_id, abort_flag, is_library_item=is_library_item) or {}
 
 
 def _fetch_tmdb_full_data(

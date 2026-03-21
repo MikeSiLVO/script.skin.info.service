@@ -1295,6 +1295,14 @@ msgctxt "#32497"
 msgid "Orphaned Found: {0} | Removed: {1}"
 msgstr ""
 
+msgctxt "#32498"
+msgid "{0} artwork files not found on disk.[CR]These are stale library entries pointing to missing files.[CR][CR]View the list?"
+msgstr ""
+
+msgctxt "#32499"
+msgid "Missing Artwork Files"
+msgstr ""
+
 msgctxt "#32500"
 msgid "Session Report"
 msgstr ""

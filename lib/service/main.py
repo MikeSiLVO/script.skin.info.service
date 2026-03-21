@@ -86,7 +86,7 @@ class LibraryMonitor(xbmc.Monitor):
         if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
             self.service_main._increment_library_refresh()
         if method == 'VideoLibrary.OnScanFinished' and self.online_service:
-            self.online_service.request_warmup()
+            self.online_service.request_update()
         if method == 'VideoLibrary.OnUpdate':
             self._on_video_update(data)
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
