@@ -40,18 +40,15 @@ def _get_online_ttl(media_type: str, tmdb_id: str) -> int:
         else:
             hints["next_episode_air_date_incomplete"] = next_ep["air_date"]
 
-    has_overview = bool(tmdb_data.get("overview"))
-    has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
-    has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
-    if media_type == "movie":
-        if has_overview and has_cast and has_imdb:
-            hints["data_complete"] = "true"
-    elif media_type == "tvshow":
+    if media_type == "tvshow":
+        has_overview = bool(tmdb_data.get("overview"))
+        has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
+        has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
         has_content_ratings = len(tmdb_data.get("content_ratings", {}).get("results", [])) > 0
         last_ep = tmdb_data.get("last_episode_to_air")
         has_last_ep = bool(last_ep and last_ep.get("overview"))
         if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
-            hints["data_complete"] = "true"
+            hints["aired_data_complete"] = "true"
         if isinstance(last_ep, dict) and last_ep.get("air_date"):
             hints["last_air_date"] = last_ep["air_date"]
 
@@ -64,10 +61,9 @@ def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '
     invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
 
 ONLINE_POLL_INTERVAL = 0.10
-UPDATER_DELAY_MS = 500
+UPDATER_DELAY_S = 0.5
 UPDATER_PLAYBACK_POLL_S = 30
-UPDATER_IDLE_SLEEP_MS = 60_000
-UPDATER_IDLE_CHECKS = 60
+UPDATER_IDLE_S = 3600
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
 PLAYER_ONLINE_PROPERTY_PREFIX = "SkinInfo.Player.Online."
 PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
@@ -608,6 +604,8 @@ class OnlineServiceMain(threading.Thread):
         from lib.data.database.schedule import get_all_schedule, upsert_schedule
         from lib.data.database.mapping import get_imdb_ids_batch
 
+        monitor = xbmc.Monitor()
+
         while not self.abort.is_set():
             restart_requested = self._updater_restart
             self._updater_restart = False
@@ -685,9 +683,8 @@ class OnlineServiceMain(threading.Thread):
                     break
 
                 while xbmc.getCondVisibility("Player.HasVideo"):
-                    if self.abort.is_set():
+                    if monitor.waitForAbort(UPDATER_PLAYBACK_POLL_S) or self.abort.is_set():
                         return
-                    xbmc.sleep(UPDATER_PLAYBACK_POLL_S * 1000)
 
                 tmdb_id = show["tmdb_id"]
                 imdb_id = show.get("imdb_id") or ""
@@ -695,10 +692,12 @@ class OnlineServiceMain(threading.Thread):
 
                 self._updater_in_progress.add(cache_key)
                 try:
-                    props = fetch_all_online_data("tvshow", imdb_id, tmdb_id, self._abort_flag)
-                    if props:
+                    tmdb_props = fetch_tmdb_online_data("tvshow", imdb_id, tmdb_id, self._abort_flag)
+                    if tmdb_props:
+                        existing = get_cached_online_properties(cache_key) or {}
+                        existing.update(tmdb_props)
                         ttl = _get_online_ttl("tvshow", tmdb_id)
-                        cache_online_properties(cache_key, props, ttl_hours=ttl)
+                        cache_online_properties(cache_key, existing, ttl_hours=ttl)
                         fetched += 1
                 finally:
                     self._updater_in_progress.discard(cache_key)
@@ -712,16 +711,22 @@ class OnlineServiceMain(threading.Thread):
                         tmdb_data.get("last_episode_to_air"),
                     )
 
-                xbmc.sleep(UPDATER_DELAY_MS)
+                if monitor.waitForAbort(UPDATER_DELAY_S):
+                    break
 
             log("Service", f"Online updater pass complete: {fetched} fetched", xbmc.LOGINFO)
 
     def _idle_wait(self) -> None:
-        """Sleep in small increments, responsive to restart and abort."""
-        for _ in range(UPDATER_IDLE_CHECKS):
+        monitor = xbmc.Monitor()
+        elapsed = 0.0
+        while elapsed < UPDATER_IDLE_S:
             if self.abort.is_set() or self._updater_restart:
                 break
-            xbmc.sleep(UPDATER_IDLE_SLEEP_MS)
+            step = min(10.0, UPDATER_IDLE_S - elapsed)
+            if monitor.waitForAbort(step):
+                self.abort.set()
+                break
+            elapsed += step
 
     @staticmethod
     def _get_stale_schedule_keys(
@@ -936,6 +941,30 @@ def fetch_all_online_data(
                 log("Service", f"Online fetch error ({source}): {e}", xbmc.LOGWARNING)
 
     return props
+
+
+def fetch_tmdb_online_data(
+    media_type: str,
+    imdb_id: str,
+    tmdb_id: str,
+    abort_flag: Optional[ServiceAbortFlag] = None,
+    is_library_item: bool = True
+) -> Dict[str, str]:
+    """Fetch only TMDB data and return as property dictionary."""
+    from lib.data.api.tmdb import resolve_tmdb_id
+
+    is_episode = media_type == "episode"
+
+    if abort_flag and abort_flag.is_requested():
+        return {}
+
+    resolved_tmdb_id = resolve_tmdb_id(
+        tmdb_id, imdb_id, "tvshow" if is_episode else media_type
+    )
+    if not resolved_tmdb_id or is_episode:
+        return {}
+
+    return _fetch_tmdb_full_data(media_type, resolved_tmdb_id, abort_flag, is_library_item=is_library_item) or {}
 
 
 def _fetch_tmdb_full_data(

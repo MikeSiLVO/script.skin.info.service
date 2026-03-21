@@ -28,9 +28,31 @@ def _decompress_data(data: bytes) -> Any:
 
 
 def _tv_show_ttl(hints: Dict[str, Any]) -> int:
-    """Calculate TTL for TV shows based on schedule and status hints."""
+    """Calculate TTL for TV shows based on schedule and status hints.
 
-    data_complete = hints.get("data_complete") == "true"
+    Airing — Complete (next ep has name + overview + air_date):
+        < 7 days out:   random 24-48h
+        7-30 days out:  random 3-6 days
+        30+ days out:   random 14-30 days
+
+    Airing — Incomplete (next ep missing name/overview):
+        < 7 days out:   24h
+        7-30 days out:  random 2-4 days
+        30-90 days out: random 3-6 days
+        > 90 days out:  random 7-14 days
+
+    Air date passed:        12h
+    Active, no schedule:    random 3-7 days
+
+    Ended — Complete (aired_data_complete):
+        Any age:        random 14-30 days
+
+    Ended — Incomplete:
+        < 14 days:      random 24-72h
+        14-30 days:     random 3-6 days
+        30+ days:       random 7-14 days
+    """
+    aired_data_complete = hints.get("aired_data_complete") == "true"
     status = hints.get("status", "").lower() if hints.get("status") else ""
     next_air = hints.get("next_episode_air_date")
     next_air_incomplete = hints.get("next_episode_air_date_incomplete")
@@ -39,25 +61,31 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
     air_date_str = next_air or next_air_incomplete
     if air_date_str:
         try:
-            hours_until = (datetime.fromisoformat(air_date_str) - datetime.now()).total_seconds() / 3600
+            days_until = (datetime.fromisoformat(air_date_str) - datetime.now()).total_seconds() / 86400
         except (ValueError, AttributeError):
-            hours_until = None
+            days_until = None
 
-        if hours_until is not None:
-            if hours_until <= 0:
+        if days_until is not None:
+            if days_until <= 0:
                 return 12
             if next_air:
-                return max(1, int(hours_until))
-            days_until = hours_until / 24
+                if days_until <= 7:
+                    return random.randint(24, 48)
+                if days_until <= 30:
+                    return random.randint(3, 6) * 24
+                return random.randint(14, 30) * 24
             if days_until <= 7:
                 return 24
             if days_until <= 30:
-                return 72
+                return random.randint(2, 4) * 24
             if days_until <= 90:
-                return 168
-            return 336
+                return random.randint(3, 6) * 24
+            return random.randint(7, 14) * 24
 
     if status in ("ended", "canceled"):
+        if aired_data_complete:
+            return random.randint(14, 30) * 24
+
         days_since_last = None
         if last_air:
             try:
@@ -66,14 +94,12 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
                 pass
 
         if days_since_last is not None and days_since_last < 14:
-            return 24
+            return random.randint(24, 72)
         if days_since_last is not None and days_since_last < 30:
-            return 72
-        if data_complete and days_since_last is not None and days_since_last >= 30:
-            return random.randint(60, 90) * 24
-        return 168
+            return random.randint(3, 6) * 24
+        return random.randint(7, 14) * 24
 
-    return 72
+    return random.randint(3, 7) * 24
 
 
 def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, Any]] = None) -> int:
@@ -81,26 +107,12 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     Dynamic cache TTL based on content status and metadata hints.
 
     Strategy:
-    - TV Shows (delegated to _tv_show_ttl):
-      - Next ep complete (name+overview+date): cache until air date
-      - Next ep incomplete, air date < 7 days: 24h
-      - Next ep incomplete, air date 7-30 days: 3 days
-      - Next ep incomplete, air date 30-90 days: 7 days
-      - Next ep incomplete, air date > 90 days: 14 days
-      - Next ep air date passed: 12h
-      - Ended, last ep < 14 days: 24h (grace period)
-      - Ended, last ep 14-30 days: 3 days (settling)
-      - Ended, complete + settled (30d+): random 60-90 days
-      - Ended, incomplete + past 30 days: 7 days
-      - Active, no schedule: 3 days
-    - Movies by age:
-      - <90 days: 24 hours (ratings/info actively updating)
-      - 90 days - 6 months: 72 hours (3 days)
-      - 6 months - 1 year: 120 hours (5 days)
-      - >1 year + data complete: 2160 hours (90 days)
-      - >1 year + incomplete: 168 hours (7 days)
-    - Unknown: 24 hours (assume active)
-    - Movies get ±10% random jitter to prevent thundering herd
+    - Movies by age (random range, no jitter):
+      - <90 days: random 24-48h
+      - 90 days - 1 year: random 3-6 days
+      - 1-2 years: random 7-14 days
+      - >2 years: random 14-30 days
+    - Unknown: random 24-48h
 
     Args:
         release_date: Release date in YYYY-MM-DD format
@@ -112,7 +124,7 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
                - "next_episode_air_date": Air date of next ep with complete data (YYYY-MM-DD)
                - "next_episode_air_date_incomplete": Air date of next ep missing name/overview
                - "last_air_date": Air date of last episode (YYYY-MM-DD)
-               - "data_complete": "true" if core fields are filled (overview, cast, IDs, etc.)
+               - "aired_data_complete": "true" if TV show core fields are filled (overview, cast, IDs, content ratings, last ep)
                - "is_library_item": False for non-library items (fixed 24h TTL)
 
     Returns:
@@ -134,27 +146,20 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
     if has_tv_hints:
         return _tv_show_ttl(hints)
 
-    data_complete = hints.get("data_complete") == "true"
-
     if release_date:
         try:
             release = datetime.fromisoformat(release_date)
             days_old = (datetime.now() - release).days
             if days_old < 90:
-                base_ttl = 24
-            elif days_old < 180:
-                base_ttl = 72
-            elif days_old < 365:
-                base_ttl = 120
-            else:
-                base_ttl = 2160 if data_complete else 168
+                return random.randint(24, 48)
+            if days_old < 365:
+                return random.randint(3, 6) * 24
+            if days_old < 730:
+                return random.randint(7, 14) * 24
+            return random.randint(14, 30) * 24
         except (ValueError, AttributeError):
-            base_ttl = 24
-    else:
-        base_ttl = 24
-
-    jitter = random.uniform(0.9, 1.1)
-    return int(base_ttl * jitter)
+            return random.randint(24, 48)
+    return random.randint(24, 48)
 
 
 def get_fanarttv_cache_ttl_hours() -> int:
