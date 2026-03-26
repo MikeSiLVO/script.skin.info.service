@@ -1,6 +1,6 @@
 """API response caching for TMDB and fanart.tv.
 
-Manages skininfo_v1.db cache tables with dynamic TTL based on media age.
+Manages cache tables with dynamic TTL based on media age.
 """
 from __future__ import annotations
 
@@ -355,6 +355,20 @@ def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Opti
             imdb_id=ext.get('imdb_id') or None,
             tvdb_id=str(ext['tvdb_id']) if ext.get('tvdb_id') else None,
         )
+
+
+def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
+    """Shorten metadata cache TTL so the next fetch gets fresh data.
+
+    Only shortens — if the entry already expires sooner, it's left alone.
+    """
+    new_expires = (datetime.now() + timedelta(hours=ttl_hours)).isoformat()
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            UPDATE metadata_cache
+            SET expires_at = MIN(expires_at, ?)
+            WHERE media_type = ? AND tmdb_id = ?
+        ''', (new_expires, media_type, tmdb_id))
 
 
 def clear_expired_cache() -> int:

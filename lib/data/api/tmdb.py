@@ -462,7 +462,7 @@ class ApiTmdb(RatingSource):
         elif media_type == 'tvshow':
             data = self.get_tv_details_extended(tmdb_id, abort_flag)
             if data and is_library_item:
-                self._attach_current_season_data(data, tmdb_id, abort_flag)
+                self._fix_stale_episodes(data, tmdb_id, abort_flag)
         else:
             return None
 
@@ -493,52 +493,47 @@ class ApiTmdb(RatingSource):
             return data.get('air_date')
         return None
 
-    def _attach_current_season_data(self, data: dict, tmdb_id: int, abort_flag=None) -> None:
-        """
-        Fetch and attach current season's episode data for airing shows.
-
-        Only fetches for actively airing shows (not ended/canceled) since
-        ended shows have complete data and don't benefit from episode tracking.
-        """
-        status = (data.get('status') or '').lower()
-        if status in ('ended', 'canceled'):
+    def _fix_stale_episodes(self, data: dict, tmdb_id: int, abort_flag=None) -> None:
+        """If next_episode_to_air has a past date, fetch season data to correct both next and last."""
+        import datetime
+        next_ep = data.get("next_episode_to_air")
+        if not next_ep:
+            return
+        air_date = next_ep.get("air_date") or ""
+        if not air_date or air_date >= datetime.date.today().isoformat():
             return
 
-        next_ep = data.get('next_episode_to_air')
-        last_ep = data.get('last_episode_to_air')
-
-        if next_ep:
-            season_num = next_ep.get('season_number')
-        elif last_ep:
-            season_num = last_ep.get('season_number')
-        else:
-            return
-
+        season_num = next_ep.get("season_number")
         if not season_num:
             return
 
         season_data = self.get_season_details(tmdb_id, season_num, abort_flag)
-        if season_data and 'episodes' in season_data:
-            data['_current_season'] = {
-                'season_number': season_num,
-                'episodes': season_data['episodes']
-            }
+        if not season_data or "episodes" not in season_data:
+            data["next_episode_to_air"] = None
+            return
+
+        today = datetime.date.today().isoformat()
+        last_aired = None
+        next_unaired = None
+        for ep in season_data["episodes"]:
+            ep_air = ep.get("air_date") or ""
+            if not ep_air:
+                continue
+            if ep_air < today:
+                last_aired = ep
+            elif not next_unaired:
+                next_unaired = ep
+
+        data["next_episode_to_air"] = next_unaired
+        if last_aired:
+            data["last_episode_to_air"] = last_aired
 
     def _build_cache_hints(self, data: dict, media_type: str) -> Dict[str, str]:
-        """
-        Build cache hints dict for TTL calculation.
-
-        For TV shows with season data, finds the first episode missing
-        overview/still and uses its air_date for cache invalidation.
-        Also checks data completeness for extended TTL on ended shows.
-        """
+        """Build cache hints dict for TTL calculation."""
         hints: Dict[str, str] = {}
 
         if data.get("status"):
             hints["status"] = data["status"]
-
-        if media_type == 'movie':
-            return hints
 
         if media_type != 'tvshow':
             return hints
@@ -551,20 +546,6 @@ class ApiTmdb(RatingSource):
         has_last_ep = bool(last_ep and last_ep.get("overview"))
         if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
             hints["aired_data_complete"] = "true"
-
-        current_season = data.get('_current_season')
-        if not current_season:
-            return hints
-
-        episodes = current_season.get('episodes', [])
-        for ep in episodes:
-            overview = ep.get('overview') or ''
-            still = ep.get('still_path')
-            air_date = ep.get('air_date')
-
-            if air_date and (not overview or not still):
-                hints['next_incomplete_episode'] = air_date
-                break
 
         return hints
 

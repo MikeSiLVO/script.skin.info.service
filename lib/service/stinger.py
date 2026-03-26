@@ -354,30 +354,33 @@ def show_notification(info: StingerInfo, duration_seconds: int = 4) -> None:
 def is_near_credits(minutes_before_end: int = 8) -> bool:
     """Check if playback is near the end (credits).
 
-    Uses chapter detection if available, falls back to time-based.
+    Uses chapter detection combined with time-based check. If chapters exist,
+    requires both last chapter AND within configured minutes of end.
 
     Args:
-        minutes_before_end: Minutes before end to trigger (for chapterless files)
+        minutes_before_end: Minutes before end to trigger
 
     Returns:
         True if near credits, False otherwise
     """
-    # Try chapter-based detection first
+    on_last_chapter = False
+    has_chapters = False
     try:
         chapter_count_str = xbmc.getInfoLabel("Player.ChapterCount")
         if chapter_count_str:
             chapter_count = int(chapter_count_str)
-            if chapter_count > 0:
+            if chapter_count > 1:
+                has_chapters = True
                 current_chapter_str = xbmc.getInfoLabel("Player.Chapter")
                 if current_chapter_str:
-                    current_chapter = int(current_chapter_str)
-                    if current_chapter == chapter_count:
-                        return True
-                    return False
+                    on_last_chapter = int(current_chapter_str) == chapter_count
     except (ValueError, TypeError):
         pass
 
-    # Fall back to time-based detection
+    # Not on last chapter yet — no need to check time
+    if has_chapters and not on_last_chapter:
+        return False
+
     player = xbmc.Player()
     if not player.isPlayingVideo():
         return False

@@ -1,6 +1,6 @@
 """Database package for queue management, API caching, and data operations.
 
-Unified database (skininfo_v2.db) containing:
+Unified database containing:
 - Queue management for artwork review workflow
 - API response caching (TMDB, fanart.tv)
 - Workflow tracking for sessions and operations

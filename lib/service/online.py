@@ -8,7 +8,7 @@ from __future__ import annotations
 import threading
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from lib.service.music import MusicOnlineResult
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utils import clear_group, get_prop, set_prop, wait_for_kodi_ready, batch_set_props
+from lib.kodi.utils import clear_group, get_prop, set_prop, batch_set_props
 from lib.data.database.cache import get_cached_online_keys, get_cached_online_properties, cache_online_properties, invalidate_online_properties
 
 def _get_online_ttl(media_type: str, tmdb_id: str) -> int:
@@ -61,7 +61,6 @@ def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '
     invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
 
 ONLINE_POLL_INTERVAL = 0.10
-UPDATER_DELAY_S = 0.5
 UPDATER_PLAYBACK_POLL_S = 30
 UPDATER_IDLE_S = 3600
 ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
@@ -210,10 +209,6 @@ class OnlineServiceMain(threading.Thread):
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
-
-        if not wait_for_kodi_ready(monitor):
-            return
-
         log("Service", "Online service started", xbmc.LOGINFO)
 
         self._start_updater()
@@ -601,7 +596,7 @@ class OnlineServiceMain(threading.Thread):
 
     def _run_updater(self) -> None:
         from lib.data.database.cache import get_cached_metadata
-        from lib.data.database.schedule import get_all_schedule, upsert_schedule
+        from lib.data.database.schedule import get_all_schedule, upsert_schedule, remove_schedule
         from lib.data.database.mapping import get_imdb_ids_batch
 
         monitor = xbmc.Monitor()
@@ -609,61 +604,44 @@ class OnlineServiceMain(threading.Thread):
         while not self.abort.is_set():
             restart_requested = self._updater_restart
             self._updater_restart = False
+            today = datetime.now().strftime("%Y-%m-%d")
 
             schedule = get_all_schedule()
             first_run = not schedule
 
-            if first_run:
-                shows = self._get_all_library_shows()
-                if not shows:
-                    self._idle_wait()
-                    continue
-                for show in shows:
-                    tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
-                    if tmdb_data:
-                        upsert_schedule(
-                            show["tmdb_id"], show["tvshowid"], show["title"],
-                            tmdb_data.get("status") or "",
-                            tmdb_data.get("next_episode_to_air"),
-                            tmdb_data.get("last_episode_to_air"),
-                        )
-            else:
-                if restart_requested:
-                    library_shows = self._get_all_library_shows()
-                    schedule_tmdb_ids = {s["tmdb_id"] for s in schedule}
-                    for show in library_shows:
-                        if show["tmdb_id"] not in schedule_tmdb_ids:
-                            tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
-                            if tmdb_data:
-                                upsert_schedule(
-                                    show["tmdb_id"], show["tvshowid"], show["title"],
-                                    tmdb_data.get("status") or "",
-                                    tmdb_data.get("next_episode_to_air"),
-                                    tmdb_data.get("last_episode_to_air"),
-                                )
-                    schedule = get_all_schedule()
+            needs_reconcile = first_run or restart_requested
+            if not needs_reconcile:
+                from lib.data.database.rollcall import get_valid_dbids
+                registry_count = len(get_valid_dbids("tvshow"))
+                needs_reconcile = registry_count != len(schedule)
 
-                imdb_map = get_imdb_ids_batch(
-                    {s["tmdb_id"] for s in schedule}, "tvshow"
-                )
-                shows = [
-                    {
-                        "tmdb_id": s["tmdb_id"],
-                        "imdb_id": imdb_map.get(s["tmdb_id"], ""),
-                        "tvshowid": s["tvshowid"],
-                        "title": s["title"],
-                    }
-                    for s in schedule
-                ]
+            if needs_reconcile:
+                self._reconcile_schedule(schedule, get_cached_metadata, upsert_schedule, remove_schedule)
+                schedule = get_all_schedule()
+
+            imdb_map = get_imdb_ids_batch(
+                {s["tmdb_id"] for s in schedule}, "tvshow"
+            )
+            shows = [
+                {
+                    "tmdb_id": s["tmdb_id"],
+                    "imdb_id": imdb_map.get(s["tmdb_id"], ""),
+                    "tvshowid": s["tvshowid"],
+                    "title": s["title"],
+                }
+                for s in schedule
+            ]
 
             if not shows:
                 self._idle_wait()
                 continue
 
-            stale_keys = self._get_stale_schedule_keys(schedule, shows)
+            stale_keys, stale_tmdb_ids = self._get_stale_schedule_keys(schedule, shows)
             if stale_keys:
-                from lib.data.database.cache import invalidate_online_properties_by_keys
+                from lib.data.database.cache import invalidate_online_properties_by_keys, expire_metadata
                 invalidate_online_properties_by_keys(stale_keys)
+                for tmdb_id in stale_tmdb_ids:
+                    expire_metadata("tvshow", tmdb_id, ttl_hours=0)
 
             cached_keys = get_cached_online_keys()
             uncached = [
@@ -704,17 +682,20 @@ class OnlineServiceMain(threading.Thread):
 
                 tmdb_data = get_cached_metadata("tvshow", tmdb_id)
                 if tmdb_data:
+                    next_ep = tmdb_data.get("next_episode_to_air")
+                    if next_ep and (next_ep.get("air_date") or "") < today:
+                        next_ep = None
                     upsert_schedule(
                         tmdb_id, show["tvshowid"], show["title"],
                         tmdb_data.get("status") or "",
-                        tmdb_data.get("next_episode_to_air"),
+                        next_ep,
                         tmdb_data.get("last_episode_to_air"),
                     )
 
-                if monitor.waitForAbort(UPDATER_DELAY_S):
+                if monitor.abortRequested():
                     break
 
-            log("Service", f"Online updater pass complete: {fetched} fetched", xbmc.LOGINFO)
+            log("Service", f"Online updater: {fetched} fetched", xbmc.LOGINFO)
 
     def _idle_wait(self) -> None:
         monitor = xbmc.Monitor()
@@ -731,8 +712,12 @@ class OnlineServiceMain(threading.Thread):
     @staticmethod
     def _get_stale_schedule_keys(
         schedule: List[Dict], shows: List[Dict]
-    ) -> List[str]:
-        """Find cache keys for shows whose next_episode_air_date has passed."""
+    ) -> Tuple[List[str], Set[str]]:
+        """Find cache keys for shows whose next_episode_air_date has passed.
+
+        Returns:
+            Tuple of (online cache keys, stale tmdb_ids)
+        """
         today = datetime.now().strftime("%Y-%m-%d")
         stale_tmdb_ids = set()
         for entry in schedule:
@@ -740,14 +725,48 @@ class OnlineServiceMain(threading.Thread):
             if next_air and next_air < today:
                 stale_tmdb_ids.add(entry["tmdb_id"])
         if not stale_tmdb_ids:
-            return []
+            return [], set()
         keys = []
         for show in shows:
             if show["tmdb_id"] in stale_tmdb_ids:
                 keys.append(_make_cache_key(
                     "tvshow", show.get("imdb_id") or "", show["tmdb_id"]
                 ))
-        return keys
+        return keys, stale_tmdb_ids
+
+    @staticmethod
+    def _reconcile_schedule(schedule, get_cached_metadata, upsert_schedule, remove_schedule) -> None:
+        """Ensure schedule matches library: add missing shows, remove stale ones."""
+        library_shows = OnlineServiceMain._get_all_library_shows()
+        library_tmdb_ids = {s["tmdb_id"] for s in library_shows}
+        schedule_tmdb_ids = {s["tmdb_id"] for s in schedule}
+
+        stale_ids = schedule_tmdb_ids - library_tmdb_ids
+        for tmdb_id in stale_ids:
+            remove_schedule(tmdb_id)
+        if stale_ids:
+            log("Service", f"Online updater: removed {len(stale_ids)} stale schedule entries", xbmc.LOGDEBUG)
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        missing = [s for s in library_shows if s["tmdb_id"] not in schedule_tmdb_ids]
+        for show in missing:
+            tmdb_data = get_cached_metadata("tvshow", show["tmdb_id"])
+            if tmdb_data:
+                next_ep = tmdb_data.get("next_episode_to_air")
+                if next_ep and (next_ep.get("air_date") or "") < today:
+                    next_ep = None
+                upsert_schedule(
+                    show["tmdb_id"], show["tvshowid"], show["title"],
+                    tmdb_data.get("status") or "",
+                    next_ep,
+                    tmdb_data.get("last_episode_to_air"),
+                )
+            else:
+                upsert_schedule(
+                    show["tmdb_id"], show["tvshowid"], show["title"], "",
+                )
+        if missing:
+            log("Service", f"Online updater: added {len(missing)} shows to schedule", xbmc.LOGINFO)
 
     @staticmethod
     def _get_all_library_shows() -> List[Dict]:

@@ -17,21 +17,21 @@ def populate_pool(
         if movies:
             cursor.executemany('''
                 INSERT OR REPLACE INTO slideshow_pool
-                (kodi_dbid, media_type, title, fanart, description, year, season, episode, last_synced)
+                (dbid, media_type, title, fanart, description, year, season, episode, last_synced)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', movies)
 
         if tvshows:
             cursor.executemany('''
                 INSERT OR REPLACE INTO slideshow_pool
-                (kodi_dbid, media_type, title, fanart, description, year, season, episode, last_synced)
+                (dbid, media_type, title, fanart, description, year, season, episode, last_synced)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', tvshows)
 
         if artists:
             cursor.executemany('''
                 INSERT OR REPLACE INTO slideshow_pool
-                (kodi_dbid, media_type, title, fanart, description, year, season, episode, last_synced)
+                (dbid, media_type, title, fanart, description, year, season, episode, last_synced)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', artists)
 

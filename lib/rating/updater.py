@@ -290,10 +290,9 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
             else:
                 log("Ratings", f"Updated {item['imdb_id']}: imdb ({item.get('old_rating', 0):.1f} -> {item['new_rating']:.1f})", xbmc.LOGDEBUG)
             stats["updated"] += 1
-        elif response and "error" in response:
-            db.clear_synced_ratings(item_media_type, item["dbid"])
-            stats["failed"] += 1
         else:
+            log("Ratings", f"Failed {item['imdb_id']}: {item_media_type} dbid={item['dbid']} (stale or invalid)", xbmc.LOGDEBUG)
+            db.clear_synced_ratings(item_media_type, item["dbid"])
             stats["failed"] += 1
 
         if len(sync_batch) >= _SYNC_FLUSH_SIZE:

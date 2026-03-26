@@ -12,10 +12,14 @@ from contextlib import contextmanager
 from typing import Generator
 from lib.kodi.client import log
 
-DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v2.db')
-DB_VERSION = 2
+DB_VERSION = 3
+_DB_BASE = 'special://profile/addon_data/script.skin.info.service/skininfo'
+DB_PATH = xbmcvfs.translatePath(f'{_DB_BASE}_v{DB_VERSION}.db')
 
-_OLD_DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v1.db')
+_OLD_DB_PATHS = [
+    xbmcvfs.translatePath(f'{_DB_BASE}_v{v}.db')
+    for v in range(1, DB_VERSION)
+]
 
 
 def _generate_guid() -> str:
@@ -266,7 +270,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS slideshow_pool (
-            kodi_dbid INTEGER NOT NULL,
+            dbid INTEGER NOT NULL,
             media_type TEXT NOT NULL,
             title TEXT,
             fanart TEXT NOT NULL,
@@ -275,7 +279,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             season INTEGER,
             episode INTEGER,
             last_synced INTEGER,
-            PRIMARY KEY (media_type, kodi_dbid)
+            PRIMARY KEY (media_type, dbid)
         )
     ''')
 
@@ -388,23 +392,36 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_status ON tv_schedule(status)')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS dbid_registry (
+            media_type TEXT NOT NULL,
+            dbid INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content_id TEXT,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (media_type, dbid)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_dbid_registry_type ON dbid_registry(media_type)')
 
-def _cleanup_old_database() -> None:
-    """Delete old v1 database if it exists."""
-    if xbmcvfs.exists(_OLD_DB_PATH):
-        try:
-            xbmcvfs.delete(_OLD_DB_PATH)
-            log("Database", "Deleted old v1 database", xbmc.LOGINFO)
-        except Exception as e:
-            log("Database", f"Failed to delete old database: {e}", xbmc.LOGWARNING)
+
+def _cleanup_old_databases() -> None:
+    """Delete old database versions if they exist."""
+    for path in _OLD_DB_PATHS:
+        if xbmcvfs.exists(path):
+            try:
+                xbmcvfs.delete(path)
+                log("Database", f"Deleted old database: {path}", xbmc.LOGINFO)
+            except Exception as e:
+                log("Database", f"Failed to delete old database: {e}", xbmc.LOGWARNING)
 
 
 def init_database() -> None:
     """
     Initialize unified database schema (queue, cache, and operation history).
-    Creates skininfo_v2.db with all tables. Deletes old v1 database if present.
+    Creates database with all tables. Deletes old versions if present.
     """
-    _cleanup_old_database()
+    _cleanup_old_databases()
 
     conn = get_connection(DB_PATH)
     cursor = conn.cursor()

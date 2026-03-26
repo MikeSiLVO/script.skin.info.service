@@ -8,11 +8,9 @@ from typing import Any, Optional, List, Tuple, Dict, Set
 import os
 import urllib.request
 import xbmc
-import xbmcgui
 
 from lib.kodi.utils import clear_prop, batch_set_props, format_date, extract_cast_names
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
-_window = xbmcgui.Window(10000)
 
 
 def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
@@ -144,7 +142,6 @@ _BOLD_OPEN = "[B]"
 _BOLD_CLOSE = "[/B]"
 _ITALIC_OPEN = "[I]"
 _ITALIC_CLOSE = "[/I]"
-_SEP = " / "
 
 
 def _ordered_unique_push(seen: set, acc: list, items) -> None:
@@ -262,6 +259,9 @@ def _build_listitem_unified_data(
 
     data["ListItem.Rating.Votes"] = format_number(votes) if votes else ""
     data["ListItem.UserRating"] = str(userrating) if userrating else ""
+
+    data["ListItem.Tomatometer"] = ""
+    data["ListItem.Popcornmeter"] = ""
 
     if ratings_dict:
         for src, info in ratings_dict.items():

@@ -3,6 +3,7 @@ Formatters for converting API responses to Kodi-style property dicts.
 
 Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
+import datetime
 from typing import Dict, Tuple
 
 from lib.kodi.utils import format_date
@@ -157,13 +158,17 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
             props["LastEpisodeAired"] = format_date(air_date)
 
     next_ep = data.get("next_episode_to_air")
-    if next_ep:
+    next_air = (next_ep.get("air_date") or "") if next_ep else ""
+    if next_ep and next_air and next_air >= datetime.date.today().isoformat():
         props["NextEpisodeTitle"] = next_ep.get("name") or ""
         props["NextEpisode"] = str(next_ep.get("episode_number") or "")
         props["NextEpisodeSeason"] = str(next_ep.get("season_number") or "")
-        air_date = next_ep.get("air_date") or ""
-        if air_date:
-            props["NextEpisodeAired"] = format_date(air_date)
+        props["NextEpisodeAired"] = format_date(next_air)
+    else:
+        props["NextEpisodeTitle"] = ""
+        props["NextEpisode"] = ""
+        props["NextEpisodeSeason"] = ""
+        props["NextEpisodeAired"] = ""
 
     add_content_rating_props(props, data)
     add_trailer_props(props, data)

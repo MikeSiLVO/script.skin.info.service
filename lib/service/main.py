@@ -93,6 +93,15 @@ class LibraryMonitor(xbmc.Monitor):
                        'AudioLibrary.OnCleanFinished'):
             from lib.plugin.dbid import clear_musicvideo_library_art_cache
             clear_musicvideo_library_art_cache()
+        if method in ('VideoLibrary.OnScanFinished', 'VideoLibrary.OnCleanFinished',
+                       'AudioLibrary.OnScanFinished', 'AudioLibrary.OnCleanFinished'):
+            import threading
+            threading.Thread(target=self._sync_dbids, daemon=True).start()
+
+    @staticmethod
+    def _sync_dbids() -> None:
+        from lib.data.database.rollcall import sync_dbids
+        sync_dbids()
 
     def _on_video_update(self, data: str) -> None:
         try:
@@ -170,9 +179,6 @@ class ServiceMain(threading.Thread):
 
     def run(self) -> None:
         monitor = LibraryMonitor(self, self._online_service)
-        if not wait_for_kodi_ready(monitor):
-            return
-
         log("Service", "Library service started", xbmc.LOGINFO)
 
         try:
@@ -1219,9 +1225,6 @@ class ImdbUpdateService(threading.Thread):
 
     def run(self) -> None:
         monitor = ImdbUpdateMonitor(self)
-        if not wait_for_kodi_ready(monitor):
-            return
-
         log("Service", "IMDb auto-update service started", xbmc.LOGINFO)
 
         while not monitor.waitForAbort(10):
@@ -1325,9 +1328,6 @@ class StingerService(threading.Thread):
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
-        if not wait_for_kodi_ready(monitor):
-            return
-
         log("Service", "Stinger service started", xbmc.LOGINFO)
 
         stinger = StingerMonitor()
@@ -1404,6 +1404,17 @@ def start_service() -> None:
 
     sync_configured_flags()
 
+    monitor = xbmc.Monitor()
+    if not wait_for_kodi_ready(monitor):
+        return
+
+    from lib.data.database.rollcall import sync_dbids
+    sync_dbids()
+
+    version = ADDON.getAddonInfo("version")
+    kodi_ver = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
+    log("Service", f"Starting services (version={version}, kodi={kodi_ver})", xbmc.LOGINFO)
+
     online_thread = OnlineServiceMain()
     online_thread.start()
 
@@ -1421,7 +1432,6 @@ def start_service() -> None:
         stinger_thread.start()
 
     _slideshow_monitor = SlideshowMonitor()
-    monitor = xbmc.Monitor()
     while not monitor.abortRequested():
         if monitor.waitForAbort(1):
             thread.abort.set()
