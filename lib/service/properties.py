@@ -140,8 +140,6 @@ _AUDIO_ART_KEYS = ("thumb", "fanart", "discart")
 _CR = "[CR]"
 _BOLD_OPEN = "[B]"
 _BOLD_CLOSE = "[/B]"
-_ITALIC_OPEN = "[I]"
-_ITALIC_CLOSE = "[/I]"
 
 
 def _ordered_unique_push(seen: set, acc: list, items) -> None:
@@ -572,9 +570,9 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         data[f"Movie.{idx}.StudioPrimary"] = primary
 
         if year is not None:
-            title_list_parts.append(f"{_ITALIC_OPEN}{label} ({year}){_ITALIC_CLOSE}{_CR}")
+            title_list_parts.append(f"{label} ({year}){_CR}")
         else:
-            title_list_parts.append(f"{_ITALIC_OPEN}{label}{_ITALIC_CLOSE}{_CR}")
+            title_list_parts.append(f"{label}{_CR}")
 
         use_outline = (m.get("plotoutline") or "").strip()
         block_plot = use_outline if use_outline else (m.get("plot") or "")
@@ -601,10 +599,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     plot_joined = "".join(plot_blocks)
 
     data["Plots"] = plot_joined or ""
-    if total_count > 1:
-        data["ExtendedPlots"] = (title_list + "[CR]" + plot_joined) or ""
-    else:
-        data["ExtendedPlots"] = plot_joined or ""
+    data["ExtendedPlots"] = plot_joined or ""
     data["Titles"] = title_list or ""
 
     data["Runtime"] = str(total_runtime_min) if total_runtime_min else ""

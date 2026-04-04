@@ -1473,6 +1473,9 @@ def handle_person_library(handle: int, params: dict) -> None:
             })
             items = result.get('result', {}).get('tvshows', []) if result else []
 
+        dbtype = 'movie' if info_type == 'movies' else 'tvshow'
+        dbid_key = 'movieid' if info_type == 'movies' else 'tvshowid'
+
         for item in items:
             title = item.get('title', 'Unknown')
             year = item.get('year', '')
@@ -1480,8 +1483,16 @@ def handle_person_library(handle: int, params: dict) -> None:
             label = f"{title} ({year})" if year else title
             listitem = xbmcgui.ListItem(label, offscreen=True)
 
+            video_tag = listitem.getVideoInfoTag()
+            video_tag.setMediaType(dbtype)
+            video_tag.setTitle(title)
+            dbid = item.get(dbid_key)
+            if dbid:
+                video_tag.setDbId(dbid)
+
             listitem.setProperty('Title', title)
             if year:
+                video_tag.setYear(int(year))
                 listitem.setProperty('Year', str(year))
 
             rating = item.get('rating')
@@ -1549,6 +1560,10 @@ def _create_credit_listitem(credit: dict) -> xbmcgui.ListItem:
         art['fanart'] = f"https://image.tmdb.org/t/p/w780{credit['backdrop_path']}"
     if art:
         item.setArt(art)
+
+    tmdb_id = credit.get('id')
+    if tmdb_id:
+        item.setProperty('tmdb_id', str(tmdb_id))
 
     character = credit.get('character', '')
     item.setProperty('Role', character)

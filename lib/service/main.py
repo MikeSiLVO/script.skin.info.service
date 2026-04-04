@@ -109,7 +109,7 @@ class LibraryMonitor(xbmc.Monitor):
             info = json.loads(data)
         except Exception:
             return
-        if info.get('playcount', -1) >= 0:
+        if 'playcount' in info:
             return
         media_type = info.get('type', '')
         dbid = info.get('id')
@@ -140,6 +140,7 @@ class ServiceMain(threading.Thread):
         self._slideshow_last_update = 0.0
         self._slideshow_pool_populated = False
         self._library_refresh_counter = 0
+        self._refresh_debounce_timer: Optional[threading.Timer] = None
         self._refresh_timers = {5: 0, 10: 0, 15: 0, 20: 0, 30: 0, 45: 0, 60: 0}
         self._refresh_start_time = None
         self._last_music_artist: Optional[str] = None
@@ -147,10 +148,18 @@ class ServiceMain(threading.Thread):
         self._musicvideo_online_key: Optional[str] = None
 
     def _increment_library_refresh(self) -> None:
-        """Increment library refresh counter to trigger widget/path stats refresh."""
         self._library_refresh_counter += 1
-        set_prop("SkinInfo.Library.Refreshed", str(self._library_refresh_counter))
-        log("Service",f"Library refresh counter incremented to {self._library_refresh_counter}", xbmc.LOGDEBUG)
+        if self._refresh_debounce_timer is not None:
+            self._refresh_debounce_timer.cancel()
+        counter = self._library_refresh_counter
+        self._refresh_debounce_timer = threading.Timer(
+            2.0, self._apply_library_refresh, args=(counter,))
+        self._refresh_debounce_timer.daemon = True
+        self._refresh_debounce_timer.start()
+
+    def _apply_library_refresh(self, counter: int) -> None:
+        set_prop("SkinInfo.Library.Refreshed", str(counter))
+        log("Service", f"Library refreshed (counter: {counter})", xbmc.LOGDEBUG)
 
     def _update_scheduled_refresh(self) -> None:
         """Update scheduled refresh properties based on elapsed time."""
@@ -521,7 +530,10 @@ class ServiceMain(threading.Thread):
 
         clear_group("SkinInfo.Player.Music.")
         self._last_music_artist = artist_name
-        self._set_music_player_details(artist_name)
+        thread = threading.Thread(
+            target=self._set_music_player_details, args=(artist_name,), daemon=True
+        )
+        thread.start()
 
     def _set_music_player_details(self, artist_name: str) -> None:
 
@@ -1124,7 +1136,8 @@ class ServiceMain(threading.Thread):
                 artist_name, album=album, track=title
             )
 
-            if artist_name != self._musicvideo_online_key:
+            expected_key = "{}|{}|{}".format(artist_name, title or "", album or "")
+            if expected_key != self._musicvideo_online_key:
                 return
 
             if not result:
