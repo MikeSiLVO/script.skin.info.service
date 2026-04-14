@@ -437,7 +437,3 @@ def init_database() -> None:
     finally:
         conn.close()
 
-
-def vacuum_database() -> None:
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('VACUUM')

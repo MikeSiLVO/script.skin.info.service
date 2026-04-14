@@ -462,8 +462,8 @@ def handle_by_actor(handle: int, params: dict) -> None:
         movie_result = request('VideoLibrary.GetMovies', {
             'filter': {'actor': actor},
             'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'runtime', 'genre', 'director', 'studio', 'mpaa', 'trailer',
-                          'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
@@ -577,6 +577,10 @@ def _create_movie_listitem(movie: dict) -> xbmcgui.ListItem:
     if mpaa:
         video_tag.setMpaa(mpaa)
 
+    tagline = movie.get('tagline', '')
+    if tagline:
+        video_tag.setTagLine(tagline)
+
     trailer = movie.get('trailer', '')
     if trailer:
         video_tag.setTrailer(trailer)
@@ -642,8 +646,8 @@ def handle_by_director(handle: int, params: dict) -> None:
         movie_result = request('VideoLibrary.GetMovies', {
             'filter': {'field': 'director', 'operator': 'is', 'value': director},
             'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'runtime', 'genre', 'director', 'studio', 'mpaa', 'trailer',
-                          'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
@@ -753,8 +757,8 @@ def handle_similar(handle: int, params: dict) -> None:
         result = request('VideoLibrary.GetMovies', {
             'filter': genre_filter,
             'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'runtime', 'genre', 'director', 'studio', 'mpaa', 'trailer',
-                          'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
         })
         candidates = result.get('result', {}).get('movies', []) if result else []
         id_field = 'movieid'
@@ -906,15 +910,14 @@ def handle_recommended(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle)
         return
 
-    preferred_genres = set(genre_counts.keys())
+    total_genre_mentions = sum(genre_counts.values())
+    genre_weights = {g: c / total_genre_mentions for g, c in genre_counts.items()}
     preferred_mpaa = set(mpaa_counts.keys())
-    year_min = min(years) if years else 1900
-    year_max = max(years) if years else 2100
+    median_year = sorted(years)[len(years) // 2] if years else 0
     favorite_actors = {actor for actor, count in actors.items() if count >= 2}
     favorite_directors = {director for director, count in directors.items() if count >= 2}
 
-    # Server-side filter: only fetch unwatched items matching preferred genres
-    genre_filters = [{'field': 'genre', 'operator': 'contains', 'value': g} for g in preferred_genres]
+    genre_filters = [{'field': 'genre', 'operator': 'contains', 'value': g} for g in genre_counts]
     genre_filter = {'or': genre_filters} if len(genre_filters) > 1 else genre_filters[0]
 
     candidates = []
@@ -929,8 +932,8 @@ def handle_recommended(handle: int, params: dict) -> None:
         result = request('VideoLibrary.GetMovies', {
             'filter': movie_filter,
             'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'runtime', 'genre', 'director', 'studio', 'mpaa', 'trailer',
-                          'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
+                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
         })
         candidates.extend(result.get('result', {}).get('movies', []) if result else [])
 
@@ -960,11 +963,11 @@ def handle_recommended(handle: int, params: dict) -> None:
         if cand_rating < min_rating:
             continue
 
-        genre_overlap = len(set(cand_genres) & preferred_genres)
-        if genre_overlap == 0:
+        matching_weights = [genre_weights[g] for g in cand_genres if g in genre_weights]
+        if not matching_weights:
             continue
 
-        score = genre_overlap * 10
+        score = sum(matching_weights) / len(cand_genres) * 100
 
         cand_mpaa = candidate.get('mpaa', '')
         if strict_rating:
@@ -974,20 +977,24 @@ def handle_recommended(handle: int, params: dict) -> None:
             score += 5
 
         cand_year = candidate.get('year', 0)
-        if cand_year and year_min <= cand_year <= year_max:
-            score += 3
+        if cand_year and median_year:
+            year_distance = abs(cand_year - median_year)
+            if year_distance <= 5:
+                score += 5
+            elif year_distance <= 15:
+                score += 2
 
         cand_cast = candidate.get('cast', [])
         for member in cand_cast[:5]:
             if member.get('name', '') in favorite_actors:
-                score += 2
+                score += 3
                 break
 
         cand_directors = candidate.get('director', [])
         if not isinstance(cand_directors, list):
             cand_directors = [cand_directors] if cand_directors else []
         if any(d in favorite_directors for d in cand_directors):
-            score += 3
+            score += 4
 
         scored_items.append((score, candidate))
 
@@ -1091,8 +1098,8 @@ def handle_seasonal(handle: int, params: dict) -> None:
     result = request('VideoLibrary.GetMovies', {
         'filter': {'or': tag_filters},
         'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                      'plot', 'runtime', 'genre', 'director', 'studio', 'mpaa', 'trailer',
-                      'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+                      'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                      'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
         'sort': {'method': sort_method},
         'limits': {'start': 0, 'end': limit}
     })

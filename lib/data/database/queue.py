@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional, Sequence, Dict, List
 
-from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid, vacuum_database
+from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid
 from lib.kodi.utils import validate_media_type, validate_dbid
 from lib.kodi.client import log
 
@@ -91,8 +91,6 @@ def clear_queue() -> None:
         cursor.execute('DELETE FROM art_items')
         cursor.execute('DELETE FROM art_queue')
         cursor.execute('DELETE FROM scan_sessions')
-
-    vacuum_database()
 
 
 def clear_queue_for_media(media_types: Sequence[str]) -> None:
@@ -579,7 +577,6 @@ def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
 
     if removed > 0:
         log("Database", f"Pruned {removed} inactive queue items")
-        vacuum_database()
 
     return removed
 
@@ -642,6 +639,5 @@ def cleanup_old_queue_items(days_old: int = 30) -> int:
 
     if deleted > 0:
         log("Database", f"Cleaned up {deleted} old queue items")
-        vacuum_database()
 
     return deleted

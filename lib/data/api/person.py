@@ -52,6 +52,14 @@ def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
         if tmdb_id:
             return tmdb_id
 
+    # IMDb IDs stored under non-standard keys (e.g. "unknown")
+    for value in uniqueid.values():
+        if isinstance(value, str) and value.startswith('tt'):
+            tmdb_id = _convert_external_id(value, 'imdb_id')
+            if tmdb_id:
+                return tmdb_id
+
+    log("Person", f"Could not resolve TMDB ID for {dbtype} {dbid}, uniqueid={uniqueid}", xbmc.LOGWARNING)
     return None
 
 

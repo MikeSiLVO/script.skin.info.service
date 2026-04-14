@@ -217,10 +217,6 @@ def init_music_database() -> None:
         cursor.executescript(_SCHEMA_SQL)
 
 
-def vacuum_music_database() -> None:
-    with get_db(MUSIC_DB_PATH) as cursor:
-        cursor.execute('VACUUM')
-
 
 def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int:
     """Delete cached entries for a specific artist/track/album combination.
@@ -266,7 +262,6 @@ def clear_expired_music_cache() -> int:
             total += cursor.rowcount
     if total > 0:
         log("Database", f"Cleared {total} expired music cache entries")
-        vacuum_music_database()
     return total
 
 

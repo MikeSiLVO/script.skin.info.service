@@ -27,7 +27,6 @@ from lib.data.database._infrastructure import (
     get_connection,
     get_db,
     init_database,
-    vacuum_database,
 )
 
 from lib.data.database.cache import (
@@ -101,7 +100,6 @@ __all__ = [
     'get_connection',
     'get_db',
     'init_database',
-    'vacuum_database',
     'get_cache_ttl_hours',
     'get_fanarttv_cache_ttl_hours',
     'get_cached_artwork',

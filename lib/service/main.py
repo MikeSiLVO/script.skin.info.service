@@ -27,7 +27,7 @@ from lib.service.properties import (
     set_ratings_properties,
 )
 from lib.service.stinger import StingerMonitor, get_settings as get_stinger_settings
-from lib.kodi.utils import clear_group, set_prop, get_prop, clear_prop, extract_media_ids, wait_for_kodi_ready, batch_set_props, is_kodi_piers_or_later
+from lib.kodi.utils import clear_group, set_prop, clear_prop, extract_media_ids, batch_set_props, is_kodi_piers_or_later
 
 SERVICE_POLL_INTERVAL = 0.10
 MAX_CONSECUTIVE_ERRORS = 10
@@ -76,23 +76,22 @@ _MEDIA_TYPE_PREFIXES = {
 class LibraryMonitor(xbmc.Monitor):
     """Monitor for library update notifications to trigger widget refresh."""
 
-    def __init__(self, service_main, online_service=None):
+    def __init__(self, service_main):
         super().__init__()
         self.service_main = service_main
-        self.online_service = online_service
 
     def onNotification(self, sender: str, method: str, data: str) -> None:
         """Handle Kodi notifications for library updates."""
         if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
             self.service_main._increment_library_refresh()
-        if method == 'VideoLibrary.OnScanFinished' and self.online_service:
-            self.online_service.request_update()
         if method == 'VideoLibrary.OnUpdate':
             self._on_video_update(data)
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
                        'AudioLibrary.OnCleanFinished'):
             from lib.plugin.dbid import clear_musicvideo_library_art_cache
             clear_musicvideo_library_art_cache()
+        if method == 'VideoLibrary.OnRemove':
+            self._on_video_remove(data)
         if method in ('VideoLibrary.OnScanFinished', 'VideoLibrary.OnCleanFinished',
                        'AudioLibrary.OnScanFinished', 'AudioLibrary.OnCleanFinished'):
             import threading
@@ -102,6 +101,20 @@ class LibraryMonitor(xbmc.Monitor):
     def _sync_dbids() -> None:
         from lib.data.database.rollcall import sync_dbids
         sync_dbids()
+
+    @staticmethod
+    def _on_video_remove(data: str) -> None:
+        try:
+            import json
+            info = json.loads(data)
+        except Exception:
+            return
+        media_type = info.get('type', '')
+        dbid = info.get('id')
+        if not media_type or not dbid:
+            return
+        from lib.data.database.rollcall import remove_dbid
+        remove_dbid(media_type, dbid)
 
     def _on_video_update(self, data: str) -> None:
         try:
@@ -125,10 +138,9 @@ IMDB_CHECK_INTERVAL = 86400  # 24 hours in seconds
 
 
 class ServiceMain(threading.Thread):
-    def __init__(self, online_service=None):
+    def __init__(self):
         super().__init__(daemon=True)
         self.abort = threading.Event()
-        self._online_service = online_service
         self._last_id = None
         self._last_type = None
         self._last_player_id = None
@@ -187,14 +199,8 @@ class ServiceMain(threading.Thread):
             self._musicvideo_online_key = None
 
     def run(self) -> None:
-        monitor = LibraryMonitor(self, self._online_service)
+        monitor = LibraryMonitor(self)
         log("Service", "Library service started", xbmc.LOGINFO)
-
-        try:
-            xbmc.executebuiltin('Skin.SetBool(SkinInfo.Service)')
-            set_prop("SkinInfo.Service.Running", "true")
-        except Exception as e:
-            log("Service", f"Error setting service flags: {e}", xbmc.LOGWARNING)
 
         self._populate_slideshow_pool_if_needed()
 
@@ -211,9 +217,6 @@ class ServiceMain(threading.Thread):
         try:
             while not monitor.waitForAbort(SERVICE_POLL_INTERVAL):
                 if self.abort.is_set():
-                    break
-                if not xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.Service)'):
-                    log("Service", "SkinInfo.Service disabled, stopping", xbmc.LOGINFO)
                     break
                 try:
                     self._loop()
@@ -233,10 +236,6 @@ class ServiceMain(threading.Thread):
                     log("Service",f" Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service", xbmc.LOGERROR)
                     break
         finally:
-            try:
-                clear_prop("SkinInfo.Service.Running")
-            except Exception:
-                pass
             log("Service", "Library service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
@@ -1240,7 +1239,7 @@ class ImdbUpdateService(threading.Thread):
         monitor = ImdbUpdateMonitor(self)
         log("Service", "IMDb auto-update service started", xbmc.LOGINFO)
 
-        while not monitor.waitForAbort(10):
+        while not monitor.waitForAbort(5):
             if self.abort.is_set():
                 break
 
@@ -1330,8 +1329,8 @@ class ImdbUpdateService(threading.Thread):
 class StingerService(threading.Thread):
     """Independent service for post-credits scene detection during movie playback.
 
-    Polls every 10s for video playback. When a movie is detected, waits one
-    tick (~10s) for caches to populate, then fetches movie details and checks
+    Polls every 5s for video playback. When a movie is detected, waits one
+    tick for caches to populate, then fetches movie details and checks
     stinger sources. Subsequent ticks check playback position for notification.
     """
 
@@ -1347,7 +1346,7 @@ class StingerService(threading.Thread):
         current_dbid: Optional[str] = None
         fetched = False
 
-        while not monitor.waitForAbort(10):
+        while not monitor.waitForAbort(5):
             if self.abort.is_set():
                 break
 
@@ -1397,81 +1396,3 @@ class StingerService(threading.Thread):
         stinger.on_playback_start(movie_id=dbid, ids=ids, movie_details=details)
 
 
-def start_service() -> None:
-    if get_prop("SkinInfo.Service.Running"):
-        log("Service", "Already running, ignoring duplicate RunScript", xbmc.LOGINFO)
-        return
-
-    from lib.data.database._infrastructure import init_database
-    from lib.data.database.cache import clear_expired_cache
-    from lib.service.slideshow import SlideshowMonitor
-    from lib.service.online import OnlineServiceMain
-    from lib.data.api.settings import sync_configured_flags
-
-    init_database()
-    clear_expired_cache()
-
-    from lib.data.database.music import init_music_database, clear_expired_music_cache
-    init_music_database()
-    clear_expired_music_cache()
-
-    sync_configured_flags()
-
-    monitor = xbmc.Monitor()
-    if not wait_for_kodi_ready(monitor):
-        return
-
-    from lib.data.database.rollcall import sync_dbids
-    sync_dbids()
-
-    version = ADDON.getAddonInfo("version")
-    kodi_ver = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
-    log("Service", f"Starting services (version={version}, kodi={kodi_ver})", xbmc.LOGINFO)
-
-    online_thread = OnlineServiceMain()
-    online_thread.start()
-
-    thread = ServiceMain(online_service=online_thread)
-    thread.start()
-
-    imdb_thread: Optional[ImdbUpdateService] = None
-    if ADDON.getSetting("imdb_auto_update") != "off":
-        imdb_thread = ImdbUpdateService()
-        imdb_thread.start()
-
-    stinger_thread: Optional[StingerService] = None
-    if ADDON.getSettingBool("stinger_enabled"):
-        stinger_thread = StingerService()
-        stinger_thread.start()
-
-    _slideshow_monitor = SlideshowMonitor()
-    while not monitor.abortRequested():
-        if monitor.waitForAbort(1):
-            thread.abort.set()
-            online_thread.abort.set()
-            if imdb_thread:
-                imdb_thread.abort.set()
-            if stinger_thread:
-                stinger_thread.abort.set()
-            break
-
-    thread.abort.set()
-    online_thread.abort.set()
-    if imdb_thread:
-        imdb_thread.abort.set()
-    if stinger_thread:
-        stinger_thread.abort.set()
-
-    thread.join(timeout=2)
-    online_thread.join(timeout=2)
-    if imdb_thread:
-        imdb_thread.join(timeout=2)
-    if stinger_thread:
-        stinger_thread.join(timeout=2)
-
-    log("Service", "All services stopped", xbmc.LOGINFO)
-    del _slideshow_monitor
-
-
-if __name__ == "__main__":
-    start_service()

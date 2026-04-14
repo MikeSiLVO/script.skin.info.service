@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta23"
+	   version="2.0.0~beta24"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -13,6 +13,7 @@
 		<provides>video</provides>
 	</extension>
 	<extension point="xbmc.python.library" library="script.py" />
+	<extension point="xbmc.service" library="service.py" />
 	<extension point="kodi.context.item">
 		<menu id="kodi.core.main">
 			<item library="context.py">
@@ -33,6 +34,15 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta24
+- BREAKING: Skins opt in via Skin.SetBool(SkinInfo.Service) not RunScript
+- Fix online cast for items with unknown uniqueid with IMDb IDs
+- Faster services startup
+- Path stats fix for TV shows
+- Service auto-starts with Kodi
+- Thinner entry points for faster startup on older hardware
+- Fix recommended widget scoring and add tagline to movie widgets
+
 2.0.0~beta23
 - Fix stale music video online data when navigating between items
 - Fix cache not updating after editing metadata

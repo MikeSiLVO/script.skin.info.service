@@ -213,6 +213,16 @@ def get_valid_dbids(media_type: str) -> Set[int]:
         return {row["dbid"] for row in cursor.fetchall()}
 
 
+def remove_dbid(media_type: str, dbid: int) -> None:
+    """Remove a single DBID from registry and all dependent tables."""
+    with get_db(DB_PATH) as cursor:
+        _cleanup_stale_dbids(cursor, media_type, {dbid})
+        cursor.execute(
+            "DELETE FROM dbid_registry WHERE media_type = ? AND dbid = ?",
+            (media_type, dbid),
+        )
+
+
 def get_all_valid_dbids() -> Dict[str, Set[int]]:
     """Get all valid DBIDs grouped by media type."""
     result: Dict[str, Set[int]] = {}

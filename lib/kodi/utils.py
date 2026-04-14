@@ -292,7 +292,7 @@ def is_kodi_piers_or_later() -> bool:
 
 def wait_for_kodi_ready(
     monitor: xbmc.Monitor,
-    initial_wait: float = 1.0,
+    initial_wait: float = 0.5,
     check_interval: float = 0.5,
 ) -> bool:
     """

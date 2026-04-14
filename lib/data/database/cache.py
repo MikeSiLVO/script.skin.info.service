@@ -11,7 +11,7 @@ import xbmc
 from datetime import datetime, timedelta
 from typing import Any, Optional, Dict, List, Tuple
 
-from lib.data.database._infrastructure import get_db, DB_PATH, vacuum_database
+from lib.data.database._infrastructure import get_db, DB_PATH
 from lib.kodi.client import log
 
 
@@ -404,7 +404,6 @@ def clear_expired_cache() -> int:
 
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")
-        vacuum_database()
 
     return deleted
 

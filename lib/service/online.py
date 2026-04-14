@@ -171,6 +171,18 @@ class ServiceAbortFlag:
         return self._abort_event.is_set()
 
 
+class OnlineScanMonitor(xbmc.Monitor):
+    """Triggers online updater refresh when Kodi finishes a library scan."""
+
+    def __init__(self, online_service: "OnlineServiceMain"):
+        super().__init__()
+        self._online_service = online_service
+
+    def onNotification(self, sender: str, method: str, data: str) -> None:
+        if method == 'VideoLibrary.OnScanFinished':
+            self._online_service.request_update()
+
+
 class OnlineServiceMain(threading.Thread):
     """Service thread for fetching and setting online API data."""
 
@@ -209,19 +221,22 @@ class OnlineServiceMain(threading.Thread):
 
     def run(self) -> None:
         monitor = xbmc.Monitor()
+        scan_monitor = OnlineScanMonitor(self)
         log("Service", "Online service started", xbmc.LOGINFO)
 
         self._start_updater()
 
-        while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
-            if self.abort.is_set():
-                break
-            try:
-                self._loop()
-            except Exception as e:
-                log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
-
-        log("Service", "Online service stopped", xbmc.LOGINFO)
+        try:
+            while not monitor.waitForAbort(ONLINE_POLL_INTERVAL):
+                if self.abort.is_set():
+                    break
+                try:
+                    self._loop()
+                except Exception as e:
+                    log("Service", f"Online service error: {e}", xbmc.LOGWARNING)
+        finally:
+            del scan_monitor
+            log("Service", "Online service stopped", xbmc.LOGINFO)
 
     def _start_updater(self) -> None:
         """Start the continuous background updater thread."""
