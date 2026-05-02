@@ -216,28 +216,13 @@ class ApiFanarttv:
         return result
 
     def get_artist_artwork(self, musicbrainz_id: str, abort_flag=None) -> dict:
-        """
-        Get all available artwork for a music artist from fanart.tv.
+        """Get all artwork for a music artist from fanart.tv.
 
-        Returns artist-level artwork and all album artwork nested under 'albums'.
-        Album artwork is keyed by MusicBrainz release group ID.
+        Returns artist-level artwork plus album artwork nested under 'albums'
+        (keyed by MusicBrainz release group ID).
 
-        Artist artwork types:
-            fanart: 1920x1080 backgrounds (artistbackground, artist4kbackground)
-            thumb: 1000x1000 artist thumbnail
-            clearlogo: 800x310 logo (hdmusiclogo, musiclogo)
-            banner: 1000x185 banner
-
-        Album artwork types (nested under 'albums'):
-            thumb: 1000x1000 album cover (1:1 square, unlike video thumb which is 16:9)
-            discart: 1000x1000 CD art
-
-        Args:
-            musicbrainz_id: MusicBrainz artist ID (MBID)
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dict with artist artwork types and 'albums' dict keyed by release_group_id
+        Artist types: fanart (1920x1080), thumb (1000x1000), clearlogo (800x310), banner (1000x185).
+        Album types (under 'albums'): thumb (1000x1000, square unlike video 16:9 thumb), discart (1000x1000).
         """
         data = self._make_request(f"/music/{musicbrainz_id}", abort_flag)
 
@@ -306,22 +291,13 @@ class ApiFanarttv:
         abort_flag=None,
         cached_artist_data: Optional[dict] = None
     ) -> dict:
-        """
-        Get artwork for a specific album.
+        """Get artwork for a specific album.
 
-        Uses cached artist data if provided, otherwise fetches from API.
-        This avoids duplicate API calls when processing multiple albums
-        from the same artist.
+        Uses cached_artist_data if provided, else fetches from API. Avoids
+        duplicate API calls when processing multiple albums from the same artist.
 
-        Args:
-            musicbrainz_artist_id: MusicBrainz artist ID
-            musicbrainz_release_group_id: MusicBrainz release group ID for the album
-            abort_flag: Optional abort flag for cancellation
-            cached_artist_data: Optional pre-fetched artist data from get_artist_artwork()
-
-        Returns:
-            Dict with album artwork (thumb, discart). Note: album 'thumb' is 1:1 square,
-            unlike video 'thumb' which is 16:9. Dialog should handle format awareness.
+        Returns dict with thumb and discart. Note: album 'thumb' is 1:1 square,
+        unlike video 'thumb' which is 16:9 - dialog should handle format awareness.
         """
         if cached_artist_data is None:
             cached_artist_data = self.get_artist_artwork(musicbrainz_artist_id, abort_flag)

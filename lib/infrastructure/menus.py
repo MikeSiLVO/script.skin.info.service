@@ -10,70 +10,37 @@ from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import ADDON
 
 # Sentinel value to signal "return to main menu" vs "go back one level"
-_RETURN_TO_MAIN = object()
+RETURN_TO_MAIN_SENTINEL = object()
 
 
 class MenuItem:
-    """Represents a single menu item with label and action."""
+    """Menu row with a label and an action.
+
+    `action` can be a callable (executed), another `Menu` (shown as submenu),
+    or a plain value (returned as-is). `loop=True` re-shows the parent menu
+    after the action completes.
+    """
 
     def __init__(self, label: str, action, loop: bool = False):
-        """
-        Create a menu item.
-
-        Args:
-            label: Display text for the menu item
-            action: Action to perform when selected:
-                - Callable: Execute function and use return value
-                - Menu: Show submenu
-                - Any other value: Return that value
-            loop: If True, re-show parent menu after action completes
-        """
         self.label = label
         self.action = action
         self.loop = loop
 
 
 class Menu:
-    """
-    Declarative menu with automatic navigation handling.
+    """Declarative menu with back/cancel/task-cancel handling and nested-submenu navigation.
 
-    Handles back/cancel/task cancellation automatically and supports
-    nested submenus with proper navigation stack.
-
-    Example:
-        menu = Menu("Main Menu", [
-            MenuItem("Option 1", lambda: do_something()),
-            MenuItem("View Report", lambda: show_report(), loop=True),
-            MenuItem("Submenu", Menu("Sub", [...])),
-        ])
-        result = menu.show()
+    `is_main_menu=True` makes the top-level Cancel exit to Kodi instead of bubbling up.
     """
 
     def __init__(self, title: str, items: Sequence[MenuItem], is_main_menu: bool = False):
-        """
-        Create a menu.
-
-        Args:
-            title: Menu heading/title
-            items: List of MenuItem objects
-            is_main_menu: If True, this is the main Tools menu (Cancel exits to Kodi)
-        """
         self.title = title
         self.items = list(items)
         self.is_main_menu = is_main_menu
         self._last_selected_idx: Optional[int] = None
 
     def show(self, preselect: Optional[int] = None) -> Any:
-        """
-        Show menu and handle navigation automatically.
-
-        Args:
-            preselect: Index of item to preselect when showing menu
-
-        Returns:
-            - Result from selected action
-            - None if user pressed back/ESC or cancelled or Kodi abort requested
-        """
+        """Show menu and run navigation. Returns action result, or None on back/ESC/abort."""
         monitor = xbmc.Monitor()
 
         while not monitor.abortRequested():
@@ -94,7 +61,7 @@ class Menu:
                 if self.is_main_menu:
                     return None
                 else:
-                    return _RETURN_TO_MAIN
+                    return RETURN_TO_MAIN_SENTINEL
 
             if choice_str is None:
                 return None
@@ -113,19 +80,19 @@ class Menu:
 
             if isinstance(item.action, Menu):
                 result = item.action.show()
-                if result is _RETURN_TO_MAIN:
+                if result is RETURN_TO_MAIN_SENTINEL:
                     if self.is_main_menu:
                         continue
                     else:
-                        return _RETURN_TO_MAIN
+                        return RETURN_TO_MAIN_SENTINEL
                 continue
             elif callable(item.action):
                 result = item.action()
-                if result is _RETURN_TO_MAIN:
+                if result is RETURN_TO_MAIN_SENTINEL:
                     if self.is_main_menu:
                         continue
                     else:
-                        return _RETURN_TO_MAIN
+                        return RETURN_TO_MAIN_SENTINEL
                 if item.loop:
                     continue
                 return result
@@ -135,43 +102,12 @@ class Menu:
         return None
 
 
-def show_menu_with_cancel(
-    title: str,
-    options: Sequence[Tuple[str, Optional[str]]],
-    preselect: Optional[int] = None
-) -> Tuple[Optional[str], bool]:
-    """
-    Show dialog.select() menu with optional "Cancel Current Task" at top.
+def show_menu_with_cancel(title: str, options: Sequence[Tuple[str, Optional[str]]],
+                          preselect: Optional[int] = None) -> Tuple[Optional[str], bool]:
+    """Show a select dialog, injecting a "Cancel Current Task" row at the top if a task is running.
 
-    Automatically detects if a background task is running and adds a cancel option.
-    The cancel option appears at the top in bold formatting.
-
-    Args:
-        title: Menu title/heading
-        options: List of (label, action) tuples for menu items
-
-    Returns:
-        Tuple of (selected_action, was_cancel_pressed):
-        - (action_string, False) - User selected a regular menu item
-        - (None, True) - User selected "Cancel Current Task" and task was cancelled
-        - ('__back__', False) - User pressed back/ESC key
-        - (None, False) - User selected Cancel option
-
-    Example:
-        options = [
-            ("Manual Review", "manual"),
-            ("Auto Apply", "auto"),
-            ("Cancel", None)
-        ]
-        action, cancelled = show_menu_with_cancel("Review Options", options)
-        if cancelled:
-            print("Background task was cancelled")
-        elif action == '__back__':
-            pass
-        elif action == "manual":
-            pass
-        elif action is None:
-            pass
+    Returns `(action, was_task_cancelled)`. `action` is `'__back__'` for ESC,
+    the selected row's action string otherwise.
     """
     task_info = task_manager.get_task_info()
 
@@ -207,21 +143,9 @@ def show_menu_with_cancel(
 
 
 def confirm_cancel_running_task(new_task_name: str) -> bool:
-    """
-    Show detailed confirmation dialog for cancelling a running task.
+    """Prompt the user to cancel the running task in favour of `new_task_name`.
 
-    Displays comprehensive task information including:
-    - Current task name
-    - Duration running
-    - Last activity time
-    - New task to start
-    - Cancellation warning
-
-    Args:
-        new_task_name: Name of the new task user wants to start
-
-    Returns:
-        True if user confirmed cancellation, False otherwise
+    Dialog shows the current task, its duration, last-activity age, and the intended new task.
     """
     from lib.infrastructure.dialogs import show_yesno
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future, TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Any
@@ -9,7 +10,6 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.data.api.client import RateLimitHit, RetryableError
-from lib.data.api import tracker as usage_tracker
 
 
 MAX_WORKERS = 6
@@ -40,34 +40,39 @@ class ItemState:
     pending_sources: Set[str] = field(default_factory=set)
     submitted_sources: Set[str] = field(default_factory=set)
     completed_sources: Set[str] = field(default_factory=set)
+    deferred_sources: Set[str] = field(default_factory=set)
     ratings: List[Dict] = field(default_factory=list)
     sources_used: List[str] = field(default_factory=list)
     retryable_failures: List[Dict] = field(default_factory=list)
+    _failed_source_set: Set[str] = field(default_factory=set)
     submitted_at: float = field(default_factory=time.time)
     finalized: bool = False
 
 
-class RatingBatchExecutor:
-    """
-    Manages parallel fetching of ratings across a batch of items.
+@dataclass
+class RetryPoolEntry:
+    """An item finalized with partial results, awaiting retry of missing sources."""
+    dbid: int
+    item: Dict
+    title: str
+    year: str
+    media_type: str
+    ids: Dict
+    applied_ratings: Dict[str, Dict[str, float]]
+    fetched_ratings: List[Dict]
+    sources_used: List[str]
+    missing_sources: Set[str]
+    failures: List[Dict]
+    attempts: int = 0
 
-    Uses a single ThreadPoolExecutor for the entire batch with:
-    - Hard cap of 6 workers total
-    - Per-source cap of 2 concurrent threads
-    - Late result handling for slow sources
-    """
+
+class RatingBatchExecutor:
+    """Parallel rating fetcher with a 6-worker cap, 2-per-source cap, and pause-aware timeouts."""
 
     def __init__(self, sources: List, abort_flag=None):
-        """
-        Initialize the batch executor.
-
-        Args:
-            sources: List of rating source instances (ApiTmdb, ApiTrakt, etc.)
-            abort_flag: Optional abort flag for cancellation
-        """
         self.sources = sources
         self.source_names = {
-            source: source.__class__.__name__.replace("Api", "").lower()
+            source: source.provider_name
             for source in sources
         }
         self.abort_flag = abort_flag
@@ -77,13 +82,16 @@ class RatingBatchExecutor:
         self.pending_futures: Dict[Future, FetchJob] = {}
         self.item_states: Dict[int, ItemState] = {}
 
+        self.source_paused_until: Dict[str, float] = {name: 0.0 for name in self.source_names.values()}
+
+        self._lock = threading.Lock()
         self._cancelled = False
 
     def __enter__(self):
         self.executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *_args):
         if self.executor:
             self.executor.shutdown(wait=False)
         return False
@@ -97,30 +105,43 @@ class RatingBatchExecutor:
             return True
         return False
 
-    def submit_item(
-        self,
-        item: Dict,
-        dbid: int,
-        title: str,
-        year: str,
-        media_type: str,
-        ids: Dict,
-        existing_ratings: Dict
-    ) -> None:
+    def report_pause(self, source_name: str, until_ts: float) -> None:
+        """Record a rate-limit wait and extend in-flight item timeouts by the wait duration.
+
+        Without the extension, a pause that clears just before a worker's request
+        returns can falsely time out a result that's about to arrive.
         """
-        Submit fetch jobs for an item.
+        with self._lock:
+            old_until = self.source_paused_until.get(source_name, 0.0)
+            if until_ts <= old_until:
+                return
+            extension = until_ts - max(old_until, time.time())
+            self.source_paused_until[source_name] = until_ts
+            states_snapshot = list(self.item_states.values())
 
-        Jobs are only submitted for sources that have capacity (< MAX_PER_SOURCE active).
-        Sources at capacity are added to pending for later submission.
+        if extension <= 0:
+            return
 
-        Args:
-            item: Full item dict from library
-            dbid: Database ID
-            title: Item title
-            year: Item year
-            media_type: 'movie', 'tvshow', or 'episode'
-            ids: Dict with 'tmdb', 'imdb', etc.
-            existing_ratings: Current ratings from Kodi
+        for state in states_snapshot:
+            if state.finalized:
+                continue
+            waiting = state.submitted_sources | state.pending_sources
+            if source_name in waiting:
+                state.submitted_at += extension
+            if source_name in state.pending_sources:
+                state.pending_sources.discard(source_name)
+                state.deferred_sources.add(source_name)
+
+    def is_source_paused(self, source_name: str) -> bool:
+        """True if `source_name` is currently in a rate-limit wait."""
+        return time.time() < self.source_paused_until.get(source_name, 0.0)
+
+    def submit_item(self, item: Dict, dbid: int, title: str, year: str,
+                    media_type: str, ids: Dict, existing_ratings: Dict) -> None:
+        """Submit fetch jobs for an item. Sources at capacity are queued until others complete.
+
+        If a source is currently paused, the item's portion for that source is marked
+        deferred immediately and will be retried later via the retry pool.
         """
         if self.is_cancelled() or not self.executor:
             return
@@ -143,11 +164,14 @@ class RatingBatchExecutor:
         for source in self.sources:
             source_name = self.source_names[source]
 
+            if self.is_source_paused(source_name):
+                state.deferred_sources.add(source_name)
+                continue
+
             if self.active_per_source[source_name] < MAX_PER_SOURCE:
                 self._submit_job(state, source, source_name)
             else:
                 state.pending_sources.add(source_name)
-                log("Ratings", f"   {source_name}: Queued (at capacity)", xbmc.LOGDEBUG)
 
     def _submit_job(self, state: ItemState, source, source_name: str) -> None:
         """Submit a single fetch job to the executor."""
@@ -172,7 +196,9 @@ class RatingBatchExecutor:
             source.fetch_ratings,
             state.media_type,
             state.ids,
-            self.abort_flag
+            self.abort_flag,
+            False,
+            self,
         )
 
         job = FetchJob(
@@ -185,15 +211,7 @@ class RatingBatchExecutor:
         self.active_per_source[source_name] += 1
 
     def collect_results(self, timeout: float = POLL_INTERVAL) -> List[tuple[int, str, Any]]:
-        """
-        Collect completed results, checking abort periodically.
-
-        Args:
-            timeout: How long to wait for results before returning
-
-        Returns:
-            List of (dbid, source_name, result_or_exception) tuples
-        """
+        """Return completed results up to `timeout` as `[(dbid, source_name, result_or_exception)]`."""
         if not self.pending_futures:
             return []
 
@@ -228,19 +246,20 @@ class RatingBatchExecutor:
         return results
 
     def _submit_pending_jobs(self) -> None:
-        """Submit pending jobs for sources that now have capacity."""
+        """Submit pending jobs for sources that now have capacity and are not paused."""
         if not self.executor:
             return
 
-        for dbid, state in self.item_states.items():
+        for state in self.item_states.values():
             if state.finalized:
-                continue
-
-            if time.time() - state.submitted_at > ITEM_TIMEOUT:
                 continue
 
             pending_copy = set(state.pending_sources)
             for source_name in pending_copy:
+                if self.is_source_paused(source_name):
+                    state.pending_sources.discard(source_name)
+                    state.deferred_sources.add(source_name)
+                    continue
                 if self.active_per_source[source_name] < MAX_PER_SOURCE:
                     source = self._get_source_by_name(source_name)
                     if source:
@@ -254,20 +273,8 @@ class RatingBatchExecutor:
                 return source
         return None
 
-    def process_result(
-        self,
-        dbid: int,
-        source_name: str,
-        result: Any
-    ) -> None:
-        """
-        Process a result and update item state.
-
-        Args:
-            dbid: Database ID of the item
-            source_name: Name of the source that returned
-            result: Ratings dict, or exception
-        """
+    def process_result(self, dbid: int, source_name: str, result: Any) -> None:
+        """Update an item's state from one source's result."""
         state = self.item_states.get(dbid)
         if not state:
             log("Ratings", f"   {source_name}: Result for unknown item {dbid}, discarding", xbmc.LOGDEBUG)
@@ -280,26 +287,15 @@ class RatingBatchExecutor:
         state.completed_sources.add(source_name)
 
         if isinstance(result, RateLimitHit):
-            action = usage_tracker.handle_rate_limit_error(result.provider, 0, 1)
-            if action == "cancel_all":
-                if self.abort_flag:
-                    self.abort_flag.request()
-                self._cancelled = True
-            elif action == "cancel_batch":
-                self._cancelled = True
-            elif action == "retry":
-                state.retryable_failures.append({
-                    "source": source_name,
-                    "reason": "rate limit (user chose wait)"
-                })
-            log("Ratings", f"   {source_name}: Rate limit reached", xbmc.LOGDEBUG)
+            wait = result.retry_after_seconds if result.retry_after_seconds else 60.0
+            self.report_pause(source_name, time.time() + wait)
+            state.completed_sources.discard(source_name)
+            state.deferred_sources.add(source_name)
+            log("Ratings", f"   {source_name}: 429 from server, pausing {wait:.1f}s", xbmc.LOGDEBUG)
 
         elif isinstance(result, RetryableError):
             log("Ratings", f"   {source_name}: Retryable error: {result.reason}", xbmc.LOGDEBUG)
-            state.retryable_failures.append({
-                "source": source_name,
-                "reason": result.reason
-            })
+            self._record_failure(state, source_name, result.reason)
 
         elif isinstance(result, Exception):
             log("Ratings", f"   {source_name}: Failed: {str(result)}", xbmc.LOGDEBUG)
@@ -308,19 +304,27 @@ class RatingBatchExecutor:
             state.ratings.append(result)
             state.sources_used.append(source_name)
 
+    def _record_failure(self, state: ItemState, source_name: str, reason: str) -> None:
+        """Append a retryable failure entry, deduplicated by source."""
+        if source_name in state._failed_source_set:
+            return
+        state._failed_source_set.add(source_name)
+        state.retryable_failures.append({"source": source_name, "reason": reason})
+
     def check_item_timeout(self, dbid: int) -> bool:
-        """
-        Check if an item has exceeded its timeout.
+        """True if the item has been in-flight longer than `ITEM_TIMEOUT` (pause-adjusted) and isn't finalized.
 
-        Args:
-            dbid: Database ID to check
-
-        Returns:
-            True if timed out
+        Time spent waiting on currently-paused sources doesn't count toward the deadline.
         """
         state = self.item_states.get(dbid)
         if not state or state.finalized:
             return False
+
+        # If any source we're still waiting on is currently paused, don't time out.
+        waiting_on = (state.submitted_sources | state.pending_sources) - state.completed_sources
+        for src in waiting_on:
+            if self.is_source_paused(src):
+                return False
 
         elapsed = time.time() - state.submitted_at
         return elapsed > ITEM_TIMEOUT
@@ -333,14 +337,8 @@ class RatingBatchExecutor:
         """Mark an item as finalized (ratings applied to Kodi)."""
         state = self.item_states.get(dbid)
         if state:
-            log("Ratings", f"   Finalizing {state.title}: completed={state.completed_sources}, pending={state.pending_sources}", xbmc.LOGDEBUG)
+            log("Ratings", f"   Finalizing {state.title}: completed={state.completed_sources}, deferred={state.deferred_sources}", xbmc.LOGDEBUG)
             state.finalized = True
-
-            for source_name in state.pending_sources:
-                state.retryable_failures.append({
-                    "source": source_name,
-                    "reason": "timeout (not submitted)"
-                })
 
     def get_pending_count(self) -> int:
         """Get number of pending futures."""
@@ -354,7 +352,7 @@ class RatingBatchExecutor:
         ]
 
     def timeout_pending_sources(self, dbid: int) -> None:
-        """Mark all pending sources for an item as timed out."""
+        """Mark all incomplete sources for a timed-out item as failed (deduplicated)."""
         state = self.item_states.get(dbid)
         if not state:
             return
@@ -363,9 +361,6 @@ class RatingBatchExecutor:
         incomplete = all_source_names - state.completed_sources
 
         for source_name in incomplete:
-            if source_name not in [f["source"] for f in state.retryable_failures]:
-                state.retryable_failures.append({
-                    "source": source_name,
-                    "reason": "timeout"
-                })
-                log("Ratings", f"   {source_name}: Timeout for {state.title}", xbmc.LOGDEBUG)
+            self._record_failure(state, source_name, "timeout")
+            log("Ratings", f"   {source_name}: Timeout for {state.title}", xbmc.LOGDEBUG)
+

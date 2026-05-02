@@ -6,7 +6,7 @@ import threading
 import xbmc
 
 from lib.kodi.client import ADDON, log
-from lib.kodi.utils import clear_prop, set_prop, wait_for_kodi_ready
+from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready
 
 SKIN_BOOL = "SkinInfo.Service"
 POLL_INTERVAL = 1.0
@@ -20,6 +20,8 @@ class OrchestratorMonitor(xbmc.Monitor):
         self.settings_dirty = True  # force initial evaluation
 
     def onSettingsChanged(self) -> None:
+        from lib.kodi.settings import KodiSettings
+        KodiSettings.clear_cache()
         self.settings_dirty = True
 
 
@@ -83,18 +85,33 @@ class Orchestrator:
             self.monitor.settings_dirty = False
             self._manage_setting_services()
 
+    def _ensure_started(self, attr: str, factory) -> None:
+        """Start the thread on `self.<attr>` if it isn't running. `factory` returns a new thread instance."""
+        thread = getattr(self, attr)
+        if thread is None or not thread.is_alive():
+            thread = factory()
+            setattr(self, attr, thread)
+            thread.start()
+
+    def _ensure_stopped(self, attr: str) -> None:
+        """Signal abort, join, and clear the thread on `self.<attr>` if running."""
+        thread = getattr(self, attr)
+        if thread is None:
+            return
+        thread.abort.set()
+        thread.join(timeout=2)
+        setattr(self, attr, None)
+
     def _manage_skin_services(self, enabled: bool) -> None:
         if enabled:
-            if self._library_thread is None or not self._library_thread.is_alive():
-                self._start_library()
-            if self._online_thread is None or not self._online_thread.is_alive():
-                self._start_online()
+            from lib.service.library.main import ServiceMain
+            from lib.service.online import OnlineServiceMain
+            self._ensure_started('_library_thread', ServiceMain)
+            self._ensure_started('_online_thread', OnlineServiceMain)
             set_prop("SkinInfo.Service.Running", "true")
         else:
-            if self._online_thread is not None:
-                self._stop_online()
-            if self._library_thread is not None:
-                self._stop_library()
+            self._ensure_stopped('_online_thread')
+            self._ensure_stopped('_library_thread')
             clear_prop("SkinInfo.Service.Running")
 
     def _manage_setting_services(self) -> None:
@@ -102,77 +119,30 @@ class Orchestrator:
         stinger_enabled = ADDON.getSettingBool("stinger_enabled")
 
         if imdb_enabled:
-            if self._imdb_thread is None or not self._imdb_thread.is_alive():
-                self._start_imdb()
-        elif self._imdb_thread is not None:
-            self._stop_imdb()
+            from lib.service.imdb import ImdbUpdateService
+            self._ensure_started('_imdb_thread', ImdbUpdateService)
+        else:
+            self._ensure_stopped('_imdb_thread')
 
         if stinger_enabled:
-            if self._stinger_thread is None or not self._stinger_thread.is_alive():
-                self._start_stinger()
-        elif self._stinger_thread is not None:
-            self._stop_stinger()
-
-    def _start_online(self) -> None:
-        from lib.service.online import OnlineServiceMain
-        self._online_thread = OnlineServiceMain()
-        self._online_thread.start()
-
-    def _stop_online(self) -> None:
-        if self._online_thread is None:
-            return
-        self._online_thread.abort.set()
-        self._online_thread.join(timeout=2)
-        self._online_thread = None
-
-    def _start_library(self) -> None:
-        from lib.service.main import ServiceMain
-        self._library_thread = ServiceMain()
-        self._library_thread.start()
-
-    def _stop_library(self) -> None:
-        if self._library_thread is None:
-            return
-        self._library_thread.abort.set()
-        self._library_thread.join(timeout=2)
-        self._library_thread = None
-
-    def _start_imdb(self) -> None:
-        from lib.service.main import ImdbUpdateService
-        self._imdb_thread = ImdbUpdateService()
-        self._imdb_thread.start()
-
-    def _stop_imdb(self) -> None:
-        if self._imdb_thread is None:
-            return
-        self._imdb_thread.abort.set()
-        self._imdb_thread.join(timeout=2)
-        self._imdb_thread = None
-
-    def _start_stinger(self) -> None:
-        from lib.service.main import StingerService
-        self._stinger_thread = StingerService()
-        self._stinger_thread.start()
-
-    def _stop_stinger(self) -> None:
-        if self._stinger_thread is None:
-            return
-        self._stinger_thread.abort.set()
-        self._stinger_thread.join(timeout=2)
-        self._stinger_thread = None
+            from lib.service.stinger import StingerService
+            self._ensure_started('_stinger_thread', StingerService)
+        else:
+            self._ensure_stopped('_stinger_thread')
 
     def _stop_all(self) -> None:
-        for thread in (self._stinger_thread, self._imdb_thread, self._online_thread, self._library_thread):
-            if thread is not None:
-                thread.abort.set()
+        # Signal abort on all threads first so they can shut down in parallel,
+        # then join to wait.
         for attr in ('_stinger_thread', '_imdb_thread', '_online_thread', '_library_thread'):
             thread = getattr(self, attr)
             if thread is not None:
-                thread.join(timeout=2)
-                setattr(self, attr, None)
+                thread.abort.set()
+        for attr in ('_stinger_thread', '_imdb_thread', '_online_thread', '_library_thread'):
+            self._ensure_stopped(attr)
 
 
 def main() -> None:
+    """Service entry: start the orchestrator until Kodi aborts."""
     monitor = OrchestratorMonitor()
     Orchestrator(monitor).run()
 

@@ -7,6 +7,13 @@ from typing import Any
 from lib.editor.config import FieldType
 
 
+def _range_check(value: float, lo: float, hi: float, error: str) -> tuple[bool, str]:
+    """Return (True, '') if value is in [lo, hi], else (False, error)."""
+    if lo <= value <= hi:
+        return True, ""
+    return False, error
+
+
 def validate_date(value: str) -> tuple[bool, str]:
     """Validate YYYY-MM-DD date format."""
     if not value:
@@ -30,44 +37,30 @@ def validate_date(value: str) -> tuple[bool, str]:
 
 
 def validate_year(value: int) -> tuple[bool, str]:
-    """Validate year value."""
+    """Validate year value (0 means unset and is allowed)."""
     if value == 0:
         return True, ""
-    if value < 1800 or value > 2100:
-        return False, "Year must be between 1800 and 2100"
-    return True, ""
+    return _range_check(value, 1800, 2100, "Year must be between 1800 and 2100")
 
 
 def validate_runtime(value: int) -> tuple[bool, str]:
     """Validate runtime in seconds."""
-    if value < 0:
-        return False, "Runtime cannot be negative"
-    if value > 86400 * 7:
-        return False, "Runtime seems too large (max 7 days)"
-    return True, ""
+    return _range_check(value, 0, 86400 * 7, "Runtime must be 0 to 7 days")
 
 
 def validate_rating(value: float) -> tuple[bool, str]:
     """Validate rating 0-10."""
-    if not 0 <= value <= 10:
-        return False, "Rating must be 0-10"
-    return True, ""
+    return _range_check(value, 0, 10, "Rating must be 0-10")
 
 
 def validate_userrating(value: int) -> tuple[bool, str]:
     """Validate user rating 0-10."""
-    if not 0 <= value <= 10:
-        return False, "User rating must be 0-10"
-    return True, ""
+    return _range_check(value, 0, 10, "User rating must be 0-10")
 
 
 def validate_top250(value: int) -> tuple[bool, str]:
     """Validate top 250 position."""
-    if value < 0:
-        return False, "Top 250 cannot be negative"
-    if value > 250:
-        return False, "Top 250 must be 0-250"
-    return True, ""
+    return _range_check(value, 0, 250, "Top 250 must be 0-250")
 
 
 def format_runtime_display(seconds: int) -> str:
@@ -165,32 +158,27 @@ def format_ratings_display(ratings: dict[str, Any] | None) -> str:
     return ", ".join(parts[:3])
 
 
+_MENU_TEXT_TRUNCATE_LEN = 50
+
+
 def format_value_for_display(value: Any, field_type: FieldType) -> str:
     """Format a field value for menu display based on type."""
-    if value is None:
+    if not value:
         return "(not set)"
 
     if field_type == FieldType.TEXT or field_type == FieldType.TEXT_LONG:
-        if not value:
-            return "(not set)"
         text = str(value)
-        if len(text) > 50:
-            return text[:47] + "..."
+        if len(text) > _MENU_TEXT_TRUNCATE_LEN:
+            return text[:_MENU_TEXT_TRUNCATE_LEN - 3] + "..."
         return text
 
     if field_type == FieldType.INTEGER:
-        if not value:
-            return "(not set)"
         return str(value)
 
     if field_type == FieldType.NUMBER:
-        if not value:
-            return "(not set)"
         return f"{value:.1f}"
 
     if field_type == FieldType.DATE:
-        if not value:
-            return "(not set)"
         return str(value)
 
     if field_type == FieldType.LIST:
@@ -203,13 +191,6 @@ def format_value_for_display(value: Any, field_type: FieldType) -> str:
         return format_ratings_display(value)
 
     if field_type == FieldType.STATUS:
-        if not value:
-            return "(not set)"
         return str(value).title()
 
-    return str(value) if value else "(not set)"
-
-
-def format_runtime_value_for_display(seconds: int) -> str:
-    """Special formatting for runtime field in menu."""
-    return format_runtime_display(seconds)
+    return str(value)

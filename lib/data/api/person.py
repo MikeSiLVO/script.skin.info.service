@@ -7,20 +7,12 @@ from typing import Optional
 
 from lib.kodi.client import log, get_item_details, ADDON
 from lib.data.api.tmdb import ApiTmdb
+from lib.data.api.utilities import tmdb_image_url
 from lib.data import database as db
 
 
 def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
-    """
-    Get TMDB ID for library item, converting from IMDB/TVDB if needed.
-
-    Args:
-        dbtype: Media type (movie/tvshow/episode/season)
-        dbid: Kodi database ID
-
-    Returns:
-        TMDB ID or None if not found
-    """
+    """Get TMDB ID for library item, converting from IMDb/TVDB if needed."""
     if dbtype in ('season', 'episode'):
         details = get_item_details(dbtype, dbid, ['tvshowid'])
         if not details:
@@ -73,22 +65,11 @@ def _convert_external_id(external_id: str, source: str) -> Optional[int]:
 
 
 def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbtype: str, dbid: int = 0, auto_search: bool = True, online: bool = False) -> Optional[int]:
-    """
-    Match actor to TMDB person ID using 5-stage strategy.
+    """Match actor to TMDB person ID using 5-stage strategy.
 
     Shows dialog select on failure for user to choose correct person.
-
-    Args:
-        actor_name: Actor name from Kodi
-        actor_role: Character/role from Kodi
-        tmdb_id: TMDB ID of movie/show (for episodes, this is tvshow TMDB ID)
-        dbtype: Media type (movie/tvshow/episode/season)
-        dbid: Kodi database ID (required for episodes/seasons)
-        auto_search: Show search dialog on match failure (default True)
-        online: Use online TMDB data (True) or match Kodi scraper behavior (False)
-
-    Returns:
-        TMDB person ID or None if cancelled/not found
+    For episodes, tmdb_id is the tvshow TMDB ID. dbid is required for episodes/seasons.
+    online=True uses TMDB data directly; False matches Kodi scraper behavior.
     """
     api = ApiTmdb()
     credits = []
@@ -117,9 +98,11 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
             credits = episode_cast + episode_guests
             log("Person", f"Episode credits (online): {len(episode_cast)} episode cast + {len(episode_guests)} episode guests = {len(credits)} total", xbmc.LOGDEBUG)
         else:
-            combined_cast = api.get_kodi_tv_scraper_combined_cast(tmdb_id)
+            show_data = api.get_complete_data('tvshow', tmdb_id)
+            aggregate = (show_data or {}).get('aggregate_credits', {}).get('cast', [])
+            combined_cast = _flatten_aggregate_credits(aggregate)
             credits = combined_cast + episode_guests
-            log("Person", f"Episode credits (scraper): {len(combined_cast)} combined seasons cast + {len(episode_guests)} episode guests = {len(credits)} total", xbmc.LOGDEBUG)
+            log("Person", f"Episode credits (aggregate): {len(combined_cast)} aggregate cast entries + {len(episode_guests)} episode guests = {len(credits)} total", xbmc.LOGDEBUG)
 
     elif dbtype == 'season':
         details = get_item_details(dbtype, dbid, ['season'])
@@ -187,6 +170,23 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
     log("Person", f"All automatic matching failed for '{actor_name}', auto_search disabled", xbmc.LOGDEBUG)
     return None
+
+
+def _flatten_aggregate_credits(aggregate_cast: list) -> list:
+    """Expand TMDB `aggregate_credits.cast` (one entry per actor with `roles[]`) into one entry per role.
+
+    Each output entry preserves the actor fields plus a single `character` string,
+    matching the shape that the matcher chain (`exact_match`/`fuzzy_role_match`/...) expects.
+    """
+    flat: list = []
+    for actor in aggregate_cast:
+        roles = actor.get('roles') or []
+        if not roles:
+            flat.append({**actor, 'character': ''})
+            continue
+        for role in roles:
+            flat.append({**actor, 'character': role.get('character', '')})
+    return flat
 
 
 def normalize_name(name: str) -> str:
@@ -277,7 +277,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
         profile_path = result.get('profile_path')
         if profile_path:
-            image_url = f"https://image.tmdb.org/t/p/w185{profile_path}"
+            image_url = tmdb_image_url(profile_path, 'w185')
             item.setArt({'thumb': image_url, 'icon': image_url})
 
         items.append(item)
@@ -295,15 +295,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
 
 def get_person_data(person_id: int) -> Optional[dict]:
-    """
-    Get complete person data, using cache if available.
-
-    Args:
-        person_id: TMDB person ID
-
-    Returns:
-        Complete person data or None
-    """
+    """Get complete person data, using cache if available."""
     cached = db.get_cached_person_data(person_id)
     if cached:
         log("Person", f"Loaded person {person_id} from cache", xbmc.LOGDEBUG)
@@ -326,19 +318,7 @@ def match_crew_to_person_id(
     dbtype: str,
     auto_search: bool = True
 ) -> Optional[int]:
-    """
-    Match crew member (director/writer/creator) to TMDB person ID.
-
-    Args:
-        crew_name: Name of the crew member
-        crew_type: Type of crew - "director", "writer", or "creator"
-        tmdb_id: TMDB ID of the movie/show
-        dbtype: Media type (movie/tvshow)
-        auto_search: Show search dialog on match failure (default True)
-
-    Returns:
-        TMDB person ID or None if not found/cancelled
-    """
+    """Match crew member to TMDB person ID. crew_type: 'director', 'writer', or 'creator'."""
     api = ApiTmdb()
     normalized_name = normalize_name(crew_name)
 
@@ -402,16 +382,9 @@ def get_crew_from_tmdb(
     tmdb_id: int,
     dbtype: str
 ) -> list[dict]:
-    """
-    Get crew members (directors/writers/creators) from TMDB.
+    """Get crew members (directors/writers/creators) from TMDB.
 
-    Args:
-        crew_type: Type of crew - "director", "writer", or "creator"
-        tmdb_id: TMDB ID of the movie/show
-        dbtype: Media type (movie/tvshow)
-
-    Returns:
-        List of crew member dicts with id, name, profile_path, job
+    Returns list of dicts with id, name, profile_path, job.
     """
     api = ApiTmdb()
 

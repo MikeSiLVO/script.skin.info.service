@@ -28,18 +28,7 @@ def vfs_ensure_dir_slash(path: str) -> str:
 
 
 def vfs_split(path: str) -> Tuple[str, str]:
-    """
-    Split path into (directory, filename) like os.path.split but VFS-aware.
-
-    Handles both / and \\ separators correctly.
-    Strips trailing separators before splitting.
-
-    Examples:
-        '/TV/Show/' -> ('/TV', 'Show')
-        '/TV/Show' -> ('/TV', 'Show')
-        '/TV/Show/file.mkv' -> ('/TV/Show', 'file.mkv')
-        'smb://server/share/folder' -> ('smb://server/share', 'folder')
-    """
+    """VFS-aware `os.path.split`. Handles both `/` and `\\`, strips trailing separators first."""
     path = vfs_rstrip_sep(path)
     if not path:
         return ('', '')
@@ -67,16 +56,7 @@ def vfs_basename(path: str) -> str:
 
 
 def vfs_splitext(path: str) -> Tuple[str, str]:
-    """
-    Split path into (base, extension) like os.path.splitext but VFS-aware.
-
-    Only considers extension in the filename part, not in directories.
-
-    Examples:
-        '/path/file.mkv' -> ('/path/file', '.mkv')
-        '/path.with.dots/file' -> ('/path.with.dots/file', '')
-        '/path/file' -> ('/path/file', '')
-    """
+    """VFS-aware `os.path.splitext`. Only splits on the filename part, never on directory dots."""
     dir_part, filename = vfs_split(path)
 
     if not filename:
@@ -110,22 +90,11 @@ def vfs_join(base: str, *parts: str) -> str:
     return result
 
 
-def build_actors_folder_path(media_type: str, file_path: str, show_path: Optional[str] = None) -> Optional[str]:
-    """
-    Build .actors folder path for a media item.
+def build_actors_folder_path(media_type: str, file_path: str,
+                             show_path: Optional[str] = None) -> Optional[str]:
+    """Build `.actors` folder path matching Kodi's VideoInfoScanner/VideoDatabase conventions.
 
-    Follows Kodi conventions from VideoInfoScanner.cpp and VideoDatabase.cpp:
-    - Movie: parent directory of movie file
-    - TV Show: show root directory
-    - Episode: show root directory (shared with TV show)
-
-    Args:
-        media_type: 'movie', 'tvshow', or 'episode'
-        file_path: Path to movie file or TV show folder
-        show_path: TV show root path (required for episodes)
-
-    Returns:
-        Full path to .actors folder, or None if cannot determine
+    Movie: parent of movie file. TV/Episode: show root (shared). `show_path` is required for episodes.
     """
     if media_type == "movie":
         if not file_path:
@@ -143,31 +112,22 @@ def build_actors_folder_path(media_type: str, file_path: str, show_path: Optiona
 
 
 class PathBuilder:
-    """
-    Build filesystem paths following Kodi naming conventions.
-
-    References:
-    - https://kodi.wiki/view/Movie_artwork
-    - https://kodi.wiki/view/TV_show_artwork
-    - xbmc/music/MusicDatabase.cpp (GetArtistFolderName, GetAlbumFolder)
-    """
+    """Build filesystem paths matching Kodi artwork naming conventions (movies, TV, music)."""
 
     _music_thumb_filename: Optional[str] = None
 
     @staticmethod
     def _get_kodi_folder_setting(setting: str) -> str:
+        """Read a Kodi folder-path setting value via `Settings.GetSettingValue`."""
         response = request("Settings.GetSettingValue", {"setting": setting})
         if response and "value" in response.get("result", {}):
             return response["result"]["value"]
         return ""
 
     @staticmethod
-    def _configure_kodi_folder_setting(
-        setting: str,
-        heading: str,
-        message: str,
-        browse_heading: str
-    ) -> Optional[str]:
+    def _configure_kodi_folder_setting(setting: str, heading: str, message: str,
+                                       browse_heading: str) -> Optional[str]:
+        """Prompt user to pick a folder, save it as a Kodi setting, return the chosen path."""
         dialog = xbmcgui.Dialog()
 
         if not dialog.yesno(heading, message):
@@ -198,7 +158,9 @@ class PathBuilder:
         return None
 
     @staticmethod
-    def _resolve_named_item_folder(setting: str, heading: str, message: str, browse_heading: str) -> Optional[str]:
+    def _resolve_named_item_folder(setting: str, heading: str, message: str,
+                                   browse_heading: str) -> Optional[str]:
+        """Get a Kodi folder setting; prompt the user to configure one if missing."""
         folder = PathBuilder._get_kodi_folder_setting(setting)
         if not folder:
             folder = PathBuilder._configure_kodi_folder_setting(
@@ -208,6 +170,7 @@ class PathBuilder:
 
     @staticmethod
     def _get_music_thumb_filename() -> str:
+        """Return the extensionless filename Kodi expects for music thumbs (cached)."""
         if PathBuilder._music_thumb_filename is not None:
             return PathBuilder._music_thumb_filename
         # Kodi discovers thumb art by matching filenames from this setting,
@@ -224,6 +187,7 @@ class PathBuilder:
 
     @staticmethod
     def _make_legal_filename(name: str, fallback: str = "Unknown", parent_dir: str = "") -> str:
+        """Sanitize `name` via Kodi's `makeLegalFilename`. `parent_dir` triggers filesystem-aware sanitization."""
         if not name:
             return fallback
         # makeLegalFilename wraps CUtil::MakeLegalPath which skips
@@ -235,12 +199,14 @@ class PathBuilder:
 
     @staticmethod
     def _make_music_folder_name(name: str, fallback: str = "Unknown", parent_dir: str = "") -> str:
+        """Like `_make_legal_filename` but collapses `" _ "` back to `"_"` for music folders."""
         sanitized = PathBuilder._make_legal_filename(name, fallback, parent_dir)
         sanitized = sanitized.replace(' _ ', '_')
         return sanitized
 
     @staticmethod
     def _count_library_artists(artist_name: str) -> int:
+        """Count how many library artists share `artist_name` (for MBID-based disambiguation)."""
         response = request("AudioLibrary.GetArtists", {
             "filter": {"field": "artist", "operator": "is", "value": artist_name}
         })
@@ -250,13 +216,7 @@ class PathBuilder:
 
     @staticmethod
     def _find_movie_root(path: str) -> str:
-        """
-        Find movie root directory, handling BDMV/VIDEO_TS structures.
-
-        For Blu-ray: /Movies/Avatar/BDMV/STREAM/00001.m2ts -> /Movies/Avatar
-        For DVD: /Movies/Avatar/VIDEO_TS/VTS_01_1.VOB -> /Movies/Avatar
-        Otherwise returns parent directory of the file.
-        """
+        """Walk up past BDMV/VIDEO_TS/STREAM/BACKUP directories to find the real movie root."""
         dir_path = vfs_dirname(path)
 
         check_path = dir_path
@@ -280,31 +240,14 @@ class PathBuilder:
         return dir_path
 
     @staticmethod
-    def build_path(
-        media_type: str,
-        media_file: str,
-        artwork_type: str,
-        season_number: Optional[int] = None,
-        episode_number: Optional[int] = None,
-        use_basename: bool = True,
-        mbid: Optional[str] = None
-    ) -> Optional[str]:
-        """
-        Build complete path for artwork file.
+    def build_path(media_type: str, media_file: str, artwork_type: str,
+                   season_number: Optional[int] = None,
+                   use_basename: bool = True, mbid: Optional[str] = None) -> Optional[str]:
+        """Build an extensionless artwork path for `media_type`.
 
-        Returns base path WITHOUT extension (extension added by downloader based on content-type).
-
-        Args:
-            media_type: 'movie', 'tvshow', 'season', 'episode', 'musicvideo', 'set', 'artist', 'album'
-            media_file: Full path to media file/directory, or title/name for 'set'/'artist'
-            artwork_type: Artwork type ('poster', 'fanart', 'clearlogo', etc.)
-            season_number: Season number (for season/episode artwork)
-            episode_number: Episode number (for episode artwork)
-            use_basename: Whether to use basename mode (Movie-poster vs poster in folder)
-            mbid: MusicBrainz ID (for artist duplicate name disambiguation)
-
-        Returns:
-            Base path string (without extension) or None if cannot build
+        `media_file` is the media file path, or a title/name for `set`/`artist`.
+        `use_basename=True` gives `Movie-poster`; False gives `poster` in the folder.
+        `mbid` disambiguates duplicate artist names. Returns None if the path can't be built.
         """
         if not media_file:
             return None

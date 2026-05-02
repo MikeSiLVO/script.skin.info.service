@@ -7,7 +7,20 @@ import xbmcaddon
 import xbmcgui
 
 
+_ARTWORK_TYPES = ('movie', 'tvshow', 'episode', 'season', 'set', 'musicvideo', 'artist', 'album')
+_RATINGS_TYPES = ('movie', 'tvshow', 'episode')
+
+# (setting_id, label_id, action, applicable_types_or_None_for_any)
+_MENU_REGISTRY = (
+    ('context_show_review_artwork',   32100, 'review_artwork',   _ARTWORK_TYPES),
+    ('context_show_download_artwork', 32290, 'download_artwork', _ARTWORK_TYPES),
+    ('context_show_update_ratings',   32101, 'update_ratings',   _RATINGS_TYPES),
+    ('context_show_edit_metadata',    32103, 'edit',             None),
+)
+
+
 def main() -> None:
+    """Context-menu entry: show enabled actions (review/download art, update ratings, edit) and dispatch."""
     addon: xbmcaddon.Addon = xbmcaddon.Addon()
 
     listitem = getattr(sys, 'listitem', None)
@@ -34,35 +47,21 @@ def main() -> None:
     menu_items: list[str] = []
     actions: list[str] = []
 
-    artwork_types = ('movie', 'tvshow', 'episode', 'season', 'set', 'musicvideo', 'artist', 'album')
-    ratings_types = ('movie', 'tvshow', 'episode')
-
-    if db_type in artwork_types and addon.getSettingBool('context_show_review_artwork'):
-        menu_items.append(addon.getLocalizedString(32100))
-        actions.append('review_artwork')
-
-    if db_type in artwork_types and addon.getSettingBool('context_show_download_artwork'):
-        menu_items.append(addon.getLocalizedString(32290))
-        actions.append('download_artwork')
-
-    if db_type in ratings_types and addon.getSettingBool('context_show_update_ratings'):
-        menu_items.append(addon.getLocalizedString(32101))
-        actions.append('update_ratings')
-
-    if addon.getSettingBool('context_show_edit_metadata'):
-        menu_items.append(addon.getLocalizedString(32103))
-        actions.append('edit')
+    for setting_id, label_id, action_name, applicable_types in _MENU_REGISTRY:
+        if applicable_types is not None and db_type not in applicable_types:
+            continue
+        if not addon.getSettingBool(setting_id):
+            continue
+        menu_items.append(addon.getLocalizedString(label_id))
+        actions.append(action_name)
 
     if not menu_items:
         return
 
     selected: int = xbmcgui.Dialog().contextmenu(menu_items)
-
     if selected < 0:
         return
 
-    action: str = actions[selected]
-
     xbmc.executebuiltin(
-        f'RunScript(script.skin.info.service,action={action},dbid={db_id},dbtype={db_type})'
+        f'RunScript(script.skin.info.service,action={actions[selected]},dbid={db_id},dbtype={db_type})'
     )

@@ -1,7 +1,6 @@
 """Dialog helper utilities for progress tracking and user interaction."""
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional, Union
 import xbmc
 import xbmcgui
@@ -9,39 +8,24 @@ import xbmcgui
 
 
 class ProgressDialog:
-    """
-    Unified progress dialog manager supporting both foreground and background dialogs.
+    """Context-managed progress dialog wrapper that picks `DialogProgress` or `DialogProgressBG` and clamps percent.
 
-    Features:
-    - Automatic dialog type selection (DialogProgress or DialogProgressBG)
-    - Optional update throttling for performance
-    - Flexible message formatting
-    - Automatic percent clamping
+    `fg_message_prefix` is prepended (with a `[CR]`) only in foreground mode — useful for
+    cancel-hint banners that don't apply to background dialogs.
     """
 
-    def __init__(self, use_background: bool = False, heading: str = "Processing"):
-        """
-        Initialize progress dialog helper.
-
-        Args:
-            use_background: Use DialogProgressBG (True) or DialogProgress (False)
-            heading: Dialog heading/title
-        """
+    def __init__(self, use_background: bool = False, heading: str = "Processing",
+                 fg_message_prefix: str = ""):
         self.use_background = use_background
         self.heading = heading
+        self.fg_message_prefix = fg_message_prefix
         self.dialog: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None
         self.last_percent = -1
         self.throttle_enabled = False
-        self.throttle_min_items = 5
         self.monitor = xbmc.Monitor()
 
     def create(self, message: str = "") -> None:
-        """
-        Create and show the progress dialog.
-
-        Args:
-            message: Initial message to display
-        """
+        """Create and show the dialog. Closes any existing dialog first."""
         if self.dialog:
             try:
                 self.dialog.close()
@@ -58,14 +42,7 @@ class ProgressDialog:
         self.last_percent = -1
 
     def update(self, percent: int, message: str = "", force: bool = False) -> None:
-        """
-        Update the progress dialog.
-
-        Args:
-            percent: Progress percentage (0-100)
-            message: Message to display
-            force: Force update even if throttling would skip it
-        """
+        """Update dialog percent/message. Skips no-op updates when throttling is on unless `force=True`."""
         if not self.dialog:
             return
 
@@ -82,7 +59,8 @@ class ProgressDialog:
             self.dialog.update(percent, self.heading, message)
         else:
             assert isinstance(self.dialog, xbmcgui.DialogProgress)
-            self.dialog.update(percent, message)
+            full_message = f"{self.fg_message_prefix}[CR]{message}" if self.fg_message_prefix and message else message
+            self.dialog.update(percent, full_message)
 
     def close(self) -> None:
         """Close the progress dialog."""
@@ -96,12 +74,7 @@ class ProgressDialog:
                 self.last_percent = -1
 
     def is_cancelled(self) -> bool:
-        """
-        Check if user cancelled the dialog or Kodi requested abort.
-
-        Returns:
-            True if cancelled or abort requested, False otherwise
-        """
+        """True if the user cancelled the dialog or Kodi requested abort."""
         if self.monitor.abortRequested():
             return True
 
@@ -113,118 +86,16 @@ class ProgressDialog:
 
         return False
 
-    def enable_throttling(self, min_items: int = 5) -> None:
-        """
-        Enable update throttling to reduce UI overhead.
-
-        Args:
-            min_items: Minimum number of items between updates
-        """
+    def enable_throttling(self) -> None:
+        """Enable update throttling to skip updates when percent hasn't changed."""
         self.throttle_enabled = True
-        self.throttle_min_items = min_items
 
     def __enter__(self):
-        """Context manager support."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager cleanup."""
         self.close()
         return False
-
-
-def format_operation_report(operation: str, stats: dict, timestamp: str, scope: Optional[str] = None) -> str:
-    """
-    Format operation stats for display in Kodi dialogs.
-
-    Args:
-        operation: Operation type ('texture_precache', 'texture_cleanup', 'gif_scan')
-        stats: Stats dictionary
-        timestamp: ISO format timestamp
-        scope: Optional scope string
-
-    Returns:
-        Formatted text with [CR] line breaks for Kodi dialogs
-    """
-    try:
-        dt = datetime.fromisoformat(timestamp)
-        formatted_time = dt.strftime('%Y-%m-%d %H:%M')
-    except (ValueError, TypeError):
-        formatted_time = timestamp
-
-    lines = []
-
-    if operation == 'texture_precache':
-        lines.append("[B]Operation: Pre-Cache Library Artwork[/B]")
-        lines.append(f"Completed: {formatted_time}")
-
-        cached = stats.get('cached_count', 0)
-        total = stats.get('total_count', 0)
-        new = stats.get('new_count', 0)
-        lines.append(f"Cached: {cached}/{total} ({new} new)")
-
-        failed = stats.get('failed_count', 0)
-        if failed > 0:
-            lines.append(f"Failed: {failed}")
-
-        if stats.get('cancelled'):
-            lines.append("[B]Status: Cancelled[/B]")
-
-    elif operation == 'texture_cleanup':
-        lines.append("[B]Operation: Clean Orphaned Textures[/B]")
-        lines.append(f"Completed: {formatted_time}")
-
-        cached = stats.get('cached_count', 0)
-        total = stats.get('total_count', 0)
-        lines.append(f"Cached: {cached}/{total} in library")
-
-        removed = stats.get('removed_count', 0)
-        orphaned = stats.get('orphaned_count', 0)
-        lines.append(f"Removed: {removed}/{orphaned} orphaned")
-
-        if stats.get('cancelled'):
-            lines.append("[B]Status: Cancelled[/B]")
-
-    elif operation == 'gif_scan':
-        lines.append("[B]Operation: Scan for Animated Posters[/B]")
-
-        if scope:
-            scope_label = scope.title() if scope != 'all' else 'All'
-            lines.append(f"Scope: {scope_label}")
-
-        lines.append(f"Completed: {formatted_time}")
-        lines.append("")
-
-        scan_mode = stats.get('scan_mode', 'incremental')
-        mode_label = 'Full' if scan_mode == 'full' else 'Incremental'
-        lines.append(f"Mode: {mode_label}")
-
-        scanned = stats.get('scanned_count', 0)
-        lines.append(f"Items Scanned: {scanned}")
-        lines.append("")
-
-        found = stats.get('found_count', 0)
-        skipped_cached = stats.get('skipped_cached', stats.get('skipped_count', 0))
-        skipped_existing = stats.get('skipped_existing', 0)
-
-        lines.append("[B]Results:[/B]")
-        lines.append(f"  New GIFs Added: {found}")
-        lines.append(f"  Cached (Unchanged): {skipped_cached}")
-        lines.append(f"  Already Set: {skipped_existing}")
-
-        total_processed = found + skipped_cached + skipped_existing
-        lines.append(f"  Total Processed: {total_processed}")
-
-        if stats.get('cancelled'):
-            lines.append("")
-            lines.append("[B]Status: Cancelled[/B]")
-
-    else:
-        lines.append(f"[B]Operation: {operation}[/B]")
-        lines.append(f"Completed: {formatted_time}")
-        lines.append(f"Stats: {stats}")
-
-    return "[CR]".join(lines)
 
 
 def show_notification(
@@ -257,22 +128,9 @@ def show_yesno(
     return xbmcgui.Dialog().yesno(heading, message, **kwargs)
 
 
-def show_yesnocustom(
-    heading: str,
-    message: str,
-    customlabel: str,
-    nolabel: str = "",
-    yeslabel: str = ""
-) -> int:
-    """
-    Show yes/no/custom dialog.
-
-    Returns:
-        0 = No button
-        1 = Yes button
-        2 = Custom button
-        -1 = Cancelled
-    """
+def show_yesnocustom(heading: str, message: str, customlabel: str,
+                     nolabel: str = "", yeslabel: str = "") -> int:
+    """Show yes/no/custom dialog. Returns `0`=No, `1`=Yes, `2`=Custom, `-1`=Cancelled."""
     return xbmcgui.Dialog().yesnocustom(
         heading,
         message,

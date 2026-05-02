@@ -24,28 +24,9 @@ def get_optimal_worker_count() -> int:
 
 
 class WorkerQueue:
-    """
-    Generic multi-threaded worker queue base class.
+    """Multi-threaded worker queue base. Subclasses override `_process_item()` for specific work."""
 
-    Provides thread pool management, queue operations, duplicate prevention,
-    statistics tracking, and progress callbacks. Subclasses override
-    _process_item() to implement specific work logic.
-    """
-
-    def __init__(
-        self,
-        num_workers: Optional[int] = None,
-        abort_flag=None,
-        task_context=None
-    ):
-        """
-        Initialize worker queue.
-
-        Args:
-            num_workers: Number of worker threads (auto-detect if None)
-            abort_flag: Optional AbortFlag to check for cancellation
-            task_context: Optional TaskContext for progress tracking
-        """
+    def __init__(self, num_workers: Optional[int] = None, abort_flag=None, task_context=None):
         self.num_workers = num_workers or get_optimal_worker_count()
         self.abort_flag = abort_flag
         self.task_context = task_context
@@ -80,12 +61,7 @@ class WorkerQueue:
             self.workers.append(worker)
 
     def stop(self, wait: bool = True) -> None:
-        """
-        Stop all worker threads.
-
-        Args:
-            wait: If True, wait for workers to finish current tasks
-        """
+        """Stop workers. `wait=False` clears pending items and interrupts in-flight work."""
         if not self.running:
             return
 
@@ -103,22 +79,11 @@ class WorkerQueue:
         for _ in self.workers:
             self.queue.put(None)
 
-        for i, worker in enumerate(self.workers):
+        for worker in self.workers:
             worker.join(timeout=2.0 if not wait else 5.0)
 
     def add_item(self, item: Any, dedupe_key: Optional[Any] = None) -> bool:
-        """
-        Queue an item for background processing.
-
-        Returns immediately (non-blocking).
-
-        Args:
-            item: Item to process (passed to _process_item)
-            dedupe_key: Optional key for duplicate detection (defaults to item)
-
-        Returns:
-            True if queued, False if already processing
-        """
+        """Queue an item for background processing. Returns False if already queued/processing."""
         if not self.running:
             log("General", f"{self.__class__.__name__} cannot add item, queue not started", xbmc.LOGWARNING)
             return False
@@ -139,15 +104,7 @@ class WorkerQueue:
         return True
 
     def bulk_add_items(self, items: List[Any]) -> int:
-        """
-        Queue multiple items efficiently.
-
-        Args:
-            items: List of items to process
-
-        Returns:
-            Number of items successfully queued
-        """
+        """Queue multiple items. Returns count successfully queued (skips duplicates)."""
         queued = 0
         for item in items:
             if self.add_item(item):
@@ -155,15 +112,7 @@ class WorkerQueue:
         return queued
 
     def wait(self, timeout: Optional[float] = None) -> bool:
-        """
-        Wait for all queued items to complete.
-
-        Args:
-            timeout: Maximum time to wait in seconds (None = wait forever)
-
-        Returns:
-            True if completed, False if timeout
-        """
+        """Block until the queue is empty. Returns False on timeout or Kodi abort."""
         try:
             if timeout:
                 start = time.time()
@@ -181,11 +130,9 @@ class WorkerQueue:
             return False
 
     def get_stats(self) -> Dict:
-        """
-        Get current queue statistics.
+        """Return current queue statistics.
 
-        Returns:
-            Dict with queue stats
+        Keys: `queued, processing, completed, successful, failed, total_queued, num_workers, results`.
         """
         with self.results_lock:
             successful = sum(1 for r in self.results if r.get('success', False))
@@ -203,12 +150,7 @@ class WorkerQueue:
             }
 
     def get_progress(self) -> Dict:
-        """
-        Get progress as percentage.
-
-        Returns:
-            Dict with progress info
-        """
+        """Return `{percent, completed, total}` for the current queue run."""
         if self.total_queued == 0:
             return {'percent': 0, 'completed': 0, 'total': 0}
 
@@ -222,12 +164,7 @@ class WorkerQueue:
         }
 
     def _worker(self, worker_id: int) -> None:
-        """
-        Background worker thread.
-
-        Args:
-            worker_id: Worker thread ID
-        """
+        """Worker thread loop: pull from queue, hand off to `_run_item`, repeat."""
         monitor = xbmc.Monitor()
 
         while self.running:
@@ -238,97 +175,80 @@ class WorkerQueue:
                 item = self.queue.get(timeout=0.1)
                 if item is None:
                     break
-
-                item_data, dedupe_key, start_time = item
-
-                if monitor.abortRequested() or (self.abort_flag and self.abort_flag.is_requested()):
-                    with self.processing_lock:
-                        self.processing_set.discard(dedupe_key)
-                    self.queue.task_done()
+                if not self._run_item(item, worker_id, monitor):
                     break
-
-                try:
-                    result = self._process_item(item_data, worker_id)
-
-                    if result is None:
-                        result = {}
-
-                    result['success'] = result.get('success', True)
-                    result['elapsed'] = time.time() - start_time
-                    result['worker'] = worker_id
-
-                    with self.results_lock:
-                        self.results.append(result)
-
-                    self._on_item_complete(item_data, result)
-
-                except Exception as e:
-                    elapsed = time.time() - start_time
-
-                    result = {
-                        'success': False,
-                        'elapsed': elapsed,
-                        'worker': worker_id,
-                        'error': str(e)
-                    }
-
-                    with self.results_lock:
-                        self.results.append(result)
-
-                    log("General", f"{self.__class__.__name__} worker {worker_id} error: {str(e)}", xbmc.LOGWARNING)
-
-                    self._on_item_complete(item_data, result)
-
-                finally:
-                    with self.processing_lock:
-                        self.processing_set.discard(dedupe_key)
-
-                    self.queue.task_done()
-
-                    if self.task_context:
-                        self.task_context.mark_progress()
-
             except Empty:
                 continue
             except Exception as e:
                 log("General", f"{self.__class__.__name__} worker {worker_id} unexpected error: {str(e)}", xbmc.LOGERROR)
 
+    def _run_item(self, item: tuple, worker_id: int, monitor: xbmc.Monitor) -> bool:
+        """Process one queued item, record result, fire callbacks, clean up.
+
+        Returns False if processing was aborted before _process_item ran (caller breaks out
+        of the worker loop). Returns True otherwise, including on _process_item exceptions.
+        """
+        item_data, dedupe_key, start_time = item
+
+        if monitor.abortRequested() or (self.abort_flag and self.abort_flag.is_requested()):
+            with self.processing_lock:
+                self.processing_set.discard(dedupe_key)
+            self.queue.task_done()
+            return False
+
+        try:
+            result = self._process_item(item_data, worker_id)
+
+            if result is None:
+                result = {}
+
+            result['success'] = result.get('success', True)
+            result['elapsed'] = time.time() - start_time
+            result['worker'] = worker_id
+
+            with self.results_lock:
+                self.results.append(result)
+
+            self._on_item_complete(item_data, result)
+
+        except Exception as e:
+            result = {
+                'success': False,
+                'elapsed': time.time() - start_time,
+                'worker': worker_id,
+                'error': str(e),
+            }
+
+            with self.results_lock:
+                self.results.append(result)
+
+            log("General", f"{self.__class__.__name__} worker {worker_id} error: {str(e)}", xbmc.LOGWARNING)
+
+            self._on_item_complete(item_data, result)
+
+        finally:
+            with self.processing_lock:
+                self.processing_set.discard(dedupe_key)
+
+            self.queue.task_done()
+
+            if self.task_context:
+                self.task_context.mark_progress()
+
+        return True
+
     def _process_item(self, item: Any, worker_id: int) -> Optional[Dict]:
-        """
-        Process a single item (OVERRIDE IN SUBCLASS).
-
-        Args:
-            item: Item to process
-            worker_id: ID of worker processing the item
-
-        Returns:
-            Dict with result info (must include 'success' key)
-        """
+        """Override in subclass. Return a result dict (must include `success`)."""
         raise NotImplementedError("Subclasses must implement _process_item()")
 
     def _on_start(self) -> None:
-        """Called when queue starts (OPTIONAL OVERRIDE)."""
+        """Optional subclass hook: called once when `start()` spins up workers."""
         pass
 
     def _should_process_item(self, item: Any, dedupe_key: Any) -> bool:
-        """
-        Check if item should be processed (OPTIONAL OVERRIDE).
-
-        Args:
-            item: Item to check
-            dedupe_key: Deduplication key
-
-        Returns:
-            True if item should be processed
-        """
+        """Optional subclass hook: return False to skip queuing an item."""
         return True
 
     def _on_item_complete(self, item: Any, result: Dict) -> None:
-        """
-        Called when item processing completes (OPTIONAL OVERRIDE).
-
-        Args:
-            item: Completed item
-            result: Result dict
-        """
+        """Optional subclass hook: called after every item (success or failure)."""
         pass

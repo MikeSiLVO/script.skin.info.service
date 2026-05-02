@@ -12,7 +12,7 @@ from typing import Optional, List, Sequence
 from lib.data import database as db
 from lib.kodi.client import request, get_item_details, KODI_SET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utils import get_preferred_language_code, normalize_language_tag
+from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
 from lib.artwork.utilities import compare_art_quality, sort_artwork_by_popularity
 from lib.data.api.tmdb import ApiTmdb
 from lib.data.api.fanarttv import ApiFanarttv
@@ -25,11 +25,7 @@ DEFAULT_BATCH_SIZE = 100
 
 
 class ArtworkAuto:
-    """
-    Process queue and apply artwork automatically.
-
-    Already optimized: Uses fetch_all() to get ALL art types in one API call.
-    """
+    """Process queue and apply artwork automatically."""
 
     def __init__(
         self,
@@ -38,17 +34,8 @@ class ArtworkAuto:
         source_fetcher: Optional[ApiArtworkFetcher] = None,
         enable_download: bool = False,
     ):
-        """
-        Initialize processor.
-
-        Args:
-            use_background: Use DialogProgressBG for bulk operations (True) or DialogProgress for single items (False)
-            mode: Processing behaviour (full | missing_only). 'missing_only' applies language safeguards.
-            source_fetcher: Optional artwork fetcher (for testing/injection)
-            enable_download: If True, download artwork to filesystem after applying to library
-        """
         self.progress = ProgressDialog(use_background=use_background, heading=ADDON.getLocalizedString(32072))
-        self.progress.enable_throttling(min_items=5)
+        self.progress.enable_throttling()
         self.cancelled = False
         self.total_items = 0  # Track original total
         self.mode = mode if mode in ('full', 'missing_only') else 'full'
@@ -75,12 +62,7 @@ class ArtworkAuto:
         return self.progress.is_cancelled()
 
     def _filter_candidates_for_mode(self, art_type: str, candidates: List[dict]) -> List[dict]:
-        """
-        Apply language policy filters when running in missing-only mode.
-
-        Returns:
-            List of artwork dicts that satisfy the configured language requirements.
-        """
+        """Filter candidates by preferred language when running in missing-only mode."""
         if self.mode != 'missing_only' or not candidates:
             return candidates
 
@@ -220,19 +202,7 @@ class ArtworkAuto:
             db.update_queue_status(queue_item['id'], 'error')
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "", artwork_type: str = "") -> bool:
-        """
-        Apply artwork to library item and optionally download to filesystem.
-
-        Args:
-            media_type: Media type ('movie', 'tvshow', etc.)
-            dbid: Database ID
-            art_dict: Dictionary of artwork to apply
-            title: Media title (for download logging)
-            artwork_type: Artwork type (for download)
-
-        Returns:
-            True if successfully applied to library
-        """
+        """Apply artwork to library item and optionally download to filesystem."""
         if media_type not in KODI_SET_DETAILS_METHODS:
             return False
 
@@ -259,16 +229,7 @@ class ArtworkAuto:
             return False
 
     def _download_artwork(self, media_type: str, dbid: int, artwork_type: str, url: str, title: str) -> None:
-        """
-        Download artwork to filesystem after applying to library.
-
-        Args:
-            media_type: Media type ('movie', 'tvshow', etc.)
-            dbid: Database ID
-            artwork_type: Artwork type ('poster', 'fanart', etc.)
-            url: Artwork URL
-            title: Media title (for logging)
-        """
+        """Download artwork to filesystem after applying to library."""
         try:
             from lib.kodi.client import KODI_GET_DETAILS_METHODS
             from lib.download.artwork import DownloadArtwork
@@ -294,7 +255,6 @@ class ArtworkAuto:
 
             media_file = item.get("file", "")
             season = item.get("season")
-            episode = item.get("episode")
 
             if not media_file and media_type not in ('season', 'tvshow', 'set', 'artist', 'album'):
                 log("Artwork", f"No file path for {media_type} '{title}', skipping download")
@@ -306,7 +266,6 @@ class ArtworkAuto:
                 media_file=media_file,
                 artwork_type=artwork_type,
                 season_number=season,
-                episode_number=episode,
                 use_basename=True
             )
 
@@ -321,9 +280,7 @@ class ArtworkAuto:
             downloader = DownloadArtwork()
             success, error, bytes_downloaded = downloader.download_artwork(
                 url=url,
-                local_path=local_path,
-                artwork_type=artwork_type,
-                existing_file_mode=existing_file_mode
+                local_path=local_path,                existing_file_mode=existing_file_mode
             )
 
             if success:
@@ -335,12 +292,7 @@ class ArtworkAuto:
             log("Artwork", f"Error downloading artwork: {str(e)}", xbmc.LOGWARNING)
 
     def _update_progress(self, force: bool = False) -> None:
-        """
-        Update progress dialog (throttled for performance).
-
-        Args:
-            force: Force update even if throttle hasn't elapsed
-        """
+        """Update progress dialog (throttled for performance)."""
         if self.total_items > 0:
             percent = int((self.stats['processed'] / self.total_items) * 100)
         else:

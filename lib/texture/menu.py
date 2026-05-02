@@ -8,30 +8,23 @@ from typing import Optional, List, Union, Dict, Any
 
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
-from lib.infrastructure.dialogs import format_operation_report, show_ok, show_textviewer
+from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog
 from lib.infrastructure.menus import confirm_cancel_running_task
+
+_RESUME_HINT = "[B]CANCEL TO RESUME LATER[/B]"
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.texture.cache import (
-    get_cached_textures,
-    remove_texture,
     precache_library_artwork,
     precache_and_download_artwork,
     cleanup_orphaned_textures,
 )
+from lib.texture.library import get_cached_textures, remove_texture
 from lib.texture.stats import calculate_texture_statistics, format_statistics_report
 
 
 def run_texture_maintenance() -> None:
-    """
-    Show texture cache manager menu and execute selected operations.
-
-    Available operations:
-    - Pre-Cache Library Artwork: Cache all library artwork not yet cached
-    - Cleanup Textures: Remove orphaned/old/unused textures
-    - Statistics & Info: View texture cache statistics
-    - View Last Report: Show stats from last completed operation
-    """
+    """Show the texture cache manager menu (precache, cleanup, stats, last report)."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     init_database()
@@ -119,7 +112,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
     """Execute the actual precache operation."""
     from lib.infrastructure import tasks as task_manager
 
-    progress: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None
+    progress: Optional[ProgressDialog] = None
     dialog = xbmcgui.Dialog()
 
     operation_name = ADDON.getLocalizedString(32455)
@@ -145,12 +138,12 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
                     monitor.waitForAbort(0.1)
 
         with task_manager.TaskContext(operation_name) as ctx:
-            if use_background:
-                progress = xbmcgui.DialogProgressBG()
-                progress.create(operation_name, ADDON.getLocalizedString(32336))
-            else:
-                progress = xbmcgui.DialogProgress()
-                progress.create(operation_name, ADDON.getLocalizedString(32336))
+            progress = ProgressDialog(
+                use_background=use_background,
+                heading=operation_name,
+                fg_message_prefix=_RESUME_HINT,
+            )
+            progress.create(ADDON.getLocalizedString(32336))
 
             if enable_download:
                 stats = precache_and_download_artwork(progress_dialog=progress, media_types=selected_types, task_context=ctx)
@@ -268,7 +261,7 @@ def _execute_standard_cleanup(use_background: bool) -> None:
     """Execute standard cleanup with selected mode."""
     from lib.infrastructure import tasks as task_manager
 
-    progress: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None
+    progress: Optional[ProgressDialog] = None
     dialog = xbmcgui.Dialog()
 
     try:
@@ -292,12 +285,11 @@ def _execute_standard_cleanup(use_background: bool) -> None:
                     monitor.waitForAbort(0.1)
 
         with task_manager.TaskContext(ADDON.getLocalizedString(32334)) as ctx:
-            if use_background:
-                progress = xbmcgui.DialogProgressBG()
-                progress.create(ADDON.getLocalizedString(32334), ADDON.getLocalizedString(32335))
-            else:
-                progress = xbmcgui.DialogProgress()
-                progress.create(ADDON.getLocalizedString(32334), ADDON.getLocalizedString(32335))
+            progress = ProgressDialog(
+                use_background=use_background,
+                heading=ADDON.getLocalizedString(32334),
+            )
+            progress.create(ADDON.getLocalizedString(32335))
             stats = cleanup_orphaned_textures(progress_dialog=progress, media_types=None, task_context=ctx)
             progress.close()
 
@@ -366,22 +358,11 @@ def _handle_stats() -> None:
         dialog.ok(ADDON.getLocalizedString(32180), f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
 
-def cleanup_textures_by_age(
-    age_days: int,
-    progress_dialog: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None,
-    task_context: Optional[Any] = None
-) -> Dict[str, int]:
-    """
-    Remove textures not used in specified number of days.
-
-    Args:
-        age_days: Remove textures not used in this many days
-        progress_dialog: Optional progress dialog
-        task_context: Optional task context for cancellation
-
-    Returns:
-        Dict with stats: total_textures, old_textures, removed, failed, cancelled
-    """
+def cleanup_textures_by_age(age_days: int,
+                            progress_dialog: Optional[Union[xbmcgui.DialogProgress,
+                                                            xbmcgui.DialogProgressBG]] = None,
+                            task_context: Optional[Any] = None) -> Dict[str, int]:
+    """Remove cached textures unused in the last `age_days`. Returns counts."""
     from datetime import datetime, timedelta
 
     stats = {
@@ -562,13 +543,13 @@ def _execute_age_cleanup(age_days: int) -> None:
     from lib.infrastructure.menus import Menu, MenuItem
 
     menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), lambda: _execute_age_cleanup_with_mode(old_textures, age_days, False)),
-        MenuItem(ADDON.getLocalizedString(32412), lambda: _execute_age_cleanup_with_mode(old_textures, age_days, True)),
+        MenuItem(ADDON.getLocalizedString(32411), lambda: _execute_age_cleanup_with_mode(age_days, False)),
+        MenuItem(ADDON.getLocalizedString(32412), lambda: _execute_age_cleanup_with_mode(age_days, True)),
     ])
     return menu.show()
 
 
-def _execute_age_cleanup_with_mode(old_textures: List[Dict], age_days: int, use_background: bool) -> None:
+def _execute_age_cleanup_with_mode(age_days: int, use_background: bool) -> None:
     """Execute age cleanup with selected mode."""
     from lib.infrastructure import tasks as task_manager
 
@@ -670,6 +651,48 @@ def _handle_pattern_cleanup() -> None:
     )
 
 
+def _format_completed_time(timestamp: str) -> str:
+    """Best-effort ISO-string to `YYYY-MM-DD HH:MM`. Returns the input on parse failure."""
+    try:
+        return datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M')
+    except (ValueError, TypeError):
+        return timestamp
+
+
+def _format_precache_report(stats: dict, timestamp: str) -> str:
+    """Format a `texture_precache` operation result for textviewer display."""
+    lines = [
+        "[B]Operation: Pre-Cache Library Artwork[/B]",
+        f"Completed: {_format_completed_time(timestamp)}",
+        f"Cached: {stats.get('cached_count', 0)}/{stats.get('total_count', 0)} ({stats.get('new_count', 0)} new)",
+    ]
+    failed = stats.get('failed_count', 0)
+    if failed > 0:
+        lines.append(f"Failed: {failed}")
+    if stats.get('cancelled'):
+        lines.append("[B]Status: Cancelled[/B]")
+    return "[CR]".join(lines)
+
+
+def _format_cleanup_report(stats: dict, timestamp: str) -> str:
+    """Format a `texture_cleanup` operation result for textviewer display."""
+    lines = [
+        "[B]Operation: Clean Orphaned Textures[/B]",
+        f"Completed: {_format_completed_time(timestamp)}",
+        f"Cached: {stats.get('cached_count', 0)}/{stats.get('total_count', 0)} in library",
+        f"Removed: {stats.get('removed_count', 0)}/{stats.get('orphaned_count', 0)} orphaned",
+    ]
+    if stats.get('cancelled'):
+        lines.append("[B]Status: Cancelled[/B]")
+    return "[CR]".join(lines)
+
+
+_REPORT_FORMATTERS = {
+    'texture_precache': _format_precache_report,
+    'texture_cleanup': _format_cleanup_report,
+}
+
+
 def _show_last_report() -> None:
     """Show last operation report."""
     precache_stats = get_last_operation_stats('texture_precache')
@@ -686,14 +709,13 @@ def _show_last_report() -> None:
         last_stats = cleanup_stats
 
     if last_stats:
-        report_text = format_operation_report(
-            last_stats['operation'],
-            last_stats['stats'],
-            last_stats['timestamp']
-        )
-        show_textviewer(ADDON.getLocalizedString(32488), report_text)
-    else:
-        show_ok(
-            ADDON.getLocalizedString(32086),
-            ADDON.getLocalizedString(32489)
-        )
+        formatter = _REPORT_FORMATTERS.get(last_stats['operation'])
+        if formatter:
+            report_text = formatter(last_stats['stats'], last_stats['timestamp'])
+            show_textviewer(ADDON.getLocalizedString(32488), report_text)
+            return
+
+    show_ok(
+        ADDON.getLocalizedString(32086),
+        ADDON.getLocalizedString(32489)
+    )

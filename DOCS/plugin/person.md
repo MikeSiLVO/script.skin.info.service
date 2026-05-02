@@ -150,22 +150,26 @@ Window properties on Home window:
 
 **On success:**
 
-| Property                         | Description                   |
-|----------------------------------|-------------------------------|
-| `SkinInfo.person_id`             | TMDB person ID                |
-| `SkinInfo.Person.Details`        | Plugin path for details       |
-| `SkinInfo.Person.Images`         | Plugin path for images        |
-| `SkinInfo.Person.Filmography`    | Plugin path for filmography   |
-| `SkinInfo.Person.Crew`           | Plugin path for crew credits  |
-| `SkinInfo.Person.LibraryMovies`  | Plugin path for library movies|
-| `SkinInfo.Person.LibraryTVShows` | Plugin path for library shows |
-| `SkinInfo.Person.BlurredImage`   | Blurred profile image path    |
+| Property                         | Value                                                                                              |
+|----------------------------------|----------------------------------------------------------------------------------------------------|
+| `SkinInfo.person_id`             | `<TMDB person ID>`                                                                                 |
+| `SkinInfo.Person.Details`        | `plugin://script.skin.info.service/?action=person_info&info_type=details&person_id=N`              |
+| `SkinInfo.Person.Images`         | `plugin://script.skin.info.service/?action=person_info&info_type=images&person_id=N`               |
+| `SkinInfo.Person.Filmography`    | `plugin://script.skin.info.service/?action=person_info&info_type=filmography&person_id=N`          |
+| `SkinInfo.Person.Crew`           | `plugin://script.skin.info.service/?action=person_info&info_type=crew&person_id=N`                 |
+| `SkinInfo.Person.LibraryMovies`  | `plugin://script.skin.info.service/?action=person_library&info_type=movies&person_name=<encoded>`  |
+| `SkinInfo.Person.LibraryTVShows` | `plugin://script.skin.info.service/?action=person_library&info_type=tvshows&person_name=<encoded>` |
+| `SkinInfo.Person.BlurredImage`   | `<blurred profile image path>`                                                                     |
+
+Skinners typically reference these via `$INFO[Window(Home).Property(SkinInfo.Person.Crew)]`
+in `<content>` tags, but the raw paths above can also be hand-built when you need to add
+filter params (e.g. `&sort=date_desc&job=Director` on the Crew URL — see Plugin Endpoints below).
 
 **On failure (auto_search=false):**
 
-| Property                      | Description                        |
-|-------------------------------|------------------------------------|
-| `SkinInfo.Person.SearchQuery` | RunScript command for manual search|
+| Property                      | Value                                |
+|-------------------------------|--------------------------------------|
+| `SkinInfo.Person.SearchQuery` | `<RunScript command for manual search>` |
 
 ---
 
@@ -292,17 +296,17 @@ Acting credits with filtering options.
 
 ### Filmography Properties
 
-| Property      | Description      |
-|---------------|------------------|
-| `Title`       | Title            |
-| `Character`   | Character name   |
-| `MediaType`   | "movie" or "tv"  |
-| `Year`        | Release year     |
-| `Rating`      | TMDB rating      |
-| `Votes`       | Vote count       |
-| `Overview`    | Plot summary     |
-| `ReleaseDate` | Release date     |
-| `Popularity`  | Popularity score |
+| Property      | Description                                                |
+|---------------|------------------------------------------------------------|
+| `Title`       | Title                                                      |
+| `Role`        | Character name (also set as `ListItem.Label2`)             |
+| `MediaType`   | "movie" or "tv"                                            |
+| `Year`        | Release year                                               |
+| `Rating`      | TMDB rating                                                |
+| `Votes`       | Vote count                                                 |
+| `Overview`    | Plot summary                                               |
+| `ReleaseDate` | Release date                                               |
+| `Popularity`  | Popularity score                                           |
 
 ### Filmography Artwork
 
@@ -312,7 +316,9 @@ Acting credits with filtering options.
 
 ## Crew Container
 
-Crew credits with same filtering options as filmography.
+Crew credits with same filtering options as filmography. By default, items where the
+person held multiple roles (e.g. directed AND wrote the same movie) appear once with
+all roles aggregated into the `Job` property as a comma-separated string.
 
 ```xml
 <content target="videos">
@@ -332,14 +338,28 @@ Crew credits with same filtering options as filmography.
   &amp;limit=50</content>
 ```
 
+### Crew Filter Parameters
+
+All filmography parameters apply (`dbtype`, `sort`, `min_votes`, `exclude_unreleased`,
+`limit`) plus:
+
+| Parameter | Values                                          | Description                                                |
+|-----------|-------------------------------------------------|------------------------------------------------------------|
+| `job`     | `Director`, `Writer`, `Producer`, `Creator`, ... | Show only items where the person held this exact job (case-insensitive). When set, dedupe is skipped because each item has at most one entry per job. |
+
+Example — only items Ivan Reitman directed:
+```
+&amp;info_type=crew&amp;person_id=8858&amp;job=Director
+```
+
 ### Crew Properties
 
 Same as filmography plus:
 
-| Property     | Description |
-|--------------|-------------|
-| `Job`        | Job title   |
-| `Department` | Department  |
+| Property     | Description                                                              |
+|--------------|--------------------------------------------------------------------------|
+| `Job`        | Job title (or comma-separated list when an item has multiple roles)      |
+| `Department` | Department of the first credit (`Directing`, `Writing`, `Production`...) |
 
 ---
 
@@ -398,6 +418,22 @@ Plugin paths for directors, writers, or creators.
 
 ---
 
+## Library Containers (LibraryMovies / LibraryTVShows)
+
+The `?action=person_library&info_type=movies` and `&info_type=tvshows`
+plugin paths return Kodi library items where the person appears in cast.
+Each ListItem additionally has:
+
+| Property      | Description                                          |
+|---------------|------------------------------------------------------|
+| `Role`        | Character name from the item's cast (also `Label2`)  |
+
+The role is resolved from the `cast` field of the matching library item.
+When the actor's role isn't available (no role string in cast metadata),
+the property is omitted and `Label2` stays empty.
+
+---
+
 ## Example Implementation
 
 ```xml
@@ -434,7 +470,7 @@ Plugin paths for directors, writers, or creators.
         <itemlayout>
             <control type="label">
                 <label>$INFO[ListItem.Title] ($INFO[ListItem.Year])
-                  - $INFO[ListItem.Property(Character)]</label>
+                  - $INFO[ListItem.Property(Role)]</label>
             </control>
         </itemlayout>
     </control>

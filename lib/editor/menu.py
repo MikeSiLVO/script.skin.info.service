@@ -29,7 +29,7 @@ from lib.editor.handlers import (
 from lib.editor.operations import get_item_for_editing, save_field
 from lib.editor.utilities import (
     format_duration_for_edit,
-    format_runtime_value_for_display,
+    format_runtime_display,
     format_value_for_display,
 )
 
@@ -99,7 +99,7 @@ def _show_main_menu(
             field_type = field_def["field_type"]
 
             if field == "runtime":
-                value_display = format_runtime_value_for_display(current or 0)
+                value_display = format_runtime_display(current or 0)
             elif field == "duration":
                 value_display = format_duration_for_edit(current or 0)
             else:
@@ -124,6 +124,35 @@ def _show_main_menu(
         last_selected = menu._last_selected_idx or 0
 
 
+# Per-field overrides for INTEGER fields that need a specialized handler.
+_INTEGER_FIELD_OVERRIDES = {
+    "runtime": lambda dn, cur, _mt, _f: handle_runtime(dn, cur),
+    "duration": lambda dn, cur, _mt, _f: handle_duration(dn, cur),
+    "year": lambda dn, cur, _mt, _f: handle_integer(dn, cur, validator="year"),
+    "top250": lambda dn, cur, _mt, _f: handle_integer(dn, cur, validator="top250"),
+}
+
+
+def _dispatch_integer(display_name: str, current, media_type: str, field: str):
+    handler = _INTEGER_FIELD_OVERRIDES.get(field)
+    if handler:
+        return handler(display_name, current, media_type, field)
+    return handle_integer(display_name, current)
+
+
+_FIELD_TYPE_HANDLERS = {
+    FieldType.TEXT:       lambda dn, cur, _mt, _f: handle_text(dn, cur),
+    FieldType.TEXT_LONG:  lambda dn, cur, _mt, _f: handle_text(dn, cur),
+    FieldType.INTEGER:    _dispatch_integer,
+    FieldType.NUMBER:     lambda dn, cur, _mt, _f: handle_integer(dn, cur),
+    FieldType.DATE:       lambda dn, cur, _mt, _f: handle_date(dn, cur),
+    FieldType.LIST:       lambda dn, cur, mt, f: handle_list(dn, cur, mt, f),
+    FieldType.USERRATING: lambda dn, cur, _mt, _f: handle_userrating(dn, cur),
+    FieldType.RATINGS:    lambda dn, cur, _mt, _f: handle_ratings(dn, cur),
+    FieldType.STATUS:     lambda dn, cur, _mt, _f: handle_status(dn, cur),
+}
+
+
 def _edit_field(
     dbid: int, media_type: str, item: dict[str, Any], field: str
 ) -> bool:
@@ -136,48 +165,12 @@ def _edit_field(
     display_name = field_def["display_name"]
     field_type = field_def["field_type"]
 
-    new_value: Any
-    cancelled: bool
-
-    if field_type == FieldType.TEXT:
-        new_value, cancelled = handle_text(display_name, current)
-
-    elif field_type == FieldType.TEXT_LONG:
-        new_value, cancelled = handle_text(display_name, current)
-
-    elif field_type == FieldType.INTEGER:
-        if field == "runtime":
-            new_value, cancelled = handle_runtime(display_name, current)
-        elif field == "duration":
-            new_value, cancelled = handle_duration(display_name, current)
-        elif field == "year":
-            new_value, cancelled = handle_integer(display_name, current, validator="year")
-        elif field == "top250":
-            new_value, cancelled = handle_integer(display_name, current, validator="top250")
-        else:
-            new_value, cancelled = handle_integer(display_name, current)
-
-    elif field_type == FieldType.NUMBER:
-        new_value, cancelled = handle_integer(display_name, current)
-
-    elif field_type == FieldType.DATE:
-        new_value, cancelled = handle_date(display_name, current)
-
-    elif field_type == FieldType.LIST:
-        new_value, cancelled = handle_list(display_name, current, media_type, field)
-
-    elif field_type == FieldType.USERRATING:
-        new_value, cancelled = handle_userrating(display_name, current)
-
-    elif field_type == FieldType.RATINGS:
-        new_value, cancelled = handle_ratings(display_name, current)
-
-    elif field_type == FieldType.STATUS:
-        new_value, cancelled = handle_status(display_name, current)
-
-    else:
+    handler = _FIELD_TYPE_HANDLERS.get(field_type)
+    if not handler:
         show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32250), xbmcgui.NOTIFICATION_WARNING)
         return True
+
+    new_value, cancelled = handler(display_name, current, media_type, field)
 
     if cancelled:
         return True

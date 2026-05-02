@@ -9,7 +9,7 @@ from lib.data.api.client import ApiSession
 from lib.data.api.source import RatingSource
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
-from lib.kodi.client import _get_api_key, log
+from lib.kodi.client import get_api_key, log
 from lib.kodi.formatters import RT_SOURCE_TOMATOES, RT_SOURCE_POPCORN
 
 
@@ -20,7 +20,7 @@ class ApiOmdb(RatingSource):
 
     def __init__(self):
         super().__init__("omdb")
-        self.api_key = _get_api_key("omdb_api_key")
+        self.api_key = get_api_key("omdb_api_key")
         self.session = ApiSession(
             service_name="OMDb",
             base_url=self.BASE_URL,
@@ -30,17 +30,7 @@ class ApiOmdb(RatingSource):
         )
 
     def fetch_data(self, imdb_id: str, abort_flag=None, force_refresh: bool = False) -> Optional[dict]:
-        """
-        Fetch complete OMDb data for an item.
-
-        Args:
-            imdb_id: IMDb ID (e.g., "tt0111161")
-            abort_flag: Optional abort flag for cancellation
-            force_refresh: If True, bypass cache read but still write to cache
-
-        Returns:
-            Full OMDb response dict or None
-        """
+        """Fetch complete OMDb data for an item. force_refresh bypasses cache read but still writes."""
         if not self.api_key:
             return None
 
@@ -53,8 +43,6 @@ class ApiOmdb(RatingSource):
                 return cached
 
         try:
-            usage_tracker.increment_usage("omdb")
-
             data = self.session.get(
                 "/",
                 params={"i": imdb_id, "apikey": self.api_key, "tomatoes": "true"},
@@ -83,15 +71,7 @@ class ApiOmdb(RatingSource):
             return None
 
     def get_omdb_data(self, imdb_id: str) -> Optional[dict]:
-        """
-        Get full cached OMDb response.
-
-        Args:
-            imdb_id: IMDb ID
-
-        Returns:
-            Full cached OMDb response or None
-        """
+        """Get full cached OMDb response."""
         return self.get_cached_data(imdb_id)
 
     def fetch_ratings(
@@ -99,42 +79,28 @@ class ApiOmdb(RatingSource):
         media_type: str,
         ids: Dict[str, str],
         abort_flag=None,
-        force_refresh: bool = False
+        force_refresh: bool = False,
+        pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """
-        Fetch ratings from OMDb (required by RatingSource interface).
-
-        Args:
-            media_type: Type of media ("movie", "tvshow", "episode")
-            ids: Dictionary of available IDs (must contain "imdb" or "imdb_episode" for episodes)
-            abort_flag: Optional abort flag for cancellation
-            force_refresh: If True, bypass cache read but still write to cache
-
-        Returns:
-            Dictionary with normalized ratings
-        """
+        """Fetch ratings from OMDb (RatingSource interface). ids must contain 'imdb'."""
         if media_type == "episode":
             return None
         imdb_id = ids.get("imdb")
         if not imdb_id:
             return None
 
-        data = self.fetch_data(imdb_id, abort_flag, force_refresh=force_refresh)
-        if not data:
-            return None
+        self.session.set_pause_context(pause_reporter, self.provider_name)
+        try:
+            data = self.fetch_data(imdb_id, abort_flag, force_refresh=force_refresh)
+            if not data:
+                return None
 
-        return self._extract_ratings(data)
+            return self._extract_ratings(data)
+        finally:
+            self.session.clear_pause_context()
 
     def get_ratings(self, imdb_id: str) -> Optional[Dict[str, Dict[str, float]]]:
-        """
-        Extract ratings from cached OMDb data.
-
-        Args:
-            imdb_id: IMDb ID
-
-        Returns:
-            Dictionary with normalized ratings
-        """
+        """Extract ratings from cached OMDb data."""
         data = self.get_omdb_data(imdb_id)
         if not data:
             return None
@@ -142,16 +108,7 @@ class ApiOmdb(RatingSource):
         return self._extract_ratings(data)
 
     def get_awards(self, imdb_id: str, abort_flag=None) -> Optional[dict]:
-        """
-        Extract awards data from OMDb (fetches if not cached).
-
-        Args:
-            imdb_id: IMDb ID
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dictionary with awards data
-        """
+        """Extract awards data from OMDb (fetches if not cached)."""
         data = self.get_omdb_data(imdb_id)
         if not data:
             data = self.fetch_data(imdb_id, abort_flag)
@@ -243,16 +200,7 @@ class ApiOmdb(RatingSource):
         return result
 
     def _parse_awards(self, awards_string: str, media_type: str) -> dict:
-        """
-        Parse OMDb Awards field into structured data.
-
-        Args:
-            awards_string: Raw awards text from OMDb
-            media_type: "movie" or "series"
-
-        Returns:
-            Dictionary with parsed awards counts
-        """
+        """Parse OMDb Awards field into structured data."""
         result = {
             "oscar_wins": 0,
             "oscar_nominations": 0,

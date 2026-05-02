@@ -8,11 +8,7 @@ DEFAULT_EXTENSION = ".jpg"
 
 
 def sanitize_actor_filename(name: str, extension: str = DEFAULT_EXTENSION) -> str:
-    """
-    Convert actor name to Kodi-compatible filename.
-
-    Matches Kodi's GetSafeFile() behavior from VideoDatabase.cpp.
-    """
+    """Convert actor name to Kodi-compatible filename, matching Kodi's GetSafeFile()."""
     filename = name.replace(" ", "_")
 
     for char in ILLEGAL_CHARS_ALL:
@@ -27,11 +23,7 @@ def sanitize_actor_filename(name: str, extension: str = DEFAULT_EXTENSION) -> st
 
 
 def upgrade_tmdb_image_url(url: str) -> str:
-    """
-    Upgrade TMDB image URL to original quality.
-
-    Replaces w185/w300/w500 with original for full resolution.
-    """
+    """Upgrade TMDB image URL to original quality."""
     if not url or "image.tmdb.org" not in url:
         return url
 

@@ -50,26 +50,8 @@ def _rotate_log_files() -> None:
         xbmcvfs.rename(LOG_FILE, LOG_FILE_PREVIOUS)
 
 
-def write_download_log(
-    report_text: str,
-    scope: str,
-    total_jobs: int,
-    stats: Dict,
-    mismatch_counts: Optional[Dict[str, int]] = None
-) -> Optional[str]:
-    """
-    Write download report to log file with 2-file rotation.
-
-    Args:
-        report_text: Full report text from _show_download_report
-        scope: Download scope
-        total_jobs: Total number of jobs
-        stats: Statistics dict
-        mismatch_counts: Optional mismatch counts
-
-    Returns:
-        Log file path if successful, None if failed
-    """
+def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[str]:
+    """Write the download report to disk with 2-file rotation. Returns log path on success."""
     try:
         _ensure_log_directory()
         _rotate_log_files()
@@ -105,7 +87,7 @@ def write_download_log(
                         after_folders = ""
 
                         if "[B]Filename Pattern Mismatches" in report_parts[1]:
-                            folder_part, mismatch_part = report_parts[1].split("[B]Filename Pattern Mismatches", 1)
+                            _, mismatch_part = report_parts[1].split("[B]Filename Pattern Mismatches", 1)
                             after_folders = "\n\n[B]Filename Pattern Mismatches" + mismatch_part
 
                         report_text = before_folders + truncated_text + "\n".join(folder_lines) + after_folders
@@ -139,15 +121,7 @@ def _resolve_album_folders(album_ids: List[int]) -> Dict[int, str]:
 
 
 def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any]]:
-    """
-    Query Kodi library for items with artwork and file paths.
-
-    Args:
-        media_types: List of media types to query ('movie', 'tvshow', etc.)
-
-    Returns:
-        List of item dicts with keys: dbid, media_type, title, file, art
-    """
+    """Query Kodi library and return items carrying artwork as `{dbid, media_type, title, file, art}`."""
     def has_artwork(item: Dict[str, Any]) -> bool:
         art = item.get('art', {})
         return bool(art and isinstance(art, dict))
@@ -201,21 +175,13 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
         return []
 
 
-def build_download_jobs(
-    items: List[Dict[str, Any]],
-    existing_file_mode: str = 'skip'
-) -> Tuple[List[Tuple[str, str, str, str, Optional[str], str]], Dict[str, int]]:
-    """
-    Build download job list from library items.
+def build_download_jobs(items: List[Dict[str, Any]]
+                        ) -> Tuple[List[Tuple[str, str, str, str, Optional[str], str]], Dict[str, int]]:
+    """Build download jobs and per-type mismatch counters.
 
-    Args:
-        items: Library items from get_library_items_for_download()
-        existing_file_mode: How to handle existing files
-
-    Returns:
-        Tuple of (jobs, mismatch_stats):
-        - jobs: List of (url, local_path, artwork_type, title, alternate_path, media_type) tuples
-        - mismatch_stats: Dict with mismatch counts per media type
+    Jobs are `(url, local_path, art_type, title, alternate_path, media_type)` tuples.
+    Mismatch keys: `{movie,mvid}_{basename,folder}_to_{other}`. Each increments when
+    an existing file under the opposite naming convention is detected.
     """
     log("Artwork", f"Building download jobs from {len(items)} library items", xbmc.LOGDEBUG)
     jobs = []
@@ -267,7 +233,6 @@ def build_download_jobs(
                 media_file=file_path,
                 artwork_type=art_type,
                 season_number=item.get('season'),
-                episode_number=item.get('episode'),
                 use_basename=use_basename,
                 mbid=mbid
             )
@@ -284,7 +249,6 @@ def build_download_jobs(
                     media_file=file_path,
                     artwork_type=art_type,
                     season_number=item.get('season'),
-                    episode_number=item.get('episode'),
                     use_basename=not use_basename
                 )
 
@@ -311,20 +275,11 @@ def build_download_jobs(
     return jobs, mismatch_counts
 
 
-def download_scope_artwork(
-    scope: str,
-    media_filter: Optional[List[str]] = None,
-    use_background: bool = False
-) -> None:
-    """
-    Download all artwork for a scope to filesystem.
+def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
+                           use_background: bool = False) -> None:
+    """Download every artwork URL for a scope, wrapped in a TaskContext.
 
-    Uses TaskContext for cancellation and progress tracking.
-
-    Args:
-        scope: Review scope ('all', 'movies', 'tv', etc.)
-        media_filter: Optional list of media types to filter
-        use_background: Use DialogProgressBG for background operation (True) or DialogProgress for foreground (False)
+    `use_background=True` uses `DialogProgressBG`; False uses a foreground `DialogProgress`.
     """
     from lib.infrastructure.dialogs import show_yesno
 
@@ -380,7 +335,7 @@ def download_scope_artwork(
         existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
         existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
-        jobs, mismatch_counts = build_download_jobs(items, existing_file_mode)
+        jobs, mismatch_counts = build_download_jobs(items)
 
         if existing_file_mode == 'overwrite' and sum(mismatch_counts.values()) > 0:
             progress.close()
@@ -531,23 +486,49 @@ def download_scope_artwork(
         log("Download", f"Download artwork failed: {str(e)}\n{traceback.format_exc()}", xbmc.LOGERROR)
 
 
-def _show_download_report(
-    stats: Dict,
-    total_jobs: int,
-    scope: str = 'all',
-    use_background: bool = False,
-    mismatch_counts: Optional[Dict[str, int]] = None
-) -> None:
-    """
-    Show final download report dialog.
+def format_folder_section(folder_stats: Optional[Dict[str, int]]) -> List[str]:
+    """Format the per-folder download breakdown. Returns empty list when no folder data."""
+    if not folder_stats:
+        return []
+    lines = ["", "[B]Downloaded Files by Folder[/B]", ""]
+    for folder_path, count in sorted(folder_stats.items(), key=lambda x: x[0]):
+        lines.append(f"{count} files - {folder_path}")
+    return lines
 
-    Args:
-        stats: Queue statistics dict
-        total_jobs: Total number of jobs queued
-        scope: Download scope
-        use_background: If True, show notification instead of textviewer
-        mismatch_counts: Dict with naming mismatch counts
-    """
+
+_MISMATCH_LABELS: List[Tuple[str, str, str]] = [
+    ('movie_folder_to_basename',
+     "{} movie artwork files saved as 'poster.jpg' in movie folder",
+     "  Setting 'Use Movie Filename Prefix' is ON (expects 'MovieTitle-poster.jpg')"),
+    ('movie_basename_to_folder',
+     "{} movie artwork files saved as 'MovieTitle-poster.jpg'",
+     "  Setting 'Use Movie Filename Prefix' is OFF (expects 'poster.jpg')"),
+    ('mvid_folder_to_basename',
+     "{} music video artwork files saved as 'poster.jpg' in video folder",
+     "  Setting 'Use Music Video Filename Prefix' is ON (expects 'VideoTitle-poster.jpg')"),
+    ('mvid_basename_to_folder',
+     "{} music video artwork files saved as 'VideoTitle-poster.jpg'",
+     "  Setting 'Use Music Video Filename Prefix' is OFF (expects 'poster.jpg')"),
+]
+
+
+def format_mismatch_section(mismatch_counts: Optional[Dict[str, int]]) -> List[str]:
+    """Format the file-handling mismatch breakdown. Returns empty list when no mismatches."""
+    if not mismatch_counts or sum(mismatch_counts.values()) <= 0:
+        return []
+    lines = ["", "[B]File Handling Mismatches Detected[/B]", ""]
+    for key, fmt, hint in _MISMATCH_LABELS:
+        count = mismatch_counts.get(key, 0)
+        if count > 0:
+            lines.append(fmt.format(count))
+            lines.append(hint)
+    return lines
+
+
+def _show_download_report(stats: Dict, total_jobs: int, scope: str = 'all',
+                          use_background: bool = False,
+                          mismatch_counts: Optional[Dict[str, int]] = None) -> None:
+    """Show the post-run report: toast in background mode, textviewer in foreground."""
     from lib.infrastructure.dialogs import show_notification
 
     downloaded = stats.get('downloaded', 0)
@@ -564,63 +545,25 @@ def _show_download_report(
             xbmcgui.NOTIFICATION_INFO,
             5000
         )
-    else:
-        lines = [
-            f"[B]{ADDON.getLocalizedString(32121)}[/B]",
-            "",
-            f"Total artwork URLs: {total_jobs}",
-            f"Downloaded: {downloaded}",
-            f"Skipped (already exists): {skipped}",
-            f"Failed: {failed}",
-            "",
-            f"Total size: {mb:.2f} MB"
-        ]
+        return
 
-        folder_stats = stats.get('folder_counts', {})
-        if folder_stats:
-            sorted_folders = sorted(folder_stats.items(), key=lambda x: x[0])
+    lines = [
+        f"[B]{ADDON.getLocalizedString(32121)}[/B]",
+        "",
+        f"Total artwork URLs: {total_jobs}",
+        f"Downloaded: {downloaded}",
+        f"Skipped (already exists): {skipped}",
+        f"Failed: {failed}",
+        "",
+        f"Total size: {mb:.2f} MB",
+    ]
+    lines.extend(format_folder_section(stats.get('folder_counts', {})))
+    lines.extend(format_mismatch_section(mismatch_counts))
 
-            lines.extend([
-                "",
-                "[B]Downloaded Files by Folder[/B]",
-                ""
-            ])
-
-            for folder_path, count in sorted_folders:
-                lines.append(f"{count} files - {folder_path}")
-
-        if mismatch_counts:
-            total_mismatches = sum(mismatch_counts.values())
-            if total_mismatches > 0:
-                lines.extend([
-                    "",
-                    "[B]File Handling Mismatches Detected[/B]",
-                    ""
-                ])
-
-                if mismatch_counts.get('movie_folder_to_basename', 0) > 0:
-                    lines.append(f"{mismatch_counts['movie_folder_to_basename']} movie artwork files saved as 'poster.jpg' in movie folder")
-                    lines.append("  Setting 'Use Movie Filename Prefix' is ON (expects 'MovieTitle-poster.jpg')")
-                if mismatch_counts.get('movie_basename_to_folder', 0) > 0:
-                    lines.append(f"{mismatch_counts['movie_basename_to_folder']} movie artwork files saved as 'MovieTitle-poster.jpg'")
-                    lines.append("  Setting 'Use Movie Filename Prefix' is OFF (expects 'poster.jpg')")
-                if mismatch_counts.get('mvid_folder_to_basename', 0) > 0:
-                    lines.append(f"{mismatch_counts['mvid_folder_to_basename']} music video artwork files saved as 'poster.jpg' in video folder")
-                    lines.append("  Setting 'Use Music Video Filename Prefix' is ON (expects 'VideoTitle-poster.jpg')")
-                if mismatch_counts.get('mvid_basename_to_folder', 0) > 0:
-                    lines.append(f"{mismatch_counts['mvid_basename_to_folder']} music video artwork files saved as 'VideoTitle-poster.jpg'")
-                    lines.append("  Setting 'Use Music Video Filename Prefix' is OFF (expects 'poster.jpg')")
-
+    text = "\n".join(lines)
+    log_path = write_download_log(text, scope, stats)
+    if log_path:
+        lines.extend(["", "", f"Full report saved to: {log_path}"])
         text = "\n".join(lines)
 
-        log_path = write_download_log(text, scope, total_jobs, stats, mismatch_counts)
-
-        if log_path:
-            lines.extend([
-                "",
-                "",
-                f"Full report saved to: {log_path}"
-            ])
-            text = "\n".join(lines)
-
-        show_textviewer(ADDON.getLocalizedString(32520), text)
+    show_textviewer(ADDON.getLocalizedString(32520), text)

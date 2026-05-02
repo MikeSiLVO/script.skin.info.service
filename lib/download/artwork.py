@@ -14,13 +14,7 @@ from lib.infrastructure.paths import vfs_ensure_dir_slash
 
 
 class DownloadArtwork:
-    """
-    Single artwork file downloader.
-
-    Handles HTTP downloads with content-type detection, error tracking,
-    retry logic, and existing file handling. Uses requests library with
-    streaming for memory efficiency.
-    """
+    """Single artwork file downloader with streaming, content-type detection, and per-provider error gating."""
 
     CONTENT_TYPE_MAP = {
         'image/jpeg': 'jpg',
@@ -30,7 +24,6 @@ class DownloadArtwork:
     }
 
     def __init__(self):
-        """Initialize downloader with error tracking."""
         self.provider_errors: Dict[str, int] = {}
         self.file_error_count = 0
         self.max_provider_errors = 3
@@ -51,29 +44,13 @@ class DownloadArtwork:
         self,
         url: str,
         local_path: str,
-        artwork_type: str,
         existing_file_mode: str = 'skip',
         alternate_path: Optional[str] = None,
-        media_type: str = '',
         abort_flag=None
     ) -> Tuple[bool, Optional[str], int]:
-        """
-        Download single artwork file.
+        """Download one artwork file. `local_path` is extension-less; actual extension comes from Content-Type.
 
-        Args:
-            url: Image URL to download
-            local_path: Base path WITHOUT extension (extension added based on content-type)
-            artwork_type: Type of artwork (for logging)
-            existing_file_mode: 'skip', 'overwrite', or 'use_existing'
-            alternate_path: Optional alternate naming pattern to check (without extension)
-            media_type: Media type (directories only created for 'set')
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Tuple of (success, error_message, bytes_downloaded)
-            - success: True if downloaded successfully
-            - error_message: None if success, error string if failed
-            - bytes_downloaded: Number of bytes written (0 if skipped/failed)
+        `existing_file_mode` is `skip`/`overwrite`/`use_existing`. Returns `(success, error_or_None, bytes_written)`.
         """
         if not url:
             log("Download", "Empty URL provided", xbmc.LOGERROR)
@@ -105,10 +82,8 @@ class DownloadArtwork:
                 paths_to_check.append(alternate_path)
 
             for check_path in paths_to_check:
-                for ext_type in self.CONTENT_TYPE_MAP.values():
-                    test_path = xbmcvfs.validatePath(check_path + '.' + ext_type)
-                    if xbmcvfs.exists(test_path):
-                        return False, None, 0
+                if self._find_existing_with_extension(check_path):
+                    return False, None, 0
 
         try:
             response = self.session.get_raw(
@@ -165,33 +140,23 @@ class DownloadArtwork:
             log("Download", f"Unexpected error downloading {url}: {str(e)}", xbmc.LOGERROR)
             return False, f"Unexpected error: {str(e)}", 0
 
+    def _find_existing_with_extension(self, base_path: str) -> Optional[str]:
+        """Return the first existing file at `base_path.<ext>` for any known extension, or None."""
+        for ext_type in self.CONTENT_TYPE_MAP.values():
+            test_path = xbmcvfs.validatePath(base_path + '.' + ext_type)
+            if xbmcvfs.exists(test_path):
+                return test_path
+        return None
+
     def _get_extension(self, response) -> Optional[str]:
-        """
-        Get file extension from Content-Type header.
-
-        Args:
-            response: requests Response object
-
-        Returns:
-            Extension string ('jpg', 'png', etc.) or None if unknown
-        """
+        """Extract file extension from the response's Content-Type, or None if unrecognised."""
         content_type = response.headers.get('Content-Type', '').split(';')[0].strip()
         return self.CONTENT_TYPE_MAP.get(content_type)
 
     def _write_file_stream(self, path: str, response, abort_flag=None) -> int:
-        """
-        Stream download to file in chunks.
+        """Stream `response` body to `path` in 8KB chunks.
 
-        Args:
-            path: Full file path to write
-            response: requests Response object (streaming)
-            abort_flag: Optional abort flag
-
-        Returns:
-            Number of bytes written
-
-        Raises:
-            IOError: If write fails
+        Deletes partial file on error. Raises `IOError` on write failure or abort.
         """
         bytes_written = 0
         try:

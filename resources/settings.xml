@@ -522,6 +522,13 @@
 					<control type="toggle" />
 				</setting>
 			</group>
+			<group id="5" label="32992">
+				<setting id="sync_tvshows_action" type="action" label="32988" help="32989">
+					<control type="button" format="action">
+						<data>RunScript(script.skin.info.service,action=sync_tvshows)</data>
+					</control>
+				</setting>
+			</group>
 		</category>
 	</section>
 </settings>

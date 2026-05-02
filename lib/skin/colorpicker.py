@@ -8,15 +8,7 @@ import xbmcgui
 import xbmcvfs
 
 from lib.kodi.client import log, ADDON
-
-
-def _resolve_infolabel(value: str) -> str:
-    """Resolve $INFO[] or $VAR[] wrapped infolabels."""
-    if not value:
-        return value
-    if value.startswith('$'):
-        return xbmc.getInfoLabel(value)
-    return value
+from lib.kodi.utilities import resolve_infolabel as _resolve_infolabel
 
 
 def _show_error(message: str) -> None:
@@ -243,16 +235,12 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
             self._select_palette_color()
 
 
-def colorpicker(setting: str = '', default: str = '', colors: str = '', onback: str = '', **kwargs) -> None:
-    """
-    Open customizable RGBA slider color picker dialog.
+def colorpicker(setting: str = '', default: str = '', colors: str = '',
+                onback: str = '', **kwargs) -> None:
+    """Open the RGBA color picker and save the result into `Skin.String(setting)`.
 
-    Args:
-        setting: Skin setting name to save color to (e.g., 'ThemeLabelColor')
-        default: Default hex color if setting is empty (AARRGGBB format, e.g., 'FF6DB9E5')
-        colors: Path to colors.xml file (uses Kodi default if empty)
-        onback: Back button behavior - condition-only, action-only, or condition::action (|| separated blocks, ; chained actions)
-        **kwargs: Additional parameters (unused, for API consistency)
+    `default` is AARRGGBB format. `colors` points at a `colors.xml` file.
+    `onback` runs `condition::action` blocks separated by `||` when the user backs out.
     """
     setting = _resolve_infolabel(setting)
     default = _resolve_infolabel(default) or 'FFFFFFFF'

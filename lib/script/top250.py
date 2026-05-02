@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import request, batch_request, ADDON, log, KODI_SET_DETAILS_METHODS
+from lib.kodi.client import request, batch_request, ADDON, log, KODI_SET_DETAILS_METHODS, extract_result
 from lib.infrastructure.dialogs import show_ok, show_yesno
 
 
@@ -39,12 +39,13 @@ def run_top250_update() -> None:
             if ids.get("tmdb"):
                 tmdb_to_rank[str(ids["tmdb"])] = rank
 
+        log("General", f"Top 250: fetched {len(trakt_list)} items from Trakt", xbmc.LOGINFO)
+
         progress.update(25, ADDON.getLocalizedString(32602))
         resp = request("VideoLibrary.GetMovies", {
-            "properties": ["title", "imdbnumber", "top250"]
+            "properties": ["title", "uniqueid", "top250"]
         })
-        result = resp.get("result", {}) if resp else {}
-        movies = result.get("movies", []) if isinstance(result, dict) else []
+        movies = extract_result(resp, "movies", [])
 
         if not movies:
             progress.close()
@@ -59,16 +60,18 @@ def run_top250_update() -> None:
         already_correct = 0
 
         for movie in movies:
-            imdbnumber = movie.get("imdbnumber", "")
+            uniqueid = movie.get("uniqueid", {})
             current = movie.get("top250", 0)
             movieid = movie.get("movieid")
             title = movie.get("title", "")
 
             new_rank = None
-            if imdbnumber.startswith("tt"):
-                new_rank = imdb_to_rank.get(imdbnumber)
-            elif imdbnumber:
-                new_rank = tmdb_to_rank.get(imdbnumber)
+            imdb_id = uniqueid.get("imdb")
+            tmdb_id = uniqueid.get("tmdb")
+            if imdb_id:
+                new_rank = imdb_to_rank.get(imdb_id)
+            if new_rank is None and tmdb_id:
+                new_rank = tmdb_to_rank.get(str(tmdb_id))
 
             if new_rank is not None:
                 if current != new_rank:

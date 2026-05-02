@@ -43,16 +43,12 @@ from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS, log, ADD
 
 
 class ArtworkDialogMulti(ArtworkDialogBase):
-    """
-    Custom dialog for multi-art management (extra art slots only).
+    """Dialog for managing extra art slots (fanart1/fanart2, poster1/poster2, etc.).
 
-    Uses a "working set" approach:
+    Uses a working set approach:
     - List 100: Working set (click to remove)
     - List 200: Available art not in working set (click to add)
     - Apply: Saves working set as fanart1, fanart2, etc.
-
-    Note: Main art slot (fanart, poster, etc.) is handled separately by artwork_selection_dialog.
-    This dialog only manages the "extra" numbered slots.
     """
 
     CURRENT_ART_LIST = 100
@@ -217,11 +213,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             })
 
     def _populate_current_art(self) -> None:
-        """
-        Populate CURRENT_ART_LIST with working art set (click to remove).
-
-        Uses batch operation for better performance.
-        """
+        """Populate CURRENT_ART_LIST with working art set (click to remove)."""
         try:
             control = self.getControl(self.CURRENT_ART_LIST)
         except Exception:
@@ -258,11 +250,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         self.populate_list_batch(control, items)
 
     def create_artwork_listitem(self, art_info: dict, index: int) -> xbmcgui.ListItem:
-        """
-        Override to add is_current property for main art highlighting.
-
-        Marks artwork that is currently set as the main art slot (e.g., fanart, poster).
-        """
+        """Override to add is_current property marking artwork already set as main art."""
         item = super().create_artwork_listitem(art_info, index)
 
         if self.current_main_art:
@@ -281,11 +269,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         return item
 
     def _populate_available_art(self) -> None:
-        """
-        Populate AVAILABLE_ART_LIST with available options NOT in working set.
-
-        Uses shared create_artwork_listitem() method and batch operation.
-        """
+        """Populate AVAILABLE_ART_LIST with options not already in working set."""
         try:
             control = self.getControl(self.AVAILABLE_ART_LIST)
         except Exception:
@@ -338,11 +322,10 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             self._toggle_source_pref()
 
     def _add_from_available(self) -> None:
-        """Add selected item from available art to working set.
+        """Move selected item from available list into working set.
 
-        Uses removeItem() on the active list (available) to avoid resetting
-        the control the user is navigating. The inactive list (current) is
-        safe to reset+rebuild since no navigation events are queued for it.
+        Removes from the available list (active control, preserves focus)
+        and rebuilds the current list.
         """
         try:
             available_control = cast(xbmcgui.ControlList, self.getControl(self.AVAILABLE_ART_LIST))
@@ -371,11 +354,10 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             log("Artwork", f"Error adding from available: {str(e)}", xbmc.LOGERROR)
 
     def _remove_from_current(self) -> None:
-        """Remove selected item from working set.
+        """Remove selected item from working set, returning it to the available list.
 
-        Uses removeItem() on the active list (current) then renumbers
-        remaining items. The inactive list (available) is safe to
-        reset+rebuild since no navigation events are queued for it.
+        Removes from the current list (active control, preserves focus)
+        and rebuilds the available list.
         """
         try:
             current_control = cast(xbmcgui.ControlList, self.getControl(self.CURRENT_ART_LIST))
@@ -440,89 +422,6 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         self.setProperty('multiart_dialog_active', '')
         super().close()
 
-    def _get_available_sources(self) -> set:
-        """Get set of unique sources in the full artwork list."""
-        sources = set()
-        for art in self.full_artwork_list:
-            source = art.get('source', '').lower()
-            if source in ('tmdb', 'fanart.tv', 'fanarttv'):
-                sources.add('tmdb' if source == 'tmdb' else 'fanart')
-        return sources
-
-    def _get_available_resolutions(self) -> set:
-        """Get set of unique resolutions in the full artwork list."""
-        resolutions = set()
-        for art in self.full_artwork_list:
-            width = art.get('width')
-            height = art.get('height')
-            if width and height:
-                resolutions.add((width, height))
-        return resolutions
-
-    def _toggle_sort_mode(self) -> None:
-        """Toggle between popularity and resolution sort modes."""
-        if self.sort_mode == 'popularity':
-            self.sort_mode = 'resolution'
-        else:
-            self.sort_mode = 'popularity'
-
-        self._resort_artwork()
-        self._update_sort_button_label()
-
-    def _update_sort_button_label(self) -> None:
-        """Update sort button label to show current mode."""
-        try:
-            button = self.getControl(self.BUTTON_SORT)
-            if self.sort_mode == 'popularity':
-                button.setLabel('Sort: Popularity')
-            else:
-                button.setLabel('Sort: Resolution')
-        except Exception:
-            pass
-
-    def _toggle_source_pref(self) -> None:
-        """Toggle between source filters: all -> tmdb -> fanart -> all."""
-        if self.source_pref == 'all':
-            self.source_pref = 'tmdb'
-        elif self.source_pref == 'tmdb':
-            self.source_pref = 'fanart'
-        else:
-            self.source_pref = 'all'
-
-        self._resort_artwork()
-        self._update_source_pref_button_label()
-
-    def _update_source_pref_button_label(self) -> None:
-        """Update source filter button label to show current filter."""
-        try:
-            button = self.getControl(self.BUTTON_SOURCE_PREF)
-            if self.source_pref == 'all':
-                button.setLabel(ADDON.getLocalizedString(32132))
-            elif self.source_pref == 'tmdb':
-                button.setLabel(ADDON.getLocalizedString(32133))
-            else:
-                button.setLabel(ADDON.getLocalizedString(32134))
-        except Exception:
-            pass
-
-    def _normalize_url(self, url: str) -> str:
-        """
-        Normalize URL for comparison by stripping image:// wrapper and decoding.
-
-        For fanart.tv URLs, compares just the filename since paths can vary.
-        """
-        if not url:
-            return ''
-
-        from lib.kodi.client import decode_image_url
-
-        decoded = decode_image_url(url)
-
-        if 'assets.fanart.tv' in decoded:
-            return decoded.split('/')[-1]
-
-        return decoded
-
     def _resort_artwork(self) -> None:
         """Re-sort and filter artwork from full list, then refresh available panel."""
         from lib.artwork.utilities import sort_artwork_by_popularity, filter_artwork_by_language
@@ -545,20 +444,10 @@ class ArtworkDialogMulti(ArtworkDialogBase):
 
 
 def show_multiart_dialog(media_type: str, dbid: int, title: str, art_type: str = 'fanart', test_mode: bool = False) -> Optional[dict]:
-    """
-    Show multi-art dialog and return selected art dict (extra slots only).
+    """Show multi-art dialog and return selected art dict.
 
-    Args:
-        media_type: Media type (movie, tvshow, etc.)
-        dbid: Database ID
-        title: Item title for display
-        art_type: Art type for extra slots (fanart, poster, characterart, etc.)
-                  Manages numbered slots only (fanart1+, poster1+, etc.)
-        test_mode: Enable test mode (uses dummy data) - optional
-
-    Returns:
-        Dict of art assignments or None if cancelled
-        Example: {'fanart1': 'url1', 'fanart2': 'url2'}
+    Manages numbered slots only (e.g. fanart1, fanart2). Returns dict like
+    {'fanart1': 'url1', 'fanart2': 'url2'} or None if cancelled.
     """
     addon_path = ADDON.getAddonInfo('path')
 

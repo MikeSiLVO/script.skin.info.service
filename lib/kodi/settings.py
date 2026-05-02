@@ -50,26 +50,23 @@ class KodiSettings:
 
     @classmethod
     def set_bool(cls, key: str, value: bool) -> None:
-        """Set boolean setting and update cache."""
-        addon = cls._get_addon()
-        addon.setSettingBool(key, value)
+        """Set boolean setting and update cache atomically."""
         with cls._cache_lock:
+            cls._get_addon().setSettingBool(key, value)
             cls._cache[key] = value
 
     @classmethod
     def set_string(cls, key: str, value: str) -> None:
-        """Set string setting and update cache."""
-        addon = cls._get_addon()
-        addon.setSetting(key, value)
+        """Set string setting and update cache atomically."""
         with cls._cache_lock:
+            cls._get_addon().setSetting(key, value)
             cls._cache[key] = value
 
     @classmethod
     def set_int(cls, key: str, value: int) -> None:
-        """Set int setting and update cache."""
-        addon = cls._get_addon()
-        addon.setSettingInt(key, value)
+        """Set int setting and update cache atomically."""
         with cls._cache_lock:
+            cls._get_addon().setSettingInt(key, value)
             cls._cache[key] = value
 
     @classmethod

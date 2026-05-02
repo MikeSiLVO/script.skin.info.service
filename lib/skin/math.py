@@ -20,18 +20,7 @@ _ALLOWED_OPERATORS = {
 
 
 def safe_eval_math(expression):
-    """
-    Safely evaluate a mathematical expression using AST parsing.
-
-    Supports: +, -, *, /, //, %, **, parentheses, and numeric literals.
-    Does NOT support: variables, function calls, or any non-math operations.
-
-    Args:
-        expression: String containing mathematical expression
-
-    Returns:
-        Numeric result or None if evaluation fails
-    """
+    """Safely evaluate a math expression via AST. Supports `+ - * / // % **` and parens. None on failure."""
     try:
         node = ast.parse(expression, mode='eval').body
 
@@ -62,20 +51,10 @@ def safe_eval_math(expression):
 
 
 def evaluate_math(expression, prefix='', window='home'):
-    """
-    Evaluate a math expression and set the result as a window property.
+    """Evaluate a math expression and write the result to a window property.
 
-    Auto-resolves InfoLabels if expression contains $INFO[...] or $VAR[...].
-    Skinner is responsible for ensuring InfoLabels resolve to numeric values.
-
-    Sets property as:
-    - SkinInfo.Math.Result (no prefix)
-    - SkinInfo.Math.{prefix}.Result (with prefix)
-
-    Args:
-        expression: Mathematical expression (e.g., "10 + 5 * 2" or "$INFO[Container.NumItems] / 2")
-        prefix: Optional property suffix (default '', creates SkinInfo.Math.Result)
-        window: Target window name or ID (default 'home')
+    `$INFO[]`/`$VAR[]` references in `expression` are resolved before evaluation.
+    Result goes to `SkinInfo.Math[.{prefix}].Result`.
     """
     prop_name = f'SkinInfo.Math.{prefix}.Result' if prefix else 'SkinInfo.Math.Result'
 

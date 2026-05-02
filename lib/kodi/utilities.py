@@ -1,4 +1,12 @@
-"""Utility functions for properties, date formatting, and language handling."""
+"""Utility functions for properties, date formatting, and language handling.
+
+The cached property helpers (`set_prop`, `batch_set_props`, `clear_prop`, `clear_group`)
+target the home window (`xbmcgui.Window(10000)`) only; they back the service-layer's
+high-frequency writes. Skin-action handlers that need to target arbitrary window IDs
+should use `xbmc.executebuiltin('SetProperty/ClearProperty')` directly, except where a
+property name is also written by the service (route home writes through these helpers
+in that case to avoid cache desync).
+"""
 from __future__ import annotations
 
 import threading
@@ -39,6 +47,20 @@ def validate_dbid(dbid: Any) -> bool:
         return False
 
 
+def resolve_infolabel(value: str) -> str:
+    """Resolve a single `$INFO[...]` or `$VAR[...]` wrapped string via Kodi. Pass-through otherwise."""
+    if value and value.startswith('$'):
+        return xbmc.getInfoLabel(value)
+    return value
+
+
+def parse_pipe_list(value: str, separator: str = '|') -> list:
+    """Split a separator-delimited string into a stripped, non-empty list."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(separator) if item.strip()]
+
+
 # Thread safety: Use RLock for reentrant locking (allows same thread to acquire multiple times)
 _CACHE_LOCK = threading.RLock()
 
@@ -67,13 +89,15 @@ LANGUAGE_OPTIONS: List[str] = [
 ]
 DEFAULT_LANGUAGE = 'en'
 
+# Kodi convention for joining multi-value strings (genres, directors, cast, etc.).
+MULTI_VALUE_SEP = " / "
+
 
 def normalize_language_tag(value: Optional[str]) -> str:
-    """
-    Return a lowercase ISO language tag or empty string.
+    """Normalize language code to lowercase ISO 639-1.
 
-    Treats invalid/placeholder codes like '00', 'null', 'xx' as empty string.
-    Maps common incorrect country codes to correct ISO 639-1 language codes.
+    Placeholder codes (`00`, `null`, `xx`, etc.) become empty. Country codes that
+    match a language are remapped (`cz` -> `cs`).
     """
     normalized = (value or '').strip().lower()
 
@@ -118,12 +142,7 @@ def _enforce_props_size_limit() -> None:
 
 
 def set_prop(key: str, val: Optional[str]) -> None:
-    """Set a property in the Kodi home window with caching and thread safety.
-
-    Args:
-        key: The property key
-        val: The property value (None will be converted to empty string)
-    """
+    """Set a home-window property, skipping the write if the cached value is unchanged."""
     sval = "" if val is None else str(val)
 
     needs_update = False
@@ -144,15 +163,12 @@ def set_prop(key: str, val: Optional[str]) -> None:
 
 
 def get_prop(key: str) -> str:
+    """Read a home-window property value (empty string if unset)."""
     return HOME.getProperty(key)
 
 
 def batch_set_props(props: Dict[str, Optional[str]]) -> None:
-    """Set multiple properties in batch with thread safety.
-
-    Args:
-        props: Dictionary of key-value pairs to set
-    """
+    """Set many home-window properties, skipping writes where the cached value is unchanged."""
     props_to_set = []
     with _CACHE_LOCK:
         for key, val in props.items():
@@ -175,22 +191,14 @@ def batch_set_props(props: Dict[str, Optional[str]]) -> None:
 
 
 def clear_prop(key: str) -> None:
-    """Clear a single property with thread safety.
-
-    Args:
-        key: The property key to clear
-    """
+    """Clear a single home-window property."""
     with _CACHE_LOCK:
         _PREV_PROPS.pop(key, None)
     HOME.clearProperty(key)
 
 
 def clear_group(prefix: str) -> None:
-    """Clear all properties with a given prefix with thread safety.
-
-    Args:
-        prefix: The prefix to match for clearing properties
-    """
+    """Clear all tracked home-window properties whose key starts with `prefix`."""
     with _CACHE_LOCK:
         keys_to_clear = [k for k in _PREV_PROPS.keys() if k.startswith(prefix)]
         for k in keys_to_clear:
@@ -201,34 +209,23 @@ def clear_group(prefix: str) -> None:
 
 
 def extract_cast_names(cast_list) -> List[str]:
-    """Extract cast names from Kodi cast list structure.
-
-    Args:
-        cast_list: List of cast dict objects from Kodi JSON-RPC
-
-    Returns:
-        List of cast member names
-    """
+    """Pull just the `name` fields out of a Kodi cast list."""
     if not cast_list:
         return []
     return [str(c.get("name")) for c in cast_list if isinstance(c, dict) and c.get("name")]
 
 
 def extract_media_ids(item: dict) -> Dict[str, Optional[str]]:
-    """Extract all external IDs from a Kodi library item.
+    """Return `{tmdb, imdb, tvdb, trakt}` IDs from a Kodi item, normalizing to string or None.
 
-    Handles the various places Kodi stores IDs and normalizes them.
-
-    Args:
-        item: Library item dict with 'uniqueid' and optionally 'imdbnumber' fields
-
-    Returns:
-        Dict with keys: tmdb, imdb, tvdb, trakt (values are str or None)
+    Kodi's TMDB scraper writes the TMDB id into `imdbnumber`, so only the
+    `uniqueid` dict is trusted. Callers that need an IMDb id when one isn't present
+    should fall back to `lib.rating.ids.get_imdb_id_from_tmdb`.
     """
     uniqueid = item.get("uniqueid", {})
 
     tmdb_id = uniqueid.get("tmdb") or uniqueid.get("themoviedb")
-    imdb_id = item.get("imdbnumber") or uniqueid.get("imdb")
+    imdb_id = uniqueid.get("imdb")
     tvdb_id = uniqueid.get("tvdb")
     trakt_id = uniqueid.get("trakt")
 
@@ -241,15 +238,7 @@ def extract_media_ids(item: dict) -> Dict[str, Optional[str]]:
 
 
 def format_date(date_str: str, include_time: bool = False) -> str:
-    """Format date string according to Kodi region settings.
-
-    Args:
-        date_str: ISO format date string (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
-        include_time: If True, include time in the formatted output
-
-    Returns:
-        Formatted date string according to user's Kodi region settings
-    """
+    """Reformat an ISO date/datetime into Kodi's region-configured format."""
     if not date_str:
         return ""
 
@@ -281,6 +270,7 @@ def format_date(date_str: str, include_time: bool = False) -> str:
 
 
 def is_kodi_piers_or_later() -> bool:
+    """True if running on Kodi v22 (Piers, build 21.90+) or newer."""
     raw = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
     parts = raw.split(".")
     try:
@@ -290,22 +280,9 @@ def is_kodi_piers_or_later() -> bool:
     return version >= (21, 90, 0)
 
 
-def wait_for_kodi_ready(
-    monitor: xbmc.Monitor,
-    initial_wait: float = 0.5,
-    check_interval: float = 0.5,
-) -> bool:
-    """
-    Wait for Kodi's JSON-RPC to be ready before starting service work.
-
-    Args:
-        monitor: xbmc.Monitor instance for abort checking
-        initial_wait: Seconds to wait before first check
-        check_interval: Seconds between subsequent checks
-
-    Returns:
-        True if ready, False if aborted
-    """
+def wait_for_kodi_ready(monitor: xbmc.Monitor, initial_wait: float = 0.5,
+                        check_interval: float = 0.5) -> bool:
+    """Poll `JSONRPC.Ping` until Kodi responds. Returns False if the monitor aborts first."""
     if monitor.waitForAbort(initial_wait):
         return False
 

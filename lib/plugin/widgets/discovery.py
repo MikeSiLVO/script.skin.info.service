@@ -8,11 +8,8 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import log, request
-
-TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
-
-_genre_cache: Dict[str, Dict[int, str]] = {}
+from lib.kodi.client import log, request, extract_result
+from lib.data.api.utilities import tmdb_image_url
 
 # Trakt wrapped responses nest the media object under "movie" or "show"
 _TRAKT_WRAPPED = {"trakt_trending", "trakt_anticipated", "trakt_watched", "trakt_collected", "trakt_boxoffice"}
@@ -35,25 +32,15 @@ WIDGET_REGISTRY: Dict[str, dict] = {
 }
 
 
-def _get_genre_map(media_type: str) -> Dict[int, str]:
-    tmdb_type = "movie" if media_type == "movie" else "tv"
-    if tmdb_type in _genre_cache:
-        return _genre_cache[tmdb_type]
-    from lib.data.api.tmdb import ApiTmdb
-    api = ApiTmdb()
-    mapping = api.get_genre_list(tmdb_type)
-    _genre_cache[tmdb_type] = mapping
-    return mapping
-
-
 def _get_library_lookup(media_type: str) -> Dict[str, Dict[str, object]]:
+    """Return `tmdb_id -> {dbid, file}` for all library items of `media_type` (enables "in library" matching)."""
     lookup: Dict[str, Dict[str, object]] = {}
 
     if media_type == "movie":
         result = request("VideoLibrary.GetMovies", {
             "properties": ["uniqueid", "file"]
         })
-        items = result.get("result", {}).get("movies", []) if result else []
+        items = extract_result(result, 'movies', [])
         for item in items:
             tmdb_id = (item.get("uniqueid") or {}).get("tmdb")
             if tmdb_id:
@@ -65,7 +52,7 @@ def _get_library_lookup(media_type: str) -> Dict[str, Dict[str, object]]:
         result = request("VideoLibrary.GetTVShows", {
             "properties": ["uniqueid"]
         })
-        items = result.get("result", {}).get("tvshows", []) if result else []
+        items = extract_result(result, 'tvshows', [])
         for item in items:
             tmdb_id = (item.get("uniqueid") or {}).get("tmdb")
             if tmdb_id:
@@ -78,6 +65,7 @@ def _get_library_lookup(media_type: str) -> Dict[str, Dict[str, object]]:
 
 
 def _normalize_tmdb_item(item: dict, media_type: str, genre_map: Dict[int, str]) -> dict:
+    """Convert a raw TMDB response item into the normalized dict consumed by `_create_listitem`."""
     is_movie = media_type == "movie"
     genre_ids = item.get("genre_ids", [])
     genres = [genre_map[gid] for gid in genre_ids if gid in genre_map]
@@ -90,13 +78,8 @@ def _normalize_tmdb_item(item: dict, media_type: str, genre_map: Dict[int, str])
             year = int(premiered[:4])
         except (ValueError, TypeError):
             pass
-
-    poster = ""
-    if item.get("poster_path"):
-        poster = f"{TMDB_IMAGE_BASE}/w500{item['poster_path']}"
-    fanart = ""
-    if item.get("backdrop_path"):
-        fanart = f"{TMDB_IMAGE_BASE}/original{item['backdrop_path']}"
+    poster = tmdb_image_url(item.get("poster_path"), 'w500')
+    fanart = tmdb_image_url(item.get("backdrop_path"))
 
     return {
         "title": item.get("title") if is_movie else item.get("name", ""),
@@ -121,7 +104,20 @@ def _extract_trakt_media(item: dict, action: str, media_type: str) -> Optional[d
     return item
 
 
-def _normalize_trakt_item(media: dict, media_type: str, images: Dict[str, str]) -> dict:
+def _trakt_image_url(paths: Optional[list]) -> str:
+    """Pick the first Trakt image URL and prefix `https://`. Trakt URLs are protocol-less."""
+    if not paths or not isinstance(paths, list):
+        return ""
+    raw = paths[0]
+    if not raw:
+        return ""
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    return f"https://{raw}"
+
+
+def _normalize_trakt_item(media: dict, media_type: str) -> dict:
+    """Convert a Trakt media object (with `extended=full` images) into the normalized listitem dict."""
     is_movie = media_type == "movie"
     ids = media.get("ids", {})
 
@@ -131,13 +127,9 @@ def _normalize_trakt_item(media: dict, media_type: str, images: Dict[str, str]) 
 
     genres_raw = media.get("genres", [])
     genres = [g.replace("-", " ").title() for g in genres_raw]
-
-    poster = ""
-    if images.get("poster_path"):
-        poster = f"{TMDB_IMAGE_BASE}/w500{images['poster_path']}"
-    fanart = ""
-    if images.get("backdrop_path"):
-        fanart = f"{TMDB_IMAGE_BASE}/original{images['backdrop_path']}"
+    images = media.get("images") or {}
+    poster = _trakt_image_url(images.get("poster"))
+    fanart = _trakt_image_url(images.get("fanart"))
 
     return {
         "title": media.get("title", ""),
@@ -159,44 +151,10 @@ def _normalize_trakt_item(media: dict, media_type: str, images: Dict[str, str]) 
     }
 
 
-def _fetch_trakt_images(items: List[dict], media_type: str) -> Dict[int, Dict[str, str]]:
-    from lib.data.api.tmdb import ApiTmdb
-    from lib.data import database as db
-
-    tmdb_type = "movie" if media_type == "movie" else "tv"
-    result: Dict[int, Dict[str, str]] = {}
-    api: Optional[ApiTmdb] = None
-
-    for item in items:
-        ids = item.get("ids", {})
-        tmdb_id = ids.get("tmdb")
-        if not tmdb_id:
-            continue
-
-        cached = db.get_cached_metadata(media_type if media_type == "movie" else "tvshow", str(tmdb_id))
-        if cached:
-            images: Dict[str, str] = {}
-            if cached.get("poster_path"):
-                images["poster_path"] = cached["poster_path"]
-            if cached.get("backdrop_path"):
-                images["backdrop_path"] = cached["backdrop_path"]
-            if images:
-                result[tmdb_id] = images
-                continue
-
-        if api is None:
-            api = ApiTmdb()
-        fetched = api.get_item_images(tmdb_type, tmdb_id)
-        if fetched:
-            result[tmdb_id] = fetched
-
-    return result
-
-
-def _create_listitem(
-    normalized: dict,
-    library_match: Optional[Dict[str, object]]
-) -> Tuple[str, xbmcgui.ListItem, bool]:
+def _create_listitem(normalized: dict,
+                     library_match: Optional[Dict[str, object]]
+                     ) -> Tuple[str, xbmcgui.ListItem, bool]:
+    """Build a `(url, ListItem, is_folder)` triple for one normalized discovery result."""
     title = normalized.get("title", "")
     listitem = xbmcgui.ListItem(title, offscreen=True)
     video_tag = listitem.getVideoInfoTag()
@@ -286,6 +244,7 @@ def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: st
 
 
 def handle_discover(handle: int, action: str, params: dict) -> None:
+    """Plugin entry for a discovery widget: fetch, normalize, create ListItems, render directory."""
     try:
         config = WIDGET_REGISTRY.get(action)
         if not config:
@@ -310,7 +269,9 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         normalized_items: List[dict] = []
 
         if config["provider"] == "tmdb":
-            genre_map = _get_genre_map(media_type)
+            from lib.data.api.tmdb import ApiTmdb
+            tmdb_type = "movie" if media_type == "movie" else "tv"
+            genre_map = ApiTmdb().get_genre_list(tmdb_type)
             raw_items = _fetch_tmdb(action, media_type, page, window)
             for raw in raw_items[:limit]:
                 normalized_items.append(_normalize_tmdb_item(raw, media_type, genre_map))
@@ -322,11 +283,8 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
                 if media_obj:
                     medias.append(media_obj)
 
-            images_map = _fetch_trakt_images(medias, media_type)
             for media_obj in medias:
-                tmdb_id = (media_obj.get("ids") or {}).get("tmdb")
-                images = images_map.get(tmdb_id, {}) if tmdb_id else {}
-                normalized_items.append(_normalize_trakt_item(media_obj, media_type, images))
+                normalized_items.append(_normalize_trakt_item(media_obj, media_type))
 
         items: List[Tuple[str, xbmcgui.ListItem, bool]] = []
         for normalized in normalized_items:
@@ -344,7 +302,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
 
         content = "movies" if media_type == "movie" else "tvshows"
         xbmcplugin.setContent(handle, content)
-        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
 
         log("Plugin", f"Discover: {action} ({media_type}) returned {len(items)} items", xbmc.LOGINFO)
 
@@ -359,6 +317,7 @@ def _discover_url(action: str, media_type: str) -> str:
 
 
 def handle_discover_menu(handle: int, params: dict) -> None:
+    """Render the top-level Discover menu (Movies / TV Shows)."""
     items = [
         ("Movies", "plugin://script.skin.info.service/?action=discover_movies_menu", "DefaultMovies.png"),
         ("TV Shows", "plugin://script.skin.info.service/?action=discover_tvshows_menu", "DefaultTVShows.png"),
@@ -373,6 +332,7 @@ def handle_discover_menu(handle: int, params: dict) -> None:
 
 
 def handle_discover_movies_menu(handle: int, params: dict) -> None:
+    """Render the movies sub-menu listing every movie-capable widget from WIDGET_REGISTRY."""
     for action, config in WIDGET_REGISTRY.items():
         if "movie" not in config["types"]:
             continue
@@ -387,6 +347,7 @@ def handle_discover_movies_menu(handle: int, params: dict) -> None:
 
 
 def handle_discover_tvshows_menu(handle: int, params: dict) -> None:
+    """Render the TV shows sub-menu listing every TV-capable widget from WIDGET_REGISTRY."""
     for action, config in WIDGET_REGISTRY.items():
         if "tv" not in config["types"]:
             continue

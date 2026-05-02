@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Optional, Dict
-import hashlib
 
 from lib.data.database.rating import get_provider_cache, save_provider_cache
+from lib.data.api.client import PauseReporter
 
 
 class RatingSource(ABC):
@@ -20,7 +20,8 @@ class RatingSource(ABC):
         media_type: str,
         ids: Dict[str, str],
         abort_flag=None,
-        force_refresh: bool = False
+        force_refresh: bool = False,
+        pause_reporter: Optional[PauseReporter] = None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
         pass
 
@@ -38,6 +39,3 @@ class RatingSource(ABC):
 
     def cache_data(self, media_id: str, data: dict, release_date: Optional[str] = None) -> None:
         save_provider_cache(self.provider_name, media_id, data, release_date)
-
-    def get_api_key_hash(self, api_key: str) -> str:
-        return hashlib.sha256(api_key.encode()).hexdigest()[:16]

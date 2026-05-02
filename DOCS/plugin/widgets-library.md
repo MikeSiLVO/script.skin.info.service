@@ -159,6 +159,20 @@ With `lock=true`:
 - **mix=true**: Mixed widget
 - **mix=false**: Movie or TV Show widget
 
+### Per-Item Properties
+
+Each result ListItem has the standard movie/tvshow infotag fields plus:
+
+| Property | Description                                                |
+|----------|------------------------------------------------------------|
+| `Actor`  | Name of the picked actor (same value on every result)      |
+| `Role`   | Character the actor plays in this item                     |
+
+Use `$INFO[ListItem.Property(Role)]` to display the character. Note that
+`ListItem.Label2` is not reliable for results from this widget — Kodi
+overrides it from the VideoInfoTag for video items. The `Role` property
+is the canonical way to get the character name.
+
 ---
 
 ## By Director

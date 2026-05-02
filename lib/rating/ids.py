@@ -5,8 +5,12 @@ from typing import Dict, List, Optional, Set
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import request, get_library_items, log, KODI_SET_DETAILS_METHODS, KODI_ID_KEYS, ADDON
-from lib.data.api.tmdb import ApiTmdb, resolve_tmdb_id, _is_valid_tmdb_id
+from lib.kodi.client import (
+    request, get_library_items, log, extract_result,
+    KODI_SET_DETAILS_METHODS, KODI_ID_KEYS, ADDON,
+)
+from lib.data.api.tmdb import ApiTmdb, resolve_tmdb_id
+from lib.data.api.utilities import is_valid_tmdb_id
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import cache as db_cache
 from lib.data.database._infrastructure import init_database
@@ -14,20 +18,10 @@ from lib.data.database import imdb as db_imdb
 from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno
 
 
-def get_imdb_id_from_tmdb(
-    media_type: str,
-    uniqueid: Dict,
-    season: Optional[int] = None,
-    episode: Optional[int] = None
-) -> Optional[str]:
-    """
-    Get IMDb ID from cached TMDB metadata or fetch from API.
-
-    Tries these sources in order:
-    1. Cached metadata (if TMDB ID available)
-    2. TMDB API via TMDB ID
-    3. TMDB /find endpoint via TVDB ID
-    """
+def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
+                          season: Optional[int] = None,
+                          episode: Optional[int] = None) -> Optional[str]:
+    """Resolve IMDb ID via cached metadata -> TMDB API (by TMDB ID) -> TMDB `/find` (by TVDB ID)."""
     tmdb_id = uniqueid.get("tmdb")
     tvdb_id = uniqueid.get("tvdb")
 
@@ -94,29 +88,14 @@ def get_imdb_id_from_tmdb(
                     log("Ratings", f"TMDB has no IMDb ID for {media_type} (tmdb={tmdb_id})", xbmc.LOGDEBUG)
 
             return imdb_id
+
+        if media_type == "episode" and tvdb_id:
+            log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), trying TVDB fallback", xbmc.LOGDEBUG)
+            return _try_tvdb_episode_fallback(tmdb_client, str(tvdb_id))
+        if media_type == "episode":
+            log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), no TVDB ID for fallback", xbmc.LOGDEBUG)
         else:
-            if media_type == "episode" and tvdb_id:
-                log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), trying TVDB fallback", xbmc.LOGDEBUG)
-                result = tmdb_client.find_by_external_id(str(tvdb_id), "tvdb_id", "episode")
-                if result:
-                    found_show_id = result.get("show_id")
-                    found_season = result.get("season_number")
-                    found_episode = result.get("episode_number")
-                    if found_show_id and found_season is not None and found_episode is not None:
-                        ep_data = tmdb_client.get_episode_details_extended(found_show_id, found_season, found_episode)
-                        if ep_data:
-                            imdb_id = ep_data.get("external_ids", {}).get("imdb_id")
-                            if imdb_id:
-                                return imdb_id
-                            log("Ratings", f"TVDB fallback found episode but no IMDb ID (tvdb={tvdb_id})", xbmc.LOGDEBUG)
-                        else:
-                            log("Ratings", f"TVDB fallback episode details fetch failed (tvdb={tvdb_id})", xbmc.LOGDEBUG)
-                else:
-                    log("Ratings", f"TVDB fallback failed for episode (tvdb={tvdb_id})", xbmc.LOGDEBUG)
-            elif media_type == "episode":
-                log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), no TVDB ID for fallback", xbmc.LOGDEBUG)
-            else:
-                log("Ratings", f"TMDB lookup failed for {media_type} (tmdb={tmdb_id})", xbmc.LOGDEBUG)
+            log("Ratings", f"TMDB lookup failed for {media_type} (tmdb={tmdb_id})", xbmc.LOGDEBUG)
 
     except Exception as e:
         log("Ratings", f"Error fetching TMDB data for IMDb ID lookup: {e}", xbmc.LOGWARNING)
@@ -124,24 +103,39 @@ def get_imdb_id_from_tmdb(
     return None
 
 
-def update_kodi_uniqueid(
-    media_type: str,
-    dbid: int,
-    uniqueid: Dict,
-    imdb_id: str
-) -> bool:
-    """Update Kodi library item with missing IMDb ID."""
+def _try_tvdb_episode_fallback(tmdb_client: ApiTmdb, tvdb_id: str) -> Optional[str]:
+    """Resolve an episode's IMDb ID via TMDB's `/find` by-tvdb endpoint when direct TMDB lookup misses."""
+    result = tmdb_client.find_by_external_id(tvdb_id, "tvdb_id", "episode")
+    if not result:
+        log("Ratings", f"TVDB fallback failed for episode (tvdb={tvdb_id})", xbmc.LOGDEBUG)
+        return None
+
+    found_show_id = result.get("show_id")
+    found_season = result.get("season_number")
+    found_episode = result.get("episode_number")
+    if not (found_show_id and found_season is not None and found_episode is not None):
+        return None
+
+    ep_data = tmdb_client.get_episode_details_extended(found_show_id, found_season, found_episode)
+    if not ep_data:
+        log("Ratings", f"TVDB fallback episode details fetch failed (tvdb={tvdb_id})", xbmc.LOGDEBUG)
+        return None
+
+    imdb_id = ep_data.get("external_ids", {}).get("imdb_id")
+    if imdb_id:
+        return imdb_id
+    log("Ratings", f"TVDB fallback found episode but no IMDb ID (tvdb={tvdb_id})", xbmc.LOGDEBUG)
+    return None
+
+
+def update_kodi_uniqueid(media_type: str, dbid: int, uniqueid: Dict, imdb_id: str) -> bool:
+    """Convenience wrapper: set the `imdb` field on a Kodi uniqueid dict."""
     return update_kodi_uniqueid_field(media_type, dbid, uniqueid, "imdb", imdb_id)
 
 
-def update_kodi_uniqueid_field(
-    media_type: str,
-    dbid: int,
-    uniqueid: Dict,
-    field: str,
-    value: str
-) -> bool:
-    """Update a specific uniqueid field in Kodi library."""
+def update_kodi_uniqueid_field(media_type: str, dbid: int, uniqueid: Dict,
+                               field: str, value: str) -> bool:
+    """Set a single `uniqueid` field on a Kodi library item via `SetXDetails` JSON-RPC."""
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
     if not method_info:
         return False
@@ -159,13 +153,7 @@ def update_kodi_uniqueid_field(
 
 
 def run_fix_library_ids(prompt: bool = True) -> None:
-    """
-    Run the Fix Library IDs tool.
-
-    Fixes two types of issues:
-    1. Missing IMDb IDs - fetches from TMDB API or IMDb dataset
-    2. Invalid TMDB IDs - looks up correct ID via IMDb ID
-    """
+    """Fix missing IMDb IDs (via TMDB or IMDb dataset) and invalid TMDB IDs (via IMDb lookup)."""
     init_database()
 
     progress = xbmcgui.DialogProgress()
@@ -187,14 +175,14 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         imdb_id = uniqueid.get("imdb")
         tmdb_id = str(uniqueid.get("tmdb", "")) if uniqueid.get("tmdb") else ""
 
-        if not imdb_id and _is_valid_tmdb_id(tmdb_id):
+        if not imdb_id and is_valid_tmdb_id(tmdb_id):
             missing_imdb_movies.append({
                 "movieid": movie.get("movieid"),
                 "title": movie.get("title"),
                 "year": movie.get("year"),
                 "uniqueid": uniqueid
             })
-        elif imdb_id and tmdb_id and not _is_valid_tmdb_id(tmdb_id):
+        elif imdb_id and tmdb_id and not is_valid_tmdb_id(tmdb_id):
             invalid_tmdb_movies.append({
                 "movieid": movie.get("movieid"),
                 "title": movie.get("title"),
@@ -218,16 +206,16 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         if tvshowid:
             if imdb_id:
                 show_imdb_map[tvshowid] = imdb_id
-            if tmdb_id and _is_valid_tmdb_id(tmdb_id):
+            if tmdb_id and is_valid_tmdb_id(tmdb_id):
                 show_tmdb_map[tvshowid] = tmdb_id
 
-        if not imdb_id and _is_valid_tmdb_id(tmdb_id):
+        if not imdb_id and is_valid_tmdb_id(tmdb_id):
             missing_imdb_shows.append({
                 "tvshowid": tvshowid,
                 "title": show.get("title"),
                 "uniqueid": uniqueid
             })
-        elif imdb_id and tmdb_id and not _is_valid_tmdb_id(tmdb_id):
+        elif imdb_id and tmdb_id and not is_valid_tmdb_id(tmdb_id):
             invalid_tmdb_shows.append({
                 "tvshowid": tvshowid,
                 "title": show.get("title"),
@@ -373,7 +361,7 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
 
         corrected_tmdb = resolve_tmdb_id(None, imdb_id, media_type)
 
-        if corrected_tmdb and _is_valid_tmdb_id(corrected_tmdb):
+        if corrected_tmdb and is_valid_tmdb_id(corrected_tmdb):
             if update_kodi_uniqueid_field(media_type, dbid, item["uniqueid"], "tmdb", corrected_tmdb):
                 fixed += 1
                 log("Ratings", f"Fixed TMDB ID for {item.get('title', 'unknown')}: {item.get('invalid_tmdb')} -> {corrected_tmdb}")
@@ -381,14 +369,10 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
     return fixed
 
 
-def _fix_missing_ids_via_tmdb(
-    items: List[Dict],
-    media_type: str,
-    progress: xbmcgui.DialogProgress,
-    label: str,
-    id_map: Optional[Dict[int, str]] = None
-) -> int:
-    """Fix missing IMDb IDs for movies/shows by fetching from TMDB API."""
+def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
+                              progress: xbmcgui.DialogProgress, label: str,
+                              id_map: Optional[Dict[int, str]] = None) -> int:
+    """Fill missing IMDb IDs on movies/shows by fetching from TMDB. `id_map` is populated for tvshows."""
     matched = 0
     total = len(items)
     last_percent = -1
@@ -415,12 +399,9 @@ def _fix_missing_ids_via_tmdb(
     return matched
 
 
-def _fix_missing_episode_ids(
-    episodes: List[Dict],
-    user_show_ids: Set[str],
-    progress: xbmcgui.DialogProgress,
-) -> int:
-    """Fix missing episode IMDb IDs using dataset bulk lookup, then TMDB fallback."""
+def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
+                             progress: xbmcgui.DialogProgress) -> int:
+    """Fill missing episode IMDb IDs via IMDb dataset bulk lookup first, then TMDB per-episode fallback."""
     progress.update(0, ADDON.getLocalizedString(32354))
 
     def progress_callback(status: str):
@@ -492,3 +473,56 @@ def _fix_missing_episode_ids(
                         fixed += 1
 
     return fixed
+
+
+_tvshow_uniqueid_cache: Dict[int, Dict[str, str]] = {}
+
+
+def clear_tvshow_uniqueid_cache() -> None:
+    """Clear the tvshow uniqueid cache. Call at the start of batch operations."""
+    _tvshow_uniqueid_cache.clear()
+
+
+def prefetch_tvshow_uniqueids() -> None:
+    """Pre-fetch all TV show uniqueids in one request to populate the cache."""
+    response = request("VideoLibrary.GetTVShows", {"properties": ["uniqueid"]})
+    if not response:
+        return
+    shows = extract_result(response, 'tvshows', [])
+    for show in shows:
+        tvshowid = show.get("tvshowid")
+        uniqueid = show.get("uniqueid", {})
+        if tvshowid:
+            _tvshow_uniqueid_cache[tvshowid] = uniqueid
+    log("Ratings", f"Pre-fetched uniqueids for {len(shows)} TV shows", xbmc.LOGDEBUG)
+
+
+def get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
+    """Fetch a TV show's uniqueid dict, cached to avoid refetching per episode."""
+    if tvshow_dbid in _tvshow_uniqueid_cache:
+        return _tvshow_uniqueid_cache[tvshow_dbid]
+
+    response = request("VideoLibrary.GetTVShowDetails", {
+        "tvshowid": tvshow_dbid,
+        "properties": ["uniqueid"]
+    })
+    if response and "tvshowdetails" in response.get("result", {}):
+        uniqueid = response["result"]["tvshowdetails"].get("uniqueid", {})
+        _tvshow_uniqueid_cache[tvshow_dbid] = uniqueid
+        return uniqueid
+
+    _tvshow_uniqueid_cache[tvshow_dbid] = {}
+    return {}
+
+
+def build_external_ids(ids: Dict) -> Dict[str, str]:
+    """Build the external_ids dict for database sync from a resolved ids dict."""
+    external_ids: Dict[str, str] = {}
+    imdb_id = ids.get("imdb_episode") or ids.get("imdb")
+    if imdb_id:
+        external_ids["imdb"] = str(imdb_id)
+    tmdb_id = ids.get("tmdb")
+    if tmdb_id:
+        external_ids["themoviedb"] = str(tmdb_id)
+        external_ids["tmdb"] = str(tmdb_id)
+    return external_ids

@@ -2,18 +2,10 @@
 from __future__ import annotations
 
 from typing import Optional, Dict, Set, Union
-from lib.data.database._infrastructure import get_db
+from lib.data.database._infrastructure import get_db, sql_placeholders
 
 def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
-    """
-    Get cached GIF metadata.
-
-    Args:
-        gif_path: Full path to GIF file
-
-    Returns:
-        Dict with 'mtime' and 'scanned_at', or None if not cached
-    """
+    """Return `{mtime, scanned_at}` for a cached GIF path, or None if not cached."""
     with get_db() as cursor:
         cursor.execute(
             'SELECT mtime, scanned_at FROM gif_cache WHERE path = ?',
@@ -29,14 +21,7 @@ def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
 
 
 def update_gif_cache(gif_path: str, mtime: float, scanned_at: str) -> None:
-    """
-    Update or insert GIF cache entry.
-
-    Args:
-        gif_path: Full path to GIF file
-        mtime: File modification time
-        scanned_at: Timestamp when scanned
-    """
+    """Upsert a GIF cache entry."""
     with get_db() as cursor:
         cursor.execute('''
             INSERT INTO gif_cache (path, mtime, scanned_at)
@@ -48,12 +33,7 @@ def update_gif_cache(gif_path: str, mtime: float, scanned_at: str) -> None:
 
 
 def get_all_cached_gifs() -> Dict[str, Dict[str, Union[float, str]]]:
-    """
-    Get all cached GIF entries.
-
-    Returns:
-        Dict mapping paths to metadata dicts
-    """
+    """Return all cached entries as `path -> {mtime, scanned_at}`."""
     cache = {}
     with get_db() as cursor:
         cursor.execute('SELECT path, mtime, scanned_at FROM gif_cache')
@@ -66,23 +46,13 @@ def get_all_cached_gifs() -> Dict[str, Dict[str, Union[float, str]]]:
 
 
 def cleanup_stale_gifs(accessed_paths: Set[str]) -> int:
-    """
-    Remove GIF cache entries not in the accessed set.
-
-    Args:
-        accessed_paths: Set of paths that were found during scan
-
-    Returns:
-        Number of stale entries removed
-    """
+    """Remove cache entries whose path isn't in `accessed_paths`. Returns number deleted."""
     with get_db() as cursor:
         if not accessed_paths:
-            cursor.execute('SELECT COUNT(*) as count FROM gif_cache')
-            count = cursor.fetchone()['count']
             cursor.execute('DELETE FROM gif_cache')
-            return count
+            return cursor.rowcount
 
-        placeholders = ','.join('?' * len(accessed_paths))
+        placeholders = sql_placeholders(len(accessed_paths))
         cursor.execute(
             f'DELETE FROM gif_cache WHERE path NOT IN ({placeholders})',
             tuple(accessed_paths)
@@ -91,14 +61,7 @@ def cleanup_stale_gifs(accessed_paths: Set[str]) -> int:
 
 
 def clear_gif_cache() -> int:
-    """
-    Clear entire GIF cache.
-
-    Returns:
-        Number of entries removed
-    """
+    """Clear entire GIF cache. Returns number of entries removed."""
     with get_db() as cursor:
-        cursor.execute('SELECT COUNT(*) as count FROM gif_cache')
-        count = cursor.fetchone()['count']
         cursor.execute('DELETE FROM gif_cache')
-        return count
+        return cursor.rowcount

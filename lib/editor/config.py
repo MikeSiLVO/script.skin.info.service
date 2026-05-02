@@ -34,355 +34,72 @@ CATEGORY_DATES_NUMBERS = "Dates & Numbers"
 CATEGORY_LISTS = "Lists"
 CATEGORY_RATINGS = "Ratings"
 
+def field(api: str, display: str, ftype: FieldType, category: str) -> FieldDef:
+    """Build a FieldDef. `get_property` always mirrors `api`."""
+    return {
+        "api_name": api,
+        "display_name": display,
+        "field_type": ftype,
+        "category": category,
+        "get_property": api,
+    }
+
+
 FIELD_DEFINITIONS: dict[str, FieldDef] = {
     # Core Text
-    "title": {
-        "api_name": "title",
-        "display_name": "Title",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "title",
-    },
-    "artist": {
-        "api_name": "artist",
-        "display_name": "Artist Name",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "artist",
-    },
-    "plot": {
-        "api_name": "plot",
-        "display_name": "Plot",
-        "field_type": FieldType.TEXT_LONG,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "plot",
-    },
-    "tagline": {
-        "api_name": "tagline",
-        "display_name": "Tagline",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "tagline",
-    },
-    "sorttitle": {
-        "api_name": "sorttitle",
-        "display_name": "Sort Title",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "sorttitle",
-    },
-    "sortname": {
-        "api_name": "sortname",
-        "display_name": "Sort Name",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "sortname",
-    },
-    "description": {
-        "api_name": "description",
-        "display_name": "Description",
-        "field_type": FieldType.TEXT_LONG,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "description",
-    },
-    "disambiguation": {
-        "api_name": "disambiguation",
-        "display_name": "Disambiguation",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "disambiguation",
-    },
-    "displayartist": {
-        "api_name": "displayartist",
-        "display_name": "Display Artist",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "displayartist",
-    },
-    "sortartist": {
-        "api_name": "sortartist",
-        "display_name": "Sort Artist",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "sortartist",
-    },
-    "albumlabel": {
-        "api_name": "albumlabel",
-        "display_name": "Record Label",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "albumlabel",
-    },
-    "comment": {
-        "api_name": "comment",
-        "display_name": "Comment",
-        "field_type": FieldType.TEXT_LONG,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "comment",
-    },
-    "songmood": {
-        "api_name": "mood",
-        "display_name": "Mood",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "mood",
-    },
-    "disctitle": {
-        "api_name": "disctitle",
-        "display_name": "Disc Title",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "disctitle",
-    },
-    "originaltitle": {
-        "api_name": "originaltitle",
-        "display_name": "Original Title",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_CORE_TEXT,
-        "get_property": "originaltitle",
-    },
-    # Dates & Numbers
-    "year": {
-        "api_name": "year",
-        "display_name": "Year",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "year",
-    },
-    "premiered": {
-        "api_name": "premiered",
-        "display_name": "Premiered",
-        "field_type": FieldType.DATE,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "premiered",
-    },
-    "firstaired": {
-        "api_name": "firstaired",
-        "display_name": "First Aired",
-        "field_type": FieldType.DATE,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "firstaired",
-    },
-    "runtime": {
-        "api_name": "runtime",
-        "display_name": "Runtime",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "runtime",
-    },
-    "mpaa": {
-        "api_name": "mpaa",
-        "display_name": "MPAA Rating",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "mpaa",
-    },
-    "born": {
-        "api_name": "born",
-        "display_name": "Born",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "born",
-    },
-    "formed": {
-        "api_name": "formed",
-        "display_name": "Formed",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "formed",
-    },
-    "died": {
-        "api_name": "died",
-        "display_name": "Died",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "died",
-    },
-    "disbanded": {
-        "api_name": "disbanded",
-        "display_name": "Disbanded",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "disbanded",
-    },
-    "artisttype": {
-        "api_name": "type",
-        "display_name": "Type",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "type",
-    },
-    "gender": {
-        "api_name": "gender",
-        "display_name": "Gender",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "gender",
-    },
-    "top250": {
-        "api_name": "top250",
-        "display_name": "Top 250",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "top250",
-    },
-    "track": {
-        "api_name": "track",
-        "display_name": "Track Number",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "track",
-    },
-    "disc": {
-        "api_name": "disc",
-        "display_name": "Disc Number",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "disc",
-    },
-    "duration": {
-        "api_name": "duration",
-        "display_name": "Duration",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "duration",
-    },
-    "bpm": {
-        "api_name": "bpm",
-        "display_name": "BPM",
-        "field_type": FieldType.INTEGER,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "bpm",
-    },
-    "releasedate": {
-        "api_name": "releasedate",
-        "display_name": "Release Date",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "releasedate",
-    },
-    "originaldate": {
-        "api_name": "originaldate",
-        "display_name": "Original Date",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "originaldate",
-    },
-    "albumtype": {
-        "api_name": "type",
-        "display_name": "Album Type",
-        "field_type": FieldType.TEXT,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "type",
-    },
+    "title": field("title", "Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "artist": field("artist", "Artist Name", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "plot": field("plot", "Plot", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "tagline": field("tagline", "Tagline", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sorttitle": field("sorttitle", "Sort Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sortname": field("sortname", "Sort Name", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "description": field("description", "Description", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "disambiguation": field("disambiguation", "Disambiguation", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "displayartist": field("displayartist", "Display Artist", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sortartist": field("sortartist", "Sort Artist", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "albumlabel": field("albumlabel", "Record Label", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "comment": field("comment", "Comment", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "songmood": field("mood", "Mood", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "disctitle": field("disctitle", "Disc Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "originaltitle": field("originaltitle", "Original Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    # Dates Numbers
+    "year": field("year", "Year", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "premiered": field("premiered", "Premiered", FieldType.DATE, CATEGORY_DATES_NUMBERS),
+    "firstaired": field("firstaired", "First Aired", FieldType.DATE, CATEGORY_DATES_NUMBERS),
+    "runtime": field("runtime", "Runtime", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "mpaa": field("mpaa", "MPAA Rating", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "born": field("born", "Born", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "formed": field("formed", "Formed", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "died": field("died", "Died", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "disbanded": field("disbanded", "Disbanded", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "artisttype": field("type", "Type", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "gender": field("gender", "Gender", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "top250": field("top250", "Top 250", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "track": field("track", "Track Number", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "disc": field("disc", "Disc Number", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "duration": field("duration", "Duration", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "bpm": field("bpm", "BPM", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "releasedate": field("releasedate", "Release Date", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "originaldate": field("originaldate", "Original Date", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "albumtype": field("type", "Album Type", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
     # Lists
-    "genre": {
-        "api_name": "genre",
-        "display_name": "Genre",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "genre",
-    },
-    "studio": {
-        "api_name": "studio",
-        "display_name": "Studio",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "studio",
-    },
-    "director": {
-        "api_name": "director",
-        "display_name": "Director",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "director",
-    },
-    "writer": {
-        "api_name": "writer",
-        "display_name": "Writer",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "writer",
-    },
-    "country": {
-        "api_name": "country",
-        "display_name": "Country",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "country",
-    },
-    "tag": {
-        "api_name": "tag",
-        "display_name": "Tags",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "tag",
-    },
-    "style": {
-        "api_name": "style",
-        "display_name": "Style",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "style",
-    },
-    "mood": {
-        "api_name": "mood",
-        "display_name": "Mood",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "mood",
-    },
-    "instrument": {
-        "api_name": "instrument",
-        "display_name": "Instrument",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "instrument",
-    },
-    "yearsactive": {
-        "api_name": "yearsactive",
-        "display_name": "Years Active",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "yearsactive",
-    },
-    "theme": {
-        "api_name": "theme",
-        "display_name": "Theme",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "theme",
-    },
-    "artistlist": {
-        "api_name": "artist",
-        "display_name": "Artist",
-        "field_type": FieldType.LIST,
-        "category": CATEGORY_LISTS,
-        "get_property": "artist",
-    },
+    "genre": field("genre", "Genre", FieldType.LIST, CATEGORY_LISTS),
+    "studio": field("studio", "Studio", FieldType.LIST, CATEGORY_LISTS),
+    "director": field("director", "Director", FieldType.LIST, CATEGORY_LISTS),
+    "writer": field("writer", "Writer", FieldType.LIST, CATEGORY_LISTS),
+    "country": field("country", "Country", FieldType.LIST, CATEGORY_LISTS),
+    "tag": field("tag", "Tags", FieldType.LIST, CATEGORY_LISTS),
+    "style": field("style", "Style", FieldType.LIST, CATEGORY_LISTS),
+    "mood": field("mood", "Mood", FieldType.LIST, CATEGORY_LISTS),
+    "instrument": field("instrument", "Instrument", FieldType.LIST, CATEGORY_LISTS),
+    "yearsactive": field("yearsactive", "Years Active", FieldType.LIST, CATEGORY_LISTS),
+    "theme": field("theme", "Theme", FieldType.LIST, CATEGORY_LISTS),
+    "artistlist": field("artist", "Artist", FieldType.LIST, CATEGORY_LISTS),
     # Ratings
-    "userrating": {
-        "api_name": "userrating",
-        "display_name": "User Rating",
-        "field_type": FieldType.USERRATING,
-        "category": CATEGORY_RATINGS,
-        "get_property": "userrating",
-    },
-    "ratings": {
-        "api_name": "ratings",
-        "display_name": "External Ratings",
-        "field_type": FieldType.RATINGS,
-        "category": CATEGORY_RATINGS,
-        "get_property": "ratings",
-    },
-    # Special
-    "status": {
-        "api_name": "status",
-        "display_name": "Status",
-        "field_type": FieldType.STATUS,
-        "category": CATEGORY_DATES_NUMBERS,
-        "get_property": "status",
-    },
+    "userrating": field("userrating", "User Rating", FieldType.USERRATING, CATEGORY_RATINGS),
+    "ratings": field("ratings", "External Ratings", FieldType.RATINGS, CATEGORY_RATINGS),
+    # Dates Numbers
+    "status": field("status", "Status", FieldType.STATUS, CATEGORY_DATES_NUMBERS),
 }
 
 MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
@@ -550,20 +267,27 @@ def get_fields_for_category(media_type: str, category: str) -> list[str]:
     return result
 
 
-ALWAYS_RETURNED_PROPERTIES: dict[str, set[str]] = {
-    "artist": {"artist"},
+_DEFAULT_PROPERTIES: dict[str, list[str]] = {
+    "artist": ["artist"],  # artist endpoint requires "artist" rather than "title"
 }
 
 
 def get_properties_for_media_type(media_type: str) -> list[str]:
     """Get JSON-RPC properties to fetch for a media type."""
-    fields = get_fields_for_media_type(media_type)
-    skip = ALWAYS_RETURNED_PROPERTIES.get(media_type, set())
-    properties: list[str] = [] if media_type == "artist" else ["title"]
-    for field in fields:
-        field_def = get_field_def(field)
+    properties = list(_DEFAULT_PROPERTIES.get(media_type, ["title"]))
+    for field_name in get_fields_for_media_type(media_type):
+        field_def = get_field_def(field_name)
         if field_def:
             prop = field_def["get_property"]
-            if prop not in properties and prop not in skip:
+            if prop not in properties:
                 properties.append(prop)
     return properties
+
+
+# Validate at module load that every name in MEDIA_TYPE_FIELDS exists in FIELD_DEFINITIONS.
+for _mt, _fields in MEDIA_TYPE_FIELDS.items():
+    for _f in _fields:
+        if _f not in FIELD_DEFINITIONS:
+            raise ValueError(
+                f"MEDIA_TYPE_FIELDS[{_mt!r}] references unknown field {_f!r}"
+            )

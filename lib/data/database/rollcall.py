@@ -1,4 +1,4 @@
-"""DBID rollcall — tracks valid Kodi library DBIDs and cleans up stale references."""
+"""DBID rollcall: tracks valid Kodi library DBIDs and cleans up stale references."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,7 +6,7 @@ from typing import Dict, Optional, Set, Tuple
 
 import xbmc
 
-from lib.data.database._infrastructure import DB_PATH, get_db
+from lib.data.database._infrastructure import DB_PATH, get_db, chunked_in_modify as _chunked_delete
 from lib.kodi.client import log
 
 
@@ -32,56 +32,65 @@ def _build_content_id(uniqueid: dict) -> str:
     return ""
 
 
+_PAGE_SIZE = 5000
+
+
+def _fetch_paginated(method: str, result_key: str, properties: Optional[list] = None) -> list:
+    """Fetch all items from a JSON-RPC library call, paginating to avoid silent truncation."""
+    from lib.kodi.client import request
+
+    items: list = []
+    start = 0
+    while True:
+        params: dict = {"limits": {"start": start, "end": start + _PAGE_SIZE}}
+        if properties:
+            params["properties"] = properties
+        resp = request(method, params)
+        if not resp:
+            break
+        result = resp.get("result") or {}
+        page = result.get(result_key) or []
+        if not page:
+            break
+        items.extend(page)
+        total = (result.get("limits") or {}).get("total")
+        if total is not None and len(items) >= total:
+            break
+        if len(page) < _PAGE_SIZE:
+            break
+        start += _PAGE_SIZE
+    return items
+
+
+_LIBRARY_SOURCES = [
+    # (media_type, method, result_key, id_field, has_uniqueid)
+    ("movie",   "VideoLibrary.GetMovies",   "movies",   "movieid",   True),
+    ("tvshow",  "VideoLibrary.GetTVShows",  "tvshows",  "tvshowid",  True),
+    ("episode", "VideoLibrary.GetEpisodes", "episodes", "episodeid", True),
+    ("artist",  "AudioLibrary.GetArtists",  "artists",  "artistid",  False),
+]
+
+
 def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str]]]:
-    """Fetch all DBIDs from Kodi library.
-
-    Returns:
-        {media_type: {dbid: (title, content_id)}}
-    """
-    from lib.kodi.client import request, extract_result
-
+    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: (title, content_id)}`."""
     snapshot: Dict[str, Dict[int, Tuple[str, str]]] = {}
 
-    resp = request("VideoLibrary.GetMovies", {
-        "properties": ["title", "uniqueid"],
-        "limits": {"start": 0, "end": 100000},
-    })
-    movies = extract_result(resp, "movies")
-    snapshot["movie"] = {}
-    for m in movies:
-        uid = m.get("uniqueid") or {}
-        snapshot["movie"][m["movieid"]] = (m.get("title", ""), _build_content_id(uid))
-
-    resp = request("VideoLibrary.GetTVShows", {
-        "properties": ["title", "uniqueid"],
-        "limits": {"start": 0, "end": 100000},
-    })
-    shows = extract_result(resp, "tvshows")
-    snapshot["tvshow"] = {}
-    for s in shows:
-        uid = s.get("uniqueid") or {}
-        snapshot["tvshow"][s["tvshowid"]] = (s.get("title", ""), _build_content_id(uid))
-
-    resp = request("VideoLibrary.GetEpisodes", {
-        "properties": ["title", "uniqueid"],
-        "limits": {"start": 0, "end": 500000},
-    })
-    episodes = extract_result(resp, "episodes")
-    snapshot["episode"] = {}
-    for e in episodes:
-        uid = e.get("uniqueid") or {}
-        snapshot["episode"][e["episodeid"]] = (e.get("title", ""), _build_content_id(uid))
-
-    resp = request("AudioLibrary.GetArtists", {
-        "limits": {"start": 0, "end": 100000},
-    })
-    artists = extract_result(resp, "artists")
-    snapshot["artist"] = {}
-    for a in artists:
-        name = a.get("label") or ""
-        snapshot["artist"][a["artistid"]] = (name, f"name:{name}")
+    for media_type, method, result_key, id_field, has_uniqueid in _LIBRARY_SOURCES:
+        properties = ["title", "uniqueid"] if has_uniqueid else None
+        items = _fetch_paginated(method, result_key, properties)
+        snapshot[media_type] = {}
+        for item in items:
+            if has_uniqueid:
+                title = item.get("title", "")
+                content_id = _build_content_id(item.get("uniqueid") or {})
+            else:
+                title = item.get("label") or ""
+                content_id = f"name:{title}"
+            snapshot[media_type][item[id_field]] = (title, content_id)
 
     return snapshot
+
+
 
 
 def _cleanup_stale_dbids(
@@ -92,36 +101,22 @@ def _cleanup_stale_dbids(
         return {}
     stats: Dict[str, int] = {}
     dbid_list = sorted(dbids)
-    chunk_size = 5000
     for table, (type_col, id_col) in _DEPENDENT_TABLES.items():
         if type_col is None:
             if media_type != "tvshow":
                 continue
-            for i in range(0, len(dbid_list), chunk_size):
-                chunk = dbid_list[i:i + chunk_size]
-                placeholders = ",".join("?" * len(chunk))
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {id_col} IN ({placeholders})",
-                    chunk,
-                )
-                stats[table] = stats.get(table, 0) + cursor.rowcount
+            sql = f"DELETE FROM {table} WHERE {id_col} IN ({{placeholders}})"
+            stats[table] = _chunked_delete(cursor, sql, [], dbid_list)
         else:
-            for i in range(0, len(dbid_list), chunk_size):
-                chunk = dbid_list[i:i + chunk_size]
-                placeholders = ",".join("?" * len(chunk))
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE {type_col} = ? AND {id_col} IN ({placeholders})",
-                    [media_type] + chunk,
-                )
-                stats[table] = stats.get(table, 0) + cursor.rowcount
+            sql = f"DELETE FROM {table} WHERE {type_col} = ? AND {id_col} IN ({{placeholders}})"
+            stats[table] = _chunked_delete(cursor, sql, [media_type], dbid_list)
     return {k: v for k, v in stats.items() if v > 0}
 
 
 def sync_dbids() -> Dict[str, Dict[str, int]]:
     """Sync DBID registry with Kodi library.
 
-    Returns:
-        {media_type: {"added": n, "removed": n, "reused": n}}
+    Returns `media_type -> {added, removed, reused}`. Empty dict when no changes.
     """
     snapshot = _fetch_library_dbids()
     now = datetime.now().isoformat()
@@ -159,14 +154,12 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
                     log("Database", f"DBID sync cleanup ({media_type}): {cleanup}", xbmc.LOGDEBUG)
 
             if gone:
-                gone_list = sorted(gone)
-                for i in range(0, len(gone_list), 5000):
-                    chunk = gone_list[i:i + 5000]
-                    placeholders = ",".join("?" * len(chunk))
-                    cursor.execute(
-                        f"DELETE FROM dbid_registry WHERE media_type = ? AND dbid IN ({placeholders})",
-                        [media_type] + chunk,
-                    )
+                _chunked_delete(
+                    cursor,
+                    "DELETE FROM dbid_registry WHERE media_type = ? AND dbid IN ({placeholders})",
+                    [media_type],
+                    sorted(gone),
+                )
 
             for dbid in reused:
                 title, content_id = library_items[dbid]
@@ -216,7 +209,16 @@ def get_valid_dbids(media_type: str) -> Set[int]:
 def remove_dbid(media_type: str, dbid: int) -> None:
     """Remove a single DBID from registry and all dependent tables."""
     with get_db(DB_PATH) as cursor:
-        _cleanup_stale_dbids(cursor, media_type, {dbid})
+        for table, (type_col, id_col) in _DEPENDENT_TABLES.items():
+            if type_col is None:
+                if media_type != "tvshow":
+                    continue
+                cursor.execute(f"DELETE FROM {table} WHERE {id_col} = ?", (dbid,))
+            else:
+                cursor.execute(
+                    f"DELETE FROM {table} WHERE {type_col} = ? AND {id_col} = ?",
+                    (media_type, dbid),
+                )
         cursor.execute(
             "DELETE FROM dbid_registry WHERE media_type = ? AND dbid = ?",
             (media_type, dbid),

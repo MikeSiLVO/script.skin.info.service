@@ -37,6 +37,10 @@ from lib.data.database.cache import (
     cache_artwork,
     get_cached_metadata,
     cache_metadata,
+    get_cached_season_metadata,
+    cache_season_metadata,
+    get_cached_tmdb_genre_list,
+    cache_tmdb_genre_list,
     cache_person_data,
     get_cached_person_data,
     clear_expired_cache,
@@ -47,7 +51,7 @@ from lib.data.database.cache import (
 
 from lib.data.database.queue import (
     ARTITEM_REVIEW_MISSING,
-    clear_queue,
+    clear_queue_and_sessions,
     clear_queue_for_media,
     add_to_queue,
     add_art_item,
@@ -92,6 +96,7 @@ from lib.data.database import gif  # noqa: F401
 from lib.data.database import imdb  # noqa: F401
 from lib.data.database import music  # noqa: F401
 from lib.data.database import rating  # noqa: F401
+from lib.data.database import runtime  # noqa: F401
 from lib.data.database import slideshow  # noqa: F401
 
 __all__ = [
@@ -107,6 +112,10 @@ __all__ = [
     'cache_artwork',
     'get_cached_metadata',
     'cache_metadata',
+    'get_cached_season_metadata',
+    'cache_season_metadata',
+    'get_cached_tmdb_genre_list',
+    'cache_tmdb_genre_list',
     'cache_person_data',
     'get_cached_person_data',
     'clear_expired_cache',
@@ -114,7 +123,7 @@ __all__ = [
     'get_mb_id_mappings_by_canonical',
     'save_mb_id_mapping',
     'ARTITEM_REVIEW_MISSING',
-    'clear_queue',
+    'clear_queue_and_sessions',
     'clear_queue_for_media',
     'add_to_queue',
     'add_art_item',
@@ -153,5 +162,6 @@ __all__ = [
     'imdb',
     'music',
     'rating',
+    'runtime',
     'slideshow',
 ]

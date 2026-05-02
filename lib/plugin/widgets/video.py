@@ -5,20 +5,12 @@ import random
 import xbmc
 import xbmcgui
 import xbmcplugin
-from lib.kodi.client import request, get_item_details
+from lib.kodi.client import request, get_item_details, extract_result
 
 
-def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict, episode_art: dict) -> None:
-    """
-    Set episode ListItem artwork using show artwork with episode thumb.
-
-    Combines TV show artwork (poster, fanart, clearlogo, etc.) with episode thumbnail.
-
-    Args:
-        listitem: Episode ListItem to set artwork on
-        show_art: TV show art dict from JSON-RPC
-        episode_art: Episode art dict from JSON-RPC
-    """
+def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
+                                   episode_art: dict) -> None:
+    """Set episode ListItem art using show artwork + episode thumb."""
     listitem.setArt({
         'poster': show_art.get('poster', ''),
         'fanart': show_art.get('fanart', ''),
@@ -32,16 +24,7 @@ def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict, e
 
 
 def handle_next_up(handle: int, params: dict) -> None:
-    """
-    Get next episode to watch for each in-progress TV show.
-
-    Returns episode ListItems with TV show artwork (poster, fanart, clearlogo).
-    Uses native season parameter for optimal database queries.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with optional 'limit'
-    """
+    """Plugin entry: return next unwatched episode for each in-progress show (`limit` param, default 25)."""
     limit = int(params.get('limit', ['25'])[0])
 
     result = request('VideoLibrary.GetTVShows', {
@@ -50,7 +33,7 @@ def handle_next_up(handle: int, params: dict) -> None:
         'sort': {'method': 'lastplayed', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
-    shows = result.get('result', {}).get('tvshows', []) if result else []
+    shows = extract_result(result, 'tvshows', [])
 
     items = []
     for show in shows:
@@ -66,7 +49,7 @@ def handle_next_up(handle: int, params: dict) -> None:
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': 1}
         })
-        last_played = last_result.get('result', {}).get('episodes', []) if last_result else []
+        last_played = extract_result(last_result, 'episodes', [])
 
         if not last_played:
             continue
@@ -83,7 +66,7 @@ def handle_next_up(handle: int, params: dict) -> None:
             'sort': {'method': 'episode', 'order': 'ascending'},
             'limits': {'start': 0, 'end': 1}
         })
-        next_ep = next_result.get('result', {}).get('episodes', []) if next_result else []
+        next_ep = extract_result(next_result, 'episodes', [])
 
         if not next_ep:
             fallback_result = request('VideoLibrary.GetEpisodes', {
@@ -95,7 +78,7 @@ def handle_next_up(handle: int, params: dict) -> None:
                 'sort': {'method': 'episode', 'order': 'ascending'},
                 'limits': {'start': 0, 'end': 1}
             })
-            next_ep = fallback_result.get('result', {}).get('episodes', []) if fallback_result else []
+            next_ep = extract_result(fallback_result, 'episodes', [])
 
         if next_ep:
             episode = next_ep[0]
@@ -116,17 +99,7 @@ def handle_next_up(handle: int, params: dict) -> None:
 
 
 def _create_episode_listitem(episode: dict) -> xbmcgui.ListItem:
-    """
-    Create episode ListItem with proper formatting and metadata.
-
-    Label format: "2x05. Episode Title" or "S05. Special Title"
-
-    Args:
-        episode: Episode data dict from JSON-RPC
-
-    Returns:
-        Configured ListItem with episode metadata
-    """
+    """Create an episode ListItem. Label format: `"2x05. Episode Title"` (or `"S05. Special Title"` for specials)."""
     season = episode.get('season', 0)
     ep_num = episode.get('episode', 0)
     title = episode.get('title', '')
@@ -182,17 +155,10 @@ def _create_episode_listitem(episode: dict) -> xbmcgui.ListItem:
 
 
 def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
-    """
-    Get recently added episodes with intelligent grouping.
+    """Plugin entry: recently-added episodes, grouped so new series collapse into a single folder.
 
-    Returns mixed episode/show ListItems:
-    - Single unwatched episode: Returns episode with show artwork
-    - Multiple unwatched episodes: Returns show folder
-    - Multiple episodes added same day: Returns show folder
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with optional 'limit' and 'include_watched'
+    Single new episode -> episode ListItem with show art. Multiple unwatched or
+    same-day-added -> show folder. `include_watched=true` disables the in-progress filter.
     """
     limit = int(params.get('limit', ['25'])[0])
     include_watched = params.get('include_watched', ['false'])[0].lower() == 'true'
@@ -212,7 +178,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
         'sort': {'method': 'dateadded', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
-    shows = result.get('result', {}).get('tvshows', []) if result else []
+    shows = extract_result(result, 'tvshows', [])
 
     items = []
     for show in shows:
@@ -228,7 +194,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                 'sort': {'method': 'dateadded', 'order': 'descending'},
                 'limits': {'start': 0, 'end': 1}
             })
-            episodes = ep_result.get('result', {}).get('episodes', []) if ep_result else []
+            episodes = extract_result(ep_result, 'episodes', [])
 
             if episodes:
                 episode = episodes[0]
@@ -247,7 +213,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                 'sort': {'method': 'dateadded', 'order': 'descending'},
                 'limits': {'start': 0, 'end': 2}
             })
-            recent_eps = recent_result.get('result', {}).get('episodes', []) if recent_result else []
+            recent_eps = extract_result(recent_result, 'episodes', [])
 
             if len(recent_eps) >= 2:
                 date1 = recent_eps[0].get('dateadded', '').split('T')[0]
@@ -288,15 +254,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
 
 
 def _create_tvshow_listitem(show: dict) -> xbmcgui.ListItem:
-    """
-    Create TV show ListItem with proper metadata.
-
-    Args:
-        show: TV show data dict from JSON-RPC
-
-    Returns:
-        Configured ListItem with TV show metadata
-    """
+    """Create a TV show ListItem from a JSON-RPC show dict."""
     title = show.get('title', '')
     listitem = xbmcgui.ListItem(title, offscreen=True)
 
@@ -389,16 +347,19 @@ def _create_tvshow_listitem(show: dict) -> xbmcgui.ListItem:
     return listitem
 
 
+def _find_actor_role(cast: list, actor_name: str) -> str:
+    """Return the actor's role/character from a JSON-RPC cast list, or '' if not found."""
+    for member in cast:
+        if member.get('name') == actor_name:
+            return member.get('role', '') or ''
+    return ''
+
+
 def handle_by_actor(handle: int, params: dict) -> None:
-    """
-    Get movies and TV shows featuring an actor from the specified item.
+    """Plugin entry: library items featuring a random actor from the source item.
 
-    Context-aware: Extracts random actor from source item's cast and returns
-    results featuring that actor. Can return mixed types or match source type.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with 'dbid', optional 'dbtype', 'limit', 'cast_limit', 'mix', 'lock'
+    `mix=true` (default) returns mixed movies+shows; `mix=false` matches `dbtype`.
+    `lock=true` picks a stable actor from the source cast; default is a fresh random pick.
     """
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
@@ -463,15 +424,18 @@ def handle_by_actor(handle: int, params: dict) -> None:
             'filter': {'actor': actor},
             'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
                           'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
-        movies = movie_result.get('result', {}).get('movies', []) if movie_result else []
+        movies = extract_result(movie_result, 'movies', [])
 
         for movie in movies:
             if movie.get('movieid') != dbid or dbtype != 'movie':
                 listitem = _create_movie_listitem(movie)
+                role = _find_actor_role(movie.get('cast', []), actor)
+                if role:
+                    listitem.setProperty('Role', role)
                 all_items.append((movie['file'], listitem, False))
 
     if mix or dbtype in ('tvshow', 'season', 'episode'):
@@ -484,11 +448,14 @@ def handle_by_actor(handle: int, params: dict) -> None:
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
-        shows = show_result.get('result', {}).get('tvshows', []) if show_result else []
+        shows = extract_result(show_result, 'tvshows', [])
 
         for show in shows:
             if show.get('tvshowid') != dbid or dbtype != 'tvshow':
                 listitem = _create_tvshow_listitem(show)
+                role = _find_actor_role(show.get('cast', []), actor)
+                if role:
+                    listitem.setProperty('Role', role)
                 show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
                 all_items.append((show_url, listitem, True))
 
@@ -508,15 +475,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
 
 
 def _create_movie_listitem(movie: dict) -> xbmcgui.ListItem:
-    """
-    Create movie ListItem with proper metadata.
-
-    Args:
-        movie: Movie data dict from JSON-RPC
-
-    Returns:
-        Configured ListItem with movie metadata
-    """
+    """Create a movie ListItem from a JSON-RPC movie dict."""
     title = movie.get('title', '')
     listitem = xbmcgui.ListItem(title, offscreen=True)
 
@@ -602,15 +561,9 @@ def _create_movie_listitem(movie: dict) -> xbmcgui.ListItem:
 
 
 def handle_by_director(handle: int, params: dict) -> None:
-    """
-    Get movies and episodes by a director from the specified item.
+    """Plugin entry: library items by a random director from the source item.
 
-    Context-aware: Extracts random director from source item and returns
-    results by that director. Can return mixed types or match source type.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with 'dbid', optional 'dbtype', 'limit', 'director_limit', 'mix'
+    `mix=true` returns mixed movies+episodes; `mix=false` matches `dbtype`.
     """
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
@@ -651,7 +604,7 @@ def handle_by_director(handle: int, params: dict) -> None:
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
-        movies = movie_result.get('result', {}).get('movies', []) if movie_result else []
+        movies = extract_result(movie_result, 'movies', [])
 
         for movie in movies:
             if movie.get('movieid') != dbid or dbtype != 'movie':
@@ -667,7 +620,7 @@ def handle_by_director(handle: int, params: dict) -> None:
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
-        episodes = episode_result.get('result', {}).get('episodes', []) if episode_result else []
+        episodes = extract_result(episode_result, 'episodes', [])
 
         show_art_cache: dict[int, dict] = {}
         for episode in episodes:
@@ -681,8 +634,8 @@ def handle_by_director(handle: int, params: dict) -> None:
                             'tvshowid': tvshowid,
                             'properties': ['art']
                         })
-                        show = show_result.get('result', {}).get('tvshowdetails', {}) if show_result else {}
-                        show_art_cache[tvshowid] = show.get('art', {})
+                        show = extract_result(show_result, 'tvshowdetails', {})
+                        show_art_cache[tvshowid] = show.get('art', {}) if isinstance(show, dict) else {}
 
                     show_art = show_art_cache[tvshowid]
                     if show_art:
@@ -706,15 +659,7 @@ def handle_by_director(handle: int, params: dict) -> None:
 
 
 def handle_similar(handle: int, params: dict) -> None:
-    """
-    Get similar items based on genre matching with light scoring.
-
-    Scores items by genre overlap, year proximity, and MPAA compatibility.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with 'dbid', optional 'dbtype', 'limit'
-    """
+    """Plugin entry: library items similar to the source, scored by genre overlap + year/MPAA proximity."""
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
         xbmcplugin.endOfDirectory(handle)
@@ -760,7 +705,7 @@ def handle_similar(handle: int, params: dict) -> None:
                           'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
                           'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
         })
-        candidates = result.get('result', {}).get('movies', []) if result else []
+        candidates = extract_result(result, 'movies', [])
         id_field = 'movieid'
     else:
         result = request('VideoLibrary.GetTVShows', {
@@ -770,7 +715,7 @@ def handle_similar(handle: int, params: dict) -> None:
                           'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
                           'imdbnumber', 'originaltitle'],
         })
-        candidates = result.get('result', {}).get('tvshows', []) if result else []
+        candidates = extract_result(result, 'tvshows', [])
         id_field = 'tvshowid'
 
     scored_items = []
@@ -827,19 +772,13 @@ def handle_similar(handle: int, params: dict) -> None:
         xbmcplugin.setContent(handle, 'movies')
     else:
         xbmcplugin.setContent(handle, 'tvshows')
-    xbmcplugin.endOfDirectory(handle)
+    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
 
 
 def handle_recommended(handle: int, params: dict) -> None:
-    """
-    Get personalized recommendations based on watch history.
+    """Plugin entry: recommendations scored from recent watch history (genre, MPAA, year).
 
-    Analyzes recent watch history to identify genre preferences, MPAA context,
-    and year patterns, then scores unwatched items accordingly.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with optional 'dbtype', 'limit', 'strict_rating', 'min_rating'
+    `strict_rating=true` enforces the MPAA context from history. `min_rating` filters low-rated items.
     """
     dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])
@@ -855,7 +794,7 @@ def handle_recommended(handle: int, params: dict) -> None:
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': 20}
         })
-        movies = movie_history.get('result', {}).get('movies', []) if movie_history else []
+        movies = extract_result(movie_history, 'movies', [])
         history.extend(movies)
 
     if dbtype in ('tvshow', 'both'):
@@ -865,7 +804,7 @@ def handle_recommended(handle: int, params: dict) -> None:
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': 20}
         })
-        shows = show_history.get('result', {}).get('tvshows', []) if show_history else []
+        shows = extract_result(show_history, 'tvshows', [])
         history.extend(shows)
 
     if not history:
@@ -935,7 +874,7 @@ def handle_recommended(handle: int, params: dict) -> None:
                           'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
                           'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
         })
-        candidates.extend(result.get('result', {}).get('movies', []) if result else [])
+        candidates.extend(extract_result(result, 'movies', []))
 
     if dbtype in ('tvshow', 'both'):
         tvshow_filter = {
@@ -951,7 +890,7 @@ def handle_recommended(handle: int, params: dict) -> None:
                           'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
                           'imdbnumber', 'originaltitle', 'season'],
         })
-        candidates.extend(result.get('result', {}).get('tvshows', []) if result else [])
+        candidates.extend(extract_result(result, 'tvshows', []))
 
     scored_items = []
     for candidate in candidates:
@@ -1074,15 +1013,7 @@ SEASONAL_TAGS = {
 
 
 def handle_seasonal(handle: int, params: dict) -> None:
-    """
-    Get seasonal movies filtered by TMDB keywords (tags).
-
-    Uses Kodi's native tag field populated by TMDB scrapers.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters dict with 'season', optional 'limit', 'sort'
-    """
+    """Plugin entry: seasonal movies filtered by TMDB keywords stored in Kodi's tag field."""
     season = params.get('season', [''])[0].lower()
     limit = int(params.get('limit', ['50'])[0])
     sort_method = params.get('sort', ['random'])[0]
@@ -1103,7 +1034,7 @@ def handle_seasonal(handle: int, params: dict) -> None:
         'sort': {'method': sort_method},
         'limits': {'start': 0, 'end': limit}
     })
-    movies = result.get('result', {}).get('movies', []) if result else []
+    movies = extract_result(result, 'movies', [])
 
     all_items = []
     for movie in movies:

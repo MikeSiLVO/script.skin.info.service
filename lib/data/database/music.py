@@ -1,21 +1,23 @@
 """Music metadata cache database.
 
 Separate database (music_metadata.db) for caching raw API responses from
-TheAudioDB, Last.fm, and Wikipedia. Stores zlib-compressed JSON blobs — field
+TheAudioDB, Last.fm, and Wikipedia. Stores zlib-compressed JSON blobs; field
 extraction happens at read time in the service layer.
 """
 from __future__ import annotations
 
-import json
 import random
-import zlib
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Optional
 
 import xbmc
 import xbmcvfs
 
-from lib.data.database._infrastructure import get_db
+from lib.data.database._infrastructure import (
+    get_db,
+    compress_data as _compress,
+    decompress_data as _decompress,
+)
 from lib.kodi.client import log
 
 MUSIC_DB_PATH = xbmcvfs.translatePath(
@@ -83,35 +85,27 @@ def audiodb_text_field(base: str) -> str:
     return f'{base}{suffix}'
 
 
-def _compress(data: Any) -> bytes:
-    return zlib.compress(json.dumps(data, separators=(',', ':')).encode('utf-8'), level=6)
-
-
-def _decompress(blob: bytes) -> Any:
-    return json.loads(zlib.decompress(blob).decode('utf-8'))
-
-
-# -- Key helpers --
-
 def _artist_key(mbid: str, name: str) -> str:
+    """Build lookup key for an artist: MBID if present, else lowercased name."""
     if mbid:
         return mbid
     return name.lower().strip()
 
 
 def _album_key(mbid: str, artist: str, album: str) -> str:
+    """Build lookup key for an album: MBID if present, else `artist\\0album` lowercased."""
     if mbid:
         return mbid
     return f"{artist}\0{album}".lower().strip()
 
 
 def _track_key(artist: str, track: str) -> str:
+    """Build lookup key for a track: `artist\\0track` lowercased."""
     return f"{artist}\0{track}".lower().strip()
 
 
-# -- TTL logic --
-
 def _apply_jitter(hours: float) -> int:
+    """Multiply `hours` by a random 0.8-1.2 factor to spread cache expiry."""
     return max(1, int(hours * random.uniform(0.8, 1.2)))
 
 
@@ -121,6 +115,7 @@ def _miss_ttl_days(miss_count: int) -> int:
 
 
 def _has_artist_content(data: dict, source: str) -> bool:
+    """True if artist response has usable bio/wiki content (distinguishes real hits from empty shells)."""
     if source == SOURCE_AUDIODB:
         return bool(data.get('strBiographyEN'))
     bio = data.get('bio') or data.get('wiki')
@@ -130,6 +125,7 @@ def _has_artist_content(data: dict, source: str) -> bool:
 
 
 def _has_album_content(data: dict, source: str) -> bool:
+    """True if album response has usable description/wiki content."""
     if source == SOURCE_AUDIODB:
         return bool(data.get('strDescriptionEN'))
     if source == SOURCE_WIKIPEDIA:
@@ -141,6 +137,7 @@ def _has_album_content(data: dict, source: str) -> bool:
 
 
 def _has_track_content(data: dict, source: str) -> bool:
+    """True if track response has usable content (description, wiki, or toptags)."""
     if source == SOURCE_AUDIODB:
         return bool(data.get('strDescriptionEN'))
     if source == SOURCE_WIKIPEDIA:
@@ -205,14 +202,13 @@ def _album_ttl_hours(data: dict, source: str) -> int:
 
 
 def _track_ttl_hours(source: str) -> int:
-    """TTL for track data with content — flat 14 days."""
+    """TTL for track data with content - flat 14 days."""
     hours = 14 * 24 * _SOURCE_MULTIPLIER.get(source, 1.0)
     return _apply_jitter(hours)
 
 
-# -- Init / cleanup --
-
 def init_music_database() -> None:
+    """Create music metadata tables if missing."""
     with get_db(MUSIC_DB_PATH) as cursor:
         cursor.executescript(_SCHEMA_SQL)
 
@@ -228,20 +224,18 @@ def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int
         artist_lower = artist.lower().strip()
         if track:
             prefix = _track_key(artist, track)
-            for table in ('music_tracks',):
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE lookup_key = ? OR lookup_key LIKE ?",
-                    (prefix, prefix + ':%'),
-                )
-                total += cursor.rowcount
+            cursor.execute(
+                "DELETE FROM music_tracks WHERE lookup_key = ? OR lookup_key LIKE ?",
+                (prefix, prefix + ':%'),
+            )
+            total += cursor.rowcount
         if album:
             prefix = _album_key('', artist, album)
-            for table in ('music_albums',):
-                cursor.execute(
-                    f"DELETE FROM {table} WHERE lookup_key = ? OR lookup_key LIKE ?",
-                    (prefix, prefix + ':%'),
-                )
-                total += cursor.rowcount
+            cursor.execute(
+                "DELETE FROM music_albums WHERE lookup_key = ? OR lookup_key LIKE ?",
+                (prefix, prefix + ':%'),
+            )
+            total += cursor.rowcount
         if artist_lower:
             cursor.execute(
                 "DELETE FROM music_artists WHERE lookup_key = ? OR lookup_key LIKE ?",
@@ -254,6 +248,7 @@ def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int
 
 
 def clear_expired_music_cache() -> int:
+    """Remove expired entries from all music cache tables. Returns total removed."""
     now = datetime.now().isoformat()
     total = 0
     with get_db(MUSIC_DB_PATH) as cursor:
@@ -265,9 +260,8 @@ def clear_expired_music_cache() -> int:
     return total
 
 
-# -- Generic CRUD helpers --
-
 def _get_cached(table: str, source: str, lookup_key: str) -> Optional[dict]:
+    """Fetch a cache row from `table`, return decompressed data or None if missing/expired."""
     with get_db(MUSIC_DB_PATH) as cursor:
         cursor.execute(
             f'SELECT data, expires_at FROM {table} WHERE source = ? AND lookup_key = ?',
@@ -285,14 +279,9 @@ def _get_cached(table: str, source: str, lookup_key: str) -> Optional[dict]:
             return None
 
 
-def _cache_entry(
-    table: str,
-    source: str,
-    lookup_key: str,
-    data: dict,
-    has_content: bool,
-    ttl_hours: int,
-) -> None:
+def _cache_entry(table: str, source: str, lookup_key: str, data: dict,
+                 has_content: bool, ttl_hours: int) -> None:
+    """Upsert a cache row. When `has_content` is False, applies exponential miss-backoff TTL."""
     now = datetime.now()
 
     with get_db(MUSIC_DB_PATH) as cursor:
@@ -323,9 +312,8 @@ def _cache_entry(
         )
 
 
-# -- Artist CRUD --
-
 def get_cached_artist(source: str, *, mbid: str = '', name: str = '', lang: str = '') -> Optional[dict]:
+    """Return cached artist data for the given `source` (audiodb/lastfm/wikipedia), or None."""
     key = _artist_key(mbid, name)
     if not key:
         return None
@@ -334,15 +322,14 @@ def get_cached_artist(source: str, *, mbid: str = '', name: str = '', lang: str 
     return _get_cached('music_artists', source, key)
 
 
-def cache_artist(
-    source: str,
-    data: dict,
-    *,
-    mbid: str = '',
-    name: str = '',
-    audiodb_artist: Optional[dict] = None,
-    lang: str = '',
-) -> None:
+def cache_artist(source: str, data: dict, *, mbid: str = '', name: str = '',
+                 audiodb_artist: Optional[dict] = None, lang: str = '') -> None:
+    """Cache artist data.
+
+    When both `mbid` and `name` are given, writes under both keys so later name-only
+    lookups hit (artist callers may resolve MBID after a name-only lookup). `cache_album`
+    deliberately doesn't dual-write because its callers consistently pass `mbid` when known.
+    """
     key = _artist_key(mbid, name)
     if not key:
         return
@@ -359,16 +346,9 @@ def cache_artist(
             _cache_entry('music_artists', source, name_key, data, has_content, ttl)
 
 
-# -- Album CRUD --
-
-def get_cached_album(
-    source: str,
-    *,
-    mbid: str = '',
-    artist: str = '',
-    album: str = '',
-    lang: str = '',
-) -> Optional[dict]:
+def get_cached_album(source: str, *, mbid: str = '', artist: str = '',
+                     album: str = '', lang: str = '') -> Optional[dict]:
+    """Return cached album data for the given source, or None."""
     key = _album_key(mbid, artist, album)
     if not key:
         return None
@@ -377,15 +357,9 @@ def get_cached_album(
     return _get_cached('music_albums', source, key)
 
 
-def cache_album(
-    source: str,
-    data: dict,
-    *,
-    mbid: str = '',
-    artist: str = '',
-    album: str = '',
-    lang: str = '',
-) -> None:
+def cache_album(source: str, data: dict, *, mbid: str = '', artist: str = '',
+                album: str = '', lang: str = '') -> None:
+    """Cache album data for the given source."""
     key = _album_key(mbid, artist, album)
     if not key:
         return
@@ -396,9 +370,8 @@ def cache_album(
     _cache_entry('music_albums', source, key, data, has_content, ttl)
 
 
-# -- Track CRUD --
-
 def get_cached_track(source: str, artist: str, track: str, lang: str = '') -> Optional[dict]:
+    """Return cached track data for the given source, or None."""
     key = _track_key(artist, track)
     if not key:
         return None
@@ -408,6 +381,7 @@ def get_cached_track(source: str, artist: str, track: str, lang: str = '') -> Op
 
 
 def cache_track(source: str, data: dict, artist: str, track: str, lang: str = '') -> None:
+    """Cache track data for the given source."""
     key = _track_key(artist, track)
     if not key:
         return
@@ -417,8 +391,6 @@ def cache_track(source: str, data: dict, artist: str, track: str, lang: str = ''
     ttl = _track_ttl_hours(source) if has_content else 0
     _cache_entry('music_tracks', source, key, data, has_content, ttl)
 
-
-# -- Cross-source convenience --
 
 def get_best_artist_bio(*, mbid: str = '', name: str = '') -> str:
     """Check AudioDB first (richer bios), fall back to Last.fm."""

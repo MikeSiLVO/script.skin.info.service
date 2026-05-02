@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from lib.kodi.utils import validate_media_type, validate_dbid  # noqa: F401 - re-exported
+from lib.kodi.utilities import validate_media_type, validate_dbid  # noqa: F401 - re-exported
 
 
 REVIEW_SCOPE_OPTIONS = [
@@ -89,12 +89,7 @@ SESSION_DETAIL_KEYS = (
 
 
 def default_session_stats() -> dict:
-    """
-    Create default session statistics structure.
-
-    Returns:
-        Dict with default stat values
-    """
+    """Create default session statistics structure."""
     return {
         'applied': 0,
         'skipped': 0,
@@ -107,15 +102,7 @@ def default_session_stats() -> dict:
 
 
 def load_session_stats(raw: Any) -> dict:
-    """
-    Load and normalize session statistics from storage.
-
-    Args:
-        raw: Raw stats (dict, JSON string, or None)
-
-    Returns:
-        Normalized stats dict
-    """
+    """Load and normalize session statistics from storage. Accepts dict, JSON string, or None."""
     stats = default_session_stats()
 
     if raw:
@@ -148,13 +135,5 @@ def load_session_stats(raw: Any) -> dict:
 
 
 def serialise_session_stats(stats: dict) -> dict:
-    """
-    Serialize session stats (currently just normalizes via load).
-
-    Args:
-        stats: Stats dict to serialize
-
-    Returns:
-        Normalized stats dict
-    """
+    """Serialize session stats (currently just normalizes via load)."""
     return load_session_stats(stats)

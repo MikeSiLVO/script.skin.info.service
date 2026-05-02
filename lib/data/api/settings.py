@@ -8,12 +8,7 @@ from lib.kodi.client import ADDON
 
 
 def edit_api_key(provider: str) -> None:
-    """
-    Show keyboard dialog to edit API key.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Show keyboard dialog to edit API key."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
@@ -39,12 +34,7 @@ def edit_api_key(provider: str) -> None:
 
 
 def clear_api_key(provider: str) -> None:
-    """
-    Clear API key after confirmation.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Clear API key after confirmation."""
     from lib.kodi.client import API_KEY_CONFIG
     from lib.infrastructure.dialogs import show_yesno
 
@@ -69,12 +59,7 @@ def clear_api_key(provider: str) -> None:
 
 
 def test_api_key(provider: str) -> None:
-    """
-    Test API key connection.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Test API key connection."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")

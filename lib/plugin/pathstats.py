@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from typing import Dict, Any, List
-from lib.kodi.client import request
+import xbmc
+import xbmcgui
+import xbmcplugin
+
+from lib.kodi.client import log, request
 
 
 def _process_items(stats: Dict[str, Any], items: List[dict]) -> None:
@@ -44,22 +48,10 @@ def _process_items(stats: Dict[str, Any], items: List[dict]) -> None:
 
 
 def get_path_statistics(path: str) -> Dict[str, Any]:
-    """
-    Calculate statistics for a video library path.
+    """Count watched/unwatched/in-progress items and episodes for a video library path.
 
-    Args:
-        path: Video library path (videodb://, plugin://, special://, etc.)
-
-    Returns:
-        Dictionary containing:
-        - count: Total items
-        - watched: Fully watched items
-        - unwatched: Untouched items
-        - in_progress: Partially watched (episode count for shows, resume point otherwise)
-        - tvshow_count: Number of shows (when path returns tvshow items)
-        - episodes: Total episodes across all shows
-        - watched_episodes: Watched episodes
-        - unwatched_episodes: Unwatched episodes
+    Returns a dict with `count, watched, unwatched, in_progress, tvshow_count,
+    episodes, watched_episodes, unwatched_episodes`.
     """
     stats = {
         'count': 0,
@@ -93,3 +85,43 @@ def get_path_statistics(path: str) -> Dict[str, Any]:
     _process_items(stats, files)
 
     return stats
+
+
+def handle_path_stats(handle: int, params: dict) -> None:
+    """Plugin entry for path stats. Returns an invisible ListItem with `SkinInfo.PathStats.*` properties.
+
+    Sets: `Count, Watched, Unwatched, InProgress, TVShowCount, Episodes,
+    WatchedEpisodes, UnWatchedEpisodes`.
+    """
+    path = params.get('path', [''])[0]
+
+    if not path:
+        log("Plugin", "Path Statistics: Missing required parameter 'path'", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    log("Plugin", f"Path Statistics: Calculating statistics for path: {path}", xbmc.LOGDEBUG)
+
+    stats = get_path_statistics(path)
+
+    properties = [
+        ('Count', stats['count']),
+        ('Watched', stats['watched']),
+        ('Unwatched', stats['unwatched']),
+        ('InProgress', stats['in_progress']),
+        ('TVShowCount', stats['tvshow_count']),
+        ('Episodes', stats['episodes']),
+        ('WatchedEpisodes', stats['watched_episodes']),
+        ('UnWatchedEpisodes', stats['unwatched_episodes']),
+    ]
+
+    window = xbmcgui.Window(10000)
+    for prop_name, value in properties:
+        window.setProperty(f'SkinInfo.PathStats.{prop_name}', str(value))
+
+    item = xbmcgui.ListItem(offscreen=True)
+    for prop_name, value in properties:
+        item.setProperty(f'SkinInfo.PathStats.{prop_name}', str(value))
+
+    xbmcplugin.addDirectoryItem(handle, '', item, isFolder=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)

@@ -9,6 +9,18 @@ import xbmcplugin
 from lib.kodi.client import log, request
 
 
+_SMS_MAP = {
+    'A': 'jumpsms2', 'B': 'jumpsms2', 'C': 'jumpsms2',
+    'D': 'jumpsms3', 'E': 'jumpsms3', 'F': 'jumpsms3',
+    'G': 'jumpsms4', 'H': 'jumpsms4', 'I': 'jumpsms4',
+    'J': 'jumpsms5', 'K': 'jumpsms5', 'L': 'jumpsms5',
+    'M': 'jumpsms6', 'N': 'jumpsms6', 'O': 'jumpsms6',
+    'P': 'jumpsms7', 'Q': 'jumpsms7', 'R': 'jumpsms7', 'S': 'jumpsms7',
+    'T': 'jumpsms8', 'U': 'jumpsms8', 'V': 'jumpsms8',
+    'W': 'jumpsms9', 'X': 'jumpsms9', 'Y': 'jumpsms9', 'Z': 'jumpsms9',
+}
+
+
 def _evaluate_conditional_focus(blocks: list[str]) -> None:
     """Evaluate condition::focus_id blocks in order, focusing first match."""
     for block in blocks:
@@ -130,21 +142,22 @@ def move_to_position(
         <onload>SetProperty(SkinInfo.CM_Focus.3,90003,home)</onload>
         <onload>RunScript(script.skin.info.service,action=container_move,main_focus=90017|90016|90015)</onload>
     """
+    _move_main_containers(main_focus, main_position, main_action)
+    _handle_next_focus(next_focus, next_position, next_action)
+
+
+def _move_main_containers(main_focus: str, main_position: Optional[str],
+                          main_action: Optional[str]) -> None:
+    """Move every visible container in `main_focus` (pipe-separated IDs) to its target position."""
     main_ids = [cid.strip() for cid in main_focus.split('|')]
-
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
-    next_action_list = [a.strip() for a in next_action.split('|')] if next_action else []
-
     has_pipe_main_action = main_action and '|' in main_action
-    has_pipe_next_action = next_action and '|' in next_action
-
     main_position_list = [p.strip() for p in main_position.split('|')] if main_position and '|' in main_position else []
     has_pipe_main_position = main_position and '|' in main_position
 
     for idx, cid in enumerate(main_ids):
         if not cid:
             continue
-
         if not xbmc.getCondVisibility(f'Control.IsVisible({cid})'):
             continue
 
@@ -173,6 +186,10 @@ def move_to_position(
         elif not has_pipe_main_action and main_action:
             xbmc.executebuiltin(main_action, True)
 
+
+def _handle_next_focus(next_focus: Optional[str], next_position: Optional[str],
+                       next_action: Optional[str]) -> None:
+    """Resolve next-focus from parameter (preferred) or `SkinInfo.CM_Focus.*` properties (fallback)."""
     properties_found = []
     for i in range(1, 100):
         prop_value = xbmc.getInfoLabel(f'Window(home).Property(SkinInfo.CM_Focus.{i})')
@@ -183,62 +200,61 @@ def move_to_position(
 
     if next_focus and properties_found:
         log("ContainerMove", "Both next_focus parameter and CM_Focus properties set - using parameter, ignoring properties", xbmc.LOGWARNING)
-        for i, _ in properties_found:
-            xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
+        _clear_cm_focus_props(properties_found)
         properties_found = []
 
     if next_focus:
         if '::' in next_focus:
             _evaluate_conditional_focus(next_focus.split('||'))
             return
-        else:
-            next_ids = [fid.strip() for fid in next_focus.split('|')]
-            next_position_list = [p.strip() for p in next_position.split('|')] if next_position and '|' in next_position else []
-            has_pipe_next_position = next_position and '|' in next_position
-
-            for idx, fid in enumerate(next_ids):
-                if not fid:
-                    continue
-
-                xbmc.executebuiltin(f'SetFocus({fid})', True)
-
-                if has_pipe_next_position and idx < len(next_position_list):
-                    position_str = next_position_list[idx]
-                else:
-                    position_str = next_position
-
-                if position_str:
-                    try:
-                        position_int = int(position_str)
-                        position = 0 if position_int <= 0 else position_int - 1
-                    except (ValueError, TypeError):
-                        continue
-
-                    xbmc.executebuiltin(f'Control.SetFocus({fid}, {position}, absolute)', True)
-
-                if has_pipe_next_action and idx < len(next_action_list) and next_action_list[idx]:
-                    xbmc.executebuiltin(next_action_list[idx], True)
-                elif not has_pipe_next_action and next_action:
-                    xbmc.executebuiltin(next_action, True)
+        _focus_next_containers(next_focus, next_position, next_action)
     elif properties_found:
-        blocks = [prop_value for _, prop_value in properties_found]
-        _evaluate_conditional_focus(blocks)
-        for i, _ in properties_found:
-            xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
+        _evaluate_conditional_focus([prop_value for _, prop_value in properties_found])
+        _clear_cm_focus_props(properties_found)
+
+
+def _focus_next_containers(next_focus: str, next_position: Optional[str],
+                          next_action: Optional[str]) -> None:
+    """Focus and optionally position each container in `next_focus` (pipe-separated IDs)."""
+    next_ids = [fid.strip() for fid in next_focus.split('|')]
+    next_action_list = [a.strip() for a in next_action.split('|')] if next_action else []
+    has_pipe_next_action = next_action and '|' in next_action
+    next_position_list = [p.strip() for p in next_position.split('|')] if next_position and '|' in next_position else []
+    has_pipe_next_position = next_position and '|' in next_position
+
+    for idx, fid in enumerate(next_ids):
+        if not fid:
+            continue
+
+        xbmc.executebuiltin(f'SetFocus({fid})', True)
+
+        if has_pipe_next_position and idx < len(next_position_list):
+            position_str = next_position_list[idx]
+        else:
+            position_str = next_position
+
+        if position_str:
+            try:
+                position_int = int(position_str)
+                position = 0 if position_int <= 0 else position_int - 1
+            except (ValueError, TypeError):
+                continue
+            xbmc.executebuiltin(f'Control.SetFocus({fid}, {position}, absolute)', True)
+
+        if has_pipe_next_action and idx < len(next_action_list) and next_action_list[idx]:
+            xbmc.executebuiltin(next_action_list[idx], True)
+        elif not has_pipe_next_action and next_action:
+            xbmc.executebuiltin(next_action, True)
+
+
+def _clear_cm_focus_props(properties_found: list) -> None:
+    """Clear `SkinInfo.CM_Focus.{i}` for each `(i, _)` in `properties_found`."""
+    for i, _ in properties_found:
+        xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
 
 
 def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
-    """
-    Jump to item starting with specified letter using Kodi's SMS actions.
-
-    Args:
-        letter: Target letter (A-Z) or # for first/last page
-        container_id: Container to jump in (optional, uses current if None)
-
-    Executes SMS action repeatedly and checks ListItem.SortLetter until
-    the target letter is reached. This is the only reliable method available
-    to addons, as direct KEY_UNICODE actions are not exposed via JSON-RPC.
-    """
+    """Jump to an item starting with `letter` (A-Z or `#`) via Kodi's SMS actions."""
     if container_id:
         xbmc.executebuiltin(f'SetFocus({container_id})', True)
 
@@ -250,18 +266,7 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
         request('Input.ExecuteAction', {'action': action})
         return
 
-    sms_map = {
-        'A': 'jumpsms2', 'B': 'jumpsms2', 'C': 'jumpsms2',
-        'D': 'jumpsms3', 'E': 'jumpsms3', 'F': 'jumpsms3',
-        'G': 'jumpsms4', 'H': 'jumpsms4', 'I': 'jumpsms4',
-        'J': 'jumpsms5', 'K': 'jumpsms5', 'L': 'jumpsms5',
-        'M': 'jumpsms6', 'N': 'jumpsms6', 'O': 'jumpsms6',
-        'P': 'jumpsms7', 'Q': 'jumpsms7', 'R': 'jumpsms7', 'S': 'jumpsms7',
-        'T': 'jumpsms8', 'U': 'jumpsms8', 'V': 'jumpsms8',
-        'W': 'jumpsms9', 'X': 'jumpsms9', 'Y': 'jumpsms9', 'Z': 'jumpsms9',
-    }
-
-    action = sms_map.get(letter_upper)
+    action = _SMS_MAP.get(letter_upper)
     if not action:
         return
 
@@ -274,17 +279,7 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
 
 
 def handle_letter_jump_list(handle: int, params: dict) -> None:
-    """
-    Plugin action that returns A-Z letter list for container navigation.
-
-    Automatically reverses order (Z-A) when container is sorted descending.
-    Clicking a letter executes jump via RunScript to avoid blocking.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters
-            target: Container ID to jump in (default: 50)
-    """
+    """Return A-Z ListItems for container letter-jump (reversed to Z-A when sorted descending)."""
     target = params.get('target', ['50'])[0]
 
     sort_order = xbmc.getInfoLabel(f'Container({target}).SortOrder')
@@ -310,15 +305,7 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
 
 
 def handle_letter_jump_exec(handle: int, params: dict) -> None:
-    """
-    Execute letter jump action.
-
-    Args:
-        handle: Plugin handle
-        params: URL parameters
-            letter: Letter to jump to (A-Z or #)
-            target: Container ID to jump in
-    """
+    """Execute letter jump from `?action=jump_letter_exec&letter=X&target=N`."""
     try:
         xbmcplugin.setResolvedUrl(handle, succeeded=False, listitem=xbmcgui.ListItem())
     except Exception:

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta24"
+	   version="2.0.0~beta25"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -34,6 +34,18 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta25
+- BREAKING: action=json is now a generic JSON-RPC wrapper (method, params, mode, prop_prefix args). Old presets removed.
+- New: Tools > Sync TV Show Metadata (foreground bulk fetch with cancel)
+- New: SkinInfo.Online.ItemDBID property for skin-side staleness gating
+- Crew widget supports job filter parameter
+- IMDb auto-update no longer skips a day after manual updates; backs off on dataset download errors
+- Stinger notifications no longer require the skin to opt in to the service
+- Discovery widgets refresh properly and load faster
+- Trakt Top 250 fetches the full list (was capped at 100)
+- Big libraries no longer silently truncate during scan
+- Fix stale blur when source image is updated
+
 2.0.0~beta24
 - BREAKING: Skins opt in via Skin.SetBool(SkinInfo.Service) not RunScript
 - Fix online cast for items with unknown uniqueid with IMDb IDs

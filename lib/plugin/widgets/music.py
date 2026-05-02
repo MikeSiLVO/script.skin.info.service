@@ -10,8 +10,6 @@ import xbmcplugin
 from lib.kodi.client import log, request, extract_result, get_item_details
 
 
-# -- Artist resolution --
-
 def _resolve_artist_name(params: dict) -> Optional[str]:
     """Extract artist name from params or resolve via dbid+dbtype."""
     artist = params.get('artist', [''])[0]
@@ -62,8 +60,6 @@ def _resolve_artist_id(artist_name: str) -> Optional[int]:
         return artists[0].get('artistid')
     return None
 
-
-# -- ListItem creation --
 
 _ARTIST_PROPERTIES = ['thumbnail', 'genre', 'description', 'art', 'dateadded',
                        'fanart']
@@ -239,8 +235,6 @@ def _create_musicvideo_listitem(mv: dict) -> xbmcgui.ListItem:
 
     return item
 
-
-# -- Widget handlers --
 
 def handle_similar_artists(handle: int, params: dict) -> None:
     """Get library artists similar to the given artist via Last.fm data."""
