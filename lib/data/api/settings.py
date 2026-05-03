@@ -8,12 +8,7 @@ from lib.kodi.client import ADDON
 
 
 def edit_api_key(provider: str) -> None:
-    """
-    Show keyboard dialog to edit API key.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Show keyboard dialog to edit API key."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
@@ -39,12 +34,7 @@ def edit_api_key(provider: str) -> None:
 
 
 def clear_api_key(provider: str) -> None:
-    """
-    Clear API key after confirmation.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Clear API key after confirmation."""
     from lib.kodi.client import API_KEY_CONFIG
     from lib.infrastructure.dialogs import show_yesno
 
@@ -69,12 +59,7 @@ def clear_api_key(provider: str) -> None:
 
 
 def test_api_key(provider: str) -> None:
-    """
-    Test API key connection.
-
-    Args:
-        provider: Provider name (tmdb, mdblist, omdb, fanarttv)
-    """
+    """Test API key connection."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
@@ -275,31 +260,3 @@ def revoke_trakt_authorization() -> None:
         ADDON.setSetting("trakt_configured", "false")
 
 
-def sync_configured_flags() -> None:
-    """Sync string configured flags with actual API key/token presence."""
-    import xbmcvfs
-    import json
-    from lib.kodi.client import API_KEY_CONFIG
-
-    settings = ADDON.getSettings()
-
-    for provider in ["tmdb", "mdblist", "omdb", "fanarttv"]:
-        config = API_KEY_CONFIG.get(f"{provider}_api_key")
-        if config:
-            key = ADDON.getSetting(config["setting_path"])
-            value = "true" if key else "false"
-            settings.setString(f"{provider}_configured", value)
-            ADDON.setSetting(f"{provider}_configured", value)
-
-    token_path = xbmcvfs.translatePath("special://profile/addon_data/script.skin.info.service/trakt_tokens.json")
-    has_trakt_token = False
-    if xbmcvfs.exists(token_path):
-        try:
-            with open(token_path, 'r') as f:
-                tokens = json.load(f)
-                has_trakt_token = bool(tokens.get("access_token"))
-        except Exception:
-            pass
-    value = "true" if has_trakt_token else "false"
-    settings.setString("trakt_configured", value)
-    ADDON.setSetting("trakt_configured", value)

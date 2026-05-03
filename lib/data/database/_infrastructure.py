@@ -4,18 +4,81 @@ Core infrastructure shared across all database modules.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
+import zlib
 import xbmc
 import xbmcvfs
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 from lib.kodi.client import log
 
-DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v2.db')
-DB_VERSION = 2
+DB_VERSION = 4
 
-_OLD_DB_PATH = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/skininfo_v1.db')
+
+def compress_data(data: Any) -> bytes:
+    """Compress a JSON-serializable value to a zlib blob."""
+    json_str = json.dumps(data, separators=(',', ':'))
+    return zlib.compress(json_str.encode('utf-8'), level=6)
+
+
+def decompress_data(blob: bytes) -> Any:
+    """Inverse of `compress_data`."""
+    return json.loads(zlib.decompress(blob).decode('utf-8'))
+
+
+# SQLite's default parameter limit is 999; 900 leaves headroom for fixed params alongside the IN list.
+SQL_PARAM_CHUNK_SIZE = 900
+
+
+def sql_placeholders(count: int) -> str:
+    """Build a comma-separated placeholder string for SQL IN-lists, e.g. `'?,?,?'`."""
+    return ','.join('?' * count)
+
+
+def chunked_in_query(
+    cursor: sqlite3.Cursor,
+    sql_template: str,
+    fixed_params: list,
+    values: list,
+    chunk_size: int = SQL_PARAM_CHUNK_SIZE,
+):
+    """Execute an IN-list query in chunks, yielding rows. `sql_template` must contain `{placeholders}`.
+
+    Use for SELECT/DELETE patterns where the IN-list size could exceed SQLite's parameter limit.
+    `fixed_params` come before the chunk; the chunk values are appended for each batch.
+    """
+    for start in range(0, len(values), chunk_size):
+        chunk = values[start:start + chunk_size]
+        sql = sql_template.format(placeholders=sql_placeholders(len(chunk)))
+        cursor.execute(sql, fixed_params + list(chunk))
+        for row in cursor.fetchall():
+            yield row
+
+
+def chunked_in_modify(
+    cursor: sqlite3.Cursor,
+    sql_template: str,
+    fixed_params: list,
+    values: list,
+    chunk_size: int = SQL_PARAM_CHUNK_SIZE,
+) -> int:
+    """Execute a chunked DELETE/UPDATE with an IN list. Returns total `rowcount` across chunks."""
+    total = 0
+    for start in range(0, len(values), chunk_size):
+        chunk = values[start:start + chunk_size]
+        sql = sql_template.format(placeholders=sql_placeholders(len(chunk)))
+        cursor.execute(sql, fixed_params + list(chunk))
+        total += cursor.rowcount
+    return total
+_DB_BASE = 'special://profile/addon_data/script.skin.info.service/skininfo'
+DB_PATH = xbmcvfs.translatePath(f'{_DB_BASE}_v{DB_VERSION}.db')
+
+_OLD_DB_PATHS = [
+    xbmcvfs.translatePath(f'{_DB_BASE}_v{v}.db')
+    for v in range(1, DB_VERSION)
+]
 
 
 def _generate_guid() -> str:
@@ -29,34 +92,19 @@ def _ensure_addon_data_folder() -> None:
 
 
 def get_connection(db_path: str = DB_PATH) -> sqlite3.Connection:
-    """
-    Get database connection with row factory.
-
-    Args:
-        db_path: Path to database file (defaults to unified DB)
-
-    Returns:
-        SQLite connection with Row factory
-    """
+    """Open a SQLite connection with Row factory and per-connection pragmas."""
     _ensure_addon_data_folder()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
-    conn.execute('PRAGMA journal_mode = WAL')
+    conn.execute('PRAGMA busy_timeout = 5000')
+    conn.execute('PRAGMA synchronous = NORMAL')
     return conn
 
 
 @contextmanager
 def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
-    """Context manager for database connections with auto-commit.
-
-    Args:
-        db_path: Path to database file (defaults to unified DB)
-
-    Usage:
-        with get_db() as cursor:
-            cursor.execute(...)
-    """
+    """Context manager yielding a cursor; auto-commits on success, rolls back on exception."""
     conn = get_connection(db_path)
     cursor = conn.cursor()
     try:
@@ -73,9 +121,7 @@ def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
 
 
 def _create_base_schema(cursor: sqlite3.Cursor) -> None:
-    """
-    Create unified schema with queue, cache, and operation history tables.
-    """
+    """Create all tables and indexes for the unified database."""
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS art_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,9 +221,29 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS person_cache (
             person_id INTEGER PRIMARY KEY,
-            data TEXT NOT NULL,
+            data BLOB NOT NULL,
             cached_at INTEGER NOT NULL,
             expires_at INTEGER NOT NULL
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS season_metadata_cache (
+            tmdb_id TEXT NOT NULL,
+            season_number INTEGER NOT NULL,
+            data BLOB NOT NULL,
+            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            expires_at TEXT NOT NULL,
+            PRIMARY KEY (tmdb_id, season_number)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tmdb_genre_cache (
+            tmdb_type TEXT PRIMARY KEY,
+            data BLOB NOT NULL,
+            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            expires_at TEXT NOT NULL
         )
     ''')
 
@@ -210,27 +276,15 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_lookup ON artwork_cache(media_type, media_id, source, art_type)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_expires ON artwork_cache(expires_at)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_metadata_cache_lookup ON metadata_cache(media_type, tmdb_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_season_metadata_cache_expires ON season_metadata_cache(expires_at)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tmdb_genre_cache_expires ON tmdb_genre_cache(expires_at)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_operation_history_lookup ON operation_history(operation, timestamp DESC)')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ratings_api_usage (
-            provider TEXT,
-            api_key_hash TEXT,
-            date TEXT,
-            request_count INTEGER DEFAULT 0,
-            limit_hit INTEGER DEFAULT 0,
-            PRIMARY KEY (provider, api_key_hash, date)
-        )
-    ''')
-
-    cursor.execute('DROP TABLE IF EXISTS ratings_update_history')
-    cursor.execute('DROP TABLE IF EXISTS ratings_failures')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS provider_cache (
             provider TEXT NOT NULL,
             media_id TEXT NOT NULL,
-            data TEXT NOT NULL,
+            data BLOB NOT NULL,
             release_date TEXT,
             cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (provider, media_id)
@@ -260,13 +314,12 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_imdb ON id_mappings(imdb_id) WHERE imdb_id IS NOT NULL')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_tvdb ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL')
 
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_usage_lookup ON ratings_api_usage(provider, api_key_hash, date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS slideshow_pool (
-            kodi_dbid INTEGER NOT NULL,
+            dbid INTEGER NOT NULL,
             media_type TEXT NOT NULL,
             title TEXT,
             fanart TEXT NOT NULL,
@@ -275,7 +328,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             season INTEGER,
             episode INTEGER,
             last_synced INTEGER,
-            PRIMARY KEY (media_type, kodi_dbid)
+            PRIMARY KEY (media_type, dbid)
         )
     ''')
 
@@ -388,28 +441,52 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_status ON tv_schedule(status)')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS dbid_registry (
+            media_type TEXT NOT NULL,
+            dbid INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            content_id TEXT,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (media_type, dbid)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_dbid_registry_type ON dbid_registry(media_type)')
 
-def _cleanup_old_database() -> None:
-    """Delete old v1 database if it exists."""
-    if xbmcvfs.exists(_OLD_DB_PATH):
-        try:
-            xbmcvfs.delete(_OLD_DB_PATH)
-            log("Database", "Deleted old v1 database", xbmc.LOGINFO)
-        except Exception as e:
-            log("Database", f"Failed to delete old database: {e}", xbmc.LOGWARNING)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tvshow_runtime_cache (
+            tvshowid INTEGER NOT NULL,
+            season INTEGER NOT NULL DEFAULT 0,
+            total_runtime INTEGER NOT NULL,
+            avg_episode_runtime INTEGER NOT NULL DEFAULT 0,
+            episode_count INTEGER NOT NULL,
+            synced_at TEXT NOT NULL,
+            PRIMARY KEY (tvshowid, season)
+        )
+    ''')
+
+
+def _cleanup_old_databases() -> None:
+    """Delete old database versions if they exist."""
+    for path in _OLD_DB_PATHS:
+        if xbmcvfs.exists(path):
+            try:
+                xbmcvfs.delete(path)
+                log("Database", f"Deleted old database: {path}", xbmc.LOGINFO)
+            except Exception as e:
+                log("Database", f"Failed to delete old database: {e}", xbmc.LOGWARNING)
 
 
 def init_database() -> None:
-    """
-    Initialize unified database schema (queue, cache, and operation history).
-    Creates skininfo_v2.db with all tables. Deletes old v1 database if present.
-    """
-    _cleanup_old_database()
+    """Create all tables at DB_PATH; deletes any older-version DB files first."""
+    _cleanup_old_databases()
 
     conn = get_connection(DB_PATH)
     cursor = conn.cursor()
 
     try:
+        # WAL is persistent at the DB level; apply once during init.
+        cursor.execute('PRAGMA journal_mode = WAL')
         _create_base_schema(cursor)
         conn.commit()
 
@@ -420,7 +497,3 @@ def init_database() -> None:
     finally:
         conn.close()
 
-
-def vacuum_database() -> None:
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('VACUUM')

@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import xbmc
 import time
-from typing import Optional, Dict, Any, Tuple, List
+import threading
+from typing import Optional, Dict, Any, Tuple, List, Protocol, runtime_checkable
 from collections import deque
 
 import requests
@@ -24,10 +25,34 @@ from lib.kodi.client import log, ADDON
 _USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
 
 
+def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+    """Parse a Retry-After header. Supports integer-seconds form only (HTTP-date form is rare for 429s)."""
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+@runtime_checkable
+class PauseReporter(Protocol):
+    """Back-channel from rate-limit waits to a batch coordinator.
+
+    Lets the coordinator extend item timeouts while a source is paused.
+    """
+    def report_pause(self, source_name: str, until_ts: float) -> None: ...
+
+
 class RateLimitHit(Exception):
-    """Exception raised when a provider's API rate limit is reached."""
-    def __init__(self, provider: str):
+    """Exception raised when a provider's API rate limit is reached.
+
+    `retry_after_seconds` carries the server's Retry-After header value if present;
+    callers can use it to schedule precise pause durations.
+    """
+    def __init__(self, provider: str, retry_after_seconds: Optional[float] = None):
         self.provider = provider
+        self.retry_after_seconds = retry_after_seconds
         super().__init__(f"Rate limit reached for {provider}")
 
 
@@ -47,8 +72,18 @@ class RateLimiter:
         self.window = window_seconds
         self.requests: deque = deque()
 
-    def wait_if_needed(self, service_name: str = "API") -> None:
-        """Wait if rate limit would be exceeded."""
+    def wait_if_needed(
+        self,
+        service_name: str = "API",
+        pause_reporter: Optional[PauseReporter] = None,
+        source_name: Optional[str] = None,
+    ) -> None:
+        """Wait if rate limit would be exceeded.
+
+        If `pause_reporter` is provided and a wait is required, reports the pause
+        before sleeping so a coordinator (e.g. RatingBatchExecutor) can defer
+        item-deadline accounting for items waiting on `source_name`.
+        """
         now = time.time()
 
         while self.requests and now - self.requests[0] >= self.window:
@@ -63,6 +98,12 @@ class RateLimiter:
                     f"{service_name}: Rate limit ({len(self.requests)}/{self.max_requests}), "
                     f"waiting {wait_time:.1f}s"
                 )
+                if pause_reporter is not None and source_name:
+                    try:
+                        pause_reporter.report_pause(source_name, now + wait_time)
+                    except Exception as e:
+                        log("API", f"{service_name}: pause_reporter failed: {e}", xbmc.LOGWARNING)
+
                 monitor = xbmc.Monitor()
                 monitor.waitForAbort(wait_time)
                 now = time.time()
@@ -78,17 +119,10 @@ class AbortRequested(Exception):
 
 
 class ApiSession:
-    """
-    Robust HTTP client with connection pooling, retry, and abort support.
+    """HTTP client with connection pooling, retry, rate limiting, and abort support.
 
-    Features:
-    - Connection pooling via requests.Session
-    - Automatic retry with exponential backoff for server errors
-    - Separate connect/read timeouts
-    - Abort flag integration for cancellation
-    - Optional proactive rate limiting
-    - GET and POST support with JSON
-    - 429 raises RateLimitHit for caller to handle
+    Automatic retry with exponential backoff for server errors.
+    429 raises RateLimitHit for caller to handle.
     """
 
     def __init__(
@@ -102,18 +136,13 @@ class ApiSession:
         retry_statuses: Optional[List[int]] = None,
         default_headers: Optional[Dict[str, str]] = None
     ):
-        """
-        Initialize API session.
+        """Initialize API session.
 
         Args:
-            service_name: Name for logging (e.g., "TMDB", "MDBList")
-            base_url: Optional base URL prepended to all requests
-            max_retries: Maximum retry attempts for retryable errors
-            backoff_factor: Exponential backoff multiplier (0.5 = 0.5s, 1s, 2s, ...)
-            timeout: Tuple of (connect_timeout, read_timeout) in seconds
-            rate_limit: Optional (max_requests, window_seconds) for proactive rate limiting
-            retry_statuses: HTTP status codes to retry (default: [500, 502, 503, 504])
-            default_headers: Headers included in all requests
+            backoff_factor: Exponential multiplier (0.5 = 0.5s, 1s, 2s, ...).
+            timeout: (connect_timeout, read_timeout) in seconds.
+            rate_limit: Optional (max_requests, window_seconds) for proactive rate limiting.
+            retry_statuses: HTTP status codes to retry (default: [500, 502, 503, 504]).
         """
         self.service_name = service_name
         self.base_url = base_url.rstrip("/") if base_url else ""
@@ -156,6 +185,24 @@ class ApiSession:
 
         self.session.headers["User-Agent"] = _USER_AGENT
 
+        self._tls = threading.local()
+
+    def set_pause_context(self, reporter: Optional[PauseReporter], source_name: Optional[str]) -> None:
+        """Set per-thread pause-reporter context. Pair with clear_pause_context in finally."""
+        self._tls.pause_reporter = reporter
+        self._tls.source_name = source_name
+
+    def clear_pause_context(self) -> None:
+        """Clear per-thread pause-reporter context."""
+        self._tls.pause_reporter = None
+        self._tls.source_name = None
+
+    def _current_pause_context(self) -> Tuple[Optional[PauseReporter], Optional[str]]:
+        return (
+            getattr(self._tls, 'pause_reporter', None),
+            getattr(self._tls, 'source_name', None),
+        )
+
     def _build_url(self, endpoint: str) -> str:
         """Build full URL from endpoint."""
         if endpoint.startswith("http://") or endpoint.startswith("https://"):
@@ -172,19 +219,16 @@ class ApiSession:
         response: requests.Response,
         abort_flag=None
     ) -> Optional[Dict[str, Any]]:
-        """
-        Handle response, raising appropriate exceptions.
+        """Handle response, raising appropriate exceptions. Returns JSON dict, or None on 404.
 
-        Returns:
-            JSON dict on success, None on 404
         Raises:
-            RateLimitHit: On 429 (caller decides what to do)
-            RetryableError: On retryable failures after exhausting retries
+            RateLimitHit: On 429 (caller decides what to do).
+            RetryableError: On retryable failures after exhausting retries.
         """
         self._check_abort(abort_flag)
 
         if response.status_code == 429:
-            raise RateLimitHit(self.service_name)
+            raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
 
         if response.status_code == 404:
             log("API", f"{self.service_name}: 404 Not Found", xbmc.LOGDEBUG)
@@ -212,30 +256,20 @@ class ApiSession:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None
+        timeout: Optional[Tuple[float, float]] = None,
     ) -> Optional[Dict[str, Any]]:
-        """
-        Make GET request.
-
-        Args:
-            endpoint: URL or path (appended to base_url if relative)
-            params: Query parameters
-            headers: Additional headers for this request
-            abort_flag: Optional abort flag to check for cancellation
-            timeout: Override default timeout for this request
-
-        Returns:
-            JSON response dict or None on error
+        """Make GET request. Returns JSON response dict, or None on error.
 
         Raises:
-            RateLimitHit: On 429 response
-            RetryableError: On retryable failures
-            AbortRequested: If abort flag is set
+            RateLimitHit: On 429 response.
+            RetryableError: On retryable failures.
+            AbortRequested: If abort flag is set.
         """
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
-            self.rate_limiter.wait_if_needed(self.service_name)
+            reporter, src = self._current_pause_context()
+            self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
@@ -282,32 +316,23 @@ class ApiSession:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None
+        timeout: Optional[Tuple[float, float]] = None,
     ) -> Optional[Any]:
-        """
-        Make POST request.
+        """Make POST request. Returns JSON response (dict or list), or None on error.
 
-        Args:
-            endpoint: URL or path (appended to base_url if relative)
-            json_data: JSON body (will set Content-Type: application/json)
-            data: Raw body data (mutually exclusive with json_data)
-            params: Query parameters
-            headers: Additional headers for this request
-            abort_flag: Optional abort flag to check for cancellation
-            timeout: Override default timeout for this request
-
-        Returns:
-            JSON response (dict or list) or None on error
+        json_data sets Content-Type: application/json automatically;
+        data and json_data are mutually exclusive.
 
         Raises:
-            RateLimitHit: On 429 response
-            RetryableError: On retryable failures
-            AbortRequested: If abort flag is set
+            RateLimitHit: On 429 response.
+            RetryableError: On retryable failures.
+            AbortRequested: If abort flag is set.
         """
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
-            self.rate_limiter.wait_if_needed(self.service_name)
+            reporter, src = self._current_pause_context()
+            self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
@@ -349,33 +374,22 @@ class ApiSession:
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
         timeout: Optional[Tuple[float, float]] = None,
-        stream: bool = False
+        stream: bool = False,
     ) -> Optional[requests.Response]:
-        """
-        Make GET request returning raw Response object.
+        """Make GET request returning raw Response object.
 
         Useful for streaming downloads or non-JSON responses.
 
-        Args:
-            endpoint: URL or path
-            params: Query parameters
-            headers: Additional headers
-            abort_flag: Optional abort flag
-            timeout: Override default timeout
-            stream: If True, don't download content immediately
-
-        Returns:
-            Response object or None on error
-
         Raises:
-            RateLimitHit: On 429 response
-            RetryableError: On retryable failures
-            AbortRequested: If abort flag is set
+            RateLimitHit: On 429 response.
+            RetryableError: On retryable failures.
+            AbortRequested: If abort flag is set.
         """
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
-            self.rate_limiter.wait_if_needed(self.service_name)
+            reporter, src = self._current_pause_context()
+            self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
@@ -390,7 +404,7 @@ class ApiSession:
             )
 
             if response.status_code == 429:
-                raise RateLimitHit(self.service_name)
+                raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
 
             if response.status_code >= 400:
                 log(
@@ -415,12 +429,13 @@ class ApiSession:
         self,
         endpoint: str,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None
+        timeout: Optional[Tuple[float, float]] = None,
     ) -> Optional[requests.Response]:
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
-            self.rate_limiter.wait_if_needed(self.service_name)
+            reporter, src = self._current_pause_context()
+            self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
@@ -433,7 +448,7 @@ class ApiSession:
             )
 
             if response.status_code == 429:
-                raise RateLimitHit(self.service_name)
+                raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
 
             if response.status_code >= 400:
                 log(

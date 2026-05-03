@@ -56,7 +56,7 @@ All actions use `action=name` or `dialog=type` syntax.
 - [File Utilities](#file-utilities)
   - [Check File Exists](#check-file-exists)
 - [JSON-RPC Utilities](#json-rpc-utilities)
-  - [JSON-RPC Presets](#json-rpc-presets)
+  - [JSON-RPC Wrapper](#json-rpc-wrapper)
 
 ---
 
@@ -1420,75 +1420,71 @@ Check if files exist and return first match.
 
 ## JSON-RPC Utilities
 
-### JSON-RPC Presets
+### JSON-RPC Wrapper
 
 **RunScript:** `action=json`
 
-Execute JSON-RPC preset(s) and set window properties.
-
-**Usage:**
-
-```xml
-<onclick>RunScript(script.skin.info.service,action=json,presets=player_info)</onclick>
-<onclick>RunScript(script.skin.info.service,action=json,presets=system_info|app_info)</onclick>
-```
+Run any Kodi JSON-RPC method, then either show the response in a textviewer dialog (for discovery) or bind result keys to window properties.
 
 **Parameters:**
 
-| Parameter                | Type   | Description                 |
-| ------------------------ | ------ | --------------------------- |
-| `presets` (positional 0) | string | Pipe-separated preset names |
+| Parameter     | Type   | Description                                                            |
+| ------------- | ------ | ---------------------------------------------------------------------- |
+| `method`      | string | JSON-RPC method, e.g. `Player.GetProperties`, `Application.GetProperties` |
+| `params`      | string | Method parameters (see [param format](#param-format) below). Optional. |
+| `mode`        | string | `textviewer` (default, debug) or `property` (bind to window props)     |
+| `prop_prefix` | string | Required for `mode=property`. Prefix under `SkinInfo.{prop_prefix}.*`  |
 
-**Available Presets:**
+#### Param format
 
-#### player_info
+Pairs separated by `|`, arrays separated by `;`:
 
-Gets active player properties.
+```
+key:value|key:value|key:a;b;c
+```
 
-**Properties Set:**
+- `key:value` — single value pair
+- `key:a;b;c` — array value (use `;` because RunScript splits on `,`)
+- `key:42` — coerced to int
+- `key:0.5` — coerced to float
+- `key:true` / `key:false` / `key:null` — coerced
+- Anything else stays a string
 
-- `SkinInfo.Player.time.hours`
-- `SkinInfo.Player.time.minutes`
-- `SkinInfo.Player.time.seconds`
-- `SkinInfo.Player.totaltime.*`
-- `SkinInfo.Player.speed`
-- `SkinInfo.Player.percentage`
+If `params` starts with `{` or `[`, the entire value is parsed as JSON instead. Useful for nested structures.
 
----
+#### Textviewer mode (default)
 
-#### system_info
-
-Gets system capabilities.
-
-**Properties Set:**
-
-- `SkinInfo.System.canhibernate`
-- `SkinInfo.System.cansuspend`
-- `SkinInfo.System.canreboot`
-- `SkinInfo.System.canshutdown`
-
----
-
-#### app_info
-
-Gets application information.
-
-**Properties Set:**
-
-- `SkinInfo.App.volume`
-- `SkinInfo.App.muted`
-- `SkinInfo.App.name`
-- `SkinInfo.App.version.major`
-- `SkinInfo.App.version.minor`
-- `SkinInfo.App.version.revision`
-
-**Examples:**
+Shows the full JSON-RPC request and response in a dialog. Use this to discover what shape a method returns before binding to properties.
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=json,presets=app_info)</onclick>
-<label>$INFO[Window(Home).Property(SkinInfo.App.name)]</label> <!-- Kodi -->
-<label>Volume: $INFO[Window(Home).Property(SkinInfo.App.volume)]</label>
+<onclick>RunScript(script.skin.info.service,action=json,method=Application.GetProperties,params=properties:volume;muted;name;version)</onclick>
 ```
+
+Errors are rendered in the same dialog (method name typo, missing params, etc.) so you can debug without opening the Kodi log.
+
+#### Property mode
+
+Binds result keys to `SkinInfo.{prop_prefix}.{key}` window properties. Nested dicts get one level of dotted-path expansion: `version.major` → `SkinInfo.App.version.major`. Other types (lists, scalars) are stringified by Kodi.
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=json,method=Application.GetProperties,params=properties:volume;muted;name;version,mode=property,prop_prefix=App)</onclick>
+
+<label>$INFO[Window(Home).Property(SkinInfo.App.name)]</label>
+<label>Volume: $INFO[Window(Home).Property(SkinInfo.App.volume)]</label>
+<label>Version: $INFO[Window(Home).Property(SkinInfo.App.version.major)]</label>
+```
+
+Property mode requires the result to be a dict — methods that return scalars or lists won't bind cleanly. Inspect with textviewer mode first.
+
+#### Common methods to try
+
+- `Application.GetProperties` — volume, mute, version, name
+- `Player.GetProperties` — time, totaltime, speed, percentage (params: `playerid:1|properties:time;totaltime;speed`)
+- `System.GetProperties` — canhibernate, cansuspend, canreboot, canshutdown
+- `GUI.GetProperties` — current window, fullscreen, stereoscopic mode
+- `XBMC.GetInfoBooleans` / `XBMC.GetInfoLabels` — equivalent of `Window().Property()` lookups
+
+The full method list is in Kodi's documentation: <https://kodi.wiki/view/JSON-RPC_API/v13>.
 
 ---
 

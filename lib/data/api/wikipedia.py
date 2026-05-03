@@ -3,8 +3,8 @@
 Uses Wikipedia core REST API for search (returns description field for validation)
 and MediaWiki action API for plain-text extracts. No API key required.
 
-Search: /w/rest.php/v1/search/page — HTTP error codes handled by ApiSession.
-Extract: /w/api.php — always HTTP 200, errors in JSON body need manual handling.
+Search: /w/rest.php/v1/search/page. HTTP error codes handled by ApiSession.
+Extract: /w/api.php. Always HTTP 200, errors in JSON body need manual handling.
 """
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ class ApiWikipedia:
     ) -> Optional[dict]:
         """Make MediaWiki action API request with JSON-level error handling.
 
-        Action API always returns HTTP 200 — errors are in the JSON body.
+        Action API always returns HTTP 200; errors are in the JSON body.
         """
         url = f"{self._base_url(lang)}/w/api.php"
         all_params: Dict[str, Any] = {"format": "json"}
@@ -184,6 +184,28 @@ class ApiWikipedia:
 
         return False
 
+    def _get_summary(
+        self,
+        name: str,
+        artist: str,
+        lang: str,
+        search_suffix: str,
+        context: str,
+        abort_flag=None,
+    ) -> Optional[str]:
+        """Search Wikipedia, validate the first match, and return the intro extract."""
+        pages = self._search(
+            f'"{name}" "{artist}" {search_suffix}', lang=lang, abort_flag=abort_flag
+        )
+        if not pages:
+            return None
+        for page in pages:
+            if self._validate_result(page, name, artist, context=context):
+                return self._get_extract(
+                    page.get('title', ''), lang=lang, abort_flag=abort_flag
+                )
+        return None
+
     def get_track_summary(
         self,
         artist: str,
@@ -191,17 +213,8 @@ class ApiWikipedia:
         lang: str = 'en',
         abort_flag=None,
     ) -> Optional[str]:
-        pages = self._search(
-            f'"{track}" "{artist}" song', lang=lang, abort_flag=abort_flag
-        )
-        if not pages:
-            return None
-        for page in pages:
-            if self._validate_result(page, track, artist, context='track'):
-                return self._get_extract(
-                    page.get('title', ''), lang=lang, abort_flag=abort_flag
-                )
-        return None
+        """Return Wikipedia intro extract for a song; None if no valid match found."""
+        return self._get_summary(track, artist, lang, 'song', 'track', abort_flag)
 
     def get_album_summary(
         self,
@@ -210,14 +223,5 @@ class ApiWikipedia:
         lang: str = 'en',
         abort_flag=None,
     ) -> Optional[str]:
-        pages = self._search(
-            f'"{album}" "{artist}" album', lang=lang, abort_flag=abort_flag
-        )
-        if not pages:
-            return None
-        for page in pages:
-            if self._validate_result(page, album, artist, context='album'):
-                return self._get_extract(
-                    page.get('title', ''), lang=lang, abort_flag=abort_flag
-                )
-        return None
+        """Return Wikipedia intro extract for an album; None if no valid match found."""
+        return self._get_summary(album, artist, lang, 'album', 'album', abort_flag)

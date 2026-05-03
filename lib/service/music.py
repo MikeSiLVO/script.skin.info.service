@@ -27,31 +27,21 @@ from lib.data.database.music import (
 from lib.kodi.client import log
 from lib.kodi.formatters import format_number
 from lib.kodi.settings import KodiSettings
+from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
-def resolve_artist_mbids(
-    artist_name: str,
-    *,
-    mbids: Optional[List[str]] = None,
-    album: Optional[str] = None,
-    track: Optional[str] = None,
-    abort_flag=None,
-) -> Tuple[List[str], Optional[dict]]:
-    """Resolve MusicBrainz artist IDs using a 4-step fallback chain.
+def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
+                         album: Optional[str] = None, track: Optional[str] = None,
+                         abort_flag=None) -> Tuple[List[str], Optional[dict]]:
+    """Resolve MusicBrainz artist IDs via MBID direct -> album -> track -> name search.
 
-    Steps (short-circuits at first success):
-    1. MBID direct — if mbids provided, return immediately
-    2. Album+artist search via AudioDB searchalbum.php
-    3. Track+artist search via AudioDB searchtrack.php
-    4. Name search via AudioDB search.php (exact case-insensitive match)
-
-    Returns:
-        (mbids, audiodb_artist_data) where audiodb_artist_data may be None
+    Returns `(mbids, audiodb_artist_data)`. The dict is populated only when the
+    name-search branch is taken (avoids a later refetch).
     """
     if mbids:
         return mbids, None
 
-    primary_name = artist_name.split(" / ")[0].strip()
+    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
     if not primary_name:
         return [], None
 
@@ -251,32 +241,27 @@ def _fetch_and_cache_artist_metadata(
     from lib.data.api.lastfm import ApiLastfm
 
     lang = KodiSettings.online_metadata_language()
-    audiodb_data: Optional[dict] = None
-    lastfm_data: Optional[dict] = None
-
-    def _fetch_audiodb():
-        nonlocal audiodb_data
+    def _fetch_audiodb() -> Optional[dict]:
         if not mbid:
-            return
+            return None
         try:
-            api = ApiAudioDb()
-            audiodb_data = api.get_artist(mbid, abort_flag)
+            return ApiAudioDb().get_artist(mbid, abort_flag)
         except Exception as e:
             log("Service", f"AudioDB artist metadata fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
-    def _fetch_lastfm():
-        nonlocal lastfm_data
+    def _fetch_lastfm() -> Optional[dict]:
         try:
-            api = ApiLastfm()
-            lastfm_data = api.get_artist_info(name, mbid=mbid or None, lang=lang,
-                                               abort_flag=abort_flag)
+            return ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang, abort_flag=abort_flag)
         except Exception as e:
             log("Service", f"Last.fm artist metadata fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(_fetch_audiodb), executor.submit(_fetch_lastfm)]
-        for f in futures:
-            f.result()
+        audiodb_future = executor.submit(_fetch_audiodb)
+        lastfm_future = executor.submit(_fetch_lastfm)
+        audiodb_data = audiodb_future.result()
+        lastfm_data = lastfm_future.result()
 
     if audiodb_data:
         cache_artist(SOURCE_AUDIODB, audiodb_data, mbid=mbid, name=name)
@@ -293,11 +278,11 @@ def _fetch_and_cache_artist_metadata(
 
 
 def try_cached_artist_online_data(artist_name: str) -> Optional[MusicOnlineResult]:
-    """Try to build MusicOnlineResult from cache only — no API calls.
+    """Try to build MusicOnlineResult from cache only, no API calls.
 
     Returns result if MBID + art are cached, None on cache miss.
     """
-    primary_name = artist_name.split(" / ")[0].strip()
+    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
     if not primary_name:
         return None
 
@@ -343,7 +328,7 @@ def fetch_artist_online_data(
         return None
 
     primary_mbid = resolved_mbids[0]
-    primary_name = artist_name.split(" / ")[0].strip()
+    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
 
     # Cache AudioDB artist data from resolution if we got it
     if artist_data:
@@ -398,52 +383,41 @@ def fetch_track_online_data(
     from lib.data.api.audiodb import ApiAudioDb
     from lib.data.api.wikipedia import ApiWikipedia
 
-    lastfm_data: Optional[dict] = None
-    wiki_data: Optional[dict] = None
-    audiodb_data: Optional[dict] = None
-
-    def _fetch_lastfm():
-        nonlocal lastfm_data
+    def _fetch_lastfm() -> Optional[dict]:
         if cached_lastfm is not None:
-            return
+            return None
         try:
-            api = ApiLastfm()
-            lastfm_data = api.get_track_info(artist, track, lang=lang,
-                                              abort_flag=abort_flag)
+            return ApiLastfm().get_track_info(artist, track, lang=lang, abort_flag=abort_flag)
         except Exception as e:
             log("Service", f"Last.fm track fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
-    def _fetch_wikipedia():
-        nonlocal wiki_data
+    def _fetch_wikipedia() -> Optional[dict]:
         if cached_wiki is not None:
-            return
+            return None
         try:
-            api = ApiWikipedia()
-            summary = api.get_track_summary(artist, track, lang=lang,
-                                             abort_flag=abort_flag)
-            if summary:
-                wiki_data = {'summary': summary}
+            summary = ApiWikipedia().get_track_summary(artist, track, lang=lang, abort_flag=abort_flag)
+            return {'summary': summary} if summary else None
         except Exception as e:
             log("Service", f"Wikipedia track fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
-    def _fetch_audiodb():
-        nonlocal audiodb_data
+    def _fetch_audiodb() -> Optional[dict]:
         if cached_audiodb is not None:
-            return
+            return None
         try:
-            api = ApiAudioDb()
-            audiodb_data = api.search_track(artist, track, abort_flag)
+            return ApiAudioDb().search_track(artist, track, abort_flag)
         except Exception as e:
             log("Service", f"AudioDB track fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
     with ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [
-            executor.submit(_fetch_lastfm),
-            executor.submit(_fetch_wikipedia),
-            executor.submit(_fetch_audiodb),
-        ]
-        for f in futures:
-            f.result()
+        lastfm_future = executor.submit(_fetch_lastfm)
+        wiki_future = executor.submit(_fetch_wikipedia)
+        audiodb_future = executor.submit(_fetch_audiodb)
+        lastfm_data = lastfm_future.result()
+        wiki_data = wiki_future.result()
+        audiodb_data = audiodb_future.result()
 
     if cached_lastfm is None:
         cache_track(SOURCE_LASTFM, lastfm_data or {}, artist, track, lang=lang)
@@ -482,55 +456,42 @@ def fetch_album_online_data(
     from lib.data.api.audiodb import ApiAudioDb
     from lib.data.api.wikipedia import ApiWikipedia
 
-    lastfm_data: Optional[dict] = None
-    wiki_data: Optional[dict] = None
-    audiodb_data: Optional[dict] = None
-
-    def _fetch_lastfm():
-        nonlocal lastfm_data
+    def _fetch_lastfm() -> Optional[dict]:
         if cached_lastfm is not None:
-            return
+            return None
         try:
-            api = ApiLastfm()
-            lastfm_data = api.get_album_info(artist, album, lang=lang,
-                                              abort_flag=abort_flag)
+            return ApiLastfm().get_album_info(artist, album, lang=lang, abort_flag=abort_flag)
         except Exception as e:
             log("Service", f"Last.fm album fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
-    def _fetch_wikipedia():
-        nonlocal wiki_data
+    def _fetch_wikipedia() -> Optional[dict]:
         if cached_wiki is not None:
-            return
+            return None
         try:
-            api = ApiWikipedia()
-            summary = api.get_album_summary(artist, album, lang=lang,
-                                             abort_flag=abort_flag)
-            if summary:
-                wiki_data = {'summary': summary}
+            summary = ApiWikipedia().get_album_summary(artist, album, lang=lang, abort_flag=abort_flag)
+            return {'summary': summary} if summary else None
         except Exception as e:
             log("Service", f"Wikipedia album fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
-    def _fetch_audiodb():
-        nonlocal audiodb_data
+    def _fetch_audiodb() -> Optional[dict]:
         if cached_audiodb is not None:
-            return
+            return None
         try:
             api = ApiAudioDb()
-            if mbid:
-                audiodb_data = api.get_album(mbid, abort_flag)
-            else:
-                audiodb_data = api.search_album(artist, album, abort_flag)
+            return api.get_album(mbid, abort_flag) if mbid else api.search_album(artist, album, abort_flag)
         except Exception as e:
             log("Service", f"AudioDB album fetch error: {e}", xbmc.LOGDEBUG)
+            return None
 
     with ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [
-            executor.submit(_fetch_lastfm),
-            executor.submit(_fetch_wikipedia),
-            executor.submit(_fetch_audiodb),
-        ]
-        for f in futures:
-            f.result()
+        lastfm_future = executor.submit(_fetch_lastfm)
+        wiki_future = executor.submit(_fetch_wikipedia)
+        audiodb_future = executor.submit(_fetch_audiodb)
+        lastfm_data = lastfm_future.result()
+        wiki_data = wiki_future.result()
+        audiodb_data = audiodb_future.result()
 
     if cached_lastfm is None:
         cache_album(SOURCE_LASTFM, lastfm_data or {}, artist=artist, album=album,
@@ -566,7 +527,7 @@ def _extract_wiki(data: Optional[dict]) -> str:
 
 
 def _extract_tags(data: Optional[dict]) -> str:
-    """Extract top tags from a Last.fm response as ' / ' joined string."""
+    """Extract top tags from a Last.fm response as MULTI_VALUE_SEP joined string."""
     if not isinstance(data, dict):
         return ''
     container = data.get('toptags') or data.get('tags')
@@ -576,7 +537,7 @@ def _extract_tags(data: Optional[dict]) -> str:
     if not isinstance(tags, list):
         return ''
     names = [t['name'] for t in tags if isinstance(t, dict) and t.get('name')]
-    return ' / '.join(names[:10])
+    return MULTI_VALUE_SEP.join(names[:10])
 
 
 def extract_track_properties(artist: str, track: str) -> Dict[str, str]:
@@ -620,7 +581,7 @@ def get_similar_artist_names(artist_name: str) -> List[str]:
 
     Falls back to inline API fetch if not cached.
     """
-    primary_name = artist_name.split(" / ")[0].strip()
+    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
     if not primary_name:
         return []
 

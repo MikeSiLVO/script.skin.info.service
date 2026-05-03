@@ -31,17 +31,7 @@ _ART_TYPES = [
 
 
 def _select_art_type_menu(dialog_type: str, preselect: int = 0) -> tuple[Optional[str], int]:
-    """
-    Show menu to select art type for testing.
-
-    Args:
-        dialog_type: Type of dialog being tested ('artwork' or 'multiart')
-        preselect: Index of item to preselect in menu
-
-    Returns:
-        Tuple of (selected art type or None if cancelled, selected index)
-    """
-
+    """Prompt for art type. Returns `(art_type_or_None_on_cancel, selected_index)`."""
     dialog = xbmcgui.Dialog()
     art_labels = [art.capitalize() for art in _ART_TYPES]
 
@@ -57,33 +47,37 @@ def _select_art_type_menu(dialog_type: str, preselect: int = 0) -> tuple[Optiona
     return _ART_TYPES[selected], selected
 
 
-def test_artwork_selection_dialog(art_type: Optional[str] = None) -> None:
-    """
-    Show artwork selection dialog with mock data for skinner testing.
+def _loop_with_art_menu(dialog_label: str, art_type: Optional[str], runner) -> None:
+    """Show art-type picker (when `art_type` is None) and call `runner(art_type)`. Loops if menu mode.
 
-    Args:
-        art_type: Art type to test ('poster', 'fanart', 'clearlogo', etc.)
-                  If None, shows menu to select art type and loops back after each test
+    `runner` takes a single `art_type` arg and runs whatever dialog is being tested.
     """
-    from lib.artwork.dialogs.select import show_artwork_selection_dialog
-    from lib.kodi.client import log
-
     show_menu = art_type is None
     last_selected_index = 0
 
     while True:
         if show_menu:
-            art_type, last_selected_index = _select_art_type_menu('artwork', last_selected_index)
+            art_type, last_selected_index = _select_art_type_menu(dialog_label, last_selected_index)
             if art_type is None:
                 return
 
         if art_type is None:
             return
 
+        runner(art_type)
+
+        if not show_menu:
+            return
+
+
+def test_artwork_selection_dialog(art_type: Optional[str] = None) -> None:
+    """Skinner test: open artwork-selection dialog with mock data. None shows art-type menu + loops."""
+    from lib.artwork.dialogs.select import show_artwork_selection_dialog
+    from lib.kodi.client import log
+
+    def _run(art_type: str) -> None:
         log("General", f"Skinner Test: Opening artwork selection dialog for art_type={art_type}")
-
         mock_art_items = _generate_mock_art_items(art_type, count=12)
-
         result = show_artwork_selection_dialog(
             title='Test Movie (2024)',
             art_type=art_type,
@@ -92,65 +86,34 @@ def test_artwork_selection_dialog(art_type: Optional[str] = None) -> None:
             year='2024',
             current_url='https://image.tmdb.org/t/p/original/current_artwork.jpg',
             dbid=1,
-            test_mode=True
+            test_mode=True,
         )
-
         log("General", f"Skinner Test: Dialog result = {result}")
 
-        if not show_menu:
-            return
+    _loop_with_art_menu('artwork', art_type, _run)
 
 
 def test_multiart_dialog(art_type: Optional[str] = None) -> None:
-    """
-    Show multi-art selection dialog with mock data for skinner testing.
-
-    Args:
-        art_type: Art type to test ('fanart', 'poster', 'clearlogo', etc.)
-                  If None, shows menu to select art type and loops back after each test
-    """
+    """Skinner test: open multi-art dialog with mock data. None shows art-type menu + loops."""
     from lib.artwork.dialogs.multi import show_multiart_dialog
     from lib.kodi.client import log
 
-    show_menu = art_type is None
-    last_selected_index = 0
-
-    while True:
-        if show_menu:
-            art_type, last_selected_index = _select_art_type_menu('multiart', last_selected_index)
-            if art_type is None:
-                return
-
-        if art_type is None:
-            return
-
+    def _run(art_type: str) -> None:
         log("General", f"Skinner Test: Opening multi-art dialog for art_type={art_type}")
-
         result = show_multiart_dialog(
             media_type='movie',
             dbid=1,
             title='Test Movie (2024)',
             art_type=art_type,
-            test_mode=True
+            test_mode=True,
         )
-
         log("General", f"Skinner Test: Multi-art dialog result = {result}")
 
-        if not show_menu:
-            return
+    _loop_with_art_menu('multiart', art_type, _run)
 
 
 def _generate_mock_art_items(art_type: str, count: int = 12) -> List[Dict[str, Any]]:
-    """
-    Generate mock art items for dialog testing.
-
-    Args:
-        art_type: Art type to generate
-        count: Number of mock items to generate
-
-    Returns:
-        List of mock art item dictionaries
-    """
+    """Produce `count` mock art-item dicts for dialog testing (uses bundled test images)."""
     import xbmcvfs
 
     # Map art types to test images and dimensions
@@ -190,9 +153,6 @@ def _generate_mock_art_items(art_type: str, count: int = 12) -> List[Dict[str, A
             'width': dimensions[0],
             'height': dimensions[1],
         }
-
-        if art_type.lower() in ('clearlogo', 'clearart', 'banner'):
-            item['language'] = language
 
         mock_items.append(item)
 

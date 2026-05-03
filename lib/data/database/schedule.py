@@ -7,6 +7,21 @@ from typing import Dict, List, Optional
 from lib.data.database._infrastructure import DB_PATH, get_db
 
 
+def _ep_fields(ep: Optional[dict]) -> tuple:
+    """Extract `(air_date, name, season_number, episode_number)` from a TMDB episode dict.
+
+    Text fields fall back to "" (empty); numeric fields fall back to None.
+    """
+    if not ep:
+        return ("", "", None, None)
+    return (
+        ep.get("air_date") or "",
+        ep.get("name") or "",
+        ep.get("season_number"),
+        ep.get("episode_number"),
+    )
+
+
 def upsert_schedule(
     tmdb_id: str,
     tvshowid: int,
@@ -16,6 +31,8 @@ def upsert_schedule(
     last_ep: Optional[dict] = None,
 ) -> None:
     """Insert or update a TV show's schedule entry from TMDB data."""
+    next_air, next_title, next_season, next_number = _ep_fields(next_ep)
+    last_air, last_title, last_season, last_number = _ep_fields(last_ep)
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT OR REPLACE INTO tv_schedule (
@@ -28,28 +45,14 @@ def upsert_schedule(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             tmdb_id, tvshowid, title, status,
-            (next_ep.get("air_date") or "") if next_ep else "",
-            (next_ep.get("name") or "") if next_ep else "",
-            next_ep.get("season_number") if next_ep else None,
-            next_ep.get("episode_number") if next_ep else None,
-            (last_ep.get("air_date") or "") if last_ep else "",
-            (last_ep.get("name") or "") if last_ep else "",
-            last_ep.get("season_number") if last_ep else None,
-            last_ep.get("episode_number") if last_ep else None,
+            next_air, next_title, next_season, next_number,
+            last_air, last_title, last_season, last_number,
             datetime.now().isoformat(),
         ))
 
 
-def get_schedule_by_date_range(
-    start_date: str,
-    end_date: str,
-) -> List[Dict]:
-    """Get shows with next episodes airing in a date range.
-
-    Args:
-        start_date: YYYY-MM-DD start (inclusive)
-        end_date: YYYY-MM-DD end (inclusive)
-    """
+def get_schedule_by_date_range(start_date: str, end_date: str) -> List[Dict]:
+    """Get shows with next episodes airing between `start_date` and `end_date` (YYYY-MM-DD, inclusive)."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT * FROM tv_schedule

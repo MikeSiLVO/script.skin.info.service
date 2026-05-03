@@ -12,7 +12,7 @@ import xbmcvfs
 from typing import Optional, Dict, Any, Set, List
 
 from lib.data.database import slideshow as db_slideshow
-from lib.kodi.utils import set_prop, clear_prop
+from lib.kodi.utilities import set_prop, clear_prop
 from lib.kodi.client import decode_image_url, log, request
 
 MIN_SLIDESHOW_INTERVAL = 5
@@ -24,13 +24,7 @@ _cache_lock = threading.Lock()
 
 
 def _get_cached_texture_urls() -> Set[str]:
-    """
-    Get all cached texture URLs from Kodi's texture cache via JSON-RPC.
-    Results are cached in memory for performance.
-
-    Returns:
-        Set of decoded texture URLs that exist in cache
-    """
+    """Return decoded URLs currently in Kodi's texture cache (in-memory cached across calls)."""
     global _cached_texture_urls
 
     with _cache_lock:
@@ -62,15 +56,7 @@ def clear_cached_texture_urls() -> None:
 
 
 def get_random_uncached_fanart_urls(count: int = 20) -> List[str]:
-    """
-    Get random uncached fanart URLs from slideshow pool for background pre-caching.
-
-    Args:
-        count: Number of URLs to retrieve
-
-    Returns:
-        List of uncached fanart URLs
-    """
+    """Return up to `count` random fanart URLs from the slideshow pool that aren't cached yet."""
     cached_urls = _get_cached_texture_urls()
     uncached = []
 
@@ -87,15 +73,7 @@ def get_random_uncached_fanart_urls(count: int = 20) -> List[str]:
 
 
 def _cache_image_url(url: str) -> bool:
-    """
-    Force Kodi to cache an image URL.
-
-    Args:
-        url: Image URL (wrapped or decoded)
-
-    Returns:
-        True if successfully cached
-    """
+    """Force Kodi to cache an image URL by reading it via `xbmcvfs.File`. Returns True on success."""
     if not url:
         return False
 
@@ -221,19 +199,13 @@ def _get_artists_with_fanart() -> list:
     return artists_with_fanart
 
 
-def _get_random_item(media_types: List[str], select_fields: List[str], result_mapping: Dict[str, str], attempt_count: int = 10) -> Optional[Dict[str, Any]]:
-    """
-    Generic random item getter with cached fanart preference.
-    Ensures fanart is cached before returning.
+def _get_random_item(media_types: List[str], select_fields: List[str],
+                     result_mapping: Dict[str, str],
+                     attempt_count: int = 10) -> Optional[Dict[str, Any]]:
+    """Return a random pool item, preferring fanart already in Kodi's texture cache.
 
-    Args:
-        media_types: List of media types to query (e.g., ['movie'], ['movie', 'tvshow'])
-        select_fields: Database fields to SELECT
-        result_mapping: Maps database field names to result dict keys
-        attempt_count: Number of random rows to check for cached fanart
-
-    Returns:
-        Random item with cached or newly-cached fanart, or None
+    Checks up to `attempt_count` candidates; caches the fanart first if needed.
+    `result_mapping` renames DB fields to output dict keys.
     """
     cached_urls = _get_cached_texture_urls()
     media_type_label = '/'.join(media_types)

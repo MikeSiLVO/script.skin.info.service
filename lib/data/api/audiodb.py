@@ -38,16 +38,7 @@ class ApiAudioDb:
         return self.session.get(endpoint, abort_flag=abort_flag)
 
     def get_artist(self, musicbrainz_id: str, abort_flag=None) -> Optional[dict]:
-        """
-        Get artist data by MusicBrainz ID.
-
-        Args:
-            musicbrainz_id: MusicBrainz artist ID (MBID)
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Artist data dict or None if not found
-        """
+        """Get artist data by MusicBrainz ID."""
         data = self._make_request(f"/artist-mb.php?i={musicbrainz_id}", abort_flag)
         if not data:
             return None
@@ -59,16 +50,7 @@ class ApiAudioDb:
         return artists[0] if artists else None
 
     def get_album(self, musicbrainz_release_group_id: str, abort_flag=None) -> Optional[dict]:
-        """
-        Get album data by MusicBrainz Release Group ID.
-
-        Args:
-            musicbrainz_release_group_id: MusicBrainz release group ID
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Album data dict or None if not found
-        """
+        """Get album data by MusicBrainz Release Group ID."""
         data = self._make_request(f"/album-mb.php?i={musicbrainz_release_group_id}", abort_flag)
         if not data:
             return None
@@ -80,21 +62,12 @@ class ApiAudioDb:
         return albums[0] if albums else None
 
     def search_album(self, artist_name: str, album_name: str, abort_flag=None) -> Optional[dict]:
-        """
-        Search for an album by artist and album name.
+        """Search for an album by artist and album name.
 
-        Useful as fallback when MusicBrainz release group ID has been merged
+        Useful as fallback when the MusicBrainz release group ID has been merged
         and the old ID is needed for artwork services.
-
-        Args:
-            artist_name: Artist name
-            album_name: Album name
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Album data dict or None if not found
         """
-        # Kodi scrapers may store smart quotes — normalize to ASCII for search
+        # Kodi scrapers may store smart quotes - normalize to ASCII for search
         artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
         album_name = album_name.replace('\u2018', "'").replace('\u2019', "'")
 
@@ -113,16 +86,7 @@ class ApiAudioDb:
         return albums[0] if albums else None
 
     def search_track(self, artist_name: str, track_name: str, abort_flag=None) -> Optional[dict]:
-        """Search for a track by artist and track name.
-
-        Args:
-            artist_name: Artist name
-            track_name: Track name
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Track data dict or None if not found
-        """
+        """Search for a track by artist and track name."""
         artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
         track_name = track_name.replace('\u2018', "'").replace('\u2019', "'")
 
@@ -141,16 +105,7 @@ class ApiAudioDb:
         return tracks[0] if tracks else None
 
     def search_artist(self, artist_name: str, abort_flag=None) -> Optional[dict]:
-        """
-        Search for an artist by name.
-
-        Args:
-            artist_name: Artist name
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Artist data dict or None if not found
-        """
+        """Search for an artist by name."""
         artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
 
         data = self.session.get(
@@ -175,16 +130,7 @@ class ApiAudioDb:
         return None
 
     def get_artist_artwork(self, musicbrainz_id: str, abort_flag=None) -> Dict[str, List[dict]]:
-        """
-        Get artwork for an artist from TheAudioDB.
-
-        Args:
-            musicbrainz_id: MusicBrainz artist ID
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dict mapping art types to lists of artwork dicts
-        """
+        """Get artwork for an artist from TheAudioDB."""
         artist = self.get_artist(musicbrainz_id, abort_flag)
         if not artist:
             return {}
@@ -217,16 +163,7 @@ class ApiAudioDb:
         return result
 
     def get_album_artwork(self, musicbrainz_release_group_id: str, abort_flag=None) -> Dict[str, List[dict]]:
-        """
-        Get artwork for an album from TheAudioDB.
-
-        Args:
-            musicbrainz_release_group_id: MusicBrainz release group ID
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Dict mapping art types to lists of artwork dicts
-        """
+        """Get artwork for an album from TheAudioDB."""
         album = self.get_album(musicbrainz_release_group_id, abort_flag)
         if not album:
             return {}

@@ -23,10 +23,10 @@ Skin Info Service provides:
 
 ## 🚀 Quick Start
 
-Start the service in your skin's Home.xml or startup window:
+To enable the Library and Online service monitors, opt in from your skin's Home.xml or startup window:
 
 ```xml
-<onload>RunScript(script.skin.info.service)</onload>
+<onload>Skin.SetBool(SkinInfo.Service)</onload>
 ```
 
 Access properties via `Window(Home).Property(...)`:

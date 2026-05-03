@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional, Sequence, Dict, List
 
-from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid, vacuum_database
-from lib.kodi.utils import validate_media_type, validate_dbid
+from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid, sql_placeholders as _build_placeholders
+from lib.kodi.utilities import validate_media_type, validate_dbid
 from lib.kodi.client import log
 
 ARTITEM_REVIEW_MISSING = 'missing'
@@ -22,11 +22,6 @@ STATUS_SKIPPED = 'skipped'
 STATUS_ERROR = 'error'
 STATUS_CANCELLED = 'cancelled'
 STATUS_STALE = 'stale'
-
-
-def _build_placeholders(count: int) -> str:
-    """Generate SQL placeholders for IN clause."""
-    return ','.join('?' * count)
 
 
 @dataclass(frozen=True)
@@ -66,7 +61,7 @@ def _row_to_queue_entry(row: sqlite3.Row) -> QueueEntry:
         dbid=row['dbid'],
         title=row['title'] or '',
         year=row['year'] or '',
-        status=row['status'] or 'pending',
+        status=row['status'] or STATUS_PENDING,
         scope=row['scope'] or '',
         scan_session_id=row['scan_session_id'],
     )
@@ -81,18 +76,16 @@ def _row_to_art_item(row: sqlite3.Row) -> ArtItemEntry:
         selected_url=row['selected_url'],
         review_mode=row['review_mode'] or ARTITEM_REVIEW_MISSING,
         requires_manual=bool(row['requires_manual']),
-        status=row['status'] or 'pending',
+        status=row['status'] or STATUS_PENDING,
     )
 
 
-def clear_queue() -> None:
-    """Clear all queue data."""
+def clear_queue_and_sessions() -> None:
+    """Clear all queue data, including scan sessions."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('DELETE FROM art_items')
         cursor.execute('DELETE FROM art_queue')
         cursor.execute('DELETE FROM scan_sessions')
-
-    vacuum_database()
 
 
 def clear_queue_for_media(media_types: Sequence[str]) -> None:
@@ -119,12 +112,9 @@ def add_to_queue(
     scan_session_id: Optional[int] = None,
     guid: Optional[str] = None,
 ) -> int:
-    """
-    Add item to queue or return existing ID (wrapper around add_to_queue_batch).
-    If item already exists, resets status to 'pending' for re-processing.
+    """Add a single item to the queue. Existing `(media_type, dbid)` gets re-set to pending.
 
-    Returns:
-        Queue ID
+    Thin wrapper over `add_to_queue_batch`; returns the queue ID.
     """
     if not validate_media_type(media_type):
         raise ValueError(f"Invalid media_type: {media_type}")
@@ -173,14 +163,9 @@ def add_art_item(
 
 
 def add_to_queue_batch(items: List[dict]) -> List[int]:
-    """
-    Add multiple items to queue using UPSERT (3 queries instead of N*3).
+    """Upsert multiple items in 3 queries. Returns queue IDs in input order.
 
-    Args:
-        items: List of dicts with keys: media_type, dbid, title, year (optional), priority (optional)
-
-    Returns:
-        List of queue IDs in same order as input items
+    Each item: `{media_type, dbid, title, year?, priority?, scope?, scan_session_id?, guid?}`.
     """
     if not items:
         return []
@@ -202,11 +187,11 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
                 scope or '', scan_session_id, guid
             ))
 
-        cursor.executemany('''
+        cursor.executemany(f'''
             INSERT INTO art_queue (media_type, dbid, title, year, priority, scope, scan_session_id, guid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(media_type, dbid) DO UPDATE SET
-                status = 'pending',
+                status = '{STATUS_PENDING}',
                 date_processed = NULL,
                 scope = COALESCE(NULLIF(excluded.scope, ''), art_queue.scope),
                 scan_session_id = COALESCE(excluded.scan_session_id, art_queue.scan_session_id),
@@ -235,11 +220,9 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
 
 
 def add_art_items_batch(art_items: List[dict]) -> None:
-    """
-    Add multiple art items in a single transaction (much faster).
+    """Upsert multiple art items in one transaction.
 
-    Args:
-        art_items: List of dicts with keys: queue_id, art_type, current_url (optional)
+    Each item: `{queue_id, art_type, requires_manual?, scan_session_id?}`.
     """
     if not art_items:
         return
@@ -294,18 +277,9 @@ def add_art_items_batch(art_items: List[dict]) -> None:
             ''', [(r, m, s, STATUS_PENDING, i) for r, m, s, i in to_update])
 
 
-def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING, media_types: Optional[Sequence[str]] = None) -> List[QueueEntry]:
-    """
-    Get next batch of items to process.
-
-    Args:
-        batch_size: Number of items to fetch
-        status: Status filter ('pending', 'processing', etc.)
-        media_types: Optional list/tuple of media types to limit results
-
-    Returns:
-        List of QueueEntry dataclasses
-    """
+def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING,
+                   media_types: Optional[Sequence[str]] = None) -> List[QueueEntry]:
+    """Fetch up to `batch_size` queue entries filtered by status (and optionally media types)."""
     with get_db(DB_PATH) as cursor:
         query = '''
             SELECT * FROM art_queue
@@ -338,15 +312,7 @@ def get_art_items_for_queue(queue_id: int) -> List[ArtItemEntry]:
 
 
 def get_art_items_for_queue_batch(queue_ids: List[int]) -> Dict[int, List[ArtItemEntry]]:
-    """
-    Get art items for multiple queue entries in a single query.
-
-    Args:
-        queue_ids: List of queue entry IDs
-
-    Returns:
-        Dictionary mapping queue_id to list of ArtItemEntry dataclasses
-    """
+    """Return `queue_id -> [ArtItemEntry]` for multiple queue entries in one query."""
     if not queue_ids:
         return {}
 
@@ -402,12 +368,7 @@ def update_art_item_status(art_item_id: int, status: str) -> None:
 
 
 def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, int]:
-    """
-    Get queue statistics.
-
-    Returns:
-        Dict mapping status -> count (e.g., {'pending': 10, 'completed': 5})
-    """
+    """Return `status -> count` across the queue (optionally filtered by media types)."""
     with get_db(DB_PATH) as cursor:
         stats = {}
 
@@ -432,16 +393,7 @@ def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, in
 
 
 def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
-    """
-    Get queue statistics broken down by media_type and status.
-
-    Returns:
-        Dict mapping media_type -> {status: count}
-        Example: {
-            'movie': {'pending': 50, 'completed': 20, 'skipped': 5},
-            'tvshow': {'pending': 30, 'completed': 10, 'skipped': 2}
-        }
-    """
+    """Return `media_type -> {status: count}`. Example: `{'movie': {'pending': 50, 'completed': 20}}`."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT media_type, status, COUNT(*) as count
@@ -465,21 +417,15 @@ def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
 def has_pending_queue() -> bool:
     """Check if there are pending items in queue."""
     with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT COUNT(*) as count FROM art_queue WHERE status = ?
-        ''', (STATUS_PENDING,))
-
-        row = cursor.fetchone()
-        return row['count'] > 0 if row else False
+        cursor.execute(
+            'SELECT 1 FROM art_queue WHERE status = ? LIMIT 1',
+            (STATUS_PENDING,),
+        )
+        return cursor.fetchone() is not None
 
 
 def get_pending_media_counts(status: str = STATUS_PENDING) -> Dict[str, int]:
-    """
-    Return counts of items grouped by media type.
-
-    Returns:
-        Dict mapping media_type -> count (e.g., {'movie': 10, 'tvshow': 5})
-    """
+    """Return `media_type -> count` for items with the given status."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT media_type, COUNT(*) as count
@@ -492,15 +438,7 @@ def get_pending_media_counts(status: str = STATUS_PENDING) -> Dict[str, int]:
 
 
 def count_pending_missing_art(media_types: Optional[Sequence[str]] = None) -> int:
-    """
-    Count pending art items that represent missing artwork.
-
-    Args:
-        media_types: Optional iterable of media types to filter by
-
-    Returns:
-        Number of pending art_items with review_mode='missing'
-    """
+    """Count pending `art_items` with `review_mode='missing'` whose queue row is also pending."""
     with get_db(DB_PATH) as cursor:
         query = '''
             SELECT COUNT(*) AS count
@@ -522,20 +460,9 @@ def count_pending_missing_art(media_types: Optional[Sequence[str]] = None) -> in
         return int(row['count']) if row else 0
 
 
-def count_queue_items(
-    status: Optional[str] = None,
-    media_types: Optional[Sequence[str]] = None
-) -> int:
-    """
-    Count queue items matching criteria without fetching records.
-
-    Args:
-        status: Optional status to filter by (e.g., 'pending')
-        media_types: Optional iterable of media types to filter by
-
-    Returns:
-        Number of matching queue items
-    """
+def count_queue_items(status: Optional[str] = None,
+                      media_types: Optional[Sequence[str]] = None) -> int:
+    """Count queue items matching the optional status and/or media-type filters."""
     with get_db(DB_PATH) as cursor:
         query = 'SELECT COUNT(*) AS count FROM art_queue WHERE 1=1'
         params: List[Any] = []
@@ -556,11 +483,11 @@ def count_queue_items(
 
 def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
     """Remove queue items in a terminal state that have no pending art entries."""
-    active_statuses = tuple(statuses if statuses is not None else (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_CANCELLED, STATUS_ERROR))
-    if not active_statuses:
+    terminal_statuses = tuple(statuses if statuses is not None else (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_CANCELLED, STATUS_ERROR))
+    if not terminal_statuses:
         return 0
 
-    placeholders = _build_placeholders(len(active_statuses))
+    placeholders = _build_placeholders(len(terminal_statuses))
 
     with get_db(DB_PATH) as cursor:
         cursor.execute(
@@ -570,30 +497,21 @@ def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
               AND id NOT IN (
                   SELECT DISTINCT queue_id
                   FROM art_items
-                  WHERE status = 'pending'
+                  WHERE status = '{STATUS_PENDING}'
               )
             ''',
-            active_statuses
+            terminal_statuses
         )
         removed = cursor.rowcount
 
     if removed > 0:
         log("Database", f"Pruned {removed} inactive queue items")
-        vacuum_database()
 
     return removed
 
 
 def restore_pending_queue_items(media_types: Optional[Sequence[str]] = None) -> int:
-    """
-    Reset queue status to 'pending' for items that still have pending art entries.
-
-    Args:
-        media_types: Optional iterable of media types to limit the update
-
-    Returns:
-        Number of queue rows updated
-    """
+    """Reset queue status to pending for items that still have pending art entries. Returns rows updated."""
     with get_db(DB_PATH) as cursor:
         query = '''
             UPDATE art_queue
@@ -618,15 +536,7 @@ def restore_pending_queue_items(media_types: Optional[Sequence[str]] = None) -> 
 
 
 def cleanup_old_queue_items(days_old: int = 30) -> int:
-    """
-    Clean up completed/skipped/error queue items older than N days.
-
-    Args:
-        days_old: Remove items processed more than this many days ago
-
-    Returns:
-        Number of items removed
-    """
+    """Delete completed/skipped/error queue items processed more than `days_old` days ago."""
     with get_db(DB_PATH) as cursor:
         cutoff = datetime.now() - timedelta(days=days_old)
         cutoff_str = cutoff.isoformat()
@@ -642,6 +552,5 @@ def cleanup_old_queue_items(days_old: int = 30) -> int:
 
     if deleted > 0:
         log("Database", f"Cleaned up {deleted} old queue items")
-        vacuum_database()
 
     return deleted

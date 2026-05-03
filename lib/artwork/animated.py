@@ -9,9 +9,9 @@ import xbmcgui
 from typing import Optional, Dict, List
 from datetime import datetime
 
-from lib.kodi.client import request, log, ADDON
+from lib.kodi.client import request, log, ADDON, extract_result, MEDIA_TYPE_SPECS
 from lib.infrastructure import tasks as task_manager
-from lib.infrastructure.dialogs import ProgressDialog, format_operation_report
+from lib.infrastructure.dialogs import ProgressDialog
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
@@ -19,13 +19,7 @@ from lib.data.database import gif as gif_db
 
 
 def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) -> None:
-    """
-    Run gif poster scanner with dialog-based options.
-
-    Args:
-        scope: "movies", "tvshows", "all", or None (shows dialog)
-        scan_mode: "incremental", "full", or None (uses setting)
-    """
+    """Run gif poster scanner. None values prompt via dialog or fall back to addon settings."""
     init_database()
 
     last_stats = get_last_operation_stats('gif_scan')
@@ -43,13 +37,48 @@ def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) ->
     menu.show()
 
 
+def _format_gif_scan_report(stats: dict, timestamp: str, scope: Optional[str]) -> str:
+    """Format a gif-scan operation result for textviewer display."""
+    try:
+        formatted_time = datetime.fromisoformat(timestamp).strftime('%Y-%m-%d %H:%M')
+    except (ValueError, TypeError):
+        formatted_time = timestamp
+
+    lines = ["[B]Operation: Scan for Animated Posters[/B]"]
+    if scope:
+        scope_label = scope.title() if scope != 'all' else 'All'
+        lines.append(f"Scope: {scope_label}")
+    lines.append(f"Completed: {formatted_time}")
+    lines.append("")
+
+    scan_mode = stats.get('scan_mode', 'incremental')
+    lines.append(f"Mode: {'Full' if scan_mode == 'full' else 'Incremental'}")
+    lines.append(f"Items Scanned: {stats.get('scanned_count', 0)}")
+    lines.append("")
+
+    found = stats.get('found_count', 0)
+    skipped_cached = stats.get('skipped_cached', stats.get('skipped_count', 0))
+    skipped_existing = stats.get('skipped_existing', 0)
+
+    lines.append("[B]Results:[/B]")
+    lines.append(f"  New GIFs Added: {found}")
+    lines.append(f"  Cached (Unchanged): {skipped_cached}")
+    lines.append(f"  Already Set: {skipped_existing}")
+    lines.append(f"  Total Processed: {found + skipped_cached + skipped_existing}")
+
+    if stats.get('cancelled'):
+        lines.append("")
+        lines.append("[B]Status: Cancelled[/B]")
+
+    return "[CR]".join(lines)
+
+
 def _view_report(last_stats: Dict) -> None:
     """Display the last scan report."""
-    report_text = format_operation_report(
-        'gif_scan',
+    report_text = _format_gif_scan_report(
         last_stats['stats'],
         last_stats['timestamp'],
-        last_stats.get('scope')
+        last_stats.get('scope'),
     )
     show_textviewer(ADDON.getLocalizedString(32543), report_text)
 
@@ -223,18 +252,7 @@ def _run_scan_operation(
     progress: ProgressDialog,
     task_context=None
 ) -> bool:
-    """
-    Execute the actual scanning operation.
-
-    Args:
-        scope: "movies", "tvshows", or "all"
-        scan_mode: "incremental" or "full"
-        progress: Progress dialog helper
-        task_context: Optional TaskContext for progress tracking and cancellation
-
-    Returns:
-        True if cancelled, False if completed
-    """
+    """Execute the gif scan. Returns True if cancelled."""
     patterns_setting = ADDON.getSetting("gif_patterns")
     if patterns_setting:
         patterns = [p.strip() for p in patterns_setting.split(",") if p.strip()]
@@ -276,12 +294,7 @@ def _run_scan_operation(
 
 
 def _select_scope() -> Optional[str]:
-    """
-    Show dialog to select scan scope.
-
-    Returns:
-        Selected scope or None if cancelled
-    """
+    """Show dialog to select scan scope."""
     options = [
         ("all", ADDON.getLocalizedString(32579)),
         ("movies", ADDON.getLocalizedString(32580)),
@@ -298,12 +311,7 @@ def _select_scope() -> Optional[str]:
 
 
 def _get_scan_mode_from_setting() -> Optional[str]:
-    """
-    Get scan mode from setting or prompt user if set to 'always_ask'.
-
-    Returns:
-        Selected scan mode ('incremental' or 'full') or None if cancelled
-    """
+    """Get scan mode from setting, prompting if set to 'always_ask'."""
     setting_value = ADDON.getSetting("gif_scan.scan_mode")
 
     if setting_value == "always_ask":
@@ -355,99 +363,40 @@ class ArtworkAnimated:
 
     def scan_movies(self) -> None:
         """Scan all movies for gif posters."""
-        resp = request(
-            "VideoLibrary.GetMovies",
-            {
-                "properties": ["file", "art", "dateadded"],
-            }
-        )
-
-        if not resp:
-            log("Artwork", "Failed to get movies list", xbmc.LOGWARNING)
-            return
-
-        movies = resp.get("result", {}).get("movies", [])
-        if not movies:
-            return
-
-        total = len(movies)
-
-        for idx, movie in enumerate(movies):
-            if (self.task_context and self.task_context.abort_flag.is_requested()) or self.progress.is_cancelled():
-                self.cancelled = True
-                break
-
-            self.scanned_count += 1
-            movie_id = movie.get("movieid")
-            title = movie.get("label", xbmc.getLocalizedString(13205))
-            file_path = movie.get("file", "")
-            current_art = movie.get("art", {})
-
-            percent = int((idx / total) * 100)
-            message = f"Scanning: {title}\nProgress: {idx + 1}/{total} | Found: {self.found_count} | Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
-            self.progress.update(percent, message)
-
-            if not movie_id or not file_path:
-                continue
-
-            gif_path = self._find_gif(file_path)
-
-            if gif_path:
-                self.accessed_paths.add(gif_path)
-
-                if not self.force_full_rescan and self._should_skip_gif(gif_path):
-                    self.skipped_cached += 1
-                    log("Artwork", f"GIF scan: Skipped cached GIF for movieid={movie_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
-                    continue
-
-                log("Artwork", f"GIF scan: Setting GIF for movieid={movie_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
-                if self._set_movie_art(movie_id, title, gif_path):
-                    self._update_cache(gif_path)
-                    self.found_count += 1
-                else:
-                    log("Artwork", f"GIF scan: Failed to apply GIF for movieid={movie_id} ({title})", xbmc.LOGWARNING)
-            else:
-                if current_art.get("animatedposter"):
-                    self.skipped_existing += 1
-                else:
-                    log("Artwork", f"GIF scan: No matching GIF found for movieid={movie_id} ({title}), folder={os.path.dirname(file_path)}", xbmc.LOGDEBUG)
-
+        self._scan('movie')
 
     def scan_tvshows(self) -> None:
         """Scan all TV shows for gif posters."""
-        resp = request(
-            "VideoLibrary.GetTVShows",
-            {
-                "properties": ["file", "art", "dateadded"],
-            }
-        )
+        self._scan('tvshow')
 
+    def _scan(self, media_type: str) -> None:
+        spec = MEDIA_TYPE_SPECS[media_type]
+        resp = request(spec.library_method, {"properties": ["file", "art", "dateadded"]})
         if not resp:
-            log("Artwork", "Failed to get TV shows list", xbmc.LOGWARNING)
+            log("Artwork", f"Failed to get {spec.library_key} list", xbmc.LOGWARNING)
             return
 
-        tvshows = resp.get("result", {}).get("tvshows", [])
-        if not tvshows:
+        items = extract_result(resp, spec.library_key, [])
+        if not items:
             return
 
-        total = len(tvshows)
-
-        for idx, show in enumerate(tvshows):
+        total = len(items)
+        for idx, item in enumerate(items):
             if (self.task_context and self.task_context.abort_flag.is_requested()) or self.progress.is_cancelled():
                 self.cancelled = True
                 break
 
             self.scanned_count += 1
-            show_id = show.get("tvshowid")
-            title = show.get("label", xbmc.getLocalizedString(13205))
-            file_path = show.get("file", "")
-            current_art = show.get("art", {})
+            item_id = item.get(spec.id_key)
+            title = item.get("label", xbmc.getLocalizedString(13205))
+            file_path = item.get("file", "")
+            current_art = item.get("art", {})
 
             percent = int((idx / total) * 100)
             message = f"Scanning: {title}\nProgress: {idx + 1}/{total} | Found: {self.found_count} | Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
             self.progress.update(percent, message)
 
-            if not show_id or not file_path:
+            if not item_id or not file_path:
                 continue
 
             gif_path = self._find_gif(file_path)
@@ -457,36 +406,27 @@ class ArtworkAnimated:
 
                 if not self.force_full_rescan and self._should_skip_gif(gif_path):
                     self.skipped_cached += 1
-                    log("Artwork", f"GIF scan: Skipped cached GIF for tvshowid={show_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
+                    log("Artwork", f"GIF scan: Skipped cached GIF for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
                     continue
 
-                log("Artwork", f"GIF scan: Setting GIF for tvshowid={show_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
-                if self._set_tvshow_art(show_id, title, gif_path):
+                log("Artwork", f"GIF scan: Setting GIF for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
+                if self._set_art(media_type, item_id, title, gif_path):
                     self._update_cache(gif_path)
                     self.found_count += 1
                 else:
-                    log("Artwork", f"GIF scan: Failed to apply GIF for tvshowid={show_id} ({title})", xbmc.LOGWARNING)
+                    log("Artwork", f"GIF scan: Failed to apply GIF for {spec.id_key}={item_id} ({title})", xbmc.LOGWARNING)
             else:
                 if current_art.get("animatedposter"):
                     self.skipped_existing += 1
                 else:
-                    log("Artwork", f"GIF scan: No matching GIF found for tvshowid={show_id} ({title}), folder={os.path.dirname(file_path)}", xbmc.LOGDEBUG)
+                    log("Artwork", f"GIF scan: No matching GIF found for {spec.id_key}={item_id} ({title}), folder={os.path.dirname(file_path)}", xbmc.LOGDEBUG)
 
 
     def _find_gif(self, file_path: str) -> Optional[str]:
-        """
-        Look for gif files in the same folder as the media file.
+        """Look for gif files in the media file's folder.
 
-        Matching strategy:
-        1. Try exact match first (e.g., "poster.gif")
-        2. Try suffix match (e.g., "movie.poster.gif", "3.10.to.Yuma.2007.poster.gif")
-        3. If multiple suffix matches, prioritize shortest filename (most specific)
-
-        Args:
-            file_path: Path to media file
-
-        Returns:
-            Path to gif file if found, None otherwise
+        Matching: exact match first, then suffix match (e.g. "movie.poster.gif"),
+        preferring shortest filename when multiple match.
         """
         if not file_path:
             return None
@@ -556,90 +496,30 @@ class ArtworkAnimated:
             log("Artwork", f"Error finding gif for '{file_path}': {str(e)}", xbmc.LOGERROR)
             return None
 
-    def _set_movie_art(self, movie_id: int, title: str, gif_path: str) -> bool:
-        """
-        Set animatedposter art for a movie.
-
-        Args:
-            movie_id: Kodi movie ID
-            title: Movie title
-            gif_path: Path to gif file
-
-        Returns:
-            True if successful, False otherwise
-        """
+    def _set_art(self, media_type: str, item_id: int, title: str, gif_path: str) -> bool:
+        """Set animatedposter art on a movie or tvshow via JSON-RPC."""
+        spec = MEDIA_TYPE_SPECS[media_type]
         try:
-            file_exists = xbmcvfs.exists(gif_path)
-            if not file_exists:
-                log("Artwork", f"GIF file does not exist for movieid={movie_id} ({title}): {gif_path}", xbmc.LOGWARNING)
+            if not xbmcvfs.exists(gif_path):
+                log("Artwork", f"GIF file does not exist for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGWARNING)
                 return False
 
             resp = request(
-                "VideoLibrary.SetMovieDetails",
-                {
-                    "movieid": movie_id,
-                    "art": {
-                        "animatedposter": gif_path
-                    }
-                }
+                spec.set_method,
+                {spec.id_key: item_id, "art": {"animatedposter": gif_path}},
             )
             if resp is None:
-                log("Artwork", f"JSON-RPC returned None for movieid={movie_id} ({title}), path={gif_path}", xbmc.LOGWARNING)
+                log("Artwork", f"JSON-RPC returned None for {spec.id_key}={item_id} ({title}), path={gif_path}", xbmc.LOGWARNING)
                 return False
 
-            log("Artwork", f"Successfully set animatedposter for movieid={movie_id} ({title}), response: {resp}", xbmc.LOGDEBUG)
+            log("Artwork", f"Successfully set animatedposter for {spec.id_key}={item_id} ({title}), response: {resp}", xbmc.LOGDEBUG)
             return True
         except Exception as e:
-            log("Artwork", f"Exception setting art for movieid={movie_id} ({title}), path={gif_path}: {str(e)}", xbmc.LOGERROR)
-            return False
-
-    def _set_tvshow_art(self, tvshow_id: int, title: str, gif_path: str) -> bool:
-        """
-        Set animatedposter art for a TV show.
-
-        Args:
-            tvshow_id: Kodi TV show ID
-            title: TV show title
-            gif_path: Path to gif file
-
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            file_exists = xbmcvfs.exists(gif_path)
-            if not file_exists:
-                log("Artwork", f"GIF file does not exist for tvshowid={tvshow_id} ({title}): {gif_path}", xbmc.LOGWARNING)
-                return False
-
-            resp = request(
-                "VideoLibrary.SetTVShowDetails",
-                {
-                    "tvshowid": tvshow_id,
-                    "art": {
-                        "animatedposter": gif_path
-                    }
-                }
-            )
-            if resp is None:
-                log("Artwork", f"JSON-RPC returned None for tvshowid={tvshow_id} ({title}), path={gif_path}", xbmc.LOGWARNING)
-                return False
-
-            log("Artwork", f"Successfully set animatedposter for tvshowid={tvshow_id} ({title}), response: {resp}", xbmc.LOGDEBUG)
-            return True
-        except Exception as e:
-            log("Artwork", f"Exception setting art for tvshowid={tvshow_id} ({title}), path={gif_path}: {str(e)}", xbmc.LOGERROR)
+            log("Artwork", f"Exception setting art for {spec.id_key}={item_id} ({title}), path={gif_path}: {str(e)}", xbmc.LOGERROR)
             return False
 
     def _should_skip_gif(self, gif_path: str) -> bool:
-        """
-        Check if GIF should be skipped in incremental mode.
-
-        Args:
-            gif_path: Path to GIF file
-
-        Returns:
-            True if GIF is cached and unchanged (safe to skip)
-        """
+        """True if GIF is cached and unchanged (safe to skip in incremental mode)."""
         cached_entry = gif_db.get_cached_gif(gif_path)
         if not cached_entry:
             return False
@@ -659,12 +539,7 @@ class ArtworkAnimated:
         return False
 
     def _update_cache(self, gif_path: str) -> None:
-        """
-        Update cache entry for a GIF file.
-
-        Args:
-            gif_path: Path to GIF file
-        """
+        """Update cache entry for a GIF file."""
         try:
             mtime = os.path.getmtime(gif_path)
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -673,12 +548,7 @@ class ArtworkAnimated:
             pass
 
     def cleanup_stale_cache(self) -> int:
-        """
-        Remove cache entries for GIF files not found during this scan.
-
-        Returns:
-            Number of stale entries removed
-        """
+        """Remove cache entries for GIF files not found during this scan."""
         return gif_db.cleanup_stale_gifs(self.accessed_paths)
 
     def show_summary(self) -> None:

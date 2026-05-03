@@ -11,114 +11,119 @@ from typing import Optional, Dict, Any
 from lib.kodi.client import log, ADDON
 from lib.texture.utilities import is_library_artwork_url
 
+# Age and usage bucket boundaries (inclusive upper bound per bucket).
+_AGE_BUCKET_BOUNDS = (7, 30, 90, 180)
+_AGE_BUCKET_LABELS = ('0-7', '8-30', '31-90', '91-180', '180+', 'unknown')
+_USAGE_BUCKET_BOUNDS = (5, 20, 50)
+_USAGE_BUCKET_LABELS = ('0', '1-5', '6-20', '21-50', '50+')
 
-def calculate_texture_statistics(
-    textures: list[Dict[str, Any]],
-    progress: xbmcgui.DialogProgress
-) -> Optional[Dict[str, Any]]:
-    """
-    Calculate comprehensive texture cache statistics.
+# Kodi's `Textures.GetTextures` returns width/usecount swapped for some entries (PR #27584).
+# A `usecount >= 256` paired with `width < 256` is the swap signature, fall back to width.
+_USECOUNT_SWAP_THRESHOLD = 256
 
-    Args:
-        textures: List of texture records from get_cached_textures()
-        progress: Progress dialog for user feedback
 
-    Returns:
-        Dict with statistics or None if cancelled/failed
-    """
+def _real_usecount(size_record: Dict[str, Any]) -> int:
+    """Return the true usecount for a size record, accounting for the Kodi width/usecount swap."""
+    raw_usecount = size_record.get('usecount', 0)
+    raw_width = size_record.get('width', 0)
+    if raw_width < _USECOUNT_SWAP_THRESHOLD and raw_usecount >= _USECOUNT_SWAP_THRESHOLD:
+        return raw_width
+    return raw_usecount
+
+
+def _bucket_age(days_ago: int) -> str:
+    """Return the age-bucket label for `days_ago`."""
+    for bound, label in zip(_AGE_BUCKET_BOUNDS, _AGE_BUCKET_LABELS):
+        if days_ago <= bound:
+            return label
+    return _AGE_BUCKET_LABELS[-2]  # '180+'
+
+
+def _bucket_usage(usecount: int) -> str:
+    """Return the usage-bucket label for `usecount`."""
+    if usecount == 0:
+        return _USAGE_BUCKET_LABELS[0]
+    for bound, label in zip(_USAGE_BUCKET_BOUNDS, _USAGE_BUCKET_LABELS[1:]):
+        if usecount <= bound:
+            return label
+    return _USAGE_BUCKET_LABELS[-1]  # '50+'
+
+
+def _classify_texture_type(url: str) -> str:
+    """Classify a texture URL into one of `library`, `video_thumb`, `music`, `other`."""
+    if is_library_artwork_url(url):
+        return 'library'
+    if 'video@' in url:
+        return 'video_thumb'
+    if 'music@' in url or 'musicdb://' in url:
+        return 'music'
+    return 'other'
+
+
+def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
+                       usage_buckets: Dict[str, int]) -> None:
+    """Update `age_buckets` and `usage_buckets` in place from a single size record."""
+    lastusetime = size.get('lastusetime')
+    usecount = _real_usecount(size)
+
+    if lastusetime:
+        try:
+            last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
+            age_buckets[_bucket_age((now - last_used).days)] += 1
+        except Exception:
+            age_buckets['unknown'] += 1
+    else:
+        age_buckets['unknown'] += 1
+
+    usage_buckets[_bucket_usage(usecount)] += 1
+
+
+def _calculate_disk_usage(thumbnails_path: str) -> int:
+    """Sum the on-disk size of every file under `thumbnails_path`. Returns 0 on walk error."""
+    disk_usage = 0
     try:
-        if not textures:
-            return None
+        for root, _dirs, files in os.walk(thumbnails_path):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                try:
+                    disk_usage += os.path.getsize(filepath)
+                except Exception:
+                    pass
+    except Exception as e:
+        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}", xbmc.LOGWARNING)
+    return disk_usage
 
+
+def calculate_texture_statistics(textures: list[Dict[str, Any]],
+                                 progress: xbmcgui.DialogProgress) -> Optional[Dict[str, Any]]:
+    """Compute texture-cache stats: counts, age buckets, usage buckets, type breakdown, disk usage."""
+    if not textures:
+        return None
+
+    try:
         total_textures = len(textures)
         total_sizes = 0
-        age_buckets = {'0-7': 0, '8-30': 0, '31-90': 0, '91-180': 0, '180+': 0, 'unknown': 0}
-        usage_buckets = {'0': 0, '1-5': 0, '6-20': 0, '21-50': 0, '50+': 0}
+        age_buckets = {label: 0 for label in _AGE_BUCKET_LABELS}
+        usage_buckets = {label: 0 for label in _USAGE_BUCKET_LABELS}
         type_breakdown = {'library': 0, 'video_thumb': 0, 'music': 0, 'other': 0}
-
         now = datetime.now()
-        thumbnails_path = xbmcvfs.translatePath("special://thumbnails")
-        disk_usage = 0
 
         progress.update(30, ADDON.getLocalizedString(32332).format(total_textures))
 
         for i, texture in enumerate(textures):
             if progress.iscanceled():
                 return None
-
             if i % 100 == 0:
                 progress.update(30 + int((i / total_textures) * 50))
 
             sizes = texture.get('sizes', [])
             total_sizes += len(sizes)
-
-            url = texture.get('url', '')
-
-            if is_library_artwork_url(url):
-                type_breakdown['library'] += 1
-            elif 'video@' in url:
-                type_breakdown['video_thumb'] += 1
-            elif 'music@' in url or 'musicdb://' in url:
-                type_breakdown['music'] += 1
-            else:
-                type_breakdown['other'] += 1
-
+            type_breakdown[_classify_texture_type(texture.get('url', ''))] += 1
             for size in sizes:
-                lastusetime = size.get('lastusetime')
-                raw_usecount = size.get('usecount', 0)
-                raw_width = size.get('width', 0)
-
-                # Workaround for Kodi bug: width/usecount fields swapped
-                # https://github.com/xbmc/xbmc/pull/27584
-                if raw_width < 256 and raw_usecount >= 256:
-                    usecount = raw_width
-                else:
-                    usecount = raw_usecount
-
-                if lastusetime:
-                    try:
-                        last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
-                        days_ago = (now - last_used).days
-
-                        if days_ago <= 7:
-                            age_buckets['0-7'] += 1
-                        elif days_ago <= 30:
-                            age_buckets['8-30'] += 1
-                        elif days_ago <= 90:
-                            age_buckets['31-90'] += 1
-                        elif days_ago <= 180:
-                            age_buckets['91-180'] += 1
-                        else:
-                            age_buckets['180+'] += 1
-                    except Exception:
-                        age_buckets['unknown'] += 1
-                else:
-                    age_buckets['unknown'] += 1
-
-                if usecount == 0:
-                    usage_buckets['0'] += 1
-                elif usecount <= 5:
-                    usage_buckets['1-5'] += 1
-                elif usecount <= 20:
-                    usage_buckets['6-20'] += 1
-                elif usecount <= 50:
-                    usage_buckets['21-50'] += 1
-                else:
-                    usage_buckets['50+'] += 1
+                _bucket_size_record(size, now, age_buckets, usage_buckets)
 
         progress.update(80, ADDON.getLocalizedString(32425))
-
-        try:
-            for root, dirs, files in os.walk(thumbnails_path):
-                for filename in files:
-                    filepath = os.path.join(root, filename)
-                    try:
-                        disk_usage += os.path.getsize(filepath)
-                    except Exception:
-                        pass
-        except Exception as e:
-            log("Texture",f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}", xbmc.LOGWARNING)
-
+        disk_usage = _calculate_disk_usage(xbmcvfs.translatePath("special://thumbnails"))
         progress.update(100, ADDON.getLocalizedString(32426))
 
         return {
@@ -127,24 +132,16 @@ def calculate_texture_statistics(
             'disk_usage': disk_usage,
             'age_buckets': age_buckets,
             'usage_buckets': usage_buckets,
-            'type_breakdown': type_breakdown
+            'type_breakdown': type_breakdown,
         }
 
     except Exception as e:
-        log("Texture",f"Statistics calculation failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Statistics calculation failed: {str(e)}", xbmc.LOGERROR)
         return None
 
 
 def format_statistics_report(stats: Dict[str, Any]) -> str:
-    """
-    Format statistics into readable report.
-
-    Args:
-        stats: Statistics dict from calculate_texture_statistics()
-
-    Returns:
-        Formatted report string
-    """
+    """Render the stats dict from `calculate_texture_statistics` as a textviewer-friendly report."""
     total_textures = stats['total_textures']
     total_sizes = stats['total_sizes']
     disk_usage = stats['disk_usage']

@@ -8,7 +8,12 @@ from lib.infrastructure.dialogs import show_ok, show_textviewer
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 
 from lib.data import database as db
-from lib.download.workflows import LOG_DIR, download_scope_artwork
+from lib.download.workflows import (
+    LOG_DIR,
+    download_scope_artwork,
+    format_folder_section,
+    format_mismatch_section,
+)
 from lib.kodi.client import ADDON
 
 
@@ -54,64 +59,22 @@ def show_download_report() -> None:
         f"Skipped (already exists): {skipped}",
         f"Failed: {failed}",
         "",
-        f"Total size: {mb:.2f} MB"
+        f"Total size: {mb:.2f} MB",
     ]
-
-    folder_stats = stats.get('folder_counts', {})
-    if folder_stats:
-        sorted_folders = sorted(folder_stats.items(), key=lambda x: x[0])
-
-        lines.extend([
-            "",
-            "[B]Downloaded Files by Folder[/B]",
-            ""
-        ])
-
-        for folder_path, count in sorted_folders:
-            lines.append(f"{count} files - {folder_path}")
-
-    if mismatch_counts:
-        total_mismatches = sum(mismatch_counts.values())
-        if total_mismatches > 0:
-            lines.extend([
-                "",
-                "[B]File Handling Mismatches Detected[/B]",
-                ""
-            ])
-
-            if mismatch_counts.get('movie_folder_to_basename', 0) > 0:
-                lines.append(f"{mismatch_counts['movie_folder_to_basename']} movie artwork files saved as 'poster.jpg' in movie folder")
-                lines.append("  Setting 'Use Movie Filename Prefix' is ON (expects 'MovieTitle-poster.jpg')")
-            if mismatch_counts.get('movie_basename_to_folder', 0) > 0:
-                lines.append(f"{mismatch_counts['movie_basename_to_folder']} movie artwork files saved as 'MovieTitle-poster.jpg'")
-                lines.append("  Setting 'Use Movie Filename Prefix' is OFF (expects 'poster.jpg')")
-            if mismatch_counts.get('mvid_folder_to_basename', 0) > 0:
-                lines.append(f"{mismatch_counts['mvid_folder_to_basename']} music video artwork files saved as 'poster.jpg' in video folder")
-                lines.append("  Setting 'Use Music Video Filename Prefix' is ON (expects 'VideoTitle-poster.jpg')")
-            if mismatch_counts.get('mvid_basename_to_folder', 0) > 0:
-                lines.append(f"{mismatch_counts['mvid_basename_to_folder']} music video artwork files saved as 'VideoTitle-poster.jpg'")
-                lines.append("  Setting 'Use Music Video Filename Prefix' is OFF (expects 'poster.jpg')")
-
+    lines.extend(format_folder_section(stats.get('folder_counts', {})))
+    lines.extend(format_mismatch_section(mismatch_counts))
     lines.extend([
         "",
         "",
         f"Log files location: {LOG_DIR}",
-        "(Most recent downloads saved to artwork_download.log)"
+        "(Most recent downloads saved to artwork_download.log)",
     ])
 
-    text = "\n".join(lines)
-
-    show_textviewer(ADDON.getLocalizedString(32520), text)
+    show_textviewer(ADDON.getLocalizedString(32520), "\n".join(lines))
 
 
 def run_download_menu() -> None:
-    """
-    Show download menu with scope selection and report viewing.
-
-    Allows user to:
-    - Select scope and download artwork
-    - View last download report
-    """
+    """Show the download menu: scope-pick + download, plus a report viewer if history exists."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     db.init_database()
@@ -128,7 +91,7 @@ def run_download_menu() -> None:
 
 
 def _handle_download():
-    """Handle download artwork workflow."""
+    """Show the scope-selection menu (all / movies / tvshows / music)."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     scope_menu = Menu(ADDON.getLocalizedString(32523), [
@@ -141,7 +104,7 @@ def _handle_download():
 
 
 def _select_mode(scope: str, media_filter: Optional[List[str]]):
-    """Select run mode and execute download."""
+    """Show foreground/background run-mode menu, then kick off the download."""
     from lib.infrastructure import tasks as task_manager
     from lib.infrastructure.menus import Menu, MenuItem
 

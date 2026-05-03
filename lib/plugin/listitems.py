@@ -12,10 +12,10 @@ from lib.service.properties import (
     build_musicvideo_data as _build_musicvideo_base,
     build_artist_data as _build_artist_base,
     build_album_data as _build_album_base,
-    _VIDEO_ART_KEYS,
-    _MOVIE_ART_KEYS,
-    _SET_ART_KEYS,
-    _AUDIO_ART_KEYS,
+    VIDEO_ART_KEYS,
+    MOVIE_ART_KEYS,
+    SET_ART_KEYS,
+    AUDIO_ART_KEYS,
 )
 
 
@@ -33,10 +33,23 @@ def _build_art_dict(art: Optional[dict], keys: Tuple[str, ...], fallbacks: Optio
     return art_dict
 
 
+def _flatten_items_art(data: dict, items: List[dict], prefix: str,
+                       keys: Tuple[str, ...], thumb_fallback: bool = True) -> None:
+    """Mutate `data` in place, adding `{prefix}.{idx}.Art.{key}` entries for each item's art.
+
+    `thumb_fallback=True` falls back from `art.thumb` to `item.thumbnail` when missing.
+    """
+    for idx, item in enumerate(items, 1):
+        fallbacks = {"thumb": item.get("thumbnail") or ""} if thumb_fallback else None
+        item_art = _build_art_dict(item.get("art"), keys, fallbacks=fallbacks)
+        for art_key, art_val in item_art.items():
+            data[f"{prefix}.{idx}.{art_key}"] = art_val
+
+
 def build_movie_data(details: dict) -> dict:
     """Build movie data dictionary for ListItem properties."""
     data = _build_movie_base(details)
-    data.update(_build_art_dict(details.get("art"), _MOVIE_ART_KEYS))
+    data.update(_build_art_dict(details.get("art"), MOVIE_ART_KEYS))
     return data
 
 
@@ -45,16 +58,8 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     data = _build_movieset_base(set_details, movies)
     data.pop("_metadata", None)
 
-    data.update(_build_art_dict(set_details.get("art"), _SET_ART_KEYS))
-
-    for idx, m in enumerate(movies, 1):
-        movie_art = _build_art_dict(
-            m.get("art"),
-            _MOVIE_ART_KEYS,
-            fallbacks={"thumbnail": m.get("thumbnail") or ""}
-        )
-        for art_key, art_val in movie_art.items():
-            data[f"Movie.{idx}.{art_key}"] = art_val
+    data.update(_build_art_dict(set_details.get("art"), SET_ART_KEYS))
+    _flatten_items_art(data, movies, "Movie", MOVIE_ART_KEYS)
 
     return data
 
@@ -62,28 +67,28 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
 def build_tvshow_data(details: dict) -> dict:
     """Build TV show data dictionary for ListItem properties."""
     data = _build_tvshow_base(details)
-    data.update(_build_art_dict(details.get("art"), _VIDEO_ART_KEYS))
+    data.update(_build_art_dict(details.get("art"), VIDEO_ART_KEYS))
     return data
 
 
 def build_season_data(details: dict) -> dict:
     """Build season data dictionary for ListItem properties."""
     data = _build_season_base(details)
-    data.update(_build_art_dict(details.get("art"), _VIDEO_ART_KEYS))
+    data.update(_build_art_dict(details.get("art"), VIDEO_ART_KEYS))
     return data
 
 
 def build_episode_data(details: dict) -> dict:
     """Build episode data dictionary for ListItem properties."""
     data = _build_episode_base(details)
-    data.update(_build_art_dict(details.get("art"), _VIDEO_ART_KEYS))
+    data.update(_build_art_dict(details.get("art"), VIDEO_ART_KEYS))
     return data
 
 
 def build_musicvideo_data(details: dict) -> dict:
     """Build music video data dictionary for ListItem properties."""
     data = _build_musicvideo_base(details)
-    data.update(_build_art_dict(details.get("art"), _VIDEO_ART_KEYS))
+    data.update(_build_art_dict(details.get("art"), VIDEO_ART_KEYS))
     return data
 
 
@@ -100,15 +105,7 @@ def build_artist_data(artist: dict, albums: List[dict]) -> dict:
             "fanart": artist.get("fanart") or "",
         }
     ))
-
-    for idx, a in enumerate(albums, 1):
-        album_art = _build_art_dict(
-            a.get("art"),
-            ("thumb", "discart"),
-            fallbacks={"thumb": a.get("thumbnail") or ""}
-        )
-        for art_key, art_val in album_art.items():
-            data[f"Album.{idx}.{art_key}"] = art_val
+    _flatten_items_art(data, albums, "Album", ("thumb", "discart"))
 
     return data
 
@@ -120,7 +117,7 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
 
     data.update(_build_art_dict(
         album.get("art"),
-        _AUDIO_ART_KEYS,
+        AUDIO_ART_KEYS,
         fallbacks={
             "thumb": album.get("thumbnail") or "",
             "fanart": album.get("fanart") or "",

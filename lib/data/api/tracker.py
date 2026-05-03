@@ -1,88 +1,20 @@
-"""API usage tracking for rate limiting and daily limits."""
+"""Per-session rate-limit handling: HTTP 429 dialog + in-memory provider skip set."""
 from __future__ import annotations
 
-from datetime import date
-from typing import Tuple, Sequence
+from typing import Sequence
 import xbmcgui
 
-from lib.data.database.rating import increment_api_usage, mark_api_limit_hit
-from lib.kodi.client import _get_api_key, ADDON
+from lib.kodi.client import ADDON
 
 
 _session_skip_providers = set()
 
 
-def get_api_key_hash(provider: str) -> str:
+def handle_rate_limit_error(provider: str) -> str:
+    """Show modal dialog when an HTTP 429 lands for `provider`.
+
+    Returns one of: "cancel_batch", "cancel_all", "skip", "retry".
     """
-    Get SHA256 hash of API key for tracking.
-
-    Args:
-        provider: Provider name ("tmdb", "mdblist", "omdb", "trakt")
-
-    Returns:
-        First 16 characters of SHA256 hash
-    """
-    import hashlib
-
-    key_map = {
-        "tmdb": "tmdb_api_key",
-        "mdblist": "mdblist_api_key",
-        "omdb": "omdb_api_key",
-        "trakt": "trakt_access_token"
-    }
-
-    key_id = key_map.get(provider)
-    if not key_id:
-        return ""
-
-    api_key = _get_api_key(key_id)
-    if not api_key:
-        return ""
-
-    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
-
-
-def increment_usage(provider: str) -> Tuple[int, bool]:
-    """
-    Increment usage count for provider and return current stats.
-
-    Args:
-        provider: Provider name
-
-    Returns:
-        Tuple of (current_count, limit_hit_before)
-    """
-    api_key_hash = get_api_key_hash(provider)
-    today = date.today().isoformat()
-    return increment_api_usage(provider, api_key_hash, today)
-
-
-def mark_limit_hit(provider: str) -> None:
-    """
-    Mark that provider's daily limit was hit.
-
-    Args:
-        provider: Provider name
-    """
-    api_key_hash = get_api_key_hash(provider)
-    today = date.today().isoformat()
-    mark_api_limit_hit(provider, api_key_hash, today)
-
-
-def handle_rate_limit_error(provider: str, current: int, total: int) -> str:
-    """
-    Show modal dialog when rate limit is hit and get user choice.
-
-    Args:
-        provider: Provider name
-        current: Current item number
-        total: Total items
-
-    Returns:
-        User choice: "cancel_batch", "cancel_all", "skip", or "retry"
-    """
-    mark_limit_hit(provider)
-
     dialog = xbmcgui.Dialog()
     choices: Sequence[str] = [
         "Wait 60s and Retry",
@@ -119,15 +51,7 @@ def handle_rate_limit_error(provider: str, current: int, total: int) -> str:
 
 
 def is_provider_skipped(provider: str) -> bool:
-    """
-    Check if provider is skipped for this session.
-
-    Args:
-        provider: Provider name
-
-    Returns:
-        True if provider should be skipped
-    """
+    """Check if provider is skipped for this session."""
     return provider in _session_skip_providers
 
 

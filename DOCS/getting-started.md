@@ -27,42 +27,32 @@ Skin Info Service provides three integration methods:
 
 ---
 
-## Starting the Service
+## Enabling the Service
 
-The service must be started via RunScript. Add to any window that loads early in your skin:
+Library and Online monitors are skin-opt-in; IMDb and Stinger run if they are enabled in the settings.
 
-```xml
-<onload>RunScript(script.skin.info.service)</onload>
-```
-
-**With user toggle (recommended):**
+To enable the Library and Online monitors, opt in from your skin:
 
 ```xml
-<onload condition="Skin.HasSetting(SkinInfo.Service)">RunScript(script.skin.info.service)</onload>
+<onload>Skin.SetBool(SkinInfo.Service)</onload>
 ```
-
-The service sets `Skin.SetBool(SkinInfo.Service)` on start and checks it each loop iteration. If the setting is toggled off, the service stops automatically. This allows skins to provide a toggle that both prevents starting and stops a running service.
-
-A duplicate RunScript call is ignored if the service is already running.
 
 ### Skin-Dependent vs Independent Services
 
-The RunScript starts multiple services:
-
 | Service | Controlled By |
 |---------|---------------|
-| Library properties | `Skin.HasSetting(SkinInfo.Service)` |
-| Online API properties | Runs with library service |
-| Stinger notifications | `stinger_enabled` addon setting |
-| IMDb auto-update | `imdb_auto_update` addon setting |
+| Library properties | `Skin.HasSetting(SkinInfo.Service)` (skin-opt-in) |
+| Online API properties | `Skin.HasSetting(SkinInfo.Service)` (skin-opt-in) |
+| Stinger notifications | "Enable stinger detection" addon setting |
+| IMDb auto-update | "IMDb Ratings > Auto-update" addon setting |
 
-Library and online properties require a skin that reads `SkinInfo.*` properties. Stinger notifications and IMDb auto-update run on any skin based on their own addon settings.
+Library and online properties require a skin that reads `SkinInfo.*` properties. Stinger notifications and IMDb auto-update run, if enabled, regardless of skin.
 
 ## Service Properties
 
 | Property | Description |
 |----------|-------------|
-| `SkinInfo.Service.Running` | Set to `true` while the service is running, cleared on stop |
+| `SkinInfo.Service.Running` | Set to `true` while Library and Online services are running, cleared on stop |
 
 ```xml
 <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Service.Running))</visible>

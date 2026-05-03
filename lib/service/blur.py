@@ -55,9 +55,9 @@ def _get_cache_dir():
 
 
 def _url_to_cached_path(url: str) -> Optional[str]:
-    """
-    Uses xbmc.getCacheThumbName() which handles path normalization
-    (e.g., backslash to forward slash on Windows) to match Kodi's behavior exactly.
+    """Map an image URL to its Kodi texture-cache file path via `xbmc.getCacheThumbName`.
+
+    Returns the first existing `.jpg`/`.png` candidate, or None if not cached.
     """
     if not url:
         return None
@@ -81,16 +81,41 @@ def _generate_cache_key(source_path: str, blur_radius: int) -> str:
     return f"{hash_value}.jpg"
 
 
-def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
+def _resolve_source_for_mtime(source_path: str) -> Optional[str]:
+    """Map a source URL/path to its local filesystem path for mtime checks. None if unmappable."""
+    if source_path.startswith(('http://', 'https://', 'image://')):
+        return _url_to_cached_path(source_path)
+    try:
+        return xbmcvfs.translatePath(source_path)
+    except Exception:
+        return None
+
+
+def _cache_is_fresh(source_path: str, cache_path: str) -> bool:
+    """True if the cached blurred copy is at least as new as its source.
+
+    Lets the cache invalidate automatically when a source file is replaced (same path, new content).
+    Returns True if mtime can't be compared so a working cache isn't thrown away on transient errors.
     """
-    Create a blurred version of the source image.
+    try:
+        cache_mtime = os.path.getmtime(cache_path)
+    except OSError:
+        return False
 
-    Args:
-        source_path: Path to source image or URL (image:// or http(s)://)
-        blur_radius: Gaussian blur radius (default 40, recommended 30-50)
+    local = _resolve_source_for_mtime(source_path)
+    if not local:
+        return True
 
-    Returns:
-        Path to blurred image in cache, or None on failure
+    try:
+        return cache_mtime >= os.path.getmtime(local)
+    except OSError:
+        return True
+
+
+def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
+    """Return a cached blurred copy of `source_path`. Creates it if missing. None on failure.
+
+    Accepts local paths, `image://`, or http(s) URLs. Recommended radius 30-50.
     """
     if not source_path:
         return None
@@ -108,7 +133,7 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
     if cache_dir:
         cache_filename = _generate_cache_key(source_path, blur_radius)
         cache_path = os.path.join(cache_dir, cache_filename)
-        if xbmcvfs.exists(cache_path):
+        if xbmcvfs.exists(cache_path) and _cache_is_fresh(source_path, cache_path):
             return cache_path
 
     if not _check_pil():

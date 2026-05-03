@@ -5,60 +5,28 @@ import xbmc
 import xbmcvfs
 from typing import Dict, List, Optional, Tuple
 
-from lib.kodi.client import log, request, extract_result, decode_image_url, ADDON
-from lib.kodi.utils import extract_media_ids
+from lib.kodi.client import log, request, extract_result, decode_image_url, get_item_details, ADDON
+from lib.kodi.utilities import extract_media_ids
+from lib.data.api.utilities import tmdb_image_url
 from lib.download.artwork import DownloadArtwork
 from lib.actor.config import sanitize_actor_filename
 from lib.infrastructure.paths import vfs_join, vfs_ensure_dir_slash, build_actors_folder_path
 
-TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/original"
-
 
 def get_cast_with_ids(media_type: str, dbid: int) -> Tuple[List[Dict], Dict[str, Optional[str]]]:
-    """
-    Get cast list and media IDs from Kodi JSON-RPC.
-
-    Args:
-        media_type: 'movie' or 'tvshow'
-        dbid: Kodi database ID
-
-    Returns:
-        Tuple of (cast list, media IDs dict)
-    """
-    if media_type == "movie":
-        response = request("VideoLibrary.GetMovieDetails", {
-            "movieid": dbid,
-            "properties": ["cast", "uniqueid", "imdbnumber"]
-        })
-        details = extract_result(response, "moviedetails")
-    elif media_type == "tvshow":
-        response = request("VideoLibrary.GetTVShowDetails", {
-            "tvshowid": dbid,
-            "properties": ["cast", "uniqueid", "imdbnumber"]
-        })
-        details = extract_result(response, "tvshowdetails")
-    else:
+    """Get cast list and media IDs for a movie or tvshow from Kodi JSON-RPC."""
+    if media_type not in ("movie", "tvshow"):
         return [], {}
 
-    if not details or not isinstance(details, dict):
+    details = get_item_details(media_type, dbid, ["cast", "uniqueid"])
+    if not isinstance(details, dict):
         return [], {}
 
-    cast = details.get("cast", [])
-    media_ids = extract_media_ids(details)
-
-    return cast, media_ids
+    return details.get("cast", []), extract_media_ids(details)
 
 
 def get_episode_guest_stars(tvshowid: int) -> List[Dict]:
-    """
-    Get all guest stars from TV show episodes.
-
-    Args:
-        tvshowid: Kodi TV show database ID
-
-    Returns:
-        List of cast dicts from all episodes (may contain duplicates)
-    """
+    """Get guest stars from every episode of a TV show (may contain duplicates across episodes)."""
     response = request("VideoLibrary.GetEpisodes", {
         "tvshowid": tvshowid,
         "properties": ["cast"]
@@ -77,16 +45,7 @@ def get_episode_guest_stars(tvshowid: int) -> List[Dict]:
 
 
 def _get_tmdb_credits(media_type: str, tmdb_id: str) -> List[Dict]:
-    """
-    Get TMDB cast list from cache/API.
-
-    Args:
-        media_type: 'movie' or 'tvshow'
-        tmdb_id: TMDB ID
-
-    Returns:
-        List of cast dicts with name, character, profile_path, id
-    """
+    """Get TMDB cast list from cache or API."""
     from lib.data.api.tmdb import ApiTmdb
 
     api = ApiTmdb()
@@ -104,19 +63,7 @@ def _match_actor_to_profile(
     actor_role: str,
     tmdb_credits: List[Dict]
 ) -> Optional[str]:
-    """
-    Match Kodi actor to TMDB cast member and return profile_path.
-
-    Uses same 4-stage matching as person.py (without interactive search).
-
-    Args:
-        actor_name: Actor name from Kodi
-        actor_role: Character/role from Kodi
-        tmdb_credits: TMDB cast list
-
-    Returns:
-        profile_path string or None if no match
-    """
+    """Match Kodi actor to TMDB cast member via 4-stage matching."""
     from lib.data.api.person import (
         exact_match,
         fuzzy_role_match,
@@ -151,22 +98,10 @@ def download_actor_images(
     existing_file_mode: str = "skip",
     abort_flag=None
 ) -> Tuple[int, int, int]:
-    """
-    Download actor images for a single media item.
+    """Download actor images for a single media item.
 
-    Uses 4-stage actor matching against TMDB credits (from cache or API).
-    Falls back to Kodi thumbnail HTTP URLs if no TMDB match.
-
-    Args:
-        media_type: 'movie' or 'tvshow'
-        dbid: Kodi database ID
-        file_path: Path to media file/folder
-        show_path: TV show root path (for episodes)
-        existing_file_mode: 'skip' or 'overwrite'
-        abort_flag: Optional abort flag for cancellation
-
-    Returns:
-        Tuple of (downloaded, skipped, failed) counts
+    Falls back to Kodi thumbnail URLs when TMDB match fails.
+    Returns (downloaded, skipped, failed) counts.
     """
     downloaded = 0
     skipped = 0
@@ -231,12 +166,11 @@ def download_actor_images(
 
         profile_path = _match_actor_to_profile(name, role, tmdb_credits) if tmdb_credits else None
         if profile_path:
-            url = f"{TMDB_IMAGE_BASE}{profile_path}"
+            url = tmdb_image_url(profile_path)
             success, error, _ = downloader.download_artwork(
                 url=url,
                 local_path=local_path,
-                artwork_type="actor",
-                existing_file_mode=existing_file_mode
+                existing_file_mode=existing_file_mode,
             )
             if success:
                 downloaded += 1
@@ -253,8 +187,7 @@ def download_actor_images(
                 success, error, _ = downloader.download_artwork(
                     url=decoded_url,
                     local_path=local_path,
-                    artwork_type="actor",
-                    existing_file_mode=existing_file_mode
+                    existing_file_mode=existing_file_mode,
                 )
                 if success:
                     downloaded += 1

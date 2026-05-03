@@ -15,31 +15,53 @@ import xbmcgui
 from typing import Optional, Dict, Any
 from lib.kodi.client import log
 
+# Task is considered stale if no heartbeat for ~3x the heartbeat interval.
 HEARTBEAT_INTERVAL = 5
 STALE_TIMEOUT = 15
 STUCK_TIMEOUT = 60
 
 _lock = threading.RLock()
+# Window 10000 is the Kodi Home window; properties survive across script invocations.
 _home_window = xbmcgui.Window(10000)
+# Task properties are namespaced with `SkinInfo.` so cleanup_stale_tasks won't collide
+# with properties owned by other addons sharing the same home window.
 _PROPERTY_TASK = 'SkinInfo.ActiveTask'
 _PROPERTY_ABORT = 'SkinInfo.CurrentAbortFlag'
 
 
-class AbortFlag:
-    """Thread-safe abort flag using single shared property.
+def _read_task_data() -> Optional[Dict[str, Any]]:
+    """Read the active-task JSON from the home window. None on missing or corrupt."""
+    task_json = _home_window.getProperty(_PROPERTY_TASK)
+    if not task_json:
+        return None
+    try:
+        return json.loads(task_json)
+    except json.JSONDecodeError:
+        return None
 
-    All tasks share the same property name. The property value stores the
-    task_id, allowing each task to check if abort was requested for it.
+
+def _write_task_data(data: Dict[str, Any]) -> None:
+    """Write the active-task JSON to the home window."""
+    _home_window.setProperty(_PROPERTY_TASK, json.dumps(data))
+
+
+class AbortFlag:
+    """Per-task abort flag stored in a shared Kodi home-window property.
+
+    All tasks share one property; the value is the requesting task's ID so
+    `is_requested()` returns True only for the matching task (plus Kodi shutdown).
     """
 
     def __init__(self, task_id: str) -> None:
         self.task_id = task_id
 
     def request(self) -> None:
+        """Request abort for this task."""
         with _lock:
             _home_window.setProperty(_PROPERTY_ABORT, self.task_id)
 
     def clear(self) -> None:
+        """Clear the abort flag only if it still belongs to this task."""
         with _lock:
             current = _home_window.getProperty(_PROPERTY_ABORT)
             if current == self.task_id:
@@ -53,21 +75,11 @@ class AbortFlag:
 
 
 class TaskContext:
-    """Context manager for safe task registration and automatic cleanup.
+    """Context-managed background task with heartbeat thread and stuck-operation detection.
 
-    Automatically handles:
-    - Task registration with fresh AbortFlag
-    - Heartbeat thread to prove process is alive
-    - Progress tracking to detect stuck operations
-    - Task cleanup on exit (even on exceptions)
-
-    Usage:
-        with TaskContext("Pre-Cache Artwork") as ctx:
-            while working:
-                do_work()
-                ctx.mark_progress()
-                if ctx.abort_flag.is_requested():
-                    break
+    On entry: registers the task, spawns a heartbeat thread. On exit: stops heartbeat
+    and clears task state. Call `mark_progress()` in the work loop so stuck-detection
+    can distinguish "process alive but stalled" from "process dead".
     """
 
     def __init__(self, name: str) -> None:
@@ -108,16 +120,15 @@ class TaskContext:
             with self._progress_lock:
                 last_progress = self.last_progress
 
-            task_data = {
-                'name': self.name,
-                'task_id': self.abort_flag.task_id,
-                'started_at': self.started_at,
-                'last_heartbeat': time.time(),
-                'last_progress': last_progress
-            }
-
             with _lock:
-                _home_window.setProperty(_PROPERTY_TASK, json.dumps(task_data))
+                data = _read_task_data() or {
+                    'name': self.name,
+                    'task_id': self.abort_flag.task_id,
+                    'started_at': self.started_at,
+                }
+                data['last_heartbeat'] = time.time()
+                data['last_progress'] = last_progress
+                _write_task_data(data)
 
     def mark_progress(self) -> None:
         """Mark that work is actively happening (called by workers)."""
@@ -132,80 +143,43 @@ def _is_task_running_unlocked() -> bool:
 
 
 def register_task(name: str, abort_flag: AbortFlag) -> bool:
-    """Register a new background task.
-
-    Args:
-        name: Human-readable task name
-        abort_flag: AbortFlag instance for cancellation
-
-    Returns:
-        True if registered successfully, False if task already running
-    """
+    """Register a new background task. Returns False if another task is already running."""
     with _lock:
         if _is_task_running_unlocked():
             return False
 
-        task_data = json.dumps({
+        now = time.time()
+        _write_task_data({
             'name': name,
             'task_id': abort_flag.task_id,
-            'started_at': time.time(),
-            'last_heartbeat': time.time(),
-            'last_progress': time.time()
+            'started_at': now,
+            'last_heartbeat': now,
+            'last_progress': now,
         })
-
-        _home_window.setProperty(_PROPERTY_TASK, task_data)
         return True
 
 
 def cancel_task() -> bool:
-    """Cancel the currently running task by setting its abort flag.
-
-    Returns:
-        True if task was cancelled, False if no task running
-    """
+    """Set the running task's abort flag. Returns False if no task is running."""
     with _lock:
-        task_json = _home_window.getProperty(_PROPERTY_TASK)
-        if not task_json:
+        data = _read_task_data()
+        if not data:
             return False
-
-        try:
-            task_data = json.loads(task_json)
-            task_id = task_data.get('task_id')
-
-            if task_id:
-                abort_flag = AbortFlag(task_id)
-                abort_flag.request()
-                return True
-            else:
-                return False
-        except (json.JSONDecodeError, KeyError) as e:
-            log("General", f"Failed to parse task data for cancellation: {str(e)}", xbmc.LOGWARNING)
+        task_id = data.get('task_id')
+        if not task_id:
             return False
+        AbortFlag(task_id).request()
+        return True
 
 
 def get_task_info() -> Optional[Dict[str, Any]]:
-    """Get information about the currently running task.
-
-    Returns:
-        Dict with task metadata, or None if no task running
-    """
+    """Return the running task's metadata dict, or None if no task is running."""
     with _lock:
-        task_json = _home_window.getProperty(_PROPERTY_TASK)
-        if not task_json:
-            return None
-
-        try:
-            return json.loads(task_json)
-        except json.JSONDecodeError:
-            return None
+        return _read_task_data()
 
 
 def is_task_running() -> bool:
-    """Check if a background task is currently running.
-
-    Returns:
-        True if task is running, False otherwise
-    """
+    """True if a background task is registered."""
     with _lock:
         return _is_task_running_unlocked()
 
@@ -213,29 +187,16 @@ def is_task_running() -> bool:
 def clear_task() -> None:
     """Clear the current task registration and abort flag."""
     with _lock:
-        task_json = _home_window.getProperty(_PROPERTY_TASK)
-        if task_json:
-            try:
-                task_data = json.loads(task_json)
-                task_id = task_data.get('task_id')
-                if task_id:
-                    abort_flag = AbortFlag(task_id)
-                    abort_flag.clear()
-            except (json.JSONDecodeError, KeyError) as e:
-                log("General", f"Failed to parse task data for cleanup: {str(e)}", xbmc.LOGWARNING)
-
+        data = _read_task_data()
+        if data:
+            task_id = data.get('task_id')
+            if task_id:
+                AbortFlag(task_id).clear()
         _home_window.clearProperty(_PROPERTY_TASK)
 
 
 def cleanup_stale_tasks() -> None:
-    """Remove stale task registrations (crashed process or stuck operation).
-
-    Detects two failure modes:
-    - No heartbeat: Process died or crashed (15s timeout)
-    - No progress: Operation stuck in I/O or infinite loop (60s timeout)
-
-    Safe to call on every script invocation.
-    """
+    """Remove stale task registrations: no heartbeat for 15s (crash) or no progress for 60s (stuck)."""
     task_info = get_task_info()
     if not task_info:
         return

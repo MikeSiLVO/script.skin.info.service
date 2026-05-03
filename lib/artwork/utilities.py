@@ -7,14 +7,11 @@ from __future__ import annotations
 from typing import Any, List, Optional
 
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utils import get_preferred_language_code, normalize_language_tag
+from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
 
 
 class OrderedSet:
-    """
-    Maintains insertion order for multi-selection.
-    Used for tracking multi-art selection order (fanart1, fanart2, poster1, poster2, etc.)
-    """
+    """Keeps items in the order they were added (used for multi-art selection order)."""
 
     def __init__(self):
         self._dict: dict[Any, None] = {}
@@ -44,12 +41,7 @@ class OrderedSet:
         return list(self._dict.keys())
 
     def get_order(self, item: Any) -> int:
-        """
-        Get 1-based position of item in selection order.
-
-        Returns:
-            Position (1-based) or 0 if item not in set
-        """
+        """Get 1-based position of item in selection order (0 if not in set)."""
         try:
             return list(self._dict.keys()).index(item) + 1
         except ValueError:
@@ -69,15 +61,7 @@ class OrderedSet:
 
 
 def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
-    """
-    Find highest quality artwork from list based on resolution.
-
-    Args:
-        art_list: List of art dicts with optional 'width' and 'height' keys
-
-    Returns:
-        Best quality art dict or None if list is empty
-    """
+    """Find highest quality artwork from list based on resolution (width x height)."""
     if not art_list:
         return None
 
@@ -93,39 +77,27 @@ def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
 
 
 def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mode: str = 'popularity', source_pref: str = 'all') -> List[dict]:
-    """
-    Sort artwork by quality and popularity with configurable sort modes and source filtering.
+    """Sort artwork by quality and popularity. Returns a new list (input not modified).
 
-    Sort modes:
-    - 'popularity' (default): Language → Weighted Popularity → Resolution
-      Uses IMDb Bayesian averaging to balance rating quality and vote confidence
-    - 'resolution': Resolution only (highest pixel count first)
+    sort_mode:
+    - 'popularity' (default): Language > Weighted Popularity > Resolution.
+      Uses IMDb Bayesian averaging to balance rating quality vs. vote confidence.
+    - 'resolution': Resolution only (highest pixel count first).
 
-    Source filtering:
-    - 'all' (default): TMDB and Fanart.tv mixed together, sorted fairly
-    - 'tmdb': Only TMDB items (excludes Fanart.tv)
-    - 'fanart': Only Fanart.tv items (excludes TMDB)
+    source_pref:
+    - 'all' (default): TMDB and Fanart.tv mixed, sorted fairly.
+    - 'tmdb': Only TMDB items.
+    - 'fanart': Only Fanart.tv items.
 
     Popularity mode sorting priority:
-    - Source tier: Primary sources first (TMDB, Fanart.tv), TheAudioDB last
-    - Source preference (landscape only): Fanart.tv before TMDB
-    - Language preference (if enabled for art type)
+    - Source tier: Primary sources first (TMDB, Fanart.tv), TheAudioDB last.
+    - Source preference (landscape only): Fanart.tv before TMDB.
+    - Language preference (if enabled for art type).
     - Weighted popularity:
-      * TMDB: Bayesian formula (m=3, C=2.3)
-        weighted = (votes/(votes+3)) * rating + (3/(votes+3)) * 2.3
-        Prevents single-vote ratings from dominating
-      * Fanart.tv: Normalized likes (likes * 0.73)
-        Scales fanart.tv likes to match TMDB rating range
-    - Resolution (pixel count) - highest first as tiebreaker
-
-    Args:
-        art_list: List of art dicts with optional width, height, rating, vote_count, likes, language
-        art_type: Type of artwork being sorted (e.g., 'fanart', 'poster', 'clearlogo')
-        sort_mode: Sort mode ('popularity', 'resolution')
-        source_pref: Source filter ('all', 'tmdb', 'fanart')
-
-    Returns:
-        Sorted list (original list is not modified)
+      * TMDB: Bayesian (m=3, C=2.3): weighted = (votes/(votes+3)) * rating + (3/(votes+3)) * 2.3
+        Prevents single-vote ratings from dominating.
+      * Fanart.tv: Normalized likes (likes * 0.73) to match TMDB rating range.
+    - Resolution (pixel count) as tiebreaker.
     """
     if not art_list or len(art_list) <= 1:
         return art_list
@@ -197,14 +169,9 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mo
 
 
 def get_available_languages(artwork_list: List[dict]) -> List[str]:
-    """
-    Extract unique language codes from artwork list.
+    """Extract unique language codes from artwork list.
 
-    Args:
-        artwork_list: List of artwork dicts with optional 'language' key
-
-    Returns:
-        Sorted list of unique language codes, with empty string (text-free) first if present
+    Returned list is sorted, with empty string (text-free) first if present.
     """
     if not artwork_list:
         return []
@@ -229,22 +196,14 @@ def filter_artwork_by_language(
     language_code: Optional[str] = None,
     include_no_language: bool = True
 ) -> List[dict]:
-    """
-    Filter artwork based on art type rules and language preferences.
+    """Filter artwork based on art type rules and language preferences.
 
     Art type filtering rules:
-    - AUTO_NO_LANGUAGE_TYPES (fanart, keyart): Only text-free items (unless prefer_fanart_language=True)
-    - AUTO_LANG_REQUIRED_TYPES (poster, clearlogo, etc.): Preferred language + text-free, fallback to all
-    - Other types or manual language_code: Filter to specified language
+    - AUTO_NO_LANGUAGE_TYPES (fanart, keyart): Only text-free items (unless prefer_fanart_language=True).
+    - AUTO_LANG_REQUIRED_TYPES (poster, clearlogo, etc.): Preferred language + text-free, fallback to all.
+    - Other types or explicit language_code: Filter to specified language.
 
-    Args:
-        artwork_list: List of artwork dicts with optional 'language' key
-        art_type: Art type (poster, fanart, etc.) - enables art-type-aware filtering
-        language_code: Language code to filter by (None = use preferred language)
-        include_no_language: Whether to include items without language tags (text-free)
-
-    Returns:
-        Filtered list based on art type rules or language preference
+    When language_code is None, uses the preferred language from settings.
     """
     if not artwork_list:
         return []
@@ -294,15 +253,7 @@ def filter_artwork_by_language(
 
 
 def get_language_display_name(language_code: str) -> str:
-    """
-    Get human-readable display name for ISO 639-1 language code.
-
-    Args:
-        language_code: ISO 639-1 language code (e.g., 'en', 'es')
-
-    Returns:
-        Display name (e.g., 'English', 'Spanish') or localized 'Text-free / Untagged' for empty code
-    """
+    """Get human-readable name for ISO 639-1 code. Empty code returns localized 'Text-free / Untagged'."""
     if not language_code or language_code == '':
         return KodiSettings._get_addon().getLocalizedString(32122)
 
@@ -361,27 +312,14 @@ def get_language_display_name(language_code: str) -> str:
 
 
 def build_art_slot_name(index: int) -> str:
-    """
-    Build art slot name from index.
-
-    Args:
-        index: 0-based index
-
-    Returns:
-        'fanart' for index 0, 'fanart1' for index 1, etc.
-    """
+    """Build art slot name from 0-based index: 'fanart', 'fanart1', 'fanart2', ..."""
     return 'fanart' if index == 0 else f'fanart{index}'
 
 
 def parse_art_slot_index(slot_name: str) -> int:
-    """
-    Parse index from art slot name.
+    """Parse 0-based index from art slot name ('fanart' -> 0, 'fanart1' -> 1).
 
-    Args:
-        slot_name: 'fanart', 'fanart1', 'fanart2', etc.
-
-    Returns:
-        0-based index (-1 if not a fanart slot)
+    Returns -1 if not a fanart slot.
     """
     if slot_name == 'fanart':
         return 0

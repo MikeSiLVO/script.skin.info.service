@@ -3,9 +3,12 @@ Formatters for converting API responses to Kodi-style property dicts.
 
 Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
-from typing import Dict, Tuple
+import datetime
+from typing import Dict, Tuple, Optional
 
-from lib.kodi.utils import format_date
+from lib.kodi.utilities import format_date
+from lib.kodi.utilities import MULTI_VALUE_SEP
+from lib.data.api.utilities import tmdb_image_url
 
 RT_SOURCE_TOMATOES = "tomatoes"
 RT_SOURCE_POPCORN = "popcorn"
@@ -70,15 +73,15 @@ def format_movie_props(data: dict) -> Dict[str, str]:
 
     genres = data.get("genres") or []
     if genres:
-        props["Genre"] = " / ".join(g.get("name", "") for g in genres if g.get("name"))
+        props["Genre"] = MULTI_VALUE_SEP.join(g.get("name", "") for g in genres if g.get("name"))
 
     countries = data.get("production_countries") or []
     if countries:
-        props["Country"] = " / ".join(c.get("name", "") for c in countries if c.get("name"))
+        props["Country"] = MULTI_VALUE_SEP.join(c.get("name", "") for c in countries if c.get("name"))
 
     studios = data.get("production_companies") or []
     if studios:
-        props["Studio"] = " / ".join(s.get("name", "") for s in studios if s.get("name"))
+        props["Studio"] = MULTI_VALUE_SEP.join(s.get("name", "") for s in studios if s.get("name"))
 
     budget = data.get("budget") or 0
     revenue = data.get("revenue") or 0
@@ -126,15 +129,15 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
 
     genres = data.get("genres") or []
     if genres:
-        props["Genre"] = " / ".join(g.get("name", "") for g in genres if g.get("name"))
+        props["Genre"] = MULTI_VALUE_SEP.join(g.get("name", "") for g in genres if g.get("name"))
 
     countries = data.get("origin_country") or []
     if countries:
-        props["Country"] = " / ".join(countries)
+        props["Country"] = MULTI_VALUE_SEP.join(countries)
 
     networks = data.get("networks") or []
     if networks:
-        props["Studio"] = " / ".join(n.get("name", "") for n in networks if n.get("name"))
+        props["Studio"] = MULTI_VALUE_SEP.join(n.get("name", "") for n in networks if n.get("name"))
 
     props["Seasons"] = str(data.get("number_of_seasons") or "")
     props["Episodes"] = str(data.get("number_of_episodes") or "")
@@ -145,7 +148,7 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
 
     created_by = data.get("created_by") or []
     if created_by:
-        props["Creator"] = " / ".join(c.get("name", "") for c in created_by if c.get("name"))
+        props["Creator"] = MULTI_VALUE_SEP.join(c.get("name", "") for c in created_by if c.get("name"))
 
     last_ep = data.get("last_episode_to_air")
     if last_ep:
@@ -157,13 +160,17 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
             props["LastEpisodeAired"] = format_date(air_date)
 
     next_ep = data.get("next_episode_to_air")
-    if next_ep:
+    next_air = (next_ep.get("air_date") or "") if next_ep else ""
+    if next_ep and next_air and next_air >= datetime.date.today().isoformat():
         props["NextEpisodeTitle"] = next_ep.get("name") or ""
         props["NextEpisode"] = str(next_ep.get("episode_number") or "")
         props["NextEpisodeSeason"] = str(next_ep.get("season_number") or "")
-        air_date = next_ep.get("air_date") or ""
-        if air_date:
-            props["NextEpisodeAired"] = format_date(air_date)
+        props["NextEpisodeAired"] = format_date(next_air)
+    else:
+        props["NextEpisodeTitle"] = ""
+        props["NextEpisode"] = ""
+        props["NextEpisodeSeason"] = ""
+        props["NextEpisodeAired"] = ""
 
     add_content_rating_props(props, data)
     add_trailer_props(props, data)
@@ -182,7 +189,7 @@ def format_credits_props(data: dict) -> Dict[str, str]:
 
     if cast:
         cast_names = [c.get("name") for c in cast[:10] if c.get("name")]
-        props["Cast"] = " / ".join(cast_names)
+        props["Cast"] = MULTI_VALUE_SEP.join(cast_names)
 
         for i, actor in enumerate(cast[:5]):
             prefix = f"Cast.{i+1}"
@@ -190,15 +197,15 @@ def format_credits_props(data: dict) -> Dict[str, str]:
             props[f"{prefix}.Role"] = actor.get("character") or ""
             thumb = actor.get("profile_path")
             if thumb:
-                props[f"{prefix}.Thumb"] = f"https://image.tmdb.org/t/p/w185{thumb}"
+                props[f"{prefix}.Thumb"] = tmdb_image_url(thumb, 'w185')
 
     directors = [c.get("name") for c in crew if c.get("job") == "Director" and c.get("name")]
     if directors:
-        props["Director"] = " / ".join(directors)
+        props["Director"] = MULTI_VALUE_SEP.join(directors)
 
     writers = [c.get("name") for c in crew if c.get("job") in ("Writer", "Screenplay", "Story") and c.get("name")]
     if writers:
-        props["Writer"] = " / ".join(writers)
+        props["Writer"] = MULTI_VALUE_SEP.join(writers)
 
     return props
 
@@ -213,11 +220,11 @@ def format_images_props(data: dict) -> Dict[str, str]:
 
     poster = data.get("poster_path")
     if poster:
-        props["Poster"] = f"https://image.tmdb.org/t/p/w500{poster}"
+        props["Poster"] = tmdb_image_url(poster, 'w500')
 
     backdrop = data.get("backdrop_path")
     if backdrop:
-        props["Fanart"] = f"https://image.tmdb.org/t/p/original{backdrop}"
+        props["Fanart"] = tmdb_image_url(backdrop)
 
     images = data.get("images") or {}
     logos = images.get("logos") or []
@@ -225,7 +232,7 @@ def format_images_props(data: dict) -> Dict[str, str]:
         if logo.get("iso_639_1") in ("en", None):
             file_path = logo.get("file_path")
             if file_path:
-                props["Clearlogo"] = f"https://image.tmdb.org/t/p/original{file_path}"
+                props["Clearlogo"] = tmdb_image_url(file_path)
                 break
 
     return props
@@ -243,32 +250,31 @@ def format_extra_props(data: dict) -> Dict[str, str]:
     return props
 
 
+def _find_us_entry(entries: list) -> Optional[dict]:
+    """Return the first entry with `iso_3166_1 == "US"`, or None."""
+    for entry in entries:
+        if entry.get("iso_3166_1") == "US":
+            return entry
+    return None
+
+
 def add_certification_props(props: Dict[str, str], data: dict) -> None:
     """Add MPAA certification from release_dates (movies)."""
-    release_dates = data.get("release_dates") or {}
-    results = release_dates.get("results") or []
-
-    for country_data in results:
-        if country_data.get("iso_3166_1") == "US":
-            releases = country_data.get("release_dates") or []
-            for release in releases:
-                cert = release.get("certification")
-                if cert:
-                    props["MPAA"] = cert
-                    return
+    us = _find_us_entry((data.get("release_dates") or {}).get("results") or [])
+    if not us:
+        return
+    for release in us.get("release_dates") or []:
+        cert = release.get("certification")
+        if cert:
+            props["MPAA"] = cert
+            return
 
 
 def add_content_rating_props(props: Dict[str, str], data: dict) -> None:
     """Add MPAA certification from content_ratings (TV shows)."""
-    content_ratings = data.get("content_ratings") or {}
-    results = content_ratings.get("results") or []
-
-    for rating in results:
-        if rating.get("iso_3166_1") == "US":
-            cert = rating.get("rating")
-            if cert:
-                props["MPAA"] = cert
-                return
+    us = _find_us_entry((data.get("content_ratings") or {}).get("results") or [])
+    if us and us.get("rating"):
+        props["MPAA"] = us["rating"]
 
 
 def add_trailer_props(props: Dict[str, str], data: dict) -> None:
@@ -292,7 +298,7 @@ def add_keywords_props(props: Dict[str, str], data: dict) -> None:
 
     if keyword_list:
         tag_names = [kw.get("name") for kw in keyword_list if kw.get("name")]
-        props["Tag"] = " / ".join(tag_names)
+        props["Tag"] = MULTI_VALUE_SEP.join(tag_names)
 
 
 # Common Sense Media severity and category mappings
@@ -306,15 +312,9 @@ _CS_CATEGORIES = [
 
 
 def build_common_sense_summary(cs_data: dict) -> Tuple[str, str]:
-    """
-    Build localized Common Sense summary and reasons strings from MDBList data.
+    """Build localized Common Sense `(summary, reasons)` strings, grouping categories by severity.
 
-    Groups categories by severity level for natural language output.
-
-    Returns:
-        Tuple of (summary, reasons) strings
-        summary: "Rated 17+ for extreme violence and nudity; moderate language"
-        reasons: "extreme violence and nudity; moderate language"
+    `summary` includes age rating + reasons phrase. `reasons` is the phrase alone.
     """
     from typing import Dict, List
     from lib.kodi.client import ADDON

@@ -8,11 +8,9 @@ from typing import Any, Optional, List, Tuple, Dict, Set
 import os
 import urllib.request
 import xbmc
-import xbmcgui
 
-from lib.kodi.utils import clear_prop, batch_set_props, format_date, extract_cast_names
+from lib.kodi.utilities import clear_prop, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
-_window = xbmcgui.Window(10000)
 
 
 def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
@@ -122,29 +120,26 @@ _STATE = {
     "set_countries": 0,
 }
 
-_VIDEO_ART_KEYS = (
+VIDEO_ART_KEYS = (
     "poster", "fanart", "clearlogo", "keyart", "landscape",
     "banner", "clearart", "thumb",
 )
 
-_MOVIE_ART_KEYS = (
+MOVIE_ART_KEYS = (
     "poster", "fanart", "clearlogo", "keyart", "landscape",
     "banner", "clearart", "discart",
 )
 
-_SET_ART_KEYS = (
+SET_ART_KEYS = (
     "poster", "fanart", "clearlogo", "keyart", "landscape",
     "banner", "clearart", "discart",
 )
 
-_AUDIO_ART_KEYS = ("thumb", "fanart", "discart")
+AUDIO_ART_KEYS = ("thumb", "fanart", "discart")
 
 _CR = "[CR]"
 _BOLD_OPEN = "[B]"
 _BOLD_CLOSE = "[/B]"
-_ITALIC_OPEN = "[I]"
-_ITALIC_CLOSE = "[/I]"
-_SEP = " / "
 
 
 def _ordered_unique_push(seen: set, acc: list, items) -> None:
@@ -157,7 +152,8 @@ def _ordered_unique_push(seen: set, acc: list, items) -> None:
             acc.append(x)
 
 
-def _join(items: Optional[List[Any]], separator: str = " / ") -> str:
+def join_multi(items: Optional[List[Any]], separator: str = MULTI_VALUE_SEP) -> str:
+    """Join a list into a Kodi-style multi-value string, dropping falsy entries."""
     if not items:
         return ""
     return separator.join(str(i) for i in items if i)
@@ -207,22 +203,10 @@ def _build_listitem_unified_data(
     userrating: Optional[int] = None,
     ratings_dict: Optional[dict] = None,
 ) -> dict:
-    """Build unified ListItem properties that work across all media types.
+    """Build `ListItem.*` property dict shared across media types.
 
-    Args:
-        title: Item title (use artist name for Artist items)
-        plot: Plot/description text
-        year: Year as string (empty for episodes/music)
-        genre: Joined genre string
-        runtime_minutes: Runtime in minutes (video content)
-        duration_seconds: Duration in seconds (music content, also MusicVideo)
-        rating: Primary rating value (0-10 scale)
-        votes: Vote count for primary rating
-        userrating: User's personal rating (1-10)
-        ratings_dict: Multi-source ratings dict from Kodi
-
-    Returns:
-        Dict with ListItem.* keys (without SkinInfo prefix)
+    Video types pass `runtime_minutes`; music/musicvideo pass `duration_seconds`.
+    Artist uses `title` for the artist name.
     """
     data: Dict[str, str] = {}
 
@@ -262,6 +246,9 @@ def _build_listitem_unified_data(
 
     data["ListItem.Rating.Votes"] = format_number(votes) if votes else ""
     data["ListItem.UserRating"] = str(userrating) if userrating else ""
+
+    data["ListItem.Tomatometer"] = ""
+    data["ListItem.Popcornmeter"] = ""
 
     if ratings_dict:
         for src, info in ratings_dict.items():
@@ -411,11 +398,7 @@ def _trim_simple_index(prefix: str, prev: int, now: int) -> None:
 
 
 def build_movie_data(details: dict) -> dict:
-    """Build movie data dictionary for ListItem properties.
-
-    Args:
-        details: Movie details from JSON-RPC
-    """
+    """Build the property dict for a movie ListItem from a JSON-RPC movie details payload."""
     data = {}
 
     path = media_path(details.get("file"))
@@ -438,10 +421,10 @@ def build_movie_data(details: dict) -> dict:
     data["Year"] = str(year) if year else ""
     data["Rating"] = f"{rating:.1f}" if rating else ""
     data["Votes"] = format_number(details.get("votes"))
-    data["Genre"] = _join(details.get("genre"))
-    data["Director"] = _join(details.get("director"))
-    data["Studio"] = _join(details.get("studio"))
-    data["Country"] = _join(details.get("country"))
+    data["Genre"] = join_multi(details.get("genre"))
+    data["Director"] = join_multi(details.get("director"))
+    data["Studio"] = join_multi(details.get("studio"))
+    data["Country"] = join_multi(details.get("country"))
     data["Tagline"] = details.get("tagline") or ""
     data["Plot"] = details.get("plot") or ""
     data["MPAA"] = details.get("mpaa") or ""
@@ -463,18 +446,18 @@ def build_movie_data(details: dict) -> dict:
     data["Trailer"] = details.get("trailer") or ""
     data["Set"] = details.get("set") or ""
     data["SetID"] = str(setid) if setid else ""
-    data["Writer"] = _join(details.get("writer"))
+    data["Writer"] = join_multi(details.get("writer"))
     data["PlotOutline"] = details.get("plotoutline") or ""
     data["LastPlayed"] = format_date(details.get("lastplayed") or "", include_time=False)
     data["Playcount"] = str(playcount) if playcount else ""
     data["IMDBNumber"] = details.get("imdbnumber") or ""
     data["Top250"] = str(top250) if top250 else ""
     data["DateAdded"] = format_date(details.get("dateadded") or "", include_time=False)
-    data["Tag"] = _join(details.get("tag"))
+    data["Tag"] = join_multi(details.get("tag"))
     data["UserRating"] = str(userrating) if userrating else ""
 
     cast_names = extract_cast_names(details.get("cast"))
-    data["Cast"] = _join(cast_names)
+    data["Cast"] = join_multi(cast_names)
 
     uniqueid_dict = details.get("uniqueid") or {}
     imdb_id = uniqueid_dict.get("imdb") or ""
@@ -507,14 +490,14 @@ def set_movie_properties(details: dict) -> None:
     data = build_movie_data(details)
     props = {f"SkinInfo.Movie.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
-    _set_art_props("SkinInfo.Movie", details.get("art"), _MOVIE_ART_KEYS)
+    _set_art_props("SkinInfo.Movie", details.get("art"), MOVIE_ART_KEYS)
 
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
-        genre=_join(details.get("genre")),
+        genre=join_multi(details.get("genre")),
         runtime_minutes=runtime_seconds // 60,
         rating=details.get("rating"),
         votes=details.get("votes"),
@@ -561,20 +544,20 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         data[f"Movie.{idx}.Duration"] = str(duration_min) if duration_min else ""
         data[f"Movie.{idx}.VideoResolution"] = info.get("videoresolution") or ""
         data[f"Movie.{idx}.MPAA"] = m.get("mpaa") or ""
-        data[f"Movie.{idx}.Genre"] = _join(m.get("genre"))
-        data[f"Movie.{idx}.Director"] = _join(m.get("director"))
-        data[f"Movie.{idx}.Writer"] = _join(m.get("writer"))
-        data[f"Movie.{idx}.Studio"] = _join(m.get("studio"))
-        data[f"Movie.{idx}.Country"] = _join(m.get("country"))
+        data[f"Movie.{idx}.Genre"] = join_multi(m.get("genre"))
+        data[f"Movie.{idx}.Director"] = join_multi(m.get("director"))
+        data[f"Movie.{idx}.Writer"] = join_multi(m.get("writer"))
+        data[f"Movie.{idx}.Studio"] = join_multi(m.get("studio"))
+        data[f"Movie.{idx}.Country"] = join_multi(m.get("country"))
 
         _studios = m.get("studio")
         primary = _first_or_empty(_studios)
         data[f"Movie.{idx}.StudioPrimary"] = primary
 
         if year is not None:
-            title_list_parts.append(f"{_ITALIC_OPEN}{label} ({year}){_ITALIC_CLOSE}{_CR}")
+            title_list_parts.append(f"{label} ({year}){_CR}")
         else:
-            title_list_parts.append(f"{_ITALIC_OPEN}{label}{_ITALIC_CLOSE}{_CR}")
+            title_list_parts.append(f"{label}{_CR}")
 
         use_outline = (m.get("plotoutline") or "").strip()
         block_plot = use_outline if use_outline else (m.get("plot") or "")
@@ -601,10 +584,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     plot_joined = "".join(plot_blocks)
 
     data["Plots"] = plot_joined or ""
-    if total_count > 1:
-        data["ExtendedPlots"] = (title_list + "[CR]" + plot_joined) or ""
-    else:
-        data["ExtendedPlots"] = plot_joined or ""
+    data["ExtendedPlots"] = plot_joined or ""
     data["Titles"] = title_list or ""
 
     data["Runtime"] = str(total_runtime_min) if total_runtime_min else ""
@@ -614,13 +594,13 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     data["Runtime.Hours"] = str(hrs) if hrs else ""
     data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
 
-    data["Writers"] = _join(agg_wrs)
-    data["Directors"] = _join(agg_dirs)
+    data["Writers"] = join_multi(agg_wrs)
+    data["Directors"] = join_multi(agg_dirs)
     genres_sorted = sorted(genres_set, key=str.casefold) if genres_set else []
     countries_sorted = sorted(countries_set, key=str.casefold) if countries_set else []
-    data["Genres"] = _join(genres_sorted)
-    data["Countries"] = _join(countries_sorted)
-    data["Studios"] = _join(sorted(studios_set, key=str.casefold))
+    data["Genres"] = join_multi(genres_sorted)
+    data["Countries"] = join_multi(countries_sorted)
+    data["Studios"] = join_multi(sorted(studios_set, key=str.casefold))
 
     for i, studio in enumerate(prim_list, 1):
         data[f"Studios.{i}"] = studio
@@ -637,7 +617,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     for i, c in enumerate(countries_sorted, 1):
         data[f"Countries.{i}"] = c
 
-    data["Years"] = _join(years)
+    data["Years"] = join_multi(years)
     data["Count"] = str(total_count)
 
     data["_metadata"] = {
@@ -663,11 +643,11 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     batch_set_props(props)
 
     set_art = set_details.get("art") or {}
-    art_props = {f"SkinInfo.Set.Art({key})": set_art.get(key) or "" for key in _SET_ART_KEYS}
+    art_props = {f"SkinInfo.Set.Art({key})": set_art.get(key) or "" for key in SET_ART_KEYS}
 
     for idx, m in enumerate(movies, 1):
         m_art = m.get("art") or {}
-        for key in _MOVIE_ART_KEYS:
+        for key in MOVIE_ART_KEYS:
             art_props[f"SkinInfo.Set.Movie.{idx}.Art({key})"] = m_art.get(key) or (m.get("thumbnail") if key == "thumbnail" else "")
 
     batch_set_props(art_props)
@@ -688,7 +668,7 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     unified = _build_listitem_unified_data(
         title=set_details.get("title") or set_details.get("label") or "",
         plot=set_details.get("plot") or "",
-        genre=_join(metadata["genres_sorted"]),
+        genre=join_multi(metadata["genres_sorted"]),
         runtime_minutes=metadata["total_runtime_min"],
     )
     set_listitem_unified_properties(unified)
@@ -700,15 +680,15 @@ def build_artist_data(artist: dict, albums: List[dict]) -> dict:
 
     data["Artist"] = artist.get("artist") or ""
     data["Description"] = artist.get("description") or ""
-    data["Genre"] = _join(artist.get("genre"))
+    data["Genre"] = join_multi(artist.get("genre"))
     data["DateAdded"] = format_date(artist.get("dateadded") or "", include_time=False)
 
-    data["Roles"] = _join(_extract_artist_names(artist.get("roles"), "role"))
-    data["SongGenres"] = _join(_extract_artist_names(artist.get("songgenres"), "title"))
-    data["Style"] = _join(artist.get("style"))
-    data["Mood"] = _join(artist.get("mood"))
-    data["Instrument"] = _join(artist.get("instrument"))
-    data["YearsActive"] = _join(artist.get("yearsactive"))
+    data["Roles"] = join_multi(_extract_artist_names(artist.get("roles"), "role"))
+    data["SongGenres"] = join_multi(_extract_artist_names(artist.get("songgenres"), "title"))
+    data["Style"] = join_multi(artist.get("style"))
+    data["Mood"] = join_multi(artist.get("mood"))
+    data["Instrument"] = join_multi(artist.get("instrument"))
+    data["YearsActive"] = join_multi(artist.get("yearsactive"))
     data["Born"] = artist.get("born") or ""
     data["Formed"] = artist.get("formed") or ""
     data["Died"] = artist.get("died") or ""
@@ -736,8 +716,8 @@ def build_artist_data(artist: dict, albums: List[dict]) -> dict:
 
         data[f"Album.{idx}.Title"] = a.get("title") or ""
         data[f"Album.{idx}.Year"] = str(a_year) if a_year else ""
-        data[f"Album.{idx}.Artist"] = _join(a.get("artist"))
-        data[f"Album.{idx}.Genre"] = _join(a.get("genre"))
+        data[f"Album.{idx}.Artist"] = join_multi(a.get("artist"))
+        data[f"Album.{idx}.Genre"] = join_multi(a.get("genre"))
         data[f"Album.{idx}.DBID"] = str(a_albumid) if a_albumid else ""
         data[f"Album.{idx}.Label"] = a.get("albumlabel") or ""
         data[f"Album.{idx}.Playcount"] = str(a_playcount) if a_playcount else ""
@@ -792,7 +772,7 @@ def set_artist_properties(artist: dict, albums: List[dict]) -> None:
     unified = _build_listitem_unified_data(
         title=artist.get("artist") or "",
         plot=artist.get("description") or "",
-        genre=_join(artist.get("genre")),
+        genre=join_multi(artist.get("genre")),
     )
     set_listitem_unified_properties(unified)
 
@@ -810,8 +790,8 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
 
     data["Title"] = album.get("title") or ""
     data["Year"] = str(album_year) if album_year else ""
-    data["Artist"] = _join(album.get("artist"))
-    data["Genre"] = _join(album.get("genre"))
+    data["Artist"] = join_multi(album.get("artist"))
+    data["Genre"] = join_multi(album.get("genre"))
     data["Label"] = album.get("albumlabel") or ""
     data["Playcount"] = str(album_playcount) if album_playcount else ""
     data["Rating"] = f"{album_rating:.1f}" if album_rating else ""
@@ -833,7 +813,7 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
     songgenres_list = album.get("songgenres") or []
     if songgenres_list:
         genre_titles = [g.get("title") for g in songgenres_list if isinstance(g, dict) and g.get("title")]
-        data["SongGenres"] = _join(genre_titles)
+        data["SongGenres"] = join_multi(genre_titles)
     else:
         data["SongGenres"] = ""
 
@@ -899,7 +879,7 @@ def set_album_properties(album: dict, songs: List[dict]) -> None:
         title=album.get("title") or "",
         plot=album.get("description") or "",
         year=str(album.get("year")) if album.get("year") else "",
-        genre=_join(album.get("genre")),
+        genre=join_multi(album.get("genre")),
         duration_seconds=total_seconds,
         rating=album.get("rating"),
         votes=album.get("votes"),
@@ -947,11 +927,7 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
 
 
 def build_tvshow_data(details: dict) -> dict:
-    """Build TV show data dictionary for ListItem properties.
-
-    Args:
-        details: TV show details from JSON-RPC
-    """
+    """Build the property dict for a TV show ListItem from a JSON-RPC show details payload."""
     data = {}
 
     year = details.get("year")
@@ -969,8 +945,8 @@ def build_tvshow_data(details: dict) -> dict:
     data["Premiered"] = details.get("premiered") or ""
     data["Rating"] = f"{rating:.1f}" if rating else ""
     data["Votes"] = format_number(details.get("votes"))
-    data["Genre"] = _join(details.get("genre"))
-    data["Studio"] = _join(details.get("studio"))
+    data["Genre"] = join_multi(details.get("genre"))
+    data["Studio"] = join_multi(details.get("studio"))
     data["MPAA"] = details.get("mpaa") or ""
     data["Status"] = details.get("status") or ""
     hrs = runtime_minutes // 60
@@ -992,7 +968,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["OriginalTitle"] = details.get("originaltitle") or ""
     data["SortTitle"] = details.get("sorttitle") or ""
     data["EpisodeGuide"] = details.get("episodeguide") or ""
-    data["Tag"] = _join(details.get("tag"))
+    data["Tag"] = join_multi(details.get("tag"))
     data["Path"] = media_path(details.get("file")) or ""
     data["DateAdded"] = format_date(details.get("dateadded") or "", include_time=False)
     data["LastPlayed"] = format_date(details.get("lastplayed") or "", include_time=False)
@@ -1001,7 +977,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["UserRating"] = str(details.get("userrating")) if details.get("userrating") else ""
 
     cast_names = extract_cast_names(details.get("cast"))
-    data["Cast"] = _join(cast_names)
+    data["Cast"] = join_multi(cast_names)
 
     uniqueid_dict = details.get("uniqueid") or {}
     imdb_id = uniqueid_dict.get("imdb") or ""
@@ -1031,14 +1007,14 @@ def set_tvshow_properties(details: dict) -> None:
     data = build_tvshow_data(details)
     props = {f"SkinInfo.TVShow.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
-    _set_art_props("SkinInfo.TVShow", details.get("art"), _VIDEO_ART_KEYS)
+    _set_art_props("SkinInfo.TVShow", details.get("art"), VIDEO_ART_KEYS)
 
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
-        genre=_join(details.get("genre")),
+        genre=join_multi(details.get("genre")),
         runtime_minutes=runtime_seconds // 60,
         rating=details.get("rating"),
         votes=details.get("votes"),
@@ -1090,7 +1066,7 @@ def set_season_properties(details: dict) -> None:
     data = build_season_data(details)
     props = {f"SkinInfo.Season.{k}": v for k, v in data.items()}
     batch_set_props(props)
-    _set_art_props("SkinInfo.Season", details.get("art"), _VIDEO_ART_KEYS)
+    _set_art_props("SkinInfo.Season", details.get("art"), VIDEO_ART_KEYS)
 
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
@@ -1127,8 +1103,8 @@ def build_episode_data(details: dict) -> dict:
     data["TVShow"] = details.get("showtitle") or ""
     data["FirstAired"] = details.get("firstaired") or ""
     data["Runtime"] = str(runtime_minutes) if runtime_minutes else ""
-    data["Director"] = _join(details.get("director"))
-    data["Writer"] = _join(details.get("writer"))
+    data["Director"] = join_multi(details.get("director"))
+    data["Writer"] = join_multi(details.get("writer"))
     data["Path"] = path or ""
     data["ProductionCode"] = details.get("productioncode") or ""
     data["OriginalTitle"] = details.get("originaltitle") or ""
@@ -1145,11 +1121,11 @@ def build_episode_data(details: dict) -> dict:
     data["DateAdded"] = format_date(details.get("dateadded") or "", include_time=False)
     data["UserRating"] = str(userrating) if userrating else ""
     data["SeasonID"] = str(seasonid) if seasonid else ""
-    data["Genre"] = _join(details.get("genre"))
-    data["Studio"] = _join(details.get("studio"))
+    data["Genre"] = join_multi(details.get("genre"))
+    data["Studio"] = join_multi(details.get("studio"))
 
     cast_names = extract_cast_names(details.get("cast"))
-    data["Cast"] = _join(cast_names)
+    data["Cast"] = join_multi(cast_names)
 
     uniqueid_dict = details.get("uniqueid") or {}
     data["UniqueID.IMDB"] = uniqueid_dict.get("imdb") or ""
@@ -1177,21 +1153,17 @@ def build_episode_data(details: dict) -> dict:
 
 
 def set_episode_properties(details: dict) -> None:
-    """Set episode window properties with SkinInfo.Episode prefix.
-
-    Args:
-        details: Episode details from JSON-RPC
-    """
+    """Set `SkinInfo.Episode.*` window properties from a JSON-RPC episode details payload."""
     data = build_episode_data(details)
     props = {f"SkinInfo.Episode.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
-    _set_art_props("SkinInfo.Episode", details.get("art"), _VIDEO_ART_KEYS)
+    _set_art_props("SkinInfo.Episode", details.get("art"), VIDEO_ART_KEYS)
 
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
         plot=details.get("plot") or "",
-        genre=_join(details.get("genre")),
+        genre=join_multi(details.get("genre")),
         runtime_minutes=runtime_seconds // 60,
         rating=details.get("rating"),
         votes=details.get("votes"),
@@ -1223,17 +1195,17 @@ def build_musicvideo_data(details: dict) -> dict:
     track = details.get("track")
 
     data["Title"] = details.get("title") or ""
-    data["Artist"] = _join(details.get("artist"))
+    data["Artist"] = join_multi(details.get("artist"))
     data["Album"] = details.get("album") or ""
-    data["Genre"] = _join(details.get("genre"))
+    data["Genre"] = join_multi(details.get("genre"))
     data["Year"] = str(year) if year else ""
     data["Plot"] = details.get("plot") or ""
     data["Runtime"] = runtime_formatted
-    data["Director"] = _join(details.get("director"))
-    data["Studio"] = _join(details.get("studio"))
+    data["Director"] = join_multi(details.get("director"))
+    data["Studio"] = join_multi(details.get("studio"))
     data["Path"] = path or ""
     data["Premiered"] = details.get("premiered") or ""
-    data["Tag"] = _join(details.get("tag"))
+    data["Tag"] = join_multi(details.get("tag"))
     data["Playcount"] = str(playcount) if playcount else ""
 
     data["Codec"] = info.get("videocodec") or ""
@@ -1281,14 +1253,14 @@ def set_musicvideo_properties(details: dict) -> None:
     data = build_musicvideo_data(details)
     props = {f"SkinInfo.MusicVideo.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
-    _set_art_props("SkinInfo.MusicVideo", details.get("art"), _VIDEO_ART_KEYS)
+    _set_art_props("SkinInfo.MusicVideo", details.get("art"), VIDEO_ART_KEYS)
 
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
-        genre=_join(details.get("genre")),
+        genre=join_multi(details.get("genre")),
         runtime_minutes=runtime_seconds // 60,
         duration_seconds=runtime_seconds,
         rating=details.get("rating"),

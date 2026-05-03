@@ -1,121 +1,154 @@
-"""JSON-RPC preset executor utilities for skin integration."""
+"""Skinner-facing JSON-RPC wrapper.
+
+Exposes one entry point (`execute`) called from the `action=json` RunScript
+handler. Two modes:
+- `textviewer` — render full response (success or error) for discovery
+- `property` — bind result keys to `SkinInfo.{prop_prefix}.{key}[.{subkey}]`
+
+Param format for the URL-passed `params` arg:
+- `key:value|key:value` pairs
+- `key:a;b;c` for array values (comma is reserved by RunScript)
+- Raw JSON supported when `params` starts with `{` or `[`
+- Type coercion: `true`/`false`/`null`, int, float, string fallback
+"""
+from __future__ import annotations
+
 import json
-import os
+from typing import Any, Dict
+
 import xbmc
-import xbmcvfs
-from lib.kodi.client import log, request as json_rpc_request, ADDON
+import xbmcgui
+
+from lib.kodi.client import log
 
 
-_PRESETS_CACHE = None
-_ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
-_PRESETS_FILE = os.path.join(_ADDON_PATH, 'lib', 'skin', 'json_presets.json')
+_DEFAULT_MODE = 'textviewer'
 
 
-def load_presets():
-    """
-    Load JSON-RPC presets from json_presets.json.
-
-    Caches presets in memory for performance.
-
-    Returns:
-        Dictionary of preset definitions or empty dict if load fails
-    """
-    global _PRESETS_CACHE
-
-    if _PRESETS_CACHE is not None:
-        return _PRESETS_CACHE
-
-    try:
-        with open(_PRESETS_FILE, 'r', encoding='utf-8') as f:
-            _PRESETS_CACHE = json.load(f)
-            return _PRESETS_CACHE
-    except (OSError, json.JSONDecodeError) as e:
-        log("JSON", f"Failed to load JSON presets: {e}", xbmc.LOGERROR)
-        _PRESETS_CACHE = {}
-        return {}
-
-
-def load_preset(preset_name):
-    """
-    Load a single preset by name.
-
-    Args:
-        preset_name: Name of preset to load
-
-    Returns:
-        Preset dictionary or None if not found
-    """
-    presets = load_presets()
-    return presets.get(preset_name)
-
-
-def default_property_setter(result, window_prop):
-    """
-    Process JSON-RPC result and set window properties.
-
-    Sets properties as: SkinInfo.{window_prop}.{key} = value
-
-    Args:
-        result: JSON-RPC result dictionary
-        window_prop: Property prefix (e.g., "Player", "System")
-    """
-    if not result or not window_prop:
+def execute(
+    method: str,
+    params_str: str = '',
+    mode: str = _DEFAULT_MODE,
+    prop_prefix: str = '',
+) -> None:
+    """Run one JSON-RPC call and dispatch the response per `mode`."""
+    if not method:
+        log("JSON", "execute called without a method", xbmc.LOGWARNING)
         return
 
-    window = 'home'
+    params = _parse_params(params_str)
+    response = _call(method, params)
+
+    if mode == 'property':
+        _bind_properties(method, response, prop_prefix)
+    else:
+        _show_textviewer(method, params, response)
+
+
+def _call(method: str, params: Dict[str, Any]) -> dict:
+    """Issue the JSON-RPC call via `xbmc.executeJSONRPC` and return the parsed body.
+
+    Bypasses `lib.kodi.client.request` so JSON-RPC error responses reach the caller
+    instead of being logged-and-swallowed.
+    """
+    payload = json.dumps(
+        {"jsonrpc": "2.0", "method": method, "params": params, "id": 1},
+        separators=(',', ':'),
+    )
+    try:
+        raw = xbmc.executeJSONRPC(payload)
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {"error": {"message": "non-dict response", "raw": raw}}
+    except Exception as e:
+        return {"error": {"message": f"executeJSONRPC failed: {e}"}}
+
+
+def _show_textviewer(method: str, params: Dict[str, Any], response: dict) -> None:
+    body = {"method": method, "params": params, "response": response}
+    xbmcgui.Dialog().textviewer(
+        f"JSON-RPC: {method}",
+        json.dumps(body, indent=2, sort_keys=True),
+    )
+
+
+def _bind_properties(method: str, response: dict, prop_prefix: str) -> None:
+    if not prop_prefix:
+        log("JSON", f"property mode requires prop_prefix (method={method})", xbmc.LOGWARNING)
+        return
+
+    error = response.get('error')
+    if error:
+        log("JSON", f"JSON-RPC error for {method}: {error}", xbmc.LOGWARNING)
+        return
+
+    result = response.get('result')
+    if not isinstance(result, dict):
+        log("JSON", f"property mode needs dict result for {method} (got {type(result).__name__})", xbmc.LOGWARNING)
+        return
 
     for key, value in result.items():
         if isinstance(value, dict):
             for sub_key, sub_value in value.items():
-                prop_name = f'SkinInfo.{window_prop}.{key}.{sub_key}'
-                xbmc.executebuiltin(f'SetProperty({prop_name},{sub_value},{window})')
+                _set_prop(f"SkinInfo.{prop_prefix}.{key}.{sub_key}", sub_value)
         else:
-            prop_name = f'SkinInfo.{window_prop}.{key}'
-            xbmc.executebuiltin(f'SetProperty({prop_name},{value},{window})')
+            _set_prop(f"SkinInfo.{prop_prefix}.{key}", value)
 
 
-def execute_json_preset(preset_name):
-    """
-    Execute a single JSON-RPC preset and set window properties.
-
-    Args:
-        preset_name: Name of preset to execute
-    """
-    preset = load_preset(preset_name)
-    if not preset:
-        log("JSON", f"Unknown JSON preset: {preset_name}", xbmc.LOGWARNING)
-        return
-
-    method = preset.get('method')
-    params = preset.get('params', {})
-    window_prop = preset.get('window_prop')
-
-    if not method:
-        log("JSON", f"Preset '{preset_name}' missing method", xbmc.LOGERROR)
-        return
-
-    response = json_rpc_request(method, params)
-    if not response:
-        log("JSON", f"JSON-RPC request failed for preset '{preset_name}'", xbmc.LOGERROR)
-        return
-
-    result = response.get('result')
-
-    if result and window_prop:
-        default_property_setter(result, window_prop)
+def _set_prop(name: str, value: Any) -> None:
+    xbmc.executebuiltin(f'SetProperty({name},{value},home)')
 
 
-def execute_json_presets(presets):
-    """
-    Execute multiple JSON-RPC presets.
+def _parse_params(raw: str) -> Dict[str, Any]:
+    """Parse the URL-passed params string into a dict for the JSON-RPC payload."""
+    if not raw:
+        return {}
 
-    Args:
-        presets: Pipe-separated list of preset names (e.g., "player_info|system_info")
-    """
-    if not presets:
-        return
+    stripped = raw.strip()
+    if stripped.startswith('{') or stripped.startswith('['):
+        try:
+            decoded = json.loads(stripped)
+            return decoded if isinstance(decoded, dict) else {}
+        except json.JSONDecodeError as e:
+            log("JSON", f"Failed to parse JSON params: {e}", xbmc.LOGWARNING)
+            return {}
 
-    preset_list = [name.strip() for name in presets.split('|') if name.strip()]
+    out: Dict[str, Any] = {}
+    for pair in raw.split('|'):
+        if ':' not in pair:
+            continue
+        key, _, value = pair.partition(':')
+        key = key.strip()
+        if not key:
+            continue
+        if ';' in value:
+            out[key] = [_coerce(token) for token in value.split(';') if token]
+        else:
+            out[key] = _coerce(value)
+    return out
 
-    for preset_name in preset_list:
-        execute_json_preset(preset_name)
+
+def _coerce(token: str) -> Any:
+    """Coerce a string token to bool/None/int/float, falling back to string."""
+    token = token.strip()
+    if token == 'true':
+        return True
+    if token == 'false':
+        return False
+    if token == 'null':
+        return None
+    try:
+        if '.' in token:
+            return float(token)
+        return int(token)
+    except ValueError:
+        return token
+
+
+def execute_from_args(args: dict) -> None:
+    """Convenience wrapper for the script-action dispatcher."""
+    execute(
+        method=args.get('method', ''),
+        params_str=args.get('params', ''),
+        mode=args.get('mode', _DEFAULT_MODE),
+        prop_prefix=args.get('prop_prefix', ''),
+    )

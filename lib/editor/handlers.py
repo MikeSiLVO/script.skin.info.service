@@ -22,18 +22,26 @@ from lib.editor.utilities import (
     validate_year,
 )
 
+# `xbmc.Keyboard` truncates the pre-filled `default` text past 100 chars (verified).
+# We warn the user before opening the keyboard so long fields aren't silently clipped.
+MAX_KEYBOARD_DEFAULT_LEN = 100
+
+
+def _edit_heading(field_name: str) -> str:
+    return ADDON.getLocalizedString(32557).format(field_name)
+
 
 def handle_text(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
     """Handle text input."""
-    heading = f"Edit {field_name}"
+    heading = _edit_heading(field_name)
     default = current_value or ""
 
     # xbmc.Keyboard can't handle actual newlines - use [CR] placeholder
     default_display = default.replace('\r\n', '[CR]').replace('\n', '[CR]').replace('\r', '[CR]')
 
-    if len(default_display) > 100:
+    if len(default_display) > MAX_KEYBOARD_DEFAULT_LEN:
         xbmcgui.Dialog().notification(
             ADDON.getLocalizedString(32258),
             ADDON.getLocalizedString(32987),
@@ -52,11 +60,18 @@ def handle_text(
     return result, False
 
 
+_INTEGER_VALIDATORS = {
+    "year": validate_year,
+    "runtime": validate_runtime,
+    "top250": validate_top250,
+}
+
+
 def handle_integer(
     field_name: str, current_value: int | None, validator: str | None = None
 ) -> tuple[int | None, bool]:
     """Handle integer input."""
-    heading = f"Edit {field_name}"
+    heading = _edit_heading(field_name)
     default = str(current_value) if current_value else ""
 
     result = xbmcgui.Dialog().input(heading, default, type=xbmcgui.INPUT_NUMERIC)
@@ -69,18 +84,12 @@ def handle_integer(
     except ValueError:
         return None, True
 
-    if validator == "year":
-        valid, error = validate_year(value)
-    elif validator == "runtime":
-        valid, error = validate_runtime(value)
-    elif validator == "top250":
-        valid, error = validate_top250(value)
-    else:
-        valid, error = True, ""
-
-    if not valid:
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
-        return None, True
+    validator_fn = _INTEGER_VALIDATORS.get(validator) if validator else None
+    if validator_fn:
+        valid, error = validator_fn(value)
+        if not valid:
+            xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
+            return None, True
 
     return value, False
 
@@ -89,7 +98,7 @@ def handle_runtime(
     field_name: str, current_value: int | None
 ) -> tuple[int | None, bool]:
     """Handle runtime input (edit in minutes, store in seconds)."""
-    heading = f"Edit {field_name} (minutes)"
+    heading = f"{_edit_heading(field_name)} (minutes)"
     default = format_runtime_for_edit(current_value or 0)
 
     result = xbmcgui.Dialog().input(heading, default, type=xbmcgui.INPUT_NUMERIC)
@@ -111,7 +120,7 @@ def handle_duration(
     field_name: str, current_value: int | None
 ) -> tuple[int | None, bool]:
     """Handle duration input (edit in MM:SS format, store in seconds)."""
-    heading = f"Edit {field_name} (MM:SS)"
+    heading = f"{_edit_heading(field_name)} (MM:SS)"
     default = format_duration_for_edit(current_value or 0)
 
     result = xbmcgui.Dialog().input(heading, default)
@@ -133,7 +142,7 @@ def handle_date(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
     """Handle date input (YYYY-MM-DD)."""
-    heading = f"Edit {field_name} (YYYY-MM-DD)"
+    heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
     default = current_value or ""
 
     result = xbmcgui.Dialog().input(heading, default)

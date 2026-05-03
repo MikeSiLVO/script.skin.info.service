@@ -61,10 +61,7 @@ ARTLAYOUT_MAP = {
 
 
 class ArtworkDialogSelect(ArtworkDialogBase):
-    """
-    Dialog for selecting artwork from multiple options with visual preview.
-    Shows thumbnails of available artwork options with metadata.
-    """
+    """Dialog for selecting artwork from multiple options with thumbnail preview."""
 
     ARTWORK_LIST = 100
     BUTTON_SKIP = 201
@@ -191,28 +188,6 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         self.populate_list_batch(control, items)
 
-    def _normalize_url(self, url: str) -> str:
-        """
-        Normalize URL for comparison by stripping image:// wrapper and decoding.
-
-        Kodi cached images use format: image://http%3a%2f%2fexample.com%2fimage.jpg/
-        This strips the wrapper and decodes to: http://example.com/image.jpg
-
-        For fanart.tv URLs, compares just the filename since paths can vary:
-        - Old: https://assets.fanart.tv/fanart/movies/ID/movieposter/filename.jpg
-        - New: https://assets.fanart.tv/fanart/filename.jpg
-        Both normalize to just the filename for comparison.
-        """
-        if not url:
-            return ''
-
-        decoded = decode_image_url(url)
-
-        if 'assets.fanart.tv' in decoded:
-            return decoded.split('/')[-1]
-
-        return decoded
-
     def onClick(self, controlId):
         """Handle button/list clicks."""
         if controlId == self.ARTWORK_LIST:
@@ -287,7 +262,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
     def _show_language_picker(self) -> None:
         """Show dialog to select language filter."""
         from lib.artwork.utilities import get_language_display_name
-        from lib.kodi.utils import get_preferred_language_code, normalize_language_tag
+        from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
 
         is_filtered = len(self.available_art) != len(self.full_artwork_list)
         # Allow picker if multiple languages OR if filtering is active (need "All" option)
@@ -345,75 +320,10 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             self.current_language = new_language
         self._resort_artwork()
 
-    def _toggle_sort_mode(self) -> None:
-        """Toggle between popularity and resolution sort modes."""
-        if self.sort_mode == 'popularity':
-            self.sort_mode = 'resolution'
-        else:
-            self.sort_mode = 'popularity'
-
-        self._resort_artwork()
-        self._update_sort_button_label()
-
-    def _update_sort_button_label(self) -> None:
-        """Update sort button label to show current mode."""
-        try:
-            button = self.getControl(self.BUTTON_SORT)
-            if self.sort_mode == 'popularity':
-                button.setLabel('Sort: Popularity')
-            else:
-                button.setLabel('Sort: Resolution')
-        except Exception:
-            pass
-
-    def _get_available_sources(self) -> set:
-        """Get set of unique sources in the full artwork list."""
-        sources = set()
-        for art in self.full_artwork_list:
-            source = art.get('source', '').lower()
-            if source in ('tmdb', 'fanart.tv', 'fanarttv'):
-                sources.add('tmdb' if source == 'tmdb' else 'fanart')
-        return sources
-
-    def _get_available_resolutions(self) -> set:
-        """Get set of unique resolutions in the full artwork list."""
-        resolutions = set()
-        for art in self.full_artwork_list:
-            width = art.get('width')
-            height = art.get('height')
-            if width and height:
-                resolutions.add((width, height))
-        return resolutions
-
-    def _toggle_source_pref(self) -> None:
-        """Toggle between source filters: all -> tmdb -> fanart -> all."""
-        if self.source_pref == 'all':
-            self.source_pref = 'tmdb'
-        elif self.source_pref == 'tmdb':
-            self.source_pref = 'fanart'
-        else:
-            self.source_pref = 'all'
-
-        self._resort_artwork()
-        self._update_source_pref_button_label()
-
-    def _update_source_pref_button_label(self) -> None:
-        """Update source filter button label to show current filter."""
-        try:
-            button = self.getControl(self.BUTTON_SOURCE_PREF)
-            if self.source_pref == 'all':
-                button.setLabel(ADDON.getLocalizedString(32132))
-            elif self.source_pref == 'tmdb':
-                button.setLabel(ADDON.getLocalizedString(32133))
-            else:
-                button.setLabel(ADDON.getLocalizedString(32134))
-        except Exception:
-            pass
-
     def _resort_artwork(self) -> None:
         """Re-sort and filter artwork from full list, then refresh UI."""
         from lib.artwork.utilities import sort_artwork_by_popularity
-        from lib.kodi.utils import normalize_language_tag
+        from lib.kodi.utilities import normalize_language_tag
 
         # 'all' bypasses filtering entirely
         if self.current_language == 'all':
@@ -444,7 +354,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
     def _refresh_ui(self) -> None:
         """Update UI properties and repopulate list without filtering."""
         from lib.artwork.utilities import get_language_display_name
-        from lib.kodi.utils import get_preferred_language_code
+        from lib.kodi.utilities import get_preferred_language_code
 
         self.setProperty('count_filtered', str(len(self.available_art)))
 
@@ -504,28 +414,14 @@ def show_artwork_selection_dialog(
     test_mode: bool = False,
     review_mode: str = 'missing'
 ) -> Tuple[str, Optional[dict], Optional[dict]]:
-    """
-    Show artwork selection dialog and return result.
+    """Show artwork selection dialog.
 
-    Args:
-        title: Item title (e.g., "The Matrix")
-        art_type: Art type being selected (e.g., "poster", "fanart")
-        available_art: List of artwork dicts (filtered) to display initially
-        full_artwork_list: Complete unfiltered list for language switching (optional)
-        media_type: Media type (movie, tvshow, episode, etc.) - optional
-        year: Release year (e.g., "1999") - optional
-        current_url: URL of existing artwork if any - optional
-        dbid: Database ID for item (required for multi-art) - optional
-        test_mode: Enable test mode (launches multiart in test mode) - optional
-        review_mode: Review context ("missing" for missing artwork)
+    Returns (action, artwork, queued_multiart) where action is:
+    - 'selected': user picked artwork (artwork = selected dict)
+    - 'skip': user skipped this art type (artwork = None)
+    - 'cancel': user cancelled review entirely (artwork = None)
 
-    Returns:
-        Tuple of (action, artwork, queued_multiart):
-        - ('selected', artwork_dict, queued_multiart) - User selected artwork
-        - ('skip', None, queued_multiart) - User skipped this art type
-        - ('cancel', None, queued_multiart) - User cancelled review entirely
-
-        queued_multiart is a dict of multi-art assignments or None.
+    queued_multiart is a dict of multi-art assignments or None.
     """
     # Only skip if no artwork at all (not just filtered empty)
     if not available_art and not full_artwork_list:

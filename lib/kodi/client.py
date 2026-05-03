@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional, Tuple, List, Callable
+from typing import Any, Dict, Optional, Tuple, List, Callable, overload
 from time import monotonic
 import threading
 import urllib.parse
@@ -14,58 +14,72 @@ from lib.kodi.settings import KodiSettings
 # Shared addon instance - import this instead of creating new xbmcaddon.Addon()
 ADDON = xbmcaddon.Addon()
 
+# In-memory JSON-RPC cache tuning. Cleanup fires when ANY of these triggers:
+#   - 60s wall clock since last cleanup (ambient periodic)
+#   - 50 requests since last cleanup (busy traffic forces eviction sooner)
+#   - cache exceeds 200 entries (hard size cap)
+# Default TTL is 30s, short because Kodi state changes are user-driven (focus/playback).
 CACHE_DEFAULT_TTL = 30
 CACHE_CLEANUP_INTERVAL = 60
 CACHE_CLEANUP_REQUEST_INTERVAL = 50
 CACHE_MAX_SIZE = 200
 
-KODI_GET_DETAILS_METHODS = {
-    'movie': ('VideoLibrary.GetMovieDetails', 'movieid', 'moviedetails'),
-    'tvshow': ('VideoLibrary.GetTVShowDetails', 'tvshowid', 'tvshowdetails'),
-    'season': ('VideoLibrary.GetSeasonDetails', 'seasonid', 'seasondetails'),
-    'episode': ('VideoLibrary.GetEpisodeDetails', 'episodeid', 'episodedetails'),
-    'musicvideo': ('VideoLibrary.GetMusicVideoDetails', 'musicvideoid', 'musicvideodetails'),
-    'set': ('VideoLibrary.GetMovieSetDetails', 'setid', 'setdetails'),
-    'artist': ('AudioLibrary.GetArtistDetails', 'artistid', 'artistdetails'),
-    'album': ('AudioLibrary.GetAlbumDetails', 'albumid', 'albumdetails'),
-    'song': ('AudioLibrary.GetSongDetails', 'songid', 'songdetails'),
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class MediaTypeSpec:
+    """Per-media-type Kodi JSON-RPC bindings.
+
+    Source of truth for the four parallel `KODI_*_METHODS` / `KODI_ID_KEYS` dicts.
+    """
+    get_method: str
+    set_method: str
+    id_key: str
+    details_key: str
+    library_method: str
+    library_key: str
+
+
+def _spec(noun: str, plural_noun: str, library: str = 'VideoLibrary') -> MediaTypeSpec:
+    """Build a MediaTypeSpec from the conventional Kodi JSON-RPC naming pattern.
+
+    `noun` is the singular CamelCase form ('Movie', 'TVShow', 'MovieSet').
+    `plural_noun` is the plural CamelCase form used in `Get{plural_noun}` ('Movies', 'TVShows').
+    """
+    return MediaTypeSpec(
+        get_method=f'{library}.Get{noun}Details',
+        set_method=f'{library}.Set{noun}Details',
+        id_key=f'{noun.lower()}id',
+        details_key=f'{noun.lower()}details',
+        library_method=f'{library}.Get{plural_noun}',
+        library_key=plural_noun.lower(),
+    )
+
+
+MEDIA_TYPE_SPECS: Dict[str, MediaTypeSpec] = {
+    'movie':      _spec('Movie',      'Movies'),
+    'tvshow':     _spec('TVShow',     'TVShows'),
+    'season':     _spec('Season',     'Seasons'),
+    'episode':    _spec('Episode',    'Episodes'),
+    'musicvideo': _spec('MusicVideo', 'MusicVideos'),
+    'set': MediaTypeSpec(  # 'set' breaks the pattern: id_key='setid' but library uses 'MovieSets'/'sets'
+        get_method='VideoLibrary.GetMovieSetDetails',
+        set_method='VideoLibrary.SetMovieSetDetails',
+        id_key='setid',
+        details_key='setdetails',
+        library_method='VideoLibrary.GetMovieSets',
+        library_key='sets',
+    ),
+    'artist': _spec('Artist', 'Artists', library='AudioLibrary'),
+    'album':  _spec('Album',  'Albums',  library='AudioLibrary'),
+    'song':   _spec('Song',   'Songs',   library='AudioLibrary'),
 }
 
-KODI_SET_DETAILS_METHODS = {
-    'movie': ('VideoLibrary.SetMovieDetails', 'movieid'),
-    'tvshow': ('VideoLibrary.SetTVShowDetails', 'tvshowid'),
-    'season': ('VideoLibrary.SetSeasonDetails', 'seasonid'),
-    'episode': ('VideoLibrary.SetEpisodeDetails', 'episodeid'),
-    'musicvideo': ('VideoLibrary.SetMusicVideoDetails', 'musicvideoid'),
-    'set': ('VideoLibrary.SetMovieSetDetails', 'setid'),
-    'artist': ('AudioLibrary.SetArtistDetails', 'artistid'),
-    'album': ('AudioLibrary.SetAlbumDetails', 'albumid'),
-    'song': ('AudioLibrary.SetSongDetails', 'songid'),
-}
-
-KODI_ID_KEYS = {
-    'movie': 'movieid',
-    'tvshow': 'tvshowid',
-    'season': 'seasonid',
-    'episode': 'episodeid',
-    'musicvideo': 'musicvideoid',
-    'set': 'setid',
-    'artist': 'artistid',
-    'album': 'albumid',
-    'song': 'songid',
-}
-
-KODI_GET_LIBRARY_METHODS = {
-    'movie': ('VideoLibrary.GetMovies', 'movies'),
-    'tvshow': ('VideoLibrary.GetTVShows', 'tvshows'),
-    'season': ('VideoLibrary.GetSeasons', 'seasons'),
-    'episode': ('VideoLibrary.GetEpisodes', 'episodes'),
-    'musicvideo': ('VideoLibrary.GetMusicVideos', 'musicvideos'),
-    'set': ('VideoLibrary.GetMovieSets', 'sets'),
-    'artist': ('AudioLibrary.GetArtists', 'artists'),
-    'album': ('AudioLibrary.GetAlbums', 'albums'),
-    'song': ('AudioLibrary.GetSongs', 'songs'),
-}
+KODI_GET_DETAILS_METHODS = {mt: (s.get_method, s.id_key, s.details_key) for mt, s in MEDIA_TYPE_SPECS.items()}
+KODI_SET_DETAILS_METHODS = {mt: (s.set_method, s.id_key) for mt, s in MEDIA_TYPE_SPECS.items()}
+KODI_ID_KEYS = {mt: s.id_key for mt, s in MEDIA_TYPE_SPECS.items()}
+KODI_GET_LIBRARY_METHODS = {mt: (s.library_method, s.library_key) for mt, s in MEDIA_TYPE_SPECS.items()}
 
 KODI_MOVIE_PROPERTIES = [
     "title", "streamdetails", "set", "setid", "ratings",
@@ -85,10 +99,9 @@ _CACHE_LOCK = threading.Lock()
 
 
 def _cleanup_expired_cache(force: bool = False) -> None:
-    """Remove expired entries from cache to prevent memory bloat.
+    """Evict expired entries and trim cache to `CACHE_MAX_SIZE`.
 
-    Args:
-        force: If True, force cleanup regardless of time since last cleanup
+    No-op unless one of the cleanup triggers (time, request count, size) fires, or `force=True`.
     """
     global _last_cleanup, _request_count
     now = monotonic()
@@ -120,14 +133,7 @@ def _cleanup_expired_cache(force: bool = False) -> None:
 
 
 def get_cache_only(cache_key: str) -> Optional[dict]:
-    """Return cached value from the in-memory cache without making a JSON-RPC call.
-
-    Args:
-        cache_key: The cache key to lookup
-
-    Returns:
-        Cached dictionary if found and not expired, None otherwise
-    """
+    """Read from the in-memory cache without making a JSON-RPC call. None on miss/expired."""
     now = monotonic()
     with _CACHE_LOCK:
         ent = _L1.get(cache_key)
@@ -136,16 +142,16 @@ def get_cache_only(cache_key: str) -> Optional[dict]:
     return None
 
 
-def extract_result(resp: Optional[dict], result_key: str, default=None) -> dict | list | Any:
-    """Extract nested result[result_key] from JSON-RPC response.
+@overload
+def extract_result(resp: Optional[dict], result_key: str, default: list) -> list: ...
+@overload
+def extract_result(resp: Optional[dict], result_key: str, default: dict) -> dict: ...
+@overload
+def extract_result(resp: Optional[dict], result_key: str, default: None = None) -> Any: ...
+def extract_result(resp: Optional[dict], result_key: str, default=None):
+    """Extract `resp['result'][result_key]`.
 
-    Args:
-        resp: JSON-RPC response dictionary
-        result_key: Key to extract from result (e.g., "moviedetails", "movies")
-        default: Default value if extraction fails
-
-    Returns:
-        Extracted value or default (empty dict/list based on key name if default not specified)
+    `default=None` auto-picks `[]` for plural keys (ending in `s` except `details`), else `{}`.
     """
     if default is None:
         default = [] if result_key.endswith("s") and result_key != "details" else {}
@@ -164,22 +170,37 @@ def extract_result(resp: Optional[dict], result_key: str, default=None) -> dict 
     return value
 
 
-def request(
-    method: str,
-    params: Optional[Dict[str, Any]] = None,
-    cache_key: Optional[str] = None,
-    ttl_seconds: Optional[int] = None,
-) -> Optional[dict]:
-    """Make a JSON-RPC request with caching.
+def _call_jsonrpc(payload: Any, error_context: str) -> Any:
+    """Execute a JSON-RPC payload (single dict or batch list) and return the parsed body.
 
-    Args:
-        method: The JSON-RPC method to call
-        params: Parameters for the method
-        cache_key: Optional cache key for storing/retrieving results
-        ttl_seconds: Time-to-live for cache entry in seconds (default 30)
+    Returns None on transport, JSON, or shape errors. `error_context` is used in log lines
+    so single-call and batch-call failures can be distinguished.
+    """
+    try:
+        raw = xbmc.executeJSONRPC(json.dumps(payload, separators=(",", ":")))
+    except (OSError, IOError) as e:
+        log("General", f"Network error in {error_context}: {str(e)}", xbmc.LOGWARNING)
+        return None
+    except Exception as e:
+        log("General", f"Unexpected error in {error_context}: {str(e)}", xbmc.LOGERROR)
+        return None
 
-    Returns:
-        Response dictionary or None on error
+    try:
+        return json.loads(raw) if isinstance(raw, str) else raw
+    except json.JSONDecodeError as e:
+        log("General", f"JSON decode error in {error_context}: {str(e)}", xbmc.LOGERROR)
+        return None
+    except Exception as e:
+        log("General", f"Error processing response in {error_context}: {str(e)}", xbmc.LOGERROR)
+        return None
+
+
+def request(method: str, params: Optional[Dict[str, Any]] = None,
+            cache_key: Optional[str] = None, ttl_seconds: Optional[int] = None) -> Optional[dict]:
+    """Make a JSON-RPC request with optional in-memory caching.
+
+    `cache_key` enables read-through caching with `ttl_seconds` (default 30s).
+    Returns None on network, JSON, or JSON-RPC error.
     """
     global _request_count
     ttl = CACHE_DEFAULT_TTL if ttl_seconds is None else max(1, int(ttl_seconds))
@@ -192,29 +213,11 @@ def request(
     _request_count += 1
     _cleanup_expired_cache()
 
-    payload = {
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params or {},
-        "id": 1,
-    }
-
-    try:
-        raw = xbmc.executeJSONRPC(json.dumps(payload, separators=(",", ":")))
-    except (OSError, IOError) as e:
-        log("General", f"Network error calling {method}: {str(e)}", xbmc.LOGWARNING)
-        return None
-    except Exception as e:
-        log("General", f"Unexpected error calling {method}: {str(e)}", xbmc.LOGERROR)
-        return None
-
-    try:
-        data = json.loads(raw) if isinstance(raw, str) else raw
-    except json.JSONDecodeError as e:
-        log("General", f"JSON decode error for {method}: {str(e)}", xbmc.LOGERROR)
-        return None
-    except Exception as e:
-        log("General", f"Error processing response for {method}: {str(e)}", xbmc.LOGERROR)
+    data = _call_jsonrpc(
+        {"jsonrpc": "2.0", "method": method, "params": params or {}, "id": 1},
+        f"call to {method}",
+    )
+    if data is None:
         return None
 
     if not isinstance(data, dict):
@@ -242,18 +245,11 @@ def request(
     return data
 
 
-def batch_request(
-    calls: List[Dict[str, Any]],
-    ttl_seconds: Optional[int] = None,
-) -> List[Optional[dict]]:
-    """Execute multiple JSON-RPC requests in a batch.
+def batch_request(calls: List[Dict[str, Any]],
+                  ttl_seconds: Optional[int] = None) -> List[Optional[dict]]:
+    """Execute multiple JSON-RPC calls in one batch. Each entry: `{method, params?, cache_key?}`.
 
-    Args:
-        calls: List of dicts with 'method', 'params', and optional 'cache_key'
-        ttl_seconds: Time-to-live for cache entries in seconds
-
-    Returns:
-        List of response dictionaries (None for failed requests)
+    Returns responses in input order; `None` for individual failures. Short-circuits if all keys hit cache.
     """
     global _request_count
 
@@ -290,19 +286,8 @@ def batch_request(
             "id": i,
         })
 
-    try:
-        raw = xbmc.executeJSONRPC(json.dumps(payloads, separators=(",", ":")))
-    except (OSError, IOError) as e:
-        log("General", f"Network error in batch request: {str(e)}", xbmc.LOGWARNING)
-        return [None] * len(calls)
-    except Exception as e:
-        log("General", f"Unexpected error in batch request: {str(e)}", xbmc.LOGERROR)
-        return [None] * len(calls)
-
-    try:
-        data = json.loads(raw) if isinstance(raw, str) else raw
-    except json.JSONDecodeError as e:
-        log("General", f"JSON decode error in batch response: {str(e)}", xbmc.LOGERROR)
+    data = _call_jsonrpc(payloads, "batch request")
+    if data is None:
         return [None] * len(calls)
 
     if not isinstance(data, list):
@@ -340,31 +325,11 @@ def batch_request(
     return results
 
 
-def get_item_details(
-    media_type: str,
-    dbid: int,
-    properties: List[str],
-    cache_key: str = "",
-    ttl_seconds: Optional[int] = None,
-    **extra_params: Any
-) -> Any:
-    """
-    Get item details from Kodi library.
+def get_item_details(media_type: str, dbid: int, properties: List[str], cache_key: str = "",
+                     ttl_seconds: Optional[int] = None, **extra_params: Any) -> Any:
+    """Fetch item details for `media_type`, looking up the right `GetXDetails` method and result key.
 
-    Convenience wrapper around KODI_GET_DETAILS_METHODS dictionary lookups.
-    Handles unpacking method info and extracting results.
-
-    Args:
-        media_type: Media type ('movie', 'tvshow', 'season', 'episode', etc.)
-        dbid: Database ID of the item
-        properties: List of properties to fetch
-        cache_key: Optional cache key for request caching
-        ttl_seconds: Optional cache TTL in seconds
-        **extra_params: Additional parameters for the request payload
-            (e.g., 'movies' dict for movie sets with nested properties)
-
-    Returns:
-        Dictionary of item details, or None if request fails
+    `extra_params` is merged into the request payload (e.g. movie-sets pass nested 'movies' dict).
     """
     method_info = KODI_GET_DETAILS_METHODS.get(media_type)
     if not method_info:
@@ -382,20 +347,19 @@ def get_item_details(
     return extract_result(resp, result_key)
 
 
+def get_item_uniqueids(dbtype: str, dbid: str) -> Tuple[str, str]:
+    """Fetch `(imdb_id, tmdb_id)` for a library item via JSON-RPC `GetXDetails`."""
+    details = get_item_details(dbtype, int(dbid), ["uniqueid"])
+    if not details or not isinstance(details, dict):
+        return "", ""
+    uniqueid = details.get("uniqueid", {})
+    return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")
+
+
 def decode_image_url(url: str) -> str:
-    """
-    Decode an image:// wrapped URL to match database storage format.
+    """Decode an `image://` wrapped URL to DB storage format.
 
-    Database storage is inconsistent:
-    - HTTP URLs: stored decoded (https://image.tmdb.org/...)
-    - Video thumbnails: stored wrapped (image://video@...)
-    - Local files: stored decoded (H:\\Movies\\poster.jpg)
-
-    Args:
-        url: URL potentially wrapped in image:// format
-
-    Returns:
-        URL in format matching database storage
+    Kodi stores HTTP/local URLs decoded but `image://video@...` wrapped; this matches.
     """
     if not url or not url.startswith('image://'):
         return url
@@ -409,18 +373,7 @@ def decode_image_url(url: str) -> str:
 
 
 def encode_image_url(decoded_url: str) -> str:
-    """
-    Wrap a decoded URL back into image:// format for xbmcvfs.File().
-
-    Reverse operation of decode_image_url() - converts decoded URLs back to
-    wrapped format that Kodi's texture cache expects.
-
-    Args:
-        decoded_url: Decoded URL (https://..., H:\\..., or image://video@...)
-
-    Returns:
-        Wrapped URL (image://.../) suitable for Kodi's texture cache
-    """
+    """Wrap a URL into `image://` format for `xbmcvfs.File()`/texture cache. Inverse of `decode_image_url`."""
     if not decoded_url:
         return decoded_url
 
@@ -432,15 +385,7 @@ def encode_image_url(decoded_url: str) -> str:
 
 
 def _decode_art_dict(art: Dict[str, str]) -> Dict[str, str]:
-    """
-    Decode URLs in an art dictionary.
-
-    Args:
-        art: Dictionary mapping art types to URLs
-
-    Returns:
-        New dictionary with decoded URLs
-    """
+    """Decode URLs in an art dict, dropping entries that decode to `image://video@...` wrappers."""
     if not art:
         return art
 
@@ -456,30 +401,15 @@ def _decode_art_dict(art: Dict[str, str]) -> Dict[str, str]:
     return decoded
 
 
-def get_library_items(
-    media_types: List[str],
-    properties: List[str],
-    *,
-    decode_urls: bool = False,
-    include_nested_seasons: bool = False,
-    season_properties: Optional[List[str]] = None,
-    filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
-    progress_callback: Optional[Callable[[int, int, str], None]] = None
-) -> List[Dict[str, Any]]:
-    """
-    Fetch library items with configurable property selection and filtering.
+def get_library_items(media_types: List[str], properties: List[str], *,
+                      decode_urls: bool = False, include_nested_seasons: bool = False,
+                      season_properties: Optional[List[str]] = None,
+                      filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
+                      progress_callback: Optional[Callable[[int, int, str], None]] = None
+                      ) -> List[Dict[str, Any]]:
+    """Fetch library items across multiple `media_types`, optionally decoding art and folding in seasons.
 
-    Args:
-        media_types: List of media types to query ('movie', 'tvshow', etc.)
-        properties: Properties to request from Kodi
-        decode_urls: If True, decode image:// URLs in 'art' dict
-        include_nested_seasons: If True, fetch seasons for each TV show
-        season_properties: Optional properties to request for nested seasons
-        filter_func: Optional function to filter items (return True to include)
-        progress_callback: Optional callback(current, total, media_type)
-
-    Returns:
-        List of item dicts with standard keys plus requested properties
+    Each item gets `media_type` and `dbid` injected. `filter_func(item) -> bool` filters per-item.
     """
     all_items: List[Dict[str, Any]] = []
 
@@ -586,16 +516,8 @@ API_KEY_CONFIG = {
 }
 
 
-def _get_api_key(key_id: str) -> Optional[str]:
-    """
-    Get API key from settings.
-
-    Args:
-        key_id: Key identifier from API_KEY_CONFIG
-
-    Returns:
-        API key or None if not found
-    """
+def get_api_key(key_id: str) -> Optional[str]:
+    """Get an API key by `API_KEY_CONFIG` id. Falls back to the token file for Trakt."""
     config = API_KEY_CONFIG.get(key_id)
     if not config:
         return None
@@ -638,13 +560,10 @@ def _is_debug_enabled() -> bool:
 
 
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
-    """Log message with category prefix.
+    """Log `[category] message` at `level`. DEBUG messages gated by the addon's debug setting.
 
-    Args:
-        category: Category name (Artwork, Database, API, Service, Cache, General,
-                  Texture, Download, Ratings, Blur, Plugin, SkinUtils, JSON)
-        message: Message to log
-        level: Log level (LOGDEBUG, LOGINFO, LOGWARNING, LOGERROR)
+    Categories: Artwork, Database, API, Service, Cache, General, Texture, Download,
+    Ratings, Blur, Plugin, SkinUtils, JSON.
     """
     if level >= xbmc.LOGINFO or _is_debug_enabled():
         xbmc.log(f"script.skin.info.service: [{category}] {message}", level)

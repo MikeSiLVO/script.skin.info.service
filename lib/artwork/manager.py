@@ -22,7 +22,7 @@ from lib.kodi.client import request, extract_result, get_item_details, decode_im
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
-from lib.infrastructure.menus import Menu, MenuItem, _RETURN_TO_MAIN
+from lib.infrastructure.menus import Menu, MenuItem, RETURN_TO_MAIN_SENTINEL
 from lib.infrastructure.dialogs import show_ok, show_yesno, show_textviewer, show_select, show_notification
 from lib.actor.downloader import download_actor_images
 
@@ -64,27 +64,8 @@ def _scan_scope(scope: str, scan_mode: str = REVIEW_MODE_MISSING) -> Optional[Ar
     return scanner
 
 
-def run_art_fetcher(media_type: Optional[str] = None, dbid: Optional[str] = None, dbtype: Optional[str] = None) -> None:
-    """
-    Legacy entry point retained for compatibility. Delegates to the artwork manager workflow.
-    """
-    if media_type == "single" or (dbid and dbtype):
-        run_art_fetcher_single(dbid, dbtype)
-        return
-
-    if media_type:
-        run_artwork_manager(media_type)
-    else:
-        run_artwork_manager()
-
-
 def _show_session_report(session_row) -> None:
-    """
-    Display a report for a review session.
-
-    Args:
-        session_row: Database row from scan_sessions table
-    """
+    """Display a report for a review session."""
     stats = json.loads(session_row['stats']) if session_row['stats'] else {}
     applied = int(stats.get('applied', 0) or 0)
     skipped = int(stats.get('skipped', 0) or 0)
@@ -285,16 +266,7 @@ def _download_selected_artwork(
     art_updates: Dict[str, str],
     force_overwrite: bool = False
 ) -> None:
-    """
-    Download selected artwork to filesystem.
-
-    Args:
-        media_type: Media type ('movie', 'tvshow', etc.)
-        dbid: Database ID
-        title: Media title (for logging)
-        art_updates: Dict of artwork_type -> URL to download
-        force_overwrite: Always overwrite existing files (ignores setting)
-    """
+    """Download selected artwork to filesystem."""
     from lib.download.artwork import DownloadArtwork
     from lib.infrastructure.paths import PathBuilder
 
@@ -303,7 +275,6 @@ def _download_selected_artwork(
 
     mbid: Optional[str] = None
     season: Optional[int] = None
-    episode: Optional[int] = None
 
     if media_type == 'set':
         media_file = title
@@ -344,7 +315,6 @@ def _download_selected_artwork(
 
         media_file = item.get("file", "")
         season = item.get("season")
-        episode = item.get("episode")
 
         if media_type == 'season' and not media_file:
             tvshowid = item.get("tvshowid")
@@ -382,7 +352,6 @@ def _download_selected_artwork(
             media_file=media_file,
             artwork_type=artwork_type,
             season_number=season,
-            episode_number=episode,
             use_basename=use_basename,
             mbid=mbid
         )
@@ -393,9 +362,7 @@ def _download_selected_artwork(
 
         success, error, bytes_downloaded = downloader.download_artwork(
             url=url,
-            local_path=local_path,
-            artwork_type=artwork_type,
-            existing_file_mode=existing_file_mode
+            local_path=local_path,            existing_file_mode=existing_file_mode
         )
 
         if success:
@@ -423,14 +390,10 @@ def _extract_downloadable_art(
 
 
 def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """
-    Download existing library artwork to filesystem for a single item.
+    """Download existing library artwork to filesystem for a single item.
 
-    For TV shows, downloads artwork for the show, all seasons, and all episodes.
-
-    Args:
-        dbid: Database ID of the item (if None, will get from ListItem)
-        dbtype: Type of the item (movie, tvshow, episode, etc.)
+    For TV shows, downloads show + all seasons + all episodes.
+    Falls back to ListItem.DBID/DBType if args are None.
     """
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
@@ -661,12 +624,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
 
 def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """
-    Open artwork selection dialog for a single item.
+    """Open artwork selection dialog for a single item.
 
-    Args:
-        dbid: Database ID of the item (if None, will get from ListItem)
-        dbtype: Type of the item (movie, tvshow, episode, etc.)
+    Falls back to ListItem.DBID/DBType if args are None.
     """
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
@@ -920,13 +880,13 @@ class ArtworkSelection:
         return payload
 
     def review_queue(self) -> Optional[Dict[str, Any]]:
-        """
-        Review pending items with visual artwork selection.
-        Drains the queue in batches and validates each item before prompting.
+        """Review pending queue items with visual artwork selection.
+
+        Processes the queue in batches, validating each item before prompting.
 
         Returns:
-            Dict with keys: status, cancelled, session_id, remaining, stats
-            None if queue is empty
+            Dict with keys: status, cancelled, session_id, remaining, stats.
+            None if queue is empty.
         """
         db.prune_inactive_queue_items()
         pending_check = db.get_next_batch(
@@ -1223,11 +1183,10 @@ class ArtworkSelection:
         art_item: ArtItemEntry,
         applied_any: bool
     ) -> Tuple[str, bool]:
-        """
-        Process user action from artwork selection dialog.
+        """Process user action from artwork selection dialog.
 
         Returns:
-            Tuple of (flow_control, applied_any) where flow_control is 'cancel', 'continue', or 'applied'
+            (flow_control, applied_any) where flow_control is 'cancel', 'continue', or 'applied'.
         """
         if action == 'cancel':
             self._handle_user_cancel(queue_entry, applied_any)
@@ -1602,13 +1561,12 @@ class ArtworkManager:
         return REVIEW_MODE_MISSING
 
     def _decide_session(self) -> Optional[bool]:
-        """
-        Decide whether to scan or resume.
+        """Decide whether to scan or resume.
 
         Returns:
-            True: Start new scan
-            False: Resume existing queue
-            None: Cancel
+            True: Start new scan.
+            False: Resume existing queue.
+            None: Cancel.
         """
         if not self.scope:
             return None
@@ -1671,7 +1629,7 @@ class ArtworkManager:
         if self.media_filter:
             db.clear_queue_for_media(self.media_filter)
         else:
-            db.clear_queue()
+            db.clear_queue_and_sessions()
         log("Artwork", "Cleared queue for scope")
 
     def _handle_auto_apply_missing(self) -> None:
@@ -1741,7 +1699,7 @@ class ArtworkManager:
 
     def _handle_manual_review(self, enable_download: bool = False) -> bool:
         need_scan = self._decide_session()
-        if need_scan is None or need_scan is _RETURN_TO_MAIN:
+        if need_scan is None or need_scan is RETURN_TO_MAIN_SENTINEL:
             return False
 
         self.review_mode = REVIEW_MODE_MISSING

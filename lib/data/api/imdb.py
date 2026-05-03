@@ -9,6 +9,7 @@ Data is stored in SQLite for minimal RAM usage on low-end devices.
 from __future__ import annotations
 
 import gzip
+from enum import Enum
 import xbmc
 from typing import Optional
 
@@ -20,6 +21,13 @@ from lib.data.database import imdb as db_imdb
 DATASET_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 EPISODE_DATASET_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
 BATCH_SIZE = 10000
+
+
+class RefreshResult(Enum):
+    """Outcome of `refresh_if_stale`. `Failed` means an attempt was made but errored."""
+    Updated = "updated"
+    Current = "current"
+    Failed = "failed"
 
 
 class _ImportAborted(Exception):
@@ -39,85 +47,51 @@ class ApiImdbDataset:
         )
 
     def get_rating(self, imdb_id: str, cursor=None) -> Optional[dict[str, float | int]]:
-        """
-        Look up rating for an IMDb ID.
+        """Look up rating for an IMDb ID. Pass cursor for bulk operations to avoid connection overhead.
 
-        Args:
-            imdb_id: IMDb ID (e.g., "tt0111161")
-            cursor: Optional cursor for bulk operations (avoids connection overhead)
-
-        Returns:
-            Dict with rating and votes, or None if not found:
-            {"rating": 9.3, "votes": 2800000}
+        Returns {"rating": 9.3, "votes": 2800000} or None if not found.
         """
         if cursor:
             return db_imdb.get_rating_with_cursor(imdb_id, cursor)
         return db_imdb.get_rating(imdb_id)
 
     def get_ratings_batch(self, imdb_ids: list[str]) -> dict[str, dict[str, float | int]]:
-        """
-        Look up ratings for multiple IMDb IDs.
-
-        Args:
-            imdb_ids: List of IMDb IDs
-
-        Returns:
-            Dict mapping IMDb IDs to rating dicts (missing IDs not included)
-        """
+        """Look up ratings for multiple IMDb IDs. Missing IDs are not included in the result."""
         return db_imdb.get_ratings_batch(imdb_ids)
 
     def is_dataset_available(self) -> bool:
         """Check if the dataset has been imported to the database."""
         return db_imdb.is_dataset_available()
 
-    def refresh_if_stale(self, abort_flag=None) -> bool:
-        """
-        Check for updates and download if remote is newer.
+    def refresh_if_stale(self, abort_flag=None) -> RefreshResult:
+        """Check for updates (via HTTP Last-Modified) and download if remote is newer.
 
-        Uses HTTP Last-Modified header to detect changes.
-
-        Args:
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            True if dataset was updated, False if already current or error
+        `Updated` if dataset was downloaded, `Current` if local matches remote,
+        `Failed` if any network/import step errored.
         """
         try:
             remote_mod = self._get_remote_last_modified(abort_flag)
             if not remote_mod:
-                return False
+                return RefreshResult.Failed
 
             local_mod = db_imdb.get_meta_last_modified("ratings")
 
             if local_mod == remote_mod:
-                return False
+                return RefreshResult.Current
 
             log("IMDb", f"Dataset update available (local: {local_mod}, remote: {remote_mod})")
-            return self._download_and_import(abort_flag)
+            return RefreshResult.Updated if self._download_and_import(abort_flag) else RefreshResult.Failed
 
         except Exception as e:
             log("IMDb", f"Error checking for dataset updates: {e}", xbmc.LOGWARNING)
-            return False
+            return RefreshResult.Failed
 
     def force_download(self, abort_flag=None) -> bool:
-        """
-        Force download the dataset regardless of cache state.
-
-        Args:
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            True if download succeeded, False otherwise
-        """
+        """Force download the dataset regardless of cache state."""
         return self._download_and_import(abort_flag, force=True)
 
     def get_stats(self) -> dict[str, int | float | str | bool | None]:
-        """
-        Get dataset statistics.
-
-        Returns:
-            Dict with entry count, last modified date, and downloaded timestamp
-        """
+        """Get dataset statistics (entry count, last modified date, downloaded timestamp)."""
         return db_imdb.get_dataset_stats()
 
     def _download_and_import(self, abort_flag=None, force: bool = False) -> bool:
@@ -210,32 +184,13 @@ class ApiImdbDataset:
     def get_episode_imdb_id(
         self, show_imdb_id: str, season: int, episode: int, cursor=None
     ) -> Optional[str]:
-        """
-        Look up episode IMDb ID by show + season + episode.
-
-        Args:
-            show_imdb_id: IMDb ID of the TV show (e.g., "tt0944947")
-            season: Season number
-            episode: Episode number
-            cursor: Optional cursor for bulk operations
-
-        Returns:
-            Episode IMDb ID (e.g., "tt4283088") or None if not found
-        """
+        """Look up episode IMDb ID by show + season + episode. Pass cursor for bulk operations."""
         if cursor:
             return db_imdb.get_episode_imdb_id_with_cursor(show_imdb_id, season, episode, cursor)
         return db_imdb.get_episode_imdb_id(show_imdb_id, season, episode)
 
     def get_episodes_for_show(self, show_imdb_id: str) -> dict[tuple[int, int], str]:
-        """
-        Get all episode IMDb IDs for a show.
-
-        Args:
-            show_imdb_id: IMDb ID of the TV show
-
-        Returns:
-            Dict mapping (season, episode) tuples to episode IMDb IDs
-        """
+        """Get all episode IMDb IDs for a show, keyed by (season, episode) tuple."""
         return db_imdb.get_episodes_for_show(show_imdb_id)
 
     def is_episode_dataset_available(self) -> bool:
@@ -253,17 +208,10 @@ class ApiImdbDataset:
         progress_callback=None,
         abort_flag=None
     ) -> int:
-        """
-        Download episode dataset and filter to user's shows.
+        """Download episode dataset and filter to user's shows.
 
-        Args:
-            user_show_ids: Set of IMDb IDs for shows in user's library
-            library_episode_count: Current total episode count from Kodi (for cache invalidation)
-            progress_callback: Optional callback(status_text) for progress updates
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            Number of episodes imported, or -1 on error
+        library_episode_count is the current Kodi total, used for cache invalidation.
+        Returns number of episodes imported, or -1 on error.
         """
         if not user_show_ids:
             return 0
@@ -351,16 +299,7 @@ class ApiImdbDataset:
         return count
 
     def needs_episode_refresh(self, library_episode_count: int, abort_flag=None) -> bool:
-        """
-        Check if episode dataset needs refresh without downloading.
-
-        Args:
-            library_episode_count: Current total episode count from Kodi
-            abort_flag: Optional abort flag for cancellation
-
-        Returns:
-            True if refresh needed, False if current
-        """
+        """Check if episode dataset needs refresh without actually downloading."""
         try:
             local_mod, stored_ep_count = db_imdb.get_episode_meta()
 

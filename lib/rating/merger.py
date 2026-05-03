@@ -5,41 +5,37 @@ import xbmc
 from typing import Dict, List, Optional, Any
 from lib.kodi.client import log
 
+# Source priority. Gaps allow inserting future sources between tiers without renumbering:
+#   110 = authoritative dataset (IMDb's own ratings file)
+#   100 = direct first-party APIs (TMDB, Trakt)
+#    90 = aggregators (MDBList, pulls from sources we'd otherwise hit directly)
+#    50 = secondary aggregators with stale data (OMDb)
+DEFAULT_SOURCE_PRIORITY: Dict[str, int] = {
+    "imdb_dataset": 110,
+    "tmdb": 100,
+    "trakt": 100,
+    "mdblist": 90,
+    "omdb": 50,
+}
 
-def merge_ratings(
-    sources_ratings: List[Dict[str, Any]],
-    source_priority: Optional[Dict[str, int]] = None
-) -> Dict[str, Dict[str, float]]:
-    """
-    Merge ratings from multiple sources, keeping highest vote count for duplicates.
+# Kodi scrapers are inconsistent: movies use "themoviedb", TV uses "tmdb". Mirror both
+# so skins find the rating regardless of which key they check.
+_KEY_ALIASES: Dict[str, str] = {
+    "themoviedb": "tmdb",
+    "tmdb": "themoviedb",
+}
 
-    Direct source APIs (TMDB, Trakt) are preferred. MDBList is preferred over OMDB
-    for aggregated data (RT, Metacritic) since OMDB's RT fields are deprecated.
 
-    Args:
-        sources_ratings: List of ratings dicts from different sources, e.g.:
-            [
-                {"themoviedb": {"rating": 8.3, "votes": 12500}, "_source": "tmdb"},
-                {"imdb": {"rating": 8.5, "votes": 750000}, "themoviedb": {"rating": 8.3, "votes": 12000}, "_source": "mdblist"},
-                {"imdb": {"rating": 8.5, "votes": 850000}, "_source": "omdb"}
-            ]
-        source_priority: Optional dict mapping source names to priority (higher = more trusted)
+def merge_ratings(sources_ratings: List[Dict[str, Any]],
+                  source_priority: Optional[Dict[str, int]] = None
+                  ) -> Dict[str, Dict[str, float]]:
+    """Merge ratings from multiple sources, picking highest priority + vote count per rating key.
 
-    Returns:
-        Merged ratings dict with highest vote counts per source:
-        {
-            "themoviedb": {"rating": 8.3, "votes": 12500},
-            "imdb": {"rating": 8.5, "votes": 850000}
-        }
+    Each input dict carries a `_source` marker (`tmdb`, `mdblist`, etc.) that selects priority.
+    Direct APIs outrank aggregators; aggregators outrank OMDb on shared fields.
     """
     if source_priority is None:
-        source_priority = {
-            "imdb_dataset": 110,
-            "tmdb": 100,
-            "trakt": 100,
-            "mdblist": 90,
-            "omdb": 50,
-        }
+        source_priority = DEFAULT_SOURCE_PRIORITY
 
     merged: Dict[str, Dict[str, float]] = {}
     source_origins: Dict[str, str] = {}
@@ -86,34 +82,14 @@ def merge_ratings(
     return merged
 
 
-def prepare_kodi_ratings(
-    merged_ratings: Dict[str, Dict[str, float]],
-    default_source: str = "imdb"
-) -> Dict[str, Dict[str, bool | int | float]]:
-    """
-    Convert merged ratings to Kodi JSON-RPC format.
+def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
+                         default_source: str = "imdb"
+                         ) -> Dict[str, Dict[str, bool | int | float]]:
+    """Convert merged ratings into Kodi's `Set*Details.ratings` shape.
 
-    Validates that all ratings are on 0-10 scale as required by Kodi.
-    Kodi normalizes NFO ratings using: (rating / max) * 10.0
-    All ratings in database and JSON-RPC must be 0-10 scale.
-
-    Args:
-        merged_ratings: Merged ratings from merge_ratings()
-        default_source: Which source to mark as default (usually "imdb")
-
-    Returns:
-        Dictionary formatted for VideoLibrary.Set*Details ratings parameter:
-        {
-            "imdb": {"rating": 8.5, "votes": 850000, "default": True},
-            "themoviedb": {"rating": 8.3, "votes": 12500, "default": False}
-        }
-
-    Note:
-        From Kodi source (VideoInfoTag.cpp):
-        - Database stores ratings as 0-10 floats (no max column)
-        - NFO import: r.rating = r.rating / max * 10.0f
-        - NFO export: Always writes max="10"
-        - JSON-RPC Video.Rating: no max field, expects 0-10 scale
+    All ratings must be 0-10; out-of-range values are logged ERROR and clamped to
+    prevent DB corruption. Also mirrors `themoviedb <-> tmdb` since movies and TV
+    use different scraper keys and skins may check either.
     """
     kodi_ratings = {}
 
@@ -139,19 +115,12 @@ def prepare_kodi_ratings(
         first_source = next(iter(kodi_ratings))
         kodi_ratings[first_source]["default"] = True
 
-    # Kodi scrapers use inconsistent naming: movies use "themoviedb", TV uses "tmdb"
-    # Write both keys to ensure skins find the rating regardless of which they check
-    if "themoviedb" in kodi_ratings and "tmdb" not in kodi_ratings:
-        kodi_ratings["tmdb"] = {
-            "rating": kodi_ratings["themoviedb"]["rating"],
-            "votes": kodi_ratings["themoviedb"]["votes"],
-            "default": False
-        }
-    elif "tmdb" in kodi_ratings and "themoviedb" not in kodi_ratings:
-        kodi_ratings["themoviedb"] = {
-            "rating": kodi_ratings["tmdb"]["rating"],
-            "votes": kodi_ratings["tmdb"]["votes"],
-            "default": False
-        }
+    for src, alias in _KEY_ALIASES.items():
+        if src in kodi_ratings and alias not in kodi_ratings:
+            kodi_ratings[alias] = {
+                "rating": kodi_ratings[src]["rating"],
+                "votes": kodi_ratings[src]["votes"],
+                "default": False,
+            }
 
     return kodi_ratings

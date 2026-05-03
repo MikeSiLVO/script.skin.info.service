@@ -5,41 +5,113 @@ from __future__ import annotations
 from typing import List
 import xbmcgui
 from lib.artwork.utilities import get_language_display_name
+from lib.kodi.client import decode_image_url, ADDON
 
 
 class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
-    """
-    Base class for artwork dialogs with shared functionality.
+    """Base class for artwork dialogs.
 
-    Provides common methods for creating artwork ListItems and populating
-    lists with batch operations (30-50% faster than individual addItem calls).
+    Subclasses must define `BUTTON_SORT`, `BUTTON_SOURCE_PREF` control IDs and
+    state vars `full_artwork_list`, `sort_mode`, `source_pref`, plus implement
+    `_resort_artwork()`.
     """
+
+    # Placeholders for subclass-supplied values (declared here so the helpers below typecheck).
+    BUTTON_SORT: int = 0
+    BUTTON_SOURCE_PREF: int = 0
+    full_artwork_list: list = []
+    sort_mode: str = 'popularity'
+    source_pref: str = 'all'
+
+    def _normalize_url(self, url: str) -> str:
+        """Normalize URL for comparison; collapses fanart.tv paths to filename only."""
+        if not url:
+            return ''
+        decoded = decode_image_url(url)
+        if 'assets.fanart.tv' in decoded:
+            return decoded.split('/')[-1]
+        return decoded
+
+    def _get_available_sources(self) -> set:
+        """Get set of unique sources in the full artwork list."""
+        sources = set()
+        for art in self.full_artwork_list:
+            source = art.get('source', '').lower()
+            if source in ('tmdb', 'fanart.tv', 'fanarttv'):
+                sources.add('tmdb' if source == 'tmdb' else 'fanart')
+        return sources
+
+    def _get_available_resolutions(self) -> set:
+        """Get set of unique resolutions in the full artwork list."""
+        resolutions = set()
+        for art in self.full_artwork_list:
+            width = art.get('width')
+            height = art.get('height')
+            if width and height:
+                resolutions.add((width, height))
+        return resolutions
+
+    def _toggle_sort_mode(self) -> None:
+        """Toggle between popularity and resolution sort modes."""
+        self.sort_mode = 'resolution' if self.sort_mode == 'popularity' else 'popularity'
+        self._resort_artwork()
+        self._update_sort_button_label()
+
+    def _update_sort_button_label(self) -> None:
+        """Update sort button label to show current mode."""
+        try:
+            button = self.getControl(self.BUTTON_SORT)
+            if self.sort_mode == 'popularity':
+                button.setLabel('Sort: Popularity')
+            else:
+                button.setLabel('Sort: Resolution')
+        except Exception:
+            pass
+
+    def _toggle_source_pref(self) -> None:
+        """Toggle between source filters: all -> tmdb -> fanart -> all."""
+        if self.source_pref == 'all':
+            self.source_pref = 'tmdb'
+        elif self.source_pref == 'tmdb':
+            self.source_pref = 'fanart'
+        else:
+            self.source_pref = 'all'
+        self._resort_artwork()
+        self._update_source_pref_button_label()
+
+    def _update_source_pref_button_label(self) -> None:
+        """Update source filter button label to show current filter."""
+        try:
+            button = self.getControl(self.BUTTON_SOURCE_PREF)
+            if self.source_pref == 'all':
+                button.setLabel(ADDON.getLocalizedString(32132))
+            elif self.source_pref == 'tmdb':
+                button.setLabel(ADDON.getLocalizedString(32133))
+            else:
+                button.setLabel(ADDON.getLocalizedString(32134))
+        except Exception:
+            pass
+
+    def _resort_artwork(self) -> None:
+        """Subclasses must implement: re-sort `full_artwork_list` honoring sort_mode/source_pref/language."""
+        raise NotImplementedError
 
     def create_artwork_listitem(
         self,
         art_info: dict,
         index: int
     ) -> xbmcgui.ListItem:
-        """
-        Create ListItem from artwork info dict with all metadata.
+        """Create ListItem from artwork info dict.
 
-        Args:
-            art_info: Dict with url, previewurl, width, height, rating, language, likes, season
-            index: 0-based index for "Option N" label
-
-        Returns:
-            Configured ListItem with properties for XML skinning:
-            - ListItem.Property(dimensions): Width x Height (e.g., "1920x1080")
-            - ListItem.Property(width): Image width in pixels
-            - ListItem.Property(height): Image height in pixels
-            - ListItem.Property(source): Source name (e.g., "TMDB", "fanart.tv")
-            - ListItem.Property(language): Display name for this artwork's language (e.g., "English")
-            - ListItem.Property(language_short): Language code for this artwork (e.g., "en")
-            - ListItem.Property(season): Season number (when available)
-            - ListItem.Property(fullurl): Full resolution image URL
-
-            Internal properties:
-            - ListItem.Property(index): 0-based index for selection tracking
+        Properties (accessible in dialog skin XML via ListItem.Property):
+        - dimensions: Width x Height (e.g., "1920x1080")
+        - width: Image width in pixels
+        - height: Image height in pixels
+        - source: Source name (e.g., "TMDB", "fanart.tv")
+        - language: Display name (e.g., "English")
+        - language_short: Language code (e.g., "en")
+        - season: Season number (when available)
+        - fullurl: Full resolution image URL
         """
         url = art_info.get('url', '')
         preview = art_info.get('previewurl', url)
@@ -73,16 +145,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         return item
 
     def populate_list_batch(self, control, items: List[xbmcgui.ListItem]) -> None:
-        """
-        Add items to list control using batch operation.
-
-        This is 30-50% faster than calling control.addItem() in a loop
-        for large lists (20+ items).
-
-        Args:
-            control: Kodi list control
-            items: List of ListItems to add
-        """
+        """Add items to list control via addItems() - much faster than addItem() in a loop."""
         control.reset()
         if items:
             control.addItems(items)

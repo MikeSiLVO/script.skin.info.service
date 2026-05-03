@@ -12,7 +12,7 @@ from typing import Optional, List, Tuple, Any, Sequence
 from lib.data import database as db
 from lib.kodi.client import get_item_details, get_library_items, KODI_GET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utils import get_preferred_language_code
+from lib.kodi.utilities import get_preferred_language_code
 from lib.artwork.config import REVIEW_MODE_MISSING
 from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
@@ -20,17 +20,9 @@ from lib.kodi.client import log, ADDON
 
 
 class ArtworkScanner:
-    """
-    Scans library for missing artwork, builds queue for review.
-    """
+    """Scans library for missing artwork, builds queue for review."""
 
     def __init__(self, fetcher: Optional[ApiArtworkFetcher] = None):
-        """
-        Initialize scanner.
-
-        Args:
-            fetcher: Optional artwork fetcher instance (for testing/injection)
-        """
         self.scan_mode = REVIEW_MODE_MISSING
         self.preferred_language = get_preferred_language_code()
         self.cancelled = False
@@ -49,13 +41,7 @@ class ArtworkScanner:
             self.fetcher = create_default_fetcher()
 
     def _wait_for_dialog_close(self, dialog_name: str, timeout_ms: int = 1000) -> None:
-        """
-        Wait for a Kodi dialog to fully close.
-
-        Args:
-            dialog_name: Name of dialog to wait for (e.g., "YesNoDialog", "ProgressDialog")
-            timeout_ms: Maximum time to wait in milliseconds
-        """
+        """Wait for a Kodi dialog to fully close."""
         monitor = xbmc.Monitor()
         waited = 0
         sleep_interval = 50
@@ -134,16 +120,7 @@ class ArtworkScanner:
     }
 
     def scan_single_item(self, dbid: str, dbtype: str) -> bool:
-        """
-        Scan a single item for missing artwork.
-
-        Args:
-            dbid: Database ID of the item
-            dbtype: Type of the item (movie, tvshow, episode, etc.)
-
-        Returns:
-            True if item was added to queue, False otherwise
-        """
+        """Scan a single item for missing artwork. Returns True if added to queue."""
         from lib.artwork.config import validate_media_type, validate_dbid
 
         if not validate_dbid(dbid):
@@ -193,15 +170,14 @@ class ArtworkScanner:
         return False
 
     def scan(self, media_type: str, resume_session_id: Optional[int] = None) -> bool:
-        """
-        Scan library for missing artwork.
+        """Scan library for missing artwork.
 
         Args:
-            media_type: "movies", "tvshows", or "all"
-            resume_session_id: Optional session ID to resume from
+            media_type: "movies", "tvshows", "music", or "all".
+            resume_session_id: Optional session ID to resume from.
 
         Returns:
-            True if scan queued any results or was cancelled gracefully, False on fatal error
+            True if scan queued any results or was cancelled gracefully, False on fatal error.
         """
         media_types = []
         if media_type in ("movies", "all"):
@@ -306,9 +282,7 @@ class ArtworkScanner:
         scope_label: str,
         progress_title: str,
     ) -> bool:
-        """
-        Scan a collection of media items for missing artwork.
-        """
+        """Scan a collection of media items for missing artwork."""
         if not items:
             return True
 
@@ -399,15 +373,7 @@ class ArtworkScanner:
         return not self.cancelled
 
     def _get_art_types_to_check(self, media_type: Optional[str] = None) -> List[str]:
-        """
-        Get art types to check from settings.
-
-        Args:
-            media_type: Optional media type to filter incompatible art types
-
-        Returns:
-            List of art types appropriate for the media type
-        """
+        """Get art types to check from settings, filtered to those compatible with media_type."""
         setting_value = KodiSettings.art_types_to_check()
         if setting_value:
             art_types = [t.strip() for t in setting_value.split(",") if t.strip()]
@@ -430,142 +396,92 @@ class ArtworkScanner:
 
         return art_types
 
-    def _scan_movies(self, art_types: List[str], session_id: int, scope_label: str = 'movies') -> bool:
-        """Scan movies for missing artwork."""
+    # Per-type scan configuration: properties to fetch, title/year keys, progress label.
+    # Seasons fetch via tvshow with nested seasons enabled.
+    _SCAN_CONFIGS = {
+        'movie': {
+            'fetch_media_type': 'movie', 'id_key': 'movieid',
+            'properties': ["title", "year", "art"],
+            'title_key': 'label', 'year_key': 'year',
+            'progress_title': "Scanning Movies",
+        },
+        'tvshow': {
+            'fetch_media_type': 'tvshow', 'id_key': 'tvshowid',
+            'properties': ["title", "year", "art"],
+            'title_key': 'label', 'year_key': 'year',
+            'progress_title': "Scanning TV Shows",
+        },
+        'season': {
+            'fetch_media_type': 'tvshow', 'id_key': 'seasonid',
+            'properties': ["title", "art"],
+            'title_key': 'label', 'year_key': None,
+            'progress_title': "Scanning Seasons",
+            'include_nested_seasons': True,
+            'season_properties': ["title", "art", "season", "showtitle"],
+            'filter_after_fetch': 'season',
+        },
+        'artist': {
+            'fetch_media_type': 'artist', 'id_key': 'artistid',
+            'properties': ["artist", "art"],
+            'title_key': 'artist', 'year_key': None,
+            'progress_title': "Scanning Artists",
+        },
+        'album': {
+            'fetch_media_type': 'album', 'id_key': 'albumid',
+            'properties': ["title", "artist", "art", "year"],
+            'title_key': 'label', 'year_key': 'year',
+            'progress_title': "Scanning Albums",
+        },
+    }
+
+    def _scan_collection(self, media_type: str, art_types: List[str], session_id: int,
+                         scope_label: str) -> bool:
+        cfg = self._SCAN_CONFIGS[media_type]
         try:
-            movies = get_library_items(
-                media_types=['movie'],
-                properties=["title", "year", "art"],
-                decode_urls=True
-            )
+            kwargs = {
+                'media_types': [cfg['fetch_media_type']],
+                'properties': cfg['properties'],
+                'decode_urls': True,
+            }
+            if cfg.get('include_nested_seasons'):
+                kwargs['include_nested_seasons'] = True
+                kwargs['season_properties'] = cfg['season_properties']
+            items = get_library_items(**kwargs)
         except Exception as e:
-            log("Artwork", f"Error fetching movies: {e}", xbmc.LOGWARNING)
+            log("Artwork", f"Error fetching {scope_label}: {e}", xbmc.LOGWARNING)
             return True
 
-        if not movies:
+        post_filter = cfg.get('filter_after_fetch')
+        if post_filter:
+            items = [it for it in items if it.get('media_type') == post_filter]
+
+        if not items:
             return True
 
         return self._scan_media_collection(
-            items=movies,
-            db_media_type='movie',
-            id_key='movieid',
-            title_key='label',
-            year_key='year',
+            items=items,
+            db_media_type=media_type,
+            id_key=cfg['id_key'],
+            title_key=cfg['title_key'],
+            year_key=cfg['year_key'],
             art_types=art_types,
             session_id=session_id,
             scope_label=scope_label,
-            progress_title="Scanning Movies",
+            progress_title=cfg['progress_title'],
         )
+
+    def _scan_movies(self, art_types: List[str], session_id: int, scope_label: str = 'movies') -> bool:
+        return self._scan_collection('movie', art_types, session_id, scope_label)
 
     def _scan_tvshows(self, art_types: List[str], session_id: int, scope_label: str = 'tvshows') -> bool:
-        """Scan TV shows for missing artwork."""
-        try:
-            shows = get_library_items(
-                media_types=['tvshow'],
-                properties=["title", "year", "art"],
-                decode_urls=True
-            )
-        except Exception as e:
-            log("Artwork", f"Error fetching TV shows: {e}", xbmc.LOGWARNING)
-            return True
-
-        if not shows:
-            return True
-
-        return self._scan_media_collection(
-            items=shows,
-            db_media_type='tvshow',
-            id_key='tvshowid',
-            title_key='label',
-            year_key='year',
-            art_types=art_types,
-            session_id=session_id,
-            scope_label=scope_label,
-            progress_title="Scanning TV Shows",
-        )
+        return self._scan_collection('tvshow', art_types, session_id, scope_label)
 
     def _scan_seasons(self, art_types: List[str], session_id: int, scope_label: str = 'seasons') -> bool:
-        """Scan all seasons for all TV shows for missing artwork."""
-        try:
-            all_items = get_library_items(
-                media_types=['tvshow'],
-                properties=["title", "art"],
-                decode_urls=True,
-                include_nested_seasons=True,
-                season_properties=["title", "art", "season", "showtitle"]
-            )
-        except Exception as e:
-            log("Artwork", f"Error fetching seasons: {e}", xbmc.LOGWARNING)
-            return True
-
-        all_seasons = [item for item in all_items if item.get('media_type') == 'season']
-
-        if not all_seasons:
-            return True
-
-        return self._scan_media_collection(
-            items=all_seasons,
-            db_media_type='season',
-            id_key='seasonid',
-            title_key='label',
-            year_key=None,
-            art_types=art_types,
-            session_id=session_id,
-            scope_label=scope_label,
-            progress_title="Scanning Seasons",
-        )
+        return self._scan_collection('season', art_types, session_id, scope_label)
 
     def _scan_artists(self, art_types: List[str], session_id: int, scope_label: str = 'artists') -> bool:
-        """Scan music artists for missing artwork."""
-        try:
-            artists = get_library_items(
-                media_types=['artist'],
-                properties=["artist", "art"],
-                decode_urls=True
-            )
-        except Exception as e:
-            log("Artwork", f"Error fetching artists: {e}", xbmc.LOGWARNING)
-            return True
-
-        if not artists:
-            return True
-
-        return self._scan_media_collection(
-            items=artists,
-            db_media_type='artist',
-            id_key='artistid',
-            title_key='artist',
-            year_key=None,
-            art_types=art_types,
-            session_id=session_id,
-            scope_label=scope_label,
-            progress_title="Scanning Artists",
-        )
+        return self._scan_collection('artist', art_types, session_id, scope_label)
 
     def _scan_albums(self, art_types: List[str], session_id: int, scope_label: str = 'albums') -> bool:
-        """Scan music albums for missing artwork."""
-        try:
-            albums = get_library_items(
-                media_types=['album'],
-                properties=["title", "artist", "art", "year"],
-                decode_urls=True
-            )
-        except Exception as e:
-            log("Artwork", f"Error fetching albums: {e}", xbmc.LOGWARNING)
-            return True
-
-        if not albums:
-            return True
-
-        return self._scan_media_collection(
-            items=albums,
-            db_media_type='album',
-            id_key='albumid',
-            title_key='label',
-            year_key='year',
-            art_types=art_types,
-            session_id=session_id,
-            scope_label=scope_label,
-            progress_title="Scanning Albums",
-        )
+        return self._scan_collection('album', art_types, session_id, scope_label)
 

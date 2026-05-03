@@ -1,41 +1,33 @@
 """API response caching for TMDB and fanart.tv.
 
-Manages skininfo_v1.db cache tables with dynamic TTL based on media age.
+Manages cache tables with dynamic TTL based on media age.
 """
 from __future__ import annotations
 
-import json
 import random
-import zlib
 import xbmc
 from datetime import datetime, timedelta
 from typing import Any, Optional, Dict, List, Tuple
 
-from lib.data.database._infrastructure import get_db, DB_PATH, vacuum_database
+from lib.data.database._infrastructure import (
+    get_db,
+    DB_PATH,
+    compress_data as _compress_data,
+    decompress_data as _decompress_data,
+    sql_placeholders,
+)
 from lib.kodi.client import log
-
-
-def _compress_data(data: Any) -> bytes:
-    """Compress JSON data using zlib."""
-    json_str = json.dumps(data, separators=(',', ':'))
-    return zlib.compress(json_str.encode('utf-8'), level=6)
-
-
-def _decompress_data(data: bytes) -> Any:
-    """Decompress zlib-compressed JSON data."""
-    json_str = zlib.decompress(data).decode('utf-8')
-    return json.loads(json_str)
 
 
 def _tv_show_ttl(hints: Dict[str, Any]) -> int:
     """Calculate TTL for TV shows based on schedule and status hints.
 
-    Airing — Complete (next ep has name + overview + air_date):
+    Airing, complete (next ep has name + overview + air_date):
         < 7 days out:   random 24-48h
         7-30 days out:  random 3-6 days
         30+ days out:   random 14-30 days
 
-    Airing — Incomplete (next ep missing name/overview):
+    Airing, incomplete (next ep missing name/overview):
         < 7 days out:   24h
         7-30 days out:  random 2-4 days
         30-90 days out: random 3-6 days
@@ -44,10 +36,10 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
     Air date passed:        12h
     Active, no schedule:    random 3-7 days
 
-    Ended — Complete (aired_data_complete):
+    Ended, complete (aired_data_complete):
         Any age:        random 14-30 days
 
-    Ended — Incomplete:
+    Ended, incomplete:
         < 14 days:      random 24-72h
         14-30 days:     random 3-6 days
         30+ days:       random 7-14 days
@@ -103,32 +95,15 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
 
 
 def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, Any]] = None) -> int:
-    """
-    Dynamic cache TTL based on content status and metadata hints.
+    """Dynamic cache TTL (hours) based on content status and metadata hints.
 
-    Strategy:
-    - Movies by age (random range, no jitter):
-      - <90 days: random 24-48h
-      - 90 days - 1 year: random 3-6 days
-      - 1-2 years: random 7-14 days
-      - >2 years: random 14-30 days
-    - Unknown: random 24-48h
+    Movies age-tiered off `release_date`:
+      <90d random 24-48h, <1y random 3-6d, <2y random 7-14d, >2y random 14-30d, unknown random 24-48h.
+    TV shows ignore `release_date` and route through `_tv_show_ttl(hints)`.
 
-    Args:
-        release_date: Release date in YYYY-MM-DD format
-                     - Movies: used to determine age tier
-                     - TV Shows: ignored (schedule hints used instead)
-        hints: Optional dictionary of metadata hints for TTL calculation.
-               Supported keys:
-               - "status": TMDb status string (e.g., "Ended", "Canceled", "Returning Series")
-               - "next_episode_air_date": Air date of next ep with complete data (YYYY-MM-DD)
-               - "next_episode_air_date_incomplete": Air date of next ep missing name/overview
-               - "last_air_date": Air date of last episode (YYYY-MM-DD)
-               - "aired_data_complete": "true" if TV show core fields are filled (overview, cast, IDs, content ratings, last ep)
-               - "is_library_item": False for non-library items (fixed 24h TTL)
-
-    Returns:
-        TTL in hours
+    Recognised `hints` keys: status, next_episode_air_date,
+    next_episode_air_date_incomplete, last_air_date, aired_data_complete,
+    is_library_item (False forces 24h).
     """
 
     hints = hints or {}
@@ -163,13 +138,7 @@ def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, A
 
 
 def get_fanarttv_cache_ttl_hours() -> int:
-    """
-    Get cache TTL for Fanart.tv based on user's API key tier.
-
-    Returns:
-        48 hours if personal key configured (2-day tier)
-        168 hours if no key (7-day project tier)
-    """
+    """Cache TTL for Fanart.tv: 48h with personal key, 168h on project key."""
     from lib.kodi.settings import KodiSettings
     if KodiSettings.fanarttv_api_key():
         return 48
@@ -177,31 +146,17 @@ def get_fanarttv_cache_ttl_hours() -> int:
 
 
 def get_cached_artwork(media_type: str, media_id: str, source: str, art_type: str) -> Optional[list]:
-    """
-    Get cached artwork if available and not expired.
-
-    Args:
-        media_type: "movie", "tvshow", etc.
-        media_id: TMDB ID, TVDB ID, etc. (as string)
-        source: "tmdb" or "fanarttv"
-        art_type: "poster", "fanart", "clearlogo", etc.
-
-    Returns:
-        List of artwork dicts or None if not cached/expired
-    """
+    """Return cached artwork list, or None if missing/expired."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
-            SELECT data, expires_at FROM artwork_cache
+            SELECT data FROM artwork_cache
             WHERE media_type = ? AND media_id = ? AND source = ? AND art_type = ?
-        ''', (media_type, media_id, source, art_type))
+              AND expires_at > ?
+        ''', (media_type, media_id, source, art_type, datetime.now().isoformat()))
 
         row = cursor.fetchone()
 
         if not row:
-            return None
-
-        expires_at = datetime.fromisoformat(row['expires_at'])
-        if datetime.now() > expires_at:
             return None
 
         try:
@@ -216,6 +171,7 @@ def get_cached_artwork_batch(
     media_ids: Dict[str, str],
     art_types: List[str]
 ) -> Dict[Tuple[str, str], list]:
+    """Batch artwork lookup. `media_ids` is source -> id; returns (source, art_type) -> list."""
     if not media_ids or not art_types:
         return {}
 
@@ -231,31 +187,26 @@ def get_cached_artwork_batch(
     if not conditions:
         return {}
 
-    art_type_placeholders = ','.join('?' * len(art_types))
+    art_type_placeholders = sql_placeholders(len(art_types))
 
     query = f'''
-        SELECT source, art_type, data, expires_at
+        SELECT source, art_type, data
         FROM artwork_cache
         WHERE media_type = ?
           AND ({' OR '.join(conditions)})
           AND art_type IN ({art_type_placeholders})
+          AND expires_at > ?
     '''
 
-    query_params = [media_type] + params + art_types
+    query_params = [media_type] + params + art_types + [datetime.now().isoformat()]
 
     with get_db(DB_PATH) as cursor:
         cursor.execute(query, query_params)
         rows = cursor.fetchall()
 
         results: Dict[Tuple[str, str], list] = {}
-        now = datetime.now()
 
         for row in rows:
-            expires_at = datetime.fromisoformat(row['expires_at'])
-
-            if now > expires_at:
-                continue
-
             try:
                 key = (row['source'], row['art_type'])
                 results[key] = _decompress_data(row['data'])
@@ -267,18 +218,7 @@ def get_cached_artwork_batch(
 
 
 def cache_artwork(media_type: str, media_id: str, source: str, art_type: str, data: list, release_date: Optional[str] = None, ttl_hours: Optional[int] = None) -> None:
-    """
-    Cache artwork data.
-
-    Args:
-        media_type: "movie", "tvshow", etc.
-        media_id: TMDB ID, TVDB ID, etc. (as string)
-        source: "tmdb" or "fanarttv"
-        art_type: "poster", "fanart", "clearlogo", etc.
-        data: List of artwork dicts to cache
-        release_date: YYYY-MM-DD release date for TTL calculation
-        ttl_hours: Manual TTL override (if None, calculated from release_date)
-    """
+    """Cache artwork list. TTL derived from `release_date` unless `ttl_hours` is given."""
     if ttl_hours is None:
         ttl_hours = get_cache_ttl_hours(release_date)
 
@@ -292,28 +232,16 @@ def cache_artwork(media_type: str, media_id: str, source: str, art_type: str, da
 
 
 def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
-    """
-    Get cached extended metadata if not expired.
-
-    Args:
-        media_type: 'movie', 'tvshow', 'episode'
-        tmdb_id: TMDb ID as string
-
-    Returns:
-        Cached metadata dict or None if not cached/expired
-    """
+    """Return cached extended metadata, or None if missing/expired."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
-            SELECT data, expires_at FROM metadata_cache
+            SELECT data FROM metadata_cache
             WHERE media_type = ? AND tmdb_id = ?
-        ''', (media_type, tmdb_id))
+              AND expires_at > ?
+        ''', (media_type, tmdb_id, datetime.now().isoformat()))
 
         row = cursor.fetchone()
         if not row:
-            return None
-
-        expires_at = datetime.fromisoformat(row['expires_at'])
-        if datetime.now() > expires_at:
             return None
 
         try:
@@ -324,16 +252,9 @@ def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
 
 
 def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Optional[str], hints: Optional[Dict[str, Any]] = None, ttl_hours: Optional[int] = None) -> None:
-    """
-    Cache extended metadata with dynamic TTL and compression.
+    """Cache zlib-compressed metadata with dynamic TTL.
 
-    Args:
-        media_type: 'movie', 'tvshow', 'episode', 'artist', 'album'
-        tmdb_id: TMDb ID or MusicBrainz ID as string
-        data: Complete API response dict
-        release_date: YYYY-MM-DD from Kodi or API response
-        hints: Optional metadata hints for TTL calculation (see get_cache_ttl_hours)
-        ttl_hours: Manual TTL override (if None, calculated from release_date/hints)
+    For movies/tvshows, also copies `external_ids` into the id_mappings table.
     """
     if ttl_hours is None:
         ttl_hours = get_cache_ttl_hours(release_date, hints)
@@ -357,13 +278,108 @@ def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Opti
         )
 
 
-def clear_expired_cache() -> int:
-    """
-    Remove expired cache entries.
+def get_cached_season_metadata(tmdb_id: str, season_number: int) -> Optional[dict]:
+    """Return cached TMDB season-details response, or None if missing/expired."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            SELECT data FROM season_metadata_cache
+            WHERE tmdb_id = ? AND season_number = ?
+              AND expires_at > ?
+        ''', (tmdb_id, season_number, datetime.now().isoformat()))
 
-    Returns:
-        Number of entries removed
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        try:
+            return _decompress_data(row['data'])
+        except Exception as e:
+            log("Cache", f"Failed to decompress season metadata: {e}", xbmc.LOGERROR)
+            return None
+
+
+def cache_season_metadata(tmdb_id: str, season_number: int, data: dict,
+                          ttl_hours: Optional[int] = None) -> None:
+    """Cache zlib-compressed TMDB season-details response.
+
+    Default TTL: 24h if any episode hasn't aired yet (active season),
+    otherwise 30 days (frozen season data).
     """
+    if ttl_hours is None:
+        ttl_hours = _season_ttl_hours(data)
+    expires_at = datetime.now() + timedelta(hours=ttl_hours)
+    compressed = _compress_data(data)
+
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            INSERT OR REPLACE INTO season_metadata_cache
+            (tmdb_id, season_number, data, expires_at)
+            VALUES (?, ?, ?, ?)
+        ''', (tmdb_id, season_number, compressed, expires_at.isoformat()))
+
+
+def _season_ttl_hours(season_data: dict) -> int:
+    """Pick season-cache TTL: 24h if season is still airing, 30d if all episodes have aired."""
+    today = datetime.now().date().isoformat()
+    episodes = season_data.get("episodes") or []
+    if not episodes:
+        return 6
+    for ep in episodes:
+        air = ep.get("air_date") or ""
+        if not air or air > today:
+            return 24
+    return 24 * 30
+
+
+def get_cached_tmdb_genre_list(tmdb_type: str) -> Optional[Dict[int, str]]:
+    """Return cached TMDB genre id->name mapping for `movie` or `tv`, or None if missing/expired."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            SELECT data FROM tmdb_genre_cache
+            WHERE tmdb_type = ? AND expires_at > ?
+        ''', (tmdb_type, datetime.now().isoformat()))
+
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        try:
+            decoded = _decompress_data(row['data'])
+            return {int(k): v for k, v in decoded.items()}
+        except Exception as e:
+            log("Cache", f"Failed to decompress genre list: {e}", xbmc.LOGERROR)
+            return None
+
+
+def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: int = 24) -> None:
+    """Cache the TMDB genre id->name mapping for `movie` or `tv` (default 24h TTL)."""
+    expires_at = datetime.now() + timedelta(hours=ttl_hours)
+    compressed = _compress_data({str(k): v for k, v in mapping.items()})
+
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            INSERT OR REPLACE INTO tmdb_genre_cache
+            (tmdb_type, data, expires_at)
+            VALUES (?, ?, ?)
+        ''', (tmdb_type, compressed, expires_at.isoformat()))
+
+
+def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
+    """Shorten metadata cache TTL so the next fetch gets fresh data.
+
+    Only shortens. If the entry already expires sooner, it's left alone.
+    """
+    new_expires = (datetime.now() + timedelta(hours=ttl_hours)).isoformat()
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('''
+            UPDATE metadata_cache
+            SET expires_at = MIN(expires_at, ?)
+            WHERE media_type = ? AND tmdb_id = ?
+        ''', (new_expires, media_type, tmdb_id))
+
+
+def clear_expired_cache() -> int:
+    """Remove expired artwork/metadata entries and very old (180d+) online props. Returns count removed."""
     now = datetime.now()
     with get_db(DB_PATH) as cursor:
         cursor.execute(
@@ -378,6 +394,18 @@ def clear_expired_cache() -> int:
         )
         metadata_deleted = cursor.rowcount
 
+        cursor.execute(
+            'DELETE FROM season_metadata_cache WHERE expires_at < ?',
+            (now.isoformat(),)
+        )
+        season_deleted = cursor.rowcount
+
+        cursor.execute(
+            'DELETE FROM tmdb_genre_cache WHERE expires_at < ?',
+            (now.isoformat(),)
+        )
+        genre_deleted = cursor.rowcount
+
         # Stale online props served until refreshed, but purge very old entries
         cutoff = (now - timedelta(days=180)).isoformat()
         cursor.execute(
@@ -386,24 +414,16 @@ def clear_expired_cache() -> int:
         )
         online_deleted = cursor.rowcount
 
-        deleted = artwork_deleted + metadata_deleted + online_deleted
+        deleted = artwork_deleted + metadata_deleted + season_deleted + genre_deleted + online_deleted
 
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")
-        vacuum_database()
 
     return deleted
 
 
 def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
-    """
-    Cache complete TMDB person data.
-
-    Args:
-        person_id: TMDB person ID
-        data: Complete person data from TMDB API
-        ttl_days: Time to live in days (default: 30)
-    """
+    """Cache compressed TMDB person data with a days-based TTL."""
     import time
 
     now = int(time.time())
@@ -417,15 +437,7 @@ def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
 
 
 def get_cached_person_data(person_id: int) -> Optional[dict]:
-    """
-    Get cached person data if not expired.
-
-    Args:
-        person_id: TMDB person ID
-
-    Returns:
-        Cached person data or None if not cached/expired
-    """
+    """Return cached TMDB person data, or None if missing/expired."""
     import time
 
     with get_db(DB_PATH) as cursor:
@@ -458,11 +470,7 @@ def get_cached_online_keys() -> set:
 
 
 def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
-    """Get cached online properties, serving stale data until refreshed.
-
-    Returns:
-        Cached properties dict or None if not cached
-    """
+    """Return cached online properties. Serves stale data until a refresh overwrites it."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT data FROM online_properties_cache
@@ -496,7 +504,7 @@ def get_mb_id_mappings_by_canonical(canonical_id: str) -> List[str]:
 
 
 def save_mb_id_mapping(old_id: str, canonical_id: str) -> None:
-    """Store an old->canonical MusicBrainz ID mapping. Permanent — merges never reverse."""
+    """Store an old->canonical MusicBrainz ID mapping. Permanent because merges never reverse."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'INSERT OR REPLACE INTO mb_id_mappings (old_id, canonical_id) VALUES (?, ?)',
@@ -538,14 +546,7 @@ def invalidate_online_properties_by_keys(keys: List[str]) -> int:
 
 
 def cache_online_properties(item_key: str, props: Dict[str, str], ttl_hours: int = 1) -> None:
-    """
-    Cache online properties.
-
-    Args:
-        item_key: Unique key for the item (e.g., "movie:123:tt1234567:456")
-        props: Dictionary of property key -> value pairs
-        ttl_hours: Time to live in hours (default: 1 hour)
-    """
+    """Cache a key -> value properties dict for an item (e.g. "movie:123:tt1234567:456")."""
     expires_at = datetime.now() + timedelta(hours=ttl_hours)
     compressed = _compress_data(props)
 
