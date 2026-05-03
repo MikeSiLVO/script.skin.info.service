@@ -1804,3 +1804,23 @@ msgstr "Pobierz miniaturę odcinka podczas operacji zbiorczych"
 msgctxt "#32987"
 msgid "Text too long to fully display"
 msgstr "Tekst jest zbyt długi, by wyświetlić go w całości."
+
+msgctxt "#32988"
+msgid "Sync TV Show Metadata"
+msgstr "Synchronizacja metadanych seriali"
+
+msgctxt "#32989"
+msgid "Updates online metadata for every TV show in your library. Large libraries may take significantly longer."
+msgstr "Aktualizuje metadane online dla każdego serialu w bibliotece. W przypadku dużych bibliotek może to potrwać znacznie dłużej."
+
+msgctxt "#32990"
+msgid "Fetching {0:d} of {1:d}"
+msgstr "Pobieranie {0:d} z {1:d}"
+
+msgctxt "#32991"
+msgid "Updated: {0:d}[CR]Skipped: {1:d}[CR]Failed: {2:d}"
+msgstr "Zaktualizowano: {0:d}[CR]Pominięto: {1:d}[CR]Niepowodzenie: {2:d}"
+
+msgctxt "#32992"
+msgid "Library Maintenance"
+msgstr "Zarządzanie biblioteką"
