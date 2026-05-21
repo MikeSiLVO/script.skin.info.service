@@ -89,7 +89,6 @@ class FocusHandler:
                     new_keys.add(key)
             for old_key in self._last_prop_keys - new_keys:
                 props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
-            props_to_set[f"{ONLINE_PROPERTY_PREFIX}ItemDBID"] = dbid
             batch_set_props(props_to_set)
             self._last_prop_keys = new_keys
             return
@@ -104,13 +103,13 @@ class FocusHandler:
         self._fetch_for_key = cache_key
         self._fetch_thread = threading.Thread(
             target=self._fetch_worker,
-            args=(effective_type, imdb_id, tmdb_id, cache_key, dbid, tvshowid_for_schedule),
+            args=(effective_type, imdb_id, tmdb_id, cache_key, tvshowid_for_schedule),
             daemon=True,
         )
         self._fetch_thread.start()
 
     def _fetch_worker(self, media_type: str, imdb_id: str, tmdb_id: str,
-                      cache_key: str, item_dbid: str, tvshowid_for_schedule: int = 0) -> None:
+                      cache_key: str, tvshowid_for_schedule: int = 0) -> None:
         try:
             abort_flag = self._service.abort_flag
             if abort_flag.is_requested():
@@ -122,6 +121,13 @@ class FocusHandler:
                 return
             if not props:
                 return
+
+            ttl_hours = get_online_ttl(media_type, tmdb_id)
+            cache_online_properties(cache_key, props, ttl_hours=ttl_hours)
+
+            if media_type == "tvshow" and tvshowid_for_schedule:
+                self._upsert_schedule_from_cache(tmdb_id, tvshowid_for_schedule)
+
             if cache_key != self._last_item_key:
                 return
 
@@ -136,15 +142,7 @@ class FocusHandler:
                 props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
             self._last_prop_keys = new_keys
 
-            props_to_set[f"{ONLINE_PROPERTY_PREFIX}ItemDBID"] = item_dbid
-
             batch_set_props(props_to_set)
-
-            ttl_hours = get_online_ttl(media_type, tmdb_id)
-            cache_online_properties(cache_key, props, ttl_hours=ttl_hours)
-
-            if media_type == "tvshow" and tvshowid_for_schedule:
-                self._upsert_schedule_from_cache(tmdb_id, tvshowid_for_schedule)
 
         except Exception as e:
             log("Service", f"Online fetch error: {e}", xbmc.LOGWARNING)

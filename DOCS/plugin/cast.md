@@ -27,9 +27,10 @@ Returns deduplicated cast list for movies, TV shows, seasons, movie sets, or epi
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `dbid` | Yes | Database ID of the item |
+| `dbid` | Conditional | Library ID of the item (required if `online=false`; either `dbid` or `tmdb_id` if `online=true`) |
+| `tmdb_id` | Conditional | TMDB ID. Only used when `online=true`; takes precedence over `dbid` for the TMDB lookup |
 | `dbtype` | Yes | Media type: `movie`, `tvshow`, `season`, `set`, `episode` |
-| `online` | No | Use fresh TMDB data instead of Kodi database (`true` to enable) |
+| `online` | No | Use fresh TMDB data instead of Kodi database (`true` to enable). Required if only `tmdb_id` is provided. |
 
 ### Supported Types
 

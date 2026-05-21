@@ -57,6 +57,9 @@ All actions use `action=name` or `dialog=type` syntax.
   - [Check File Exists](#check-file-exists)
 - [JSON-RPC Utilities](#json-rpc-utilities)
   - [JSON-RPC Wrapper](#json-rpc-wrapper)
+- [Search Utilities](#search-utilities)
+  - [TMDB Search](#tmdb-search)
+  - [Library Person Search](#library-person-search)
 
 ---
 
@@ -1536,6 +1539,52 @@ Auto-increment properties on fixed time intervals for periodic widget refresh.
 - Timers start when service starts
 - Properties increment based on elapsed time, not absolute time
 - All scheduled refresh properties are independent
+
+---
+
+## Search Utilities
+
+### TMDB Search
+
+**RunScript:** `action=tmdb_search`
+
+Opens a keyboard for a search query, fetches matches from TMDB, and shows a picker dialog. Sets a Window property with a plugin URL pointing to the picked item's details, ready to bind to a container.
+
+Append `:YYYY` to the query to restrict by year (movies/TV only).
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=tmdb_search,dbtype=movie,property=SkinInfo.Search.Details,window=home)</onclick>
+
+<control type="list" id="9100">
+    <content>$INFO[Window(Home).Property(SkinInfo.Search.Details)]</content>
+</control>
+```
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | No | `movie` | `movie`, `tv`, or `person` |
+| `property` | No | `SkinInfo.Search.Details` | Window property name to set |
+| `window` | No | `home` | Window to set the property on |
+| `doneaction` | No | - | Pipe-separated builtin actions to fire after the user picks (e.g. `ActivateWindow(Videos,...)`) |
+
+### Library Person Search
+
+**RunScript:** `action=search_library_person`
+
+Looks up library items where a person appears as actor or as a specific crew role, shows a picker, and navigates to the chosen movie/show/episode.
+
+```xml
+<!-- Actor search (default) -->
+<onclick>RunScript(script.skin.info.service,action=search_library_person,name=$ESCINFO[ListItem.Label])</onclick>
+
+<!-- Director search -->
+<onclick>RunScript(script.skin.info.service,action=search_library_person,name=$ESCINFO[ListItem.Label],crew=director)</onclick>
+```
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `name` | Yes | - | Person name (URL-encoded, use `$ESCINFO[...]`) |
+| `crew` | No | (actor) | Empty for actor, `director` or `writer` to filter by crew role |
 
 ---
 

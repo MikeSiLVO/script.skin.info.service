@@ -659,36 +659,66 @@ def handle_by_director(handle: int, params: dict) -> None:
 
 
 def handle_similar(handle: int, params: dict) -> None:
-    """Plugin entry: library items similar to the source, scored by genre overlap + year/MPAA proximity."""
-    dbid_param = params.get('dbid', [''])[0]
-    if not dbid_param:
-        xbmcplugin.endOfDirectory(handle)
-        return
+    """Plugin entry: library items similar to the source, scored by genre overlap + year/MPAA proximity.
 
-    dbid = int(dbid_param)
+    Seed item lookup: prefers library `dbid`+`dbtype` (full year/MPAA data); falls back to
+    `tmdb_id`+`dbtype` (TMDB genres + release year, no MPAA proximity score).
+    """
+    dbid_param = params.get('dbid', [''])[0]
+    tmdb_id_param = params.get('tmdb_id', [''])[0]
     dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])
 
-    properties = ['genre', 'year', 'mpaa']
-    if dbtype == 'episode':
-        properties.extend(['tvshowid'])
-
-    item = get_item_details(dbtype, dbid, properties)
-
-    if not item:
+    if not dbid_param and not tmdb_id_param:
         xbmcplugin.endOfDirectory(handle)
         return
 
-    genres = item.get('genre', [])
-    if not isinstance(genres, list):
-        genres = [genres] if genres else []
+    dbid = 0
+    genres: list = []
+    source_year = 0
+    source_mpaa = ''
+
+    if dbid_param:
+        try:
+            dbid = int(dbid_param)
+        except (ValueError, TypeError):
+            dbid = 0
+
+    if dbid:
+        properties = ['genre', 'year', 'mpaa']
+        if dbtype == 'episode':
+            properties.extend(['tvshowid'])
+
+        item = get_item_details(dbtype, dbid, properties)
+        if item:
+            raw_genres = item.get('genre', [])
+            if not isinstance(raw_genres, list):
+                raw_genres = [raw_genres] if raw_genres else []
+            genres = raw_genres
+            source_year = item.get('year', 0)
+            source_mpaa = item.get('mpaa', '')
+
+    if not genres and tmdb_id_param:
+        try:
+            tmdb_id = int(tmdb_id_param)
+        except (ValueError, TypeError):
+            tmdb_id = 0
+
+        if tmdb_id and dbtype in ('movie', 'tvshow'):
+            from lib.data.api.tmdb import ApiTmdb
+            tmdb_data = ApiTmdb().get_complete_data(dbtype, tmdb_id)
+            if tmdb_data:
+                genres = [g.get('name', '') for g in (tmdb_data.get('genres') or []) if g.get('name')]
+                date_str = tmdb_data.get('release_date') or tmdb_data.get('first_air_date') or ''
+                if date_str and len(date_str) >= 4:
+                    try:
+                        source_year = int(date_str[:4])
+                    except (ValueError, TypeError):
+                        source_year = 0
 
     if not genres:
         xbmcplugin.endOfDirectory(handle)
         return
-
-    source_year = item.get('year', 0)
-    source_mpaa = item.get('mpaa', '')
 
     target_dbtype = 'movie' if dbtype in ('movie', 'set') else 'tvshow'
 

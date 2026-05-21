@@ -17,7 +17,8 @@ Skin Info Service provides:
 - **Service Properties** - Window properties updated on focus changes
 - **Online Properties** - Ratings and metadata from external APIs
 - **Plugin Paths** - Widgets, cast lists, DBID queries, person info
-- **Tools** - Blur generator, color picker, artwork reviewer, slideshow
+- **Info Dialogs** - Full-screen Actor Info, Video Info, and Image Viewer dialogs
+- **Tools** - Blur generator, color picker, artwork reviewer, slideshow, ratings update, IMDb Top 250
 
 ---
 
@@ -63,6 +64,14 @@ See [Getting Started](DOCS/getting-started.md) for setup details.
 | [Path Statistics](DOCS/plugin/stats.md)     | Counts and totals for library paths    |
 | [Person Info](DOCS/plugin/person.md)        | Actor/director biography, filmography  |
 
+### 🎭 Info Dialogs
+
+| Document                                          | Description                                       |
+|---------------------------------------------------|---------------------------------------------------|
+| [Actor Info](DOCS/dialogs/actor-info.md)          | TMDB person info with filmography and images     |
+| [Video Info](DOCS/dialogs/video-info.md)          | TMDB movie/TV info with cast, recommendations    |
+| [Image Viewer](DOCS/dialogs/image-viewer.md)      | Full-screen image gallery for any plugin URL     |
+
 ### 🛠️ Tools
 
 | Document                                        | Description                        |
@@ -71,10 +80,13 @@ See [Getting Started](DOCS/getting-started.md) for setup details.
 | [Blur](DOCS/tools/blur.md)                      | Generate blurred background images |
 | [Color Picker](DOCS/tools/color-picker.md)      | RGBA color picker dialog           |
 | [Download Artwork](DOCS/tools/download-artwork.md) | Download artwork and actor images to filesystem |
+| [Fix Library IDs](DOCS/tools/fix-library-ids.md) | Resolve missing IMDb/TMDB/TVDB uniqueids |
 | [GIF Scanner](DOCS/tools/gif-scanner.md)        | Find animated artwork in library   |
 | [Metadata Editor](DOCS/tools/metadata-editor.md)| Edit library item metadata         |
+| [Ratings Update](DOCS/tools/ratings-update.md)  | Refresh IMDb/TMDB/Trakt ratings in bulk |
 | [Slideshow](DOCS/tools/slideshow.md)            | Rotating fanart backgrounds        |
 | [Texture Cache](DOCS/tools/texture-cache.md)    | Texture database utilities         |
+| [IMDb Top 250 Update](DOCS/tools/top250-update.md) | Set Top 250 rank on library items |
 
 ### 📋 Reference
 
@@ -100,6 +112,8 @@ Available tools:
 - Animated Art Scanner
 - Texture Cache Manager
 - Download Artwork to Filesystem
+- Fix Library IDs
+- IMDb Top 250 Update
 
 ---
 

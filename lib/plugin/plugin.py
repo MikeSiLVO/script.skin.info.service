@@ -167,6 +167,11 @@ def _handle_recommended(handle: int, params: dict) -> None:
     handle_recommended(handle, params)
 
 
+def _handle_tmdb_recommendations(handle: int, params: dict) -> None:
+    from lib.plugin.widgets.discovery import handle_tmdb_recommendations
+    handle_tmdb_recommendations(handle, params)
+
+
 def _handle_seasonal(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_seasonal
     handle_seasonal(handle, params)
@@ -256,6 +261,7 @@ _HANDLERS = {
     'by_director': _handle_by_director,
     'similar': _handle_similar,
     'recommended': _handle_recommended,
+    'tmdb_recommendations': _handle_tmdb_recommendations,
     'seasonal': _handle_seasonal,
     'similar_artists': _handle_similar_artists,
     'artist_albums': _handle_artist_albums,

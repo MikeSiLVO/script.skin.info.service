@@ -32,7 +32,7 @@ def _resolve_artist_name(params: dict) -> Optional[str]:
         return artists[0] if artists else None
 
     if dbtype == 'artist':
-        details = get_item_details('artist', dbid, ['artist'])
+        details = get_item_details('artist', dbid, [])
         return details.get('artist') if details else None
 
     if dbtype == 'album':

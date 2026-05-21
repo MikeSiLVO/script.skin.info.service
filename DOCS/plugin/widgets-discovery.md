@@ -16,6 +16,7 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [TMDB Upcoming](#tmdb-upcoming)
 - [TMDB Airing Today](#tmdb-airing-today)
 - [TMDB On The Air](#tmdb-on-the-air)
+- [TMDB Recommendations](#tmdb-recommendations)
 
 **Trakt**
 - [Trakt Trending](#trakt-trending)
@@ -199,6 +200,39 @@ TV shows with episodes airing within the next 7 days.
 - TV only. `type` parameter is ignored.
 
 **Widget Type:** TV Show
+
+---
+
+## TMDB Recommendations
+
+"You might also like" items derived from a specific movie or TV show. Unlike the global discovery widgets, this requires a seed item.
+
+### Usage
+
+```xml
+<!-- Seeded by a library item -->
+<content>plugin://script.skin.info.service/?action=tmdb_recommendations&amp;dbtype=movie&amp;dbid=$INFO[ListItem.DBID]</content>
+
+<!-- Seeded by a TMDB-only item -->
+<content>plugin://script.skin.info.service/?action=tmdb_recommendations&amp;dbtype=movie&amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | Yes | - | `movie` or `tvshow` |
+| `tmdb_id` | Conditional | - | TMDB ID of the seed item. Provide this OR `dbid`. |
+| `dbid` | Conditional | - | Library ID of the seed item. |
+| `limit` | No | 25 | Maximum items |
+| `source` | No | `online` | `online` returns all; `library` filters to items in your library |
+
+### Notes
+
+- Each item gets `IsInLibrary=true` set when it matches an item in the Kodi library.
+- Item properties match the other TMDB widgets — see [Item Properties](#item-properties).
+
+**Widget Type:** Movie or TV Show
 
 ---
 

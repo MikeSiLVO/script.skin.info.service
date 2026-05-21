@@ -219,16 +219,23 @@ Items similar to source based on genre matching with year/MPAA scoring.
 ### Usage
 
 ```xml
+<!-- Library item as seed -->
 <content>plugin://script.skin.info.service/?action=similar&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]</content>
+
+<!-- TMDB-only item as seed (no library entry) -->
+<content>plugin://script.skin.info.service/?action=similar&amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]&amp;dbtype=movie</content>
 ```
 
 ### Parameters
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `dbid` | Yes | - | Database ID |
-| `dbtype` | No | movie | Source type (movie/tvshow/episode) |
+| `dbid` | Conditional | - | Library ID. Provide this OR `tmdb_id`. Library seed gives the richest scoring (year + MPAA proximity). |
+| `tmdb_id` | Conditional | - | TMDB ID. Used when no library entry exists. Genres pulled from TMDB; MPAA proximity scoring skipped. |
+| `dbtype` | No | movie | Source type (`movie`, `tvshow`, `episode`) |
 | `limit` | No | 25 | Maximum items |
+
+Results are always **library items** — `tmdb_id` only changes how the seed's genres are obtained.
 
 ### Scoring
 
