@@ -1,6 +1,7 @@
 """Focus dispatcher: reads ListItem.DBID and sets per-type SkinInfo.* properties."""
 from __future__ import annotations
 
+import re
 import threading
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
@@ -20,6 +21,7 @@ from lib.service.properties import (
     set_season_properties,
     set_episode_properties,
     set_ratings_properties,
+    set_movie_extras_aggregates,
 )
 
 if TYPE_CHECKING:
@@ -27,6 +29,40 @@ if TYPE_CHECKING:
 
 
 CACHE_MOVIESET_TTL = 300
+
+_ASSET_VIEW_PATH_RE = re.compile(r"^videodb://.*?/(\d+)/-?\d+/?(?:\?|$)")
+
+
+def _fetch_extras_aggregates(parent_dbid: str) -> Tuple[int, int, int, int]:
+    """Return (count, total_runtime_seconds, unwatched, unwatched_runtime_seconds) for
+    a movie's extras folder. Uncached: invalidate_asset_view() forces refetch when an
+    extra is watched, and the dedup at _last_asset_parent already prevents per-tick
+    churn while idle. `runtime` inherits parent movie duration for extras, so per-file
+    length comes from `streamdetails.video[0].duration`.
+    """
+    resp = request(
+        "Files.GetDirectory",
+        {
+            "directory": f"videodb://movies/titles/{parent_dbid}/2/",
+            "media": "video",
+            "properties": ["streamdetails", "playcount"],
+        },
+    )
+    files = extract_result(resp, "files", [])
+    if not isinstance(files, list) or not files:
+        return 0, 0, 0, 0
+    count = len(files)
+    total_runtime = 0
+    unwatched = 0
+    unwatched_runtime = 0
+    for f in files:
+        video = (f.get("streamdetails") or {}).get("video") or []
+        duration = int(video[0].get("duration") or 0) if video else 0
+        total_runtime += duration
+        if int(f.get("playcount") or 0) == 0:
+            unwatched += 1
+            unwatched_runtime += duration
+    return count, total_runtime, unwatched, unwatched_runtime
 
 
 _MEDIA_TYPE_PREFIXES = {
@@ -91,6 +127,7 @@ class FocusDispatcher:
         self._service = service
         self._last_id: Optional[str] = None
         self._last_type: Optional[str] = None
+        self._last_asset_parent: Optional[str] = None
 
     def clear_media_type(self, media_type: str) -> None:
         """Clear all `SkinInfo.<MediaType>.*` props for the given type."""
@@ -102,10 +139,53 @@ class FocusDispatcher:
         if media_type in ("musicvideo", "musicvideo_artist"):
             self._service.musicvideo.reset_online_key()
 
+    def invalidate_asset_view(self) -> None:
+        """Force a refetch of extras aggregates on the next tick. Called from the
+        library monitor on playcount-relevant events (extra watched / marked watched).
+        """
+        self._last_asset_parent = None
+
+    def _handle_asset_view(self) -> bool:
+        """Inside a videoversions/videoextras container, treat the parent movie as the
+        focus context: keep `SkinInfo.Movie.*` populated from parent and expose
+        `SkinInfo.Movie.Extras.*` aggregates. Driven by `Container.FolderPath` because
+        focused items often lack a DBID (Extras folder, extras files). Piers+ only.
+        Returns True while the asset view is active so `process()` can preserve
+        `SkinInfo.Movie.*` on empty-DBID focus.
+        """
+        if not is_kodi_piers_or_later():
+            return False
+        in_container = xbmc.getCondVisibility(
+            "Container.Content(videoversions) | Container.Content(videoextras)"
+        )
+        if not in_container:
+            if self._last_asset_parent is not None:
+                set_movie_extras_aggregates(0, 0, 0, 0)
+                self._last_asset_parent = None
+            return False
+        folder_path = xbmc.getInfoLabel("Container.FolderPath") or ""
+        match = _ASSET_VIEW_PATH_RE.match(folder_path)
+        if not match:
+            return True
+        parent_dbid = match.group(1)
+        if parent_dbid != self._last_asset_parent:
+            self._set_movie(parent_dbid)
+            self._last_id = parent_dbid
+            self._last_type = "movie"
+            count, total_runtime, unwatched, unwatched_runtime = _fetch_extras_aggregates(parent_dbid)
+            set_movie_extras_aggregates(count, total_runtime, unwatched, unwatched_runtime)
+            self._last_asset_parent = parent_dbid
+        return True
+
     def process(self) -> None:
         """Read ListItem.DBID/DBType and dispatch to the matching detail setter."""
+        in_asset_view = self._handle_asset_view()
+
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
         if not dbid:
+            if in_asset_view:
+                self._service.blur.handle_focus()
+                return
             if self._last_type:
                 self.clear_media_type(self._last_type)
                 self._last_type = ""

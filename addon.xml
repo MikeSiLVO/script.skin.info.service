@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta26"
+	   version="2.0.0~beta27"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -34,6 +34,9 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta27
+- New: Movie.Extras.* aggregates (Count, Unwatched, runtimes) in video versions/extras view; parent Movie.* persists across focus on the Extras folder (Piers+)
+
 2.0.0~beta26
 - New: Actor Info, Video Info and Image Viewer dialogs (RunScript actions dialog_actor_info, dialog_video_info, dialog_image_viewer)
 - New: TMDB Recommendations widget for a specific movie/show (action=tmdb_recommendations)
