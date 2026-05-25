@@ -59,11 +59,9 @@ class RetryPoolEntry:
     media_type: str
     ids: Dict
     applied_ratings: Dict[str, Dict[str, float]]
-    fetched_ratings: List[Dict]
     sources_used: List[str]
     missing_sources: Set[str]
     failures: List[Dict]
-    attempts: int = 0
 
 
 class RatingBatchExecutor:
@@ -339,10 +337,6 @@ class RatingBatchExecutor:
         if state:
             log("Ratings", f"   Finalizing {state.title}: completed={state.completed_sources}, deferred={state.deferred_sources}", xbmc.LOGDEBUG)
             state.finalized = True
-
-    def get_pending_count(self) -> int:
-        """Get number of pending futures."""
-        return len(self.pending_futures)
 
     def get_unfinalized_items(self) -> List[int]:
         """Get list of item dbids that haven't been finalized."""

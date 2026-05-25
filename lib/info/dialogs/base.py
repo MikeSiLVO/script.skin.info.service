@@ -28,7 +28,7 @@ class InfoDialogBase(DialogBase):
         return cls(
             xml_name,
             ADDON_PATH,
-            'Default',
+            'default',
             '1080i',
             **kwargs
         )

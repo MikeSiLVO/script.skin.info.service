@@ -141,6 +141,7 @@ class ServiceMain(threading.Thread):
                     log("Service", f"Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service", xbmc.LOGERROR)
                     break
         finally:
+            self.slideshow.cleanup()
             log("Service", "Library service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:

@@ -99,7 +99,7 @@ def open_video_info(
     dialog = DialogVideoInfo(
         XML_FILE,
         ADDON_PATH,
-        'Default',
+        'default',
         '1080i',
         media_type=media_type,
         dbid=dbid,

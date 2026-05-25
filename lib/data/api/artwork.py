@@ -154,11 +154,6 @@ class ApiArtworkFetcher:
 
         return finalised
 
-    def fetch_by_type(self, media_type: str, dbid: int, art_type: str) -> List[dict]:
-        """Fetch artwork for a single art type (calls fetch_all() internally for cache reuse)."""
-        all_art = self.fetch_all(media_type, dbid)
-        return all_art.get(art_type, [])
-
     def _load_cached_artwork(self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]) -> Dict[str, List[dict]]:
         cache_id = str(tvdb_id) if tvdb_id and media_type == 'tvshow' else str(tmdb_id)
 
@@ -274,13 +269,6 @@ class ApiArtworkFetcher:
             'language': image.get('iso_639_1') or '',
             'source': 'TMDB'
         }
-
-    def _fetch_tmdb_art(self, media_type: str, tmdb_id: int) -> Dict[str, List[dict]]:
-        if media_type == 'movie':
-            art = self.tmdb_api.get_movie_images(tmdb_id)
-        else:
-            art = self.tmdb_api.get_tv_images(tmdb_id)
-        return art or {}
 
     def _fetch_fanart_art(self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]) -> Dict[str, List[dict]]:
         if media_type == 'tvshow' and tvdb_id:

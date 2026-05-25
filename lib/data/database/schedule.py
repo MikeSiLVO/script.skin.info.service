@@ -51,17 +51,6 @@ def upsert_schedule(
         ))
 
 
-def get_schedule_by_date_range(start_date: str, end_date: str) -> List[Dict]:
-    """Get shows with next episodes airing between `start_date` and `end_date` (YYYY-MM-DD, inclusive)."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT * FROM tv_schedule
-            WHERE next_episode_air_date >= ? AND next_episode_air_date <= ?
-            ORDER BY next_episode_air_date ASC
-        ''', (start_date, end_date))
-        return [dict(row) for row in cursor.fetchall()]
-
-
 def get_all_schedule() -> List[Dict]:
     """Get all schedule entries."""
     with get_db(DB_PATH) as cursor:

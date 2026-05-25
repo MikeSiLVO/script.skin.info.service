@@ -53,7 +53,7 @@ def _create_cast_listitems(handle: int, cast_list: list) -> int:
         thumb = actor.get('thumbnail') or actor.get('profile_path') or ''
 
         if thumb.startswith('/'):
-            thumb = tmdb_image_url(thumb, 'w185')
+            thumb = tmdb_image_url(thumb, 'h632')
 
         if thumb:
             item.setArt({'icon': thumb, 'thumb': thumb})

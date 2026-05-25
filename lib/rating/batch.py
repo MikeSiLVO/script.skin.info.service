@@ -54,7 +54,6 @@ def build_retry_entry(state: ItemState, item_stats: Optional[Dict]) -> Optional[
         media_type=state.media_type,
         ids=state.ids,
         applied_ratings=baseline,
-        fetched_ratings=list(state.ratings),
         sources_used=list(state.sources_used),
         missing_sources=missing,
         failures=list(state.retryable_failures),
@@ -122,7 +121,6 @@ class MdblistBatchFetcher:
             self.tmdb_ids.append(resolved or "")
 
         self.total_items = len(self.tmdb_ids)
-        self.batches_fetched = 0
 
     def fetch_batch_for_index(
         self,
@@ -171,7 +169,6 @@ class MdblistBatchFetcher:
 
         try:
             self.mdblist.fetch_batch(self.media_type, batch_ids, provider="tmdb")
-            self.batches_fetched += 1
         except RateLimitHit:
             log("Ratings", "MDBList daily limit reached", xbmc.LOGWARNING)
             self.daily_limit_reached = True

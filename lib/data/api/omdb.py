@@ -99,14 +99,6 @@ class ApiOmdb(RatingSource):
         finally:
             self.session.clear_pause_context()
 
-    def get_ratings(self, imdb_id: str) -> Optional[Dict[str, Dict[str, float]]]:
-        """Extract ratings from cached OMDb data."""
-        data = self.get_omdb_data(imdb_id)
-        if not data:
-            return None
-
-        return self._extract_ratings(data)
-
     def get_awards(self, imdb_id: str, abort_flag=None) -> Optional[dict]:
         """Extract awards data from OMDb (fetches if not cached)."""
         data = self.get_omdb_data(imdb_id)

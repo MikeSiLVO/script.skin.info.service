@@ -190,7 +190,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         }
 
         image_file, _ = art_type_map.get(self.art_type.lower(), ('artwork_test_poster.png', (1000, 1500)))
-        test_image_path = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/media/artwork_test/{image_file}')
+        test_image_path = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/skins/default/media/artwork_test/{image_file}')
 
         self.current_extra_art = {
             f'{self.art_type}1': test_image_path,

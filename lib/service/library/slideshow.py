@@ -56,3 +56,11 @@ class SlideshowDriver:
 
         except Exception as e:
             log("Service", f"Slideshow: Update error: {str(e)}", xbmc.LOGERROR)
+
+    def cleanup(self) -> None:
+        """Clear `SkinInfo.Slideshow.*` window properties."""
+        try:
+            from lib.service.slideshow import clear_slideshow_properties
+            clear_slideshow_properties()
+        except Exception as e:
+            log("Service", f"Slideshow: Cleanup error: {str(e)}", xbmc.LOGERROR)

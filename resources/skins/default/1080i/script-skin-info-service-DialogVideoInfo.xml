@@ -9,7 +9,7 @@
 			<control type="image">
 				<width>100%</width>
 				<height>100%</height>
-				<texture colordiffuse="FF000000">colors/white.png</texture>
+				<texture colordiffuse="FF000000">white.png</texture>
 			</control>
 			<!-- Fanart -->
 			<control type="image">
@@ -89,7 +89,7 @@
 								<top>-10</top>
 								<width>1360</width>
 								<height>276</height>
-								<texturefocus colordiffuse="40FFFFFF">colors/white.png</texturefocus>
+								<texturefocus colordiffuse="40FFFFFF">white.png</texturefocus>
 								<texturenofocus />
 								<label />
 								<onclick>RunScript(script.skin.info.service,dialog=textviewer,heading=$ESCINFO[Window.Property(Title)],text=$ESCINFO[Window.Property(Plot)])</onclick>
@@ -175,34 +175,37 @@
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture fallback="DefaultActor.png" background="true">$INFO[ListItem.Art(thumb)]</texture>
-								<aspectratio>scale</aspectratio>
-							</control>
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture colordiffuse="steelblue" border="8" infill="false">colors/white.png</texture>
-							</control>
-							<control type="label">
-								<top>360</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Label2]</label>
-							</control>
-							<control type="label">
-								<top>400</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Label]</label>
+							<control type="group">
+								<animation effect="zoom" start="90" end="100" time="200" tween="sine" easing="inout" center="auto">Focus</animation>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture fallback="DefaultActor.png" background="true">$INFO[ListItem.Art(thumb)]</texture>
+									<aspectratio>scale</aspectratio>
+								</control>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture colordiffuse="steelblue" border="8" infill="false">white.png</texture>
+								</control>
+								<control type="label">
+									<top>360</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Label2]</label>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Label]</label>
+								</control>
 							</control>
 						</focusedlayout>
 						<content>$INFO[Window.Property(container.cast.path)]</content>
@@ -253,34 +256,37 @@
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture fallback="DefaultVideo.png" background="true">$INFO[ListItem.Art(poster)]</texture>
-								<aspectratio>scale</aspectratio>
-							</control>
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture colordiffuse="steelblue" border="8" infill="false">colors/white.png</texture>
-							</control>
-							<control type="label">
-								<top>360</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Title]</label>
-							</control>
-							<control type="label">
-								<top>400</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>silver</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+							<control type="group">
+								<animation effect="zoom" start="90" end="100" time="200" tween="sine" easing="inout" center="auto">Focus</animation>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture fallback="DefaultVideo.png" background="true">$INFO[ListItem.Art(poster)]</texture>
+									<aspectratio>scale</aspectratio>
+								</control>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture colordiffuse="steelblue" border="8" infill="false">white.png</texture>
+								</control>
+								<control type="label">
+									<top>360</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Title]</label>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>silver</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								</control>
 							</control>
 						</focusedlayout>
 						<content>$INFO[Window.Property(container.recommendations.path)]</content>
@@ -331,34 +337,37 @@
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture fallback="DefaultVideo.png" background="true">$INFO[ListItem.Art(poster)]</texture>
-								<aspectratio>scale</aspectratio>
-							</control>
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture colordiffuse="steelblue" border="8" infill="false">colors/white.png</texture>
-							</control>
-							<control type="label">
-								<top>360</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Title]</label>
-							</control>
-							<control type="label">
-								<top>400</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>silver</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+							<control type="group">
+								<animation effect="zoom" start="90" end="100" time="200" tween="sine" easing="inout" center="auto">Focus</animation>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture fallback="DefaultVideo.png" background="true">$INFO[ListItem.Art(poster)]</texture>
+									<aspectratio>scale</aspectratio>
+								</control>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture colordiffuse="steelblue" border="8" infill="false">white.png</texture>
+								</control>
+								<control type="label">
+									<top>360</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Title]</label>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>silver</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								</control>
 							</control>
 						</focusedlayout>
 						<content>$INFO[Window.Property(container.similar.path)]</content>
@@ -409,34 +418,37 @@
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture fallback="DefaultActor.png" background="true">$INFO[ListItem.Art(thumb)]</texture>
-								<aspectratio>scale</aspectratio>
-							</control>
-							<control type="image">
-								<width>240</width>
-								<height>360</height>
-								<texture colordiffuse="steelblue" border="8" infill="false">colors/white.png</texture>
-							</control>
-							<control type="label">
-								<top>360</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Property(Job)]</label>
-							</control>
-							<control type="label">
-								<top>400</top>
-								<width>240</width>
-								<height>40</height>
-								<font>font13</font>
-								<textcolor>white</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Label]</label>
+							<control type="group">
+								<animation effect="zoom" start="90" end="100" time="200" tween="sine" easing="inout" center="auto">Focus</animation>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture fallback="DefaultActor.png" background="true">$INFO[ListItem.Art(thumb)]</texture>
+									<aspectratio>scale</aspectratio>
+								</control>
+								<control type="image">
+									<width>240</width>
+									<height>360</height>
+									<texture colordiffuse="steelblue" border="8" infill="false">white.png</texture>
+								</control>
+								<control type="label">
+									<top>360</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Property(Job)]</label>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>white</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Label]</label>
+								</control>
 							</control>
 						</focusedlayout>
 						<content>$INFO[Window.Property(container.crew.path)]</content>
@@ -450,7 +462,7 @@
 			<control type="image">
 				<width>100%</width>
 				<height>100%</height>
-				<texture colordiffuse="FF000000">colors/white.png</texture>
+				<texture colordiffuse="FF000000">white.png</texture>
 			</control>
 			<control type="group">
 				<left>912</left>

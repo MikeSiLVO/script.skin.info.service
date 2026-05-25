@@ -43,7 +43,7 @@ def open_image_viewer(
     dialog = DialogImageViewer(
         XML_FILE,
         ADDON_PATH,
-        'Default',
+        'default',
         '1080i',
         images_path=images_path,
         selected_index=selected_index,

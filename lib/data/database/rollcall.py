@@ -225,14 +225,3 @@ def remove_dbid(media_type: str, dbid: int) -> None:
         )
 
 
-def get_all_valid_dbids() -> Dict[str, Set[int]]:
-    """Get all valid DBIDs grouped by media type."""
-    result: Dict[str, Set[int]] = {}
-    with get_db(DB_PATH) as cursor:
-        cursor.execute("SELECT media_type, dbid FROM dbid_registry")
-        for row in cursor.fetchall():
-            mt = row["media_type"]
-            if mt not in result:
-                result[mt] = set()
-            result[mt].add(row["dbid"])
-    return result

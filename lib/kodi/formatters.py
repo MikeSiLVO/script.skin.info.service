@@ -21,13 +21,6 @@ RATING_SOURCE_NORMALIZE = {
     "themoviedb": "tmdb",
 }
 
-# Sources that use Tomatometer (critics)
-TOMATOMETER_SOURCES = frozenset((RT_SOURCE_TOMATOES,))
-
-# Sources that use Popcornmeter (audience)
-POPCORN_SOURCES = frozenset((RT_SOURCE_POPCORN,))
-
-
 def format_number(value) -> str:
     """Format number with thousand separators."""
     if not value:
@@ -197,7 +190,7 @@ def format_credits_props(data: dict) -> Dict[str, str]:
             props[f"{prefix}.Role"] = actor.get("character") or ""
             thumb = actor.get("profile_path")
             if thumb:
-                props[f"{prefix}.Thumb"] = tmdb_image_url(thumb, 'w185')
+                props[f"{prefix}.Thumb"] = tmdb_image_url(thumb, 'h632')
 
     directors = [c.get("name") for c in crew if c.get("job") == "Director" and c.get("name")]
     if directors:

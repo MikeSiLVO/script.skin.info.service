@@ -6,70 +6,16 @@ from __future__ import annotations
 
 import random
 import time
-import threading
 import xbmc
 import xbmcvfs
-from typing import Optional, Dict, Any, Set, List
+from typing import Optional, Dict, Any, List
 
 from lib.data.database import slideshow as db_slideshow
 from lib.kodi.utilities import set_prop, clear_prop
-from lib.kodi.client import decode_image_url, log, request
+from lib.kodi.client import log, request
 
 MIN_SLIDESHOW_INTERVAL = 5
 MAX_SLIDESHOW_INTERVAL = 3600
-DEFAULT_SLIDESHOW_INTERVAL = 10
-
-_cached_texture_urls: Optional[Set[str]] = None
-_cache_lock = threading.Lock()
-
-
-def _get_cached_texture_urls() -> Set[str]:
-    """Return decoded URLs currently in Kodi's texture cache (in-memory cached across calls)."""
-    global _cached_texture_urls
-
-    with _cache_lock:
-        if _cached_texture_urls is not None:
-            return _cached_texture_urls
-
-    response = request("Textures.GetTextures", {"properties": ["url"]})
-
-    cached_urls = set()
-    if response and 'textures' in response.get('result', {}):
-        for texture in response['result']['textures']:
-            url = texture.get('url', '')
-            if url:
-                decoded = decode_image_url(url)
-                cached_urls.add(decoded)
-
-    with _cache_lock:
-        _cached_texture_urls = cached_urls
-
-    log("Service", f"Slideshow: Loaded {len(cached_urls)} cached texture URLs")
-    return cached_urls
-
-
-def clear_cached_texture_urls() -> None:
-    """Clear the cached texture URLs set to force reload on next query."""
-    global _cached_texture_urls
-    with _cache_lock:
-        _cached_texture_urls = None
-
-
-def get_random_uncached_fanart_urls(count: int = 20) -> List[str]:
-    """Return up to `count` random fanart URLs from the slideshow pool that aren't cached yet."""
-    cached_urls = _get_cached_texture_urls()
-    uncached = []
-
-    urls = db_slideshow.get_random_fanart_urls(count * 3)
-    for fanart in urls:
-        if fanart.strip():
-            decoded = decode_image_url(fanart)
-            if decoded not in cached_urls:
-                uncached.append(fanart)
-                if len(uncached) >= count:
-                    break
-
-    return uncached
 
 
 def _cache_image_url(url: str) -> bool:
@@ -199,131 +145,6 @@ def _get_artists_with_fanart() -> list:
     return artists_with_fanart
 
 
-def _get_random_item(media_types: List[str], select_fields: List[str],
-                     result_mapping: Dict[str, str],
-                     attempt_count: int = 10) -> Optional[Dict[str, Any]]:
-    """Return a random pool item, preferring fanart already in Kodi's texture cache.
-
-    Checks up to `attempt_count` candidates; caches the fanart first if needed.
-    `result_mapping` renames DB fields to output dict keys.
-    """
-    cached_urls = _get_cached_texture_urls()
-    media_type_label = '/'.join(media_types)
-
-    rows = db_slideshow.get_random_pool_items(media_types, select_fields, attempt_count)
-
-    for row in rows:
-        fanart = row['fanart']
-        if fanart:
-            decoded = decode_image_url(fanart)
-            if decoded in cached_urls:
-                return {result_mapping[k]: row[k] for k in result_mapping}
-
-    log("Service", f"Slideshow: No cached {media_type_label} fanart found in sample, caching random item")
-
-    fallback_rows = db_slideshow.get_random_pool_items(media_types, select_fields, 1)
-    row = fallback_rows[0] if fallback_rows else None
-    if row and row['fanart']:
-        if _cache_image_url(row['fanart']):
-            with _cache_lock:
-                if _cached_texture_urls is not None:
-                    decoded = decode_image_url(row['fanart'])
-                    _cached_texture_urls.add(decoded)
-            log("Service", f"Slideshow: Cached {media_type_label} fanart: {row['fanart']}")
-            return {result_mapping[k]: row[k] for k in result_mapping}
-        else:
-            log("Service", f"Slideshow: Failed to cache {media_type_label} fanart", xbmc.LOGWARNING)
-
-    return None
-
-
-def get_random_movie() -> Optional[Dict[str, Any]]:
-    """
-    Get random movie from slideshow pool, preferring cached fanart.
-    Caches synchronously if no cached items found.
-    """
-    return _get_random_item(
-        media_types=['movie'],
-        select_fields=['title', 'fanart', 'description', 'year'],
-        result_mapping={
-            'title': 'title',
-            'fanart': 'fanart',
-            'description': 'plot',
-            'year': 'year'
-        }
-    )
-
-
-def get_random_tvshow() -> Optional[Dict[str, Any]]:
-    """
-    Get random TV show from slideshow pool, preferring cached fanart.
-    Caches synchronously if no cached items found.
-    """
-    return _get_random_item(
-        media_types=['tvshow'],
-        select_fields=['title', 'fanart', 'description', 'year'],
-        result_mapping={
-            'title': 'title',
-            'fanart': 'fanart',
-            'description': 'plot',
-            'year': 'year'
-        }
-    )
-
-
-
-
-def get_random_artist() -> Optional[Dict[str, Any]]:
-    """
-    Get random artist from slideshow pool, preferring cached fanart.
-    Caches synchronously if no cached items found.
-    """
-    return _get_random_item(
-        media_types=['artist'],
-        select_fields=['title', 'fanart', 'description'],
-        result_mapping={
-            'title': 'artist',
-            'fanart': 'fanart',
-            'description': 'description'
-        }
-    )
-
-
-def get_random_video() -> Optional[Dict[str, Any]]:
-    """
-    Get random video (movie or tvshow) from slideshow pool, preferring cached fanart.
-    Caches synchronously if no cached items found.
-    """
-    return _get_random_item(
-        media_types=['movie', 'tvshow'],
-        select_fields=['title', 'fanart', 'description', 'media_type', 'year'],
-        result_mapping={
-            'title': 'title',
-            'fanart': 'fanart',
-            'description': 'plot',
-            'media_type': 'media_type',
-            'year': 'year'
-        }
-    )
-
-
-def get_random_global() -> Optional[Dict[str, Any]]:
-    """
-    Get random item from any media type in slideshow pool, preferring cached fanart.
-    Caches synchronously if no cached items found.
-    """
-    return _get_random_item(
-        media_types=['movie', 'tvshow', 'artist'],
-        select_fields=['title', 'fanart', 'description', 'media_type'],
-        result_mapping={
-            'title': 'title',
-            'fanart': 'fanart',
-            'description': 'description',
-            'media_type': 'media_type'
-        }
-    )
-
-
 def set_movie_slideshow_properties(item: Dict[str, Any]) -> None:
     """Set SkinInfo.Slideshow.Movie.* properties."""
     set_prop('SkinInfo.Slideshow.Movie.Title', item.get('title', ''))
@@ -364,19 +185,6 @@ def set_global_slideshow_properties(item: Dict[str, Any]) -> None:
     set_prop('SkinInfo.Slideshow.Global.Description', item.get('description', ''))
 
 
-def clear_slideshow_properties() -> None:
-    """Clear all slideshow properties."""
-    categories = {
-        'Movie': ['Title', 'FanArt', 'Plot', 'Year'],
-        'TV': ['Title', 'FanArt', 'Plot', 'Year'],
-        'Video': ['Title', 'FanArt', 'Plot', 'Year'],
-        'Music': ['Artist', 'FanArt', 'Description'],
-        'Global': ['Title', 'FanArt', 'Description']
-    }
-
-    for category, props in categories.items():
-        for prop in props:
-            clear_prop(f'SkinInfo.Slideshow.{category}.{prop}')
 
 
 def update_all_slideshow_properties() -> None:
@@ -396,17 +204,13 @@ def update_all_slideshow_properties() -> None:
     random.shuffle(videos)
 
     def pick_item(items: List) -> Optional[Dict[str, Any]]:
-        """Pick random item from list and cache its fanart."""
+        """Pick a random item and force-cache its fanart."""
         if not items:
             return None
 
         item = random.choice(items)
         if item['fanart']:
             if _cache_image_url(item['fanart']):
-                with _cache_lock:
-                    if _cached_texture_urls is not None:
-                        decoded = decode_image_url(item['fanart'])
-                        _cached_texture_urls.add(decoded)
                 return item
 
         return None
@@ -458,6 +262,20 @@ def update_all_slideshow_properties() -> None:
 def is_pool_populated() -> bool:
     """Check if slideshow pool has any items."""
     return db_slideshow.is_pool_populated()
+
+
+def clear_slideshow_properties() -> None:
+    """Clear all `SkinInfo.Slideshow.*` window properties (called on service stop)."""
+    categories = {
+        'Movie': ('Title', 'FanArt', 'Plot', 'Year'),
+        'TV': ('Title', 'FanArt', 'Plot', 'Year'),
+        'Video': ('Title', 'FanArt', 'Plot', 'Year'),
+        'Music': ('Artist', 'FanArt', 'Description'),
+        'Global': ('Title', 'FanArt', 'Description'),
+    }
+    for category, props in categories.items():
+        for prop in props:
+            clear_prop(f'SkinInfo.Slideshow.{category}.{prop}')
 
 
 class SlideshowMonitor(xbmc.Monitor):

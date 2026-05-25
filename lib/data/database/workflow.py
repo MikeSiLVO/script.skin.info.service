@@ -309,21 +309,6 @@ def clear_imdb_update_progress(media_type: str) -> None:
         ''', (media_type,))
 
 
-def get_synced_ratings(media_type: str, dbid: int) -> Dict[str, Dict[str, float]]:
-    """Return `source -> {rating, votes}` for all ratings synced on an item."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT source, rating, votes
-            FROM ratings_synced
-            WHERE media_type = ? AND dbid = ?
-        ''', (media_type, dbid))
-
-        return {
-            row['source']: {'rating': row['rating'], 'votes': row['votes']}
-            for row in cursor.fetchall()
-        }
-
-
 def update_synced_ratings(media_type: str, dbid: int,
                           ratings: Dict[str, Dict[str, float]],
                           external_ids: Optional[Dict[str, str]] = None) -> None:

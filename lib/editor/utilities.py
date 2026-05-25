@@ -53,11 +53,6 @@ def validate_rating(value: float) -> tuple[bool, str]:
     return _range_check(value, 0, 10, "Rating must be 0-10")
 
 
-def validate_userrating(value: int) -> tuple[bool, str]:
-    """Validate user rating 0-10."""
-    return _range_check(value, 0, 10, "User rating must be 0-10")
-
-
 def validate_top250(value: int) -> tuple[bool, str]:
     """Validate top 250 position."""
     return _range_check(value, 0, 250, "Top 250 must be 0-250")

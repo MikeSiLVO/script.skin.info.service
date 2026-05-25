@@ -21,7 +21,6 @@ STATUS_COMPLETED = 'completed'
 STATUS_SKIPPED = 'skipped'
 STATUS_ERROR = 'error'
 STATUS_CANCELLED = 'cancelled'
-STATUS_STALE = 'stale'
 
 
 @dataclass(frozen=True)

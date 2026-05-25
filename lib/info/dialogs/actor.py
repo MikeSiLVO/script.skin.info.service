@@ -167,7 +167,7 @@ def open_actor_info(
     dialog = DialogActorInfo(
         XML_FILE,
         ADDON_PATH,
-        'Default',
+        'default',
         '1080i',
         person_data=person_data,
         person_id=person_id,

@@ -53,30 +53,6 @@ def remove_texture(texture_id: int) -> bool:
         return False
 
 
-def get_library_artwork_urls(media_type: str) -> Set[str]:
-    """Return decoded artwork URLs in use across all items of `media_type`."""
-    urls = set()
-
-    try:
-        items = get_library_items(
-            media_types=[media_type],
-            properties=["art"],
-            decode_urls=True
-        )
-
-        for item in items:
-            art = item.get('art', {})
-            if art and isinstance(art, dict):
-                for art_url in art.values():
-                    if art_url:
-                        urls.add(art_url)
-
-        return urls
-    except Exception as e:
-        log("Texture", f"Error getting library URLs for {media_type}: {str(e)}", xbmc.LOGERROR)
-        return urls
-
-
 def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
                                  progress_callback: Optional[Callable] = None,
                                  include_cast: bool = False) -> Set[str]:

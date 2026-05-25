@@ -564,7 +564,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
 
         profile_path = member.get('profile_path')
         if profile_path:
-            image_url = tmdb_image_url(profile_path, 'w185')
+            image_url = tmdb_image_url(profile_path, 'h632')
             item.setArt({'thumb': image_url, 'icon': image_url})
         else:
             item.setArt({'thumb': 'DefaultActor.png', 'icon': 'DefaultActor.png'})

@@ -284,30 +284,6 @@ class ApiFanarttv:
 
         return result
 
-    def get_album_artwork(
-        self,
-        musicbrainz_artist_id: str,
-        musicbrainz_release_group_id: str,
-        abort_flag=None,
-        cached_artist_data: Optional[dict] = None
-    ) -> dict:
-        """Get artwork for a specific album.
-
-        Uses cached_artist_data if provided, else fetches from API. Avoids
-        duplicate API calls when processing multiple albums from the same artist.
-
-        Returns dict with thumb and discart. Note: album 'thumb' is 1:1 square,
-        unlike video 'thumb' which is 16:9 - dialog should handle format awareness.
-        """
-        if cached_artist_data is None:
-            cached_artist_data = self.get_artist_artwork(musicbrainz_artist_id, abort_flag)
-
-        if not cached_artist_data:
-            return {}
-
-        albums = cached_artist_data.get('albums', {})
-        return albums.get(musicbrainz_release_group_id, {})
-
     def test_connection(self) -> bool:
         """Test fanart.tv API connection."""
         try:

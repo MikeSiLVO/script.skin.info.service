@@ -29,14 +29,6 @@ REVIEW_SCAN_MAP = {
     'all': 'all',
 }
 
-ACTION_RESUME = 'resume'
-ACTION_MANUAL = 'manual'
-ACTION_MANUAL_DOWNLOAD = 'manual_download'
-ACTION_AUTO_APPLY = 'auto_apply_missing'
-ACTION_DOWNLOAD = 'download'
-ACTION_VIEW_REPORT = 'view_report'
-ACTION_CANCEL = 'cancel'
-
 REVIEW_MODE_MISSING = 'missing_only'
 
 

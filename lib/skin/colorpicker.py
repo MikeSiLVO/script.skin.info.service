@@ -23,7 +23,6 @@ def _show_error(message: str) -> None:
 
 class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
     def __init__(self, *args, **kwargs):
-        self.setting_name = kwargs.pop('setting_name')
         self.current_color = kwargs.pop('current_color')
         self.default_color = kwargs.pop('default_color')
         self.palette_colors = kwargs.pop('palette_colors', [])
@@ -279,7 +278,6 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '',
     dialog = _ColorPickerDialog(
         'script.skin.info.service-ColorPicker.xml',
         ADDON.getAddonInfo('path'),
-        setting_name=setting,
         current_color=current_color,
         default_color=default,
         palette_colors=palette_colors,

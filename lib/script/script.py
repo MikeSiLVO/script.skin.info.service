@@ -4,8 +4,6 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import set_prop, clear_prop, resolve_infolabel
-from lib.data.api.utilities import tmdb_image_url
-from lib.service import blur
 
 
 def _set_window_prop(key: str, value: str, window: str) -> None:
@@ -56,6 +54,7 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
             except (ValueError, TypeError):
                 radius = 40
 
+        from lib.service import blur
         blurred_path = blur.blur_image(source, radius)
 
         if blurred_path:
@@ -353,6 +352,7 @@ def _handle_tmdb_search(args: dict) -> None:
 
         listitem = xbmcgui.ListItem(label=title, label2=label2, offscreen=True)
         if poster:
+            from lib.data.api.utilities import tmdb_image_url
             image_url = tmdb_image_url(poster, 'w500')
             listitem.setArt({'icon': image_url, 'thumb': image_url})
 
@@ -677,7 +677,7 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
                     if member.get('job'):
                         item.setLabel2(member['job'])
                     if member.get('profile_path'):
-                        url = f"https://image.tmdb.org/t/p/w185{member['profile_path']}"
+                        url = f"https://image.tmdb.org/t/p/h632{member['profile_path']}"
                         item.setArt({'thumb': url, 'icon': url})
                     items.append(item)
                 selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", items, useDetails=True)
