@@ -55,11 +55,17 @@ jobs:
           echo "filename=$filename" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: v${{ steps.addon-info.outputs.version }}
-          body: ${{ steps.addon-info.outputs.changelog }}
-          prerelease: ${{ steps.addon-info.outputs.prerelease }}
-          files: ../${{ steps.zip.outputs.filename }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PRE=""
+          if [[ "${{ steps.addon-info.outputs.prerelease }}" == "true" ]]; then
+            PRE="--prerelease"
+          fi
+          xmlstarlet sel -t -v '//news' addon.xml > /tmp/release-notes.md
+          gh release create "${{ github.ref_name }}" \
+            "../${{ steps.zip.outputs.filename }}" \
+            --repo "${{ github.repository }}" \
+            --title "v${{ steps.addon-info.outputs.version }}" \
+            --notes-file /tmp/release-notes.md \
+            $PRE
