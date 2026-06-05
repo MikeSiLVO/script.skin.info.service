@@ -24,8 +24,10 @@
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
+		<summary lang="fr_FR">Fournit des informations multimédias enrichies et des illustrations aux habillages.</summary>
 		<description lang="en_GB">Skin Info Service provides additional properties such as ratings, artwork, and stream details for movies, sets, artists, and albums. Includes a gif poster scanner tool to automatically find and add animated gif posters to your library.
 		</description>
+		<description lang="fr_FR">Skin Info Service fournit des propriétés supplémentaires telles que les notes, les illustrations et les détails de flux pour les films, les sagas, les artistes et les albums. Comprend un outil de recherche d'affiches GIF pour trouver et ajouter automatiquement des affiches GIF animées à votre médiathèque.</description>
 		<platform>all</platform>
 		<license>GPL-3.0-only</license>
 		<source>https://github.com/MikeSiLVO/script.skin.info.service</source>
