@@ -189,17 +189,20 @@ def _handle_set_setting(args: dict) -> None:
         value = False
     elif value.isdigit():
         value = int(value)
-    set_setting(setting, value)
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    set_setting(setting, value, noconfirm)
 
 
 def _handle_toggle_setting(args: dict) -> None:
     from lib.skin.settings import toggle_setting
-    toggle_setting(args.get('setting', ""))
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    toggle_setting(args.get('setting', ""), noconfirm)
 
 
 def _handle_reset_setting(args: dict) -> None:
     from lib.skin.settings import reset_setting
-    reset_setting(args.get('setting', ""))
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    reset_setting(args.get('setting', ""), noconfirm)
 
 
 def _handle_update_library_ratings(args: dict) -> None:

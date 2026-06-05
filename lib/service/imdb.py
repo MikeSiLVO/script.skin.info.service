@@ -132,11 +132,11 @@ class ImdbUpdateService(threading.Thread):
         stats = update_changed_imdb_ratings(monitor=monitor)
         updated = stats.get("updated", 0)
         if updated > 0:
-            message = f"{updated} ratings updated"
+            message = ADDON.getLocalizedString(32319).format(updated)
         else:
             message = ADDON.getLocalizedString(32320)
         self._notify_when_idle(
-            ADDON.getLocalizedString(32300),
+            ADDON.getLocalizedString(32318),
             message,
             monitor,
         )

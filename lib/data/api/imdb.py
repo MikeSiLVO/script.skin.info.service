@@ -121,6 +121,10 @@ class ApiImdbDataset:
 
             count = self._stream_and_import_ratings(response, abort_flag)
 
+            if count == 0:
+                log("IMDb", "Ratings dataset had no usable rows; keeping existing data", xbmc.LOGWARNING)
+                return False
+
             if last_mod:
                 db_imdb.save_meta("ratings", last_mod, count)
 
@@ -161,6 +165,9 @@ class ApiImdbDataset:
 
             if batch:
                 db_imdb.import_ratings_batch(cursor, batch)
+
+            if count > 0:
+                db_imdb.import_ratings_commit(cursor)
 
         return count
 
@@ -246,7 +253,6 @@ class ApiImdbDataset:
             return count
 
         except _ImportAborted:
-            db_imdb.clear_meta("episodes")
             return -1
         except Exception as e:
             log("IMDb", f"Failed to download episode dataset: {e}", xbmc.LOGERROR)
@@ -294,7 +300,7 @@ class ApiImdbDataset:
             if batch:
                 db_imdb.import_episodes_batch(cursor, batch)
 
-            db_imdb.import_episodes_finalize(cursor)
+            db_imdb.import_episodes_commit(cursor)
 
         return count
 

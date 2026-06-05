@@ -182,12 +182,6 @@ def save_meta(
             )
 
 
-def clear_meta(dataset: str) -> None:
-    """Delete metadata row for a dataset."""
-    with get_db() as cursor:
-        cursor.execute("DELETE FROM imdb_meta WHERE dataset = ?", (dataset,))
-
-
 def get_episode_meta() -> Tuple[Optional[str], int]:
     """Return (last_modified, library_episode_count) for the episodes dataset."""
     with get_db() as cursor:
@@ -202,11 +196,11 @@ def get_episode_meta() -> Tuple[Optional[str], int]:
 
 
 def import_ratings_begin(cursor: sqlite3.Cursor) -> None:
-    """Drop+recreate `imdb_ratings` and disable fsync for bulk import speed."""
+    """Create a fresh `imdb_ratings_new` staging table; the live table is left untouched until commit."""
     cursor.execute("PRAGMA synchronous = OFF")
-    cursor.execute("DROP TABLE IF EXISTS imdb_ratings")
+    cursor.execute("DROP TABLE IF EXISTS imdb_ratings_new")
     cursor.execute('''
-        CREATE TABLE imdb_ratings (
+        CREATE TABLE imdb_ratings_new (
             imdb_id TEXT PRIMARY KEY,
             rating REAL NOT NULL,
             votes INTEGER NOT NULL
@@ -215,19 +209,29 @@ def import_ratings_begin(cursor: sqlite3.Cursor) -> None:
 
 
 def import_ratings_batch(cursor: sqlite3.Cursor, batch: List[Tuple[str, float, int]]) -> None:
-    """Bulk-insert a batch of (imdb_id, rating, votes) tuples."""
+    """Bulk-insert a batch of (imdb_id, rating, votes) tuples into the staging table."""
     cursor.executemany(
-        "INSERT INTO imdb_ratings (imdb_id, rating, votes) VALUES (?, ?, ?)",
+        "INSERT INTO imdb_ratings_new (imdb_id, rating, votes) VALUES (?, ?, ?)",
         batch
     )
 
 
+def import_ratings_commit(cursor: sqlite3.Cursor) -> None:
+    """Swap the staging table in for `imdb_ratings`.
+
+    The DROP/RENAME join the open insert transaction, so an aborted import rolls
+    back to the previous table instead of leaving the live table dropped and empty.
+    """
+    cursor.execute("DROP TABLE IF EXISTS imdb_ratings")
+    cursor.execute("ALTER TABLE imdb_ratings_new RENAME TO imdb_ratings")
+
+
 def import_episodes_begin(cursor: sqlite3.Cursor) -> None:
-    """Drop+recreate `imdb_episodes` and disable fsync for bulk import speed."""
+    """Create a fresh `imdb_episodes_new` staging table; the live table is left untouched until commit."""
     cursor.execute("PRAGMA synchronous = OFF")
-    cursor.execute("DROP TABLE IF EXISTS imdb_episodes")
+    cursor.execute("DROP TABLE IF EXISTS imdb_episodes_new")
     cursor.execute('''
-        CREATE TABLE imdb_episodes (
+        CREATE TABLE imdb_episodes_new (
             parent_id TEXT NOT NULL,
             season INTEGER NOT NULL,
             episode INTEGER NOT NULL,
@@ -238,13 +242,19 @@ def import_episodes_begin(cursor: sqlite3.Cursor) -> None:
 
 
 def import_episodes_batch(cursor: sqlite3.Cursor, batch: List[Tuple[str, int, int, str]]) -> None:
-    """Bulk-insert a batch of (parent_id, season, episode, episode_id) tuples."""
+    """Bulk-insert a batch of (parent_id, season, episode, episode_id) tuples into the staging table."""
     cursor.executemany(
-        "INSERT OR REPLACE INTO imdb_episodes (parent_id, season, episode, episode_id) VALUES (?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO imdb_episodes_new (parent_id, season, episode, episode_id) VALUES (?, ?, ?, ?)",
         batch
     )
 
 
-def import_episodes_finalize(cursor: sqlite3.Cursor) -> None:
-    """Create the `parent_id` index after bulk episode import completes."""
+def import_episodes_commit(cursor: sqlite3.Cursor) -> None:
+    """Swap the staging table in for `imdb_episodes` and rebuild its lookup index.
+
+    The DROP/RENAME join the open insert transaction, so an aborted import rolls
+    back to the previous table instead of leaving the live table dropped and empty.
+    """
+    cursor.execute("DROP TABLE IF EXISTS imdb_episodes")
+    cursor.execute("ALTER TABLE imdb_episodes_new RENAME TO imdb_episodes")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)")

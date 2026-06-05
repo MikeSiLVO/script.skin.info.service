@@ -58,7 +58,8 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
             items_by_type[t] = []
         items_by_type[t].append(item)
 
-    new_batch_items, new_skipped = _collect_new_library_items(media_type, monitor)
+    changed_keys = {(item["media_type"], item["dbid"]) for item in changed_items}
+    new_batch_items, new_skipped, title_map = _collect_new_library_items(media_type, monitor, changed_keys)
     stats["skipped"] += new_skipped
 
     new_by_type: Dict[str, List[Dict]] = {}
@@ -87,8 +88,9 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
         monitor = xbmc.Monitor()
 
     sync_batch: List[tuple] = []
+    heading = ADDON.getLocalizedString(32318)
     progress = xbmcgui.DialogProgressBG()
-    progress.create(ADDON.getLocalizedString(32300))
+    progress.create(heading)
 
     for idx, (item_media_type, item) in enumerate(work_items):
         if monitor.abortRequested():
@@ -96,8 +98,9 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
             break
 
         pct = int((idx / combined_total) * 100)
-        progress.update(pct, ADDON.getLocalizedString(32300),
-                        ADDON.getLocalizedString(32307).format(idx + 1, combined_total))
+        label = item.get("title") or title_map.get((item_media_type, item["dbid"])) or item.get("imdb_id", "")
+        progress.update(pct, heading,
+                        ADDON.getLocalizedString(32306).format(idx + 1, combined_total, label))
 
         state = _get_kodi_state()
         if state == "playing":
@@ -110,7 +113,7 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
                     break
             if monitor.abortRequested():
                 break
-            progress.create(ADDON.getLocalizedString(32300))
+            progress.create(heading)
             state = _get_kodi_state()
 
         set_method_info = KODI_SET_DETAILS_METHODS.get(item_media_type)
@@ -162,17 +165,31 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
     return stats
 
 
-def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] = None
-                               ) -> Tuple[List[Tuple[str, List[Dict]]], int]:
+def _item_label(item: Dict, media_type: str) -> str:
+    if media_type == "episode":
+        showtitle = item.get("showtitle")
+        season = item.get("season")
+        episode = item.get("episode")
+        if showtitle and season is not None and episode is not None:
+            return f"{showtitle} S{int(season):02d}E{int(episode):02d}"
+    return item.get("title", "")
+
+
+def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] = None,
+                               wanted_titles: Optional[Set[Tuple[str, int]]] = None
+                               ) -> Tuple[List[Tuple[str, List[Dict]]], int, Dict[Tuple[str, int], str]]:
     """Collect library items never synced to the IMDb dataset.
 
     Items whose Kodi rating already matches the dataset are batch-inserted directly
-    into `ratings_synced` (skipping the JSON-RPC SET). Returns `(batch_items_by_type, skipped_count)`.
+    into `ratings_synced` (skipping the JSON-RPC SET). `wanted_titles` is a set of
+    `(media_type, dbid)` keys to resolve display labels for while the library is
+    already being read. Returns `(batch_items_by_type, skipped_count, title_map)`.
     """
     skipped = 0
     media_types = [media_type] if media_type else ["movie", "tvshow", "episode"]
     dataset = get_imdb_dataset()
     all_batch_items: List[Tuple[str, List[Dict]]] = []
+    title_map: Dict[Tuple[str, int], str] = {}
     sync_batch_size = 5000
 
     for mtype in media_types:
@@ -186,7 +203,7 @@ def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] 
 
         props = ["uniqueid", "ratings", "title"]
         if mtype == "episode":
-            props.extend(["season", "episode", "tvshowid"])
+            props.extend(["season", "episode", "tvshowid", "showtitle"])
 
         items = get_library_items([mtype], properties=props)
         if not items:
@@ -196,7 +213,11 @@ def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] 
         imdb_ids_needed: List[str] = []
         for item in items:
             dbid = item.get(id_key)
-            if not dbid or dbid in synced_dbids:
+            if not dbid:
+                continue
+            if wanted_titles and (mtype, dbid) in wanted_titles:
+                title_map[(mtype, dbid)] = _item_label(item, mtype)
+            if dbid in synced_dbids:
                 continue
             imdb_id = resolve_imdb_id(item, mtype, dataset)
             if not imdb_id:
@@ -233,6 +254,7 @@ def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] 
             batch_items.append({
                 "dbid": item[id_key],
                 "imdb_id": imdb_id,
+                "title": _item_label(item, mtype),
                 "new_rating": rating_data["rating"],
                 "new_votes": rating_data["votes"],
                 "old_rating": 0.0,
@@ -249,7 +271,7 @@ def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] 
         if batch_items:
             all_batch_items.append((mtype, batch_items))
 
-    return all_batch_items, skipped
+    return all_batch_items, skipped, title_map
 
 
 def run_imdb_batch(
@@ -271,7 +293,7 @@ def run_imdb_batch(
         current_count = len(processed_ids)
         percent = int((current_count / len(items)) * 100)
         if isinstance(progress, xbmcgui.DialogProgressBG):
-            progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(current_count, len(items)))
+            progress.update(percent, ADDON.getLocalizedString(32318), ADDON.getLocalizedString(32308).format(current_count, len(items)))
         elif isinstance(progress, xbmcgui.DialogProgress):
             progress.update(percent, ADDON.getLocalizedString(32309).format(current_count, len(items)))
 
@@ -452,14 +474,14 @@ def ensure_episode_dataset(
 
     if progress:
         if isinstance(progress, xbmcgui.DialogProgressBG):
-            progress.update(0, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32312))
+            progress.update(0, ADDON.getLocalizedString(32318), ADDON.getLocalizedString(32312))
         elif isinstance(progress, xbmcgui.DialogProgress):
             progress.update(0, ADDON.getLocalizedString(32312))
 
     def progress_callback(status: str) -> None:
         if progress:
             if isinstance(progress, xbmcgui.DialogProgressBG):
-                progress.update(0, ADDON.getLocalizedString(32300), status)
+                progress.update(0, ADDON.getLocalizedString(32318), status)
             elif isinstance(progress, xbmcgui.DialogProgress):
                 progress.update(0, status)
 
