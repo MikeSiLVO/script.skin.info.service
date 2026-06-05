@@ -872,9 +872,17 @@ msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr "Mise à jour des notes - Terminé"
 
+msgctxt "#32318"
+msgid "IMDb Ratings Update"
+msgstr "Mise à jour des notes IMDb"
+
+msgctxt "#32319"
+msgid "{0} IMDb ratings updated"
+msgstr "{0} Notes IMDb mises à jour"
+
 msgctxt "#32320"
-msgid "Ratings up to date"
-msgstr "Notes à jour"
+msgid "IMDb ratings up to date"
+msgstr "Notes IMDb à jour"
 
 msgctxt "#32330"
 msgid "Analyzing Textures"
