@@ -121,20 +121,21 @@ def update_library_ratings(
     else:
         properties = ["title", "year", "uniqueid", "ratings"]
 
+    heading = ADDON.getLocalizedString(32318 if source_mode == "imdb" else 32300)
     progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG
     if use_background:
         progress = xbmcgui.DialogProgressBG()
-        progress.create(ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32303).format(media_type))
+        progress.create(heading, ADDON.getLocalizedString(32303).format(media_type))
     else:
         progress = xbmcgui.DialogProgress()
-        progress.create(ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32303).format(media_type))
+        progress.create(heading, ADDON.getLocalizedString(32303).format(media_type))
 
     items = get_library_items([media_type], properties=properties)
     if not items:
         if progress:
             progress.close()
         show_notification(
-            ADDON.getLocalizedString(32300),
+            heading,
             ADDON.getLocalizedString(32413).format(media_type),
             xbmcgui.NOTIFICATION_INFO,
             3000
@@ -142,7 +143,7 @@ def update_library_ratings(
         return {"updated": 0, "failed": 0, "skipped": 0}
 
     if isinstance(progress, xbmcgui.DialogProgressBG):
-        progress.update(0, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32304).format(len(items), media_type))
+        progress.update(0, heading, ADDON.getLocalizedString(32304).format(len(items), media_type))
     elif isinstance(progress, xbmcgui.DialogProgress):
         progress.update(0, ADDON.getLocalizedString(32304).format(len(items), media_type))
 
@@ -162,7 +163,7 @@ def update_library_ratings(
         dataset = get_imdb_dataset()
         if not dataset.is_dataset_available():
             if isinstance(progress, xbmcgui.DialogProgressBG):
-                progress.update(0, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32305))
+                progress.update(0, heading, ADDON.getLocalizedString(32305))
             elif isinstance(progress, xbmcgui.DialogProgress):
                 progress.update(0, ADDON.getLocalizedString(32305))
             dataset.force_download()

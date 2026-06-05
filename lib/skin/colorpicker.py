@@ -278,6 +278,8 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '',
     dialog = _ColorPickerDialog(
         'script.skin.info.service-ColorPicker.xml',
         ADDON.getAddonInfo('path'),
+        'default',
+        '1080i',
         current_color=current_color,
         default_color=default,
         palette_colors=palette_colors,

@@ -917,10 +917,11 @@ Set a Kodi setting value with user confirmation.
 
 **Parameters:**
 
-| Parameter                | Type            | Description                                       |
-| ------------------------ | --------------- | ------------------------------------------------- |
-| `setting` (positional 0) | string          | Setting name (e.g., `musicplayer.crossfade`)      |
-| `value` (positional 1)   | string/int/bool | New value (automatically converted based on type) |
+| Parameter                | Type            | Description                                            |
+| ------------------------ | --------------- | ------------------------------------------------------ |
+| `setting` (positional 0) | string          | Setting name (e.g., `musicplayer.crossfade`)           |
+| `value` (positional 1)   | string/int/bool | New value (automatically converted based on type)      |
+| `noconfirm`              | boolean         | Skip the confirmation dialog (skin-scoped settings only) |
 
 **Type Conversion:**
 
@@ -945,11 +946,15 @@ Set a Kodi setting value with user confirmation.
 
 <!-- Set audio language (string) -->
 <onclick>RunScript(script.skin.info.service,action=set_setting,setting=locale.audiolanguage,value=en)</onclick>
+
+<!-- Change skin color theme without confirmation dialog -->
+<onclick>RunScript(script.skin.info.service,action=set_setting,setting=lookandfeel.skincolors,value=dark,noconfirm=true)</onclick>
 ```
 
 **Notes:**
 
 - User must confirm the change via yes/no dialog
+- `noconfirm=true` skips the dialog, but only for skin-scoped settings: `lookandfeel.skincolors`, `lookandfeel.skintheme`, `lookandfeel.font`. These reset to default when the user changes skins, so they cannot affect anything outside your skin. All other settings always show the dialog.
 - Values are validated against the setting type by Kodi's JSON-RPC
 - Passing wrong type (e.g., string to integer setting) returns error
 - See [kodi-settings.md](kodi-settings.md) for setting types
@@ -972,9 +977,10 @@ Toggle a boolean Kodi setting with user confirmation.
 
 **Parameters:**
 
-| Parameter                | Type   | Description                                   |
-| ------------------------ | ------ | --------------------------------------------- |
-| `setting` (positional 0) | string | Setting name (must be a boolean type setting) |
+| Parameter                | Type    | Description                                              |
+| ------------------------ | ------- | -------------------------------------------------------- |
+| `setting` (positional 0) | string  | Setting name (must be a boolean type setting)            |
+| `noconfirm`              | boolean | Skip the confirmation dialog (skin-scoped settings only) |
 
 **Examples:**
 
@@ -995,6 +1001,7 @@ Toggle a boolean Kodi setting with user confirmation.
 **Notes:**
 
 - User must confirm the change via yes/no dialog
+- `noconfirm=true` skips the dialog, but only for skin-scoped settings (see [Set Kodi Setting](#set-kodi-setting))
 - Only works with boolean type settings
 - Non-boolean settings fail silently
 - See [kodi-settings.md](kodi-settings.md) for boolean settings
@@ -1017,9 +1024,10 @@ Reset a Kodi setting to its default value with user confirmation.
 
 **Parameters:**
 
-| Parameter                | Type   | Description                      |
-| ------------------------ | ------ | -------------------------------- |
-| `setting` (positional 0) | string | Setting name to reset to default |
+| Parameter                | Type    | Description                                              |
+| ------------------------ | ------- | -------------------------------------------------------- |
+| `setting` (positional 0) | string  | Setting name to reset to default                         |
+| `noconfirm`              | boolean | Skip the confirmation dialog (skin-scoped settings only) |
 
 **Examples:**
 
@@ -1042,6 +1050,7 @@ Reset a Kodi setting to its default value with user confirmation.
 **Notes:**
 
 - User must confirm the reset via yes/no dialog
+- `noconfirm=true` skips the dialog, but only for skin-scoped settings (see [Set Kodi Setting](#set-kodi-setting))
 - Works with all setting types (boolean, integer, string, list, addon, path)
 - Default value is defined by Kodi's settings schema
 - See [kodi-settings.md](kodi-settings.md) for available settings

@@ -501,6 +501,7 @@ class StingerService(threading.Thread):
 
             stinger.check_notification()
 
+        stinger.reset()
         log("Service", "Stinger service stopped", xbmc.LOGINFO)
 
     def _fetch_stinger_info(self, stinger: StingerMonitor, dbid: str) -> None:

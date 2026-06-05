@@ -872,8 +872,16 @@ msgctxt "#32317"
 msgid "Ratings Updater - Complete"
 msgstr ""
 
+msgctxt "#32318"
+msgid "IMDb Ratings Update"
+msgstr ""
+
+msgctxt "#32319"
+msgid "{0} IMDb ratings updated"
+msgstr ""
+
 msgctxt "#32320"
-msgid "Ratings up to date"
+msgid "IMDb ratings up to date"
 msgstr ""
 
 msgctxt "#32330"

@@ -52,43 +52,40 @@ jobs:
           version = "${{ steps.metadata.outputs.version }}"
           zip_name = f"{addon_id}-{version}.zip"
 
-          exclude_patterns = [
+          exclude_names = {
               # Git and CI
               '.git', '.github', '.gitignore', '.gitattributes',
               # Dev tools config
-              '.claude', '.vscode', '.idea', '.sublime-',
+              '.claude', '.vscode', '.idea',
               '.pylintrc', 'pyrightconfig.json', 'ruff.toml', 'pyproject.toml',
               # Caches
-              '__pycache__', '.pyc', '.pyo', '.pyd',
-              '.mypy_cache', '.ruff_cache', '.pytest_cache',
+              '__pycache__', '.mypy_cache', '.ruff_cache', '.pytest_cache',
               # Dev folders
               'typings', 'tests', 'docs', 'DOCS', 'xbmcgui',
               # Docs
               'README.md', 'CHANGELOG.md',
               # OS files
               '.DS_Store', 'Thumbs.db', 'desktop.ini',
-              # Temp files
-              '.log', '.tmp', '.bak', '.swp', '.swo'
-          ]
+          }
+          exclude_suffixes = (
+              '.pyc', '.pyo', '.pyd', '.log', '.tmp', '.bak', '.swp', '.swo',
+              '.sublime-project', '.sublime-workspace',
+          )
 
-          def should_exclude(path):
-              path_str = str(path)
-              for pattern in exclude_patterns:
-                  if pattern in path_str:
-                      return True
-              return False
+          def should_exclude(name):
+              return name in exclude_names or name.endswith(exclude_suffixes)
 
           print(f"Creating {zip_name}...")
           file_count = 0
 
           with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
               for root, dirs, files in os.walk('.'):
-                  dirs[:] = [d for d in dirs if not should_exclude(Path(root) / d)]
+                  dirs[:] = [d for d in dirs if not should_exclude(d)]
 
                   for file in files:
                       file_path = Path(root) / file
 
-                      if should_exclude(file_path) or file == zip_name:
+                      if should_exclude(file) or file == zip_name:
                           continue
 
                       arcname = Path(addon_id) / file_path.relative_to('.')

@@ -261,7 +261,7 @@ class RatingBatchExecutor:
                 if self.active_per_source[source_name] < MAX_PER_SOURCE:
                     source = self._get_source_by_name(source_name)
                     if source:
-                        state.pending_sources.remove(source_name)
+                        state.pending_sources.discard(source_name)
                         self._submit_job(state, source, source_name)
 
     def _get_source_by_name(self, name: str):
