@@ -12,7 +12,7 @@ msgstr ""
 
 msgctxt "#32000"
 msgid "Animated Art"
-msgstr "Art animé"
+msgstr "Illustration animé"
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
