@@ -338,7 +338,7 @@ msgstr "Mettre à jour les notes"
 
 msgctxt "#32102"
 msgid "Skin Info Tools"
-msgstr "Outils d'info de l'habillage"
+msgstr "Outils Skin Info"
 
 msgctxt "#32103"
 msgid "Edit Metadata"
