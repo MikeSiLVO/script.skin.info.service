@@ -105,14 +105,6 @@ class ApiTmdb(RatingSource):
             abort_flag=abort_flag
         )
 
-    def get_movie_images(self, tmdb_id: int) -> dict:
-        """Get all available images for a movie from TMDB."""
-        return self._fetch_images('movie', tmdb_id)
-
-    def get_tv_images(self, tmdb_id: int) -> dict:
-        """Get all available images for a TV show from TMDB."""
-        return self._fetch_images('tv', tmdb_id)
-
     def get_collection_images(self, collection_id: int) -> dict:
         """Get all available images for a movie collection from TMDB."""
         return self._fetch_images('collection', collection_id)

@@ -507,6 +507,20 @@ def set_movie_properties(details: dict) -> None:
     set_listitem_unified_properties(unified)
 
 
+def set_movie_extras_aggregates(count: int, total_runtime: int, unwatched: int,
+                                unwatched_runtime: int) -> None:
+    """Set `SkinInfo.Movie.Extras.*` aggregates (Piers+ asset view). Runtimes in minutes."""
+    has_extras = count > 0
+    total_min = total_runtime // 60
+    unwatched_min = unwatched_runtime // 60
+    batch_set_props({
+        "SkinInfo.Movie.Extras.Count": str(count) if has_extras else "",
+        "SkinInfo.Movie.Extras.TotalRuntime": str(total_min) if has_extras and total_min else "",
+        "SkinInfo.Movie.Extras.Unwatched": str(unwatched) if has_extras else "",
+        "SkinInfo.Movie.Extras.UnwatchedRuntime": str(unwatched_min) if has_extras and unwatched_min else "",
+    })
+
+
 def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     """Build movie set data dictionary for ListItem properties."""
     data = {}

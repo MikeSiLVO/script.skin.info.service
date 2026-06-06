@@ -1,63 +1,10 @@
-"""Helper classes and utilities for artwork fetching.
-
-Provides OrderedSet for multi-selection tracking and quality comparison functions.
-"""
+"""Helper classes and utilities for artwork fetching."""
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
-
-
-class OrderedSet:
-    """Keeps items in the order they were added (used for multi-art selection order)."""
-
-    def __init__(self):
-        self._dict: dict[Any, None] = {}
-
-    def add(self, item: Any) -> None:
-        """Add item to the end if not already present."""
-        if item not in self._dict:
-            self._dict[item] = None
-
-    def remove(self, item: Any) -> None:
-        """Remove item while maintaining order of remaining items."""
-        self._dict.pop(item, None)
-
-    def toggle(self, item: Any) -> None:
-        """Toggle item presence (add if not present, remove if present)."""
-        if item in self._dict:
-            self.remove(item)
-        else:
-            self.add(item)
-
-    def clear(self) -> None:
-        """Remove all items."""
-        self._dict.clear()
-
-    def get_ordered(self) -> List[Any]:
-        """Return items in insertion order."""
-        return list(self._dict.keys())
-
-    def get_order(self, item: Any) -> int:
-        """Get 1-based position of item in selection order (0 if not in set)."""
-        try:
-            return list(self._dict.keys()).index(item) + 1
-        except ValueError:
-            return 0
-
-    def __contains__(self, item: Any) -> bool:
-        """Check if item is in the set."""
-        return item in self._dict
-
-    def __len__(self) -> int:
-        """Return number of items."""
-        return len(self._dict)
-
-    def __iter__(self):
-        """Iterate over items in order."""
-        return iter(self._dict)
 
 
 def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
@@ -309,11 +256,6 @@ def get_language_display_name(language_code: str) -> str:
     }
 
     return language_names.get(language_code, language_code.upper())
-
-
-def build_art_slot_name(index: int) -> str:
-    """Build art slot name from 0-based index: 'fanart', 'fanart1', 'fanart2', ..."""
-    return 'fanart' if index == 0 else f'fanart{index}'
 
 
 def parse_art_slot_index(slot_name: str) -> int:

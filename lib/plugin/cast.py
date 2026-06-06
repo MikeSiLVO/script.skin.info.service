@@ -53,7 +53,7 @@ def _create_cast_listitems(handle: int, cast_list: list) -> int:
         thumb = actor.get('thumbnail') or actor.get('profile_path') or ''
 
         if thumb.startswith('/'):
-            thumb = tmdb_image_url(thumb, 'w185')
+            thumb = tmdb_image_url(thumb, 'h632')
 
         if thumb:
             item.setArt({'icon': thumb, 'thumb': thumb})
@@ -77,13 +77,19 @@ def _create_cast_listitems(handle: int, cast_list: list) -> int:
     return items_added
 
 
-def _handle_online_cast(handle: int, dbtype: str, dbid: int) -> int:
-    """Fetch cast from TMDB and render as directory. Returns count added."""
+def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -> int:
+    """Fetch cast from TMDB and render as directory. Returns count added.
+
+    Accepts either a Kodi `dbid` (resolved to TMDB ID via library uniqueid) or a `tmdb_id` directly.
+    `tmdb_id` takes precedence when provided.
+    """
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
     from lib.data.api.person import resolve_tmdb_id
 
-    tmdb_id = resolve_tmdb_id(dbtype, dbid)
+    if not tmdb_id:
+        resolved = resolve_tmdb_id(dbtype, dbid)
+        tmdb_id = resolved or 0
     if not tmdb_id:
         log("Plugin", f"Online Cast: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
@@ -152,29 +158,44 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int) -> int:
 
 
 def handle_get_cast(handle: int, params: dict) -> None:
-    """Plugin entry for cast listings. `online=true` fetches from TMDB; default reads the Kodi library."""
+    """Plugin entry for cast listings. `online=true` fetches from TMDB; default reads the Kodi library.
+
+    `tmdb_id` may be supplied directly (instead of `dbid`) when the caller is in an
+    online-only context. Online mode is opt-in via `online=true`; defaults remain library.
+    """
     try:
         dbid = params.get('dbid', [''])[0]
         dbtype = params.get('dbtype', [''])[0]
+        tmdb_id_str = params.get('tmdb_id', [''])[0]
         online = params.get('online', ['false'])[0].lower() == 'true'
-
-        if not dbid or not dbtype:
-            log("Plugin", "Library Cast: Missing required parameters", xbmc.LOGWARNING)
-            xbmcplugin.endOfDirectory(handle, succeeded=False)
-            return
 
         if dbtype not in ('movie', 'set', 'tvshow', 'season', 'episode'):
             log("Plugin", f'Library Cast: Invalid dbtype "{dbtype}"', xbmc.LOGWARNING)
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
+        if online and not dbid and not tmdb_id_str:
+            log("Plugin", "Online Cast: Missing required parameters (need tmdb_id or dbid)", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        if not online and not dbid:
+            log("Plugin", "Library Cast: Missing required parameters (dbid)", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        try:
+            tmdb_id = int(tmdb_id_str) if tmdb_id_str else 0
+        except (ValueError, TypeError):
+            tmdb_id = 0
+
         from lib.kodi.client import get_item_details
 
         items_added = 0
 
         if online:
-            log("Plugin", f"Library Cast: Using online TMDB data for {dbtype} {dbid}", xbmc.LOGDEBUG)
-            items_added = _handle_online_cast(handle, dbtype, int(dbid))
+            log("Plugin", f"Library Cast: Using online TMDB data for {dbtype} (dbid={dbid}, tmdb_id={tmdb_id})", xbmc.LOGDEBUG)
+            items_added = _handle_online_cast(handle, dbtype, int(dbid) if dbid else 0, tmdb_id)
         elif dbtype in ('movie', 'episode', 'tvshow'):
             if dbtype == 'movie':
                 details = get_item_details('movie', int(dbid), ['cast'])

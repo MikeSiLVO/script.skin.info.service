@@ -149,6 +149,7 @@ class UpdaterHandler:
                     break
 
             log("Service", f"Online updater: {fetched} refreshed", xbmc.LOGINFO)
+            self._idle_wait()
 
     def _idle_wait(self) -> None:
         monitor = xbmc.Monitor()

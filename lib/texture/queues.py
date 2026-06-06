@@ -57,12 +57,6 @@ class TextureCache(WorkerQueue):
             self._load_cached_urls()
         log("Cache", f"TextureCache started {self.num_workers} worker threads")
 
-    def add_url(self, url: str) -> bool:
-        """Queue a URL for caching. Returns False if already cached or in-flight. Non-blocking."""
-        if not url:
-            return False
-        return self.add_item(url, dedupe_key=url)
-
     def bulk_add_urls(self, urls: List[str]) -> int:
         """Queue multiple URLs. Returns count successfully queued."""
         queued = self.bulk_add_items(urls)

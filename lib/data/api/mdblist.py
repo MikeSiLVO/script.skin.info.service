@@ -153,14 +153,6 @@ class ApiMdblist(RatingSource):
         finally:
             self.session.clear_pause_context()
 
-    def get_ratings(self, media_type: str, ids: Dict[str, str]) -> Optional[Dict[str, Dict[str, float]]]:
-        """Get ratings from cached MDBList data."""
-        data = self.get_mdblist_data(media_type, ids)
-        if not data:
-            return None
-
-        return self._extract_ratings(data, media_type)
-
     def _extract_ratings(self, data: dict, media_type: str) -> Dict[str, Dict[str, float]]:
         """Extract ratings from MDBList response. Converts 0-100 scores to 0-10 for Kodi."""
         result: Dict[str, Dict[str, float]] = {}
@@ -406,24 +398,6 @@ class ApiMdblist(RatingSource):
             except Exception as e:
                 log("MDBList", f"Batch error: {str(e)}", xbmc.LOGWARNING)
                 continue
-
-        return results
-
-    def fetch_ratings_batch(
-        self,
-        media_type: str,
-        items: List[Dict[str, str]],
-        provider: str = "tmdb",
-        abort_flag=None
-    ) -> Dict[str, Dict[str, Dict[str, float]]]:
-        """Fetch ratings for multiple items. Returns dict mapping provider IDs to ratings."""
-        batch_data = self.fetch_batch(media_type, items, provider, abort_flag)
-
-        results: Dict[str, Dict[str, Dict[str, float]]] = {}
-        for item_id, data in batch_data.items():
-            ratings = self._extract_ratings(data, media_type)
-            if ratings:
-                results[item_id] = ratings
 
         return results
 

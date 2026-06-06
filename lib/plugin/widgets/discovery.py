@@ -312,6 +312,91 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
 
 
+def handle_tmdb_recommendations(handle: int, params: dict) -> None:
+    """TMDB recommendations for a specific item (movie/tv).
+
+    Reads the `recommendations` block from cached extended details — no extra API call
+    when online data is already loaded. Accepts `tmdb_id` directly or resolves it from
+    `dbid`+`dbtype`. `source=library` filters to library matches only.
+    """
+    try:
+        dbtype = params.get('dbtype', [''])[0]
+        tmdb_id_str = params.get('tmdb_id', [''])[0]
+        dbid_str = params.get('dbid', [''])[0]
+        limit = int(params.get('limit', ['25'])[0])
+        source = params.get('source', ['online'])[0]
+
+        if dbtype not in ('movie', 'tvshow'):
+            log("Plugin", f"TMDB Recommendations: Invalid dbtype '{dbtype}'", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        tmdb_id = 0
+        if tmdb_id_str:
+            try:
+                tmdb_id = int(tmdb_id_str)
+            except (ValueError, TypeError):
+                tmdb_id = 0
+
+        if not tmdb_id and dbid_str:
+            from lib.data.api.person import resolve_tmdb_id
+            try:
+                dbid = int(dbid_str)
+                resolved = resolve_tmdb_id(dbtype, dbid)
+                tmdb_id = resolved or 0
+            except (ValueError, TypeError):
+                tmdb_id = 0
+
+        if not tmdb_id:
+            log("Plugin", "TMDB Recommendations: Could not resolve tmdb_id", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        from lib.data.api.tmdb import ApiTmdb
+        api = ApiTmdb()
+        data = api.get_complete_data(dbtype, tmdb_id)
+        if not data:
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        recs = (data.get('recommendations') or {}).get('results', [])[:limit]
+        if not recs:
+            xbmcplugin.endOfDirectory(handle, succeeded=True)
+            return
+
+        media_type = 'movie' if dbtype == 'movie' else 'tv'
+        kodi_media_type = 'movie' if media_type == 'movie' else 'tvshow'
+        tmdb_type = 'movie' if media_type == 'movie' else 'tv'
+
+        library_lookup = _get_library_lookup(kodi_media_type)
+        genre_map = api.get_genre_list(tmdb_type)
+
+        items: List[Tuple[str, xbmcgui.ListItem, bool]] = []
+        for raw in recs:
+            normalized = _normalize_tmdb_item(raw, media_type, genre_map)
+            tmdb_id_match = str(normalized.get("tmdb_id", ""))
+            lib_match = library_lookup.get(tmdb_id_match)
+
+            if source == "library" and not lib_match:
+                continue
+
+            url, listitem, is_folder = _create_listitem(normalized, lib_match)
+            items.append((url, listitem, is_folder))
+
+        for url, listitem, is_folder in items:
+            xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
+
+        xbmcplugin.setContent(handle, "movies" if media_type == "movie" else "tvshows")
+        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+
+        log("Plugin", f"TMDB Recommendations: Returned {len(items)} items for {dbtype} tmdb={tmdb_id}", xbmc.LOGINFO)
+
+    except Exception as e:
+        log("Plugin", f"TMDB Recommendations: Error - {e}", xbmc.LOGERROR)
+        log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+
+
 def _discover_url(action: str, media_type: str) -> str:
     return f"plugin://script.skin.info.service/?action={action}&type={media_type}"
 

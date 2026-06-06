@@ -191,6 +191,27 @@ Media-type-agnostic properties that work regardless of what item is focused.
 | `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
 | `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
+### Video Versions / Extras View (Piers+)
+
+Inside a video versions or extras container (`Container.Content(videoversions)` or `Container.Content(videoextras)`), the parent movie's `SkinInfo.Movie.*` properties stay populated even when focus moves to the virtual "Extras" folder item or to an extras file (both of which expose an empty `ListItem.DBID`). The parent movie ID is extracted from `Container.FolderPath`, so the same `Title`/`Plot`/`Art(...)` keys remain valid throughout the view.
+
+In addition, three aggregates summarise the contents of the parent movie's extras subdirectory:
+
+| Property | Description |
+|----------|-------------|
+| `SkinInfo.Movie.Extras.Count` | Number of extras (empty if none) |
+| `SkinInfo.Movie.Extras.TotalRuntime` | Sum of all extras runtimes in minutes (empty if none) |
+| `SkinInfo.Movie.Extras.Unwatched` | Count of extras with `playcount == 0` (empty if none) |
+| `SkinInfo.Movie.Extras.UnwatchedRuntime` | Sum of unwatched extras runtimes in minutes (empty if none) |
+
+```xml
+<label>Extras ($INFO[Window(Home).Property(SkinInfo.Movie.Extras.Count)])</label>
+<label>$INFO[Window(Home).Property(SkinInfo.Movie.Extras.Unwatched)] unwatched</label>
+<label>$INFO[Window(Home).Property(SkinInfo.Movie.Extras.UnwatchedRuntime)] min remaining</label>
+```
+
+Aggregates are cleared when focus leaves the versions/extras container. No-op on Kodi versions earlier than Piers (the `videoversions`/`videoextras` content types and the `/2/` extras path segment do not exist there).
+
 ---
 
 ## Movie Sets

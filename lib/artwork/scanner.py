@@ -10,7 +10,7 @@ from time import time
 from typing import Optional, List, Tuple, Any, Sequence
 
 from lib.data import database as db
-from lib.kodi.client import get_item_details, get_library_items, KODI_GET_DETAILS_METHODS
+from lib.kodi.client import get_library_items
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code
 from lib.artwork.config import REVIEW_MODE_MISSING
@@ -39,19 +39,6 @@ class ArtworkScanner:
         else:
             from lib.data.api.artwork import create_default_fetcher
             self.fetcher = create_default_fetcher()
-
-    def _wait_for_dialog_close(self, dialog_name: str, timeout_ms: int = 1000) -> None:
-        """Wait for a Kodi dialog to fully close."""
-        monitor = xbmc.Monitor()
-        waited = 0
-        sleep_interval = 50
-
-        while xbmc.getCondVisibility(f"Window.IsVisible({dialog_name})"):
-            if monitor.waitForAbort(sleep_interval / 1000.0):
-                break
-            waited += sleep_interval
-            if waited >= timeout_ms:
-                break
 
     def _begin_scan_progress(self) -> None:
         """Create a single progress dialog for the entire scan."""
@@ -118,56 +105,6 @@ class ArtworkScanner:
         'album': ["title", "artist", "art", "year"],
         'set': ["title", "art"],
     }
-
-    def scan_single_item(self, dbid: str, dbtype: str) -> bool:
-        """Scan a single item for missing artwork. Returns True if added to queue."""
-        from lib.artwork.config import validate_media_type, validate_dbid
-
-        if not validate_dbid(dbid):
-            log("Artwork", f"Scanner: Invalid dbid: {dbid}", xbmc.LOGWARNING)
-            return False
-
-        if not validate_media_type(dbtype):
-            log("Artwork", f"Scanner: Invalid media type: {dbtype}", xbmc.LOGWARNING)
-            return False
-
-        if dbtype not in KODI_GET_DETAILS_METHODS:
-            return False
-
-        dbid_int = int(dbid)
-        art_types = self._get_art_types_to_check(dbtype)
-        properties = self._SCAN_PROPERTIES.get(dbtype, ["title", "art"])
-
-        item = get_item_details(dbtype, dbid_int, properties)
-        if not isinstance(item, dict):
-            return False
-
-        current_art = item.get("art", {})
-        missing_art_types: List[str] = []
-
-        for art_type in art_types:
-            current_url = current_art.get(art_type)
-            if not current_url:
-                missing_art_types.append(art_type)
-
-        if missing_art_types:
-            title = item.get("title") or item.get("artist") or item.get("label", "Unknown")
-            year = str(item.get("year", "")) if item.get("year") else ""
-            scope_label = dbtype if dbtype else ''
-
-            queue_id = db.add_to_queue(dbtype, dbid_int, title, year, scope=scope_label)
-            for art_type in missing_art_types:
-                db.add_art_item(
-                    queue_id,
-                    art_type,
-                    requires_manual=False,
-                    scan_session_id=None,
-                )
-
-            self.queued_count += 1
-            return True
-
-        return False
 
     def scan(self, media_type: str, resume_session_id: Optional[int] = None) -> bool:
         """Scan library for missing artwork.

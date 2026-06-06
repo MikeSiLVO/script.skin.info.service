@@ -277,7 +277,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
         profile_path = result.get('profile_path')
         if profile_path:
-            image_url = tmdb_image_url(profile_path, 'w185')
+            image_url = tmdb_image_url(profile_path, 'h632')
             item.setArt({'thumb': image_url, 'icon': image_url})
 
         items.append(item)
@@ -377,12 +377,41 @@ def match_crew_to_person_id(
     return None
 
 
+_CREW_JOB_PRIORITY: dict[str, int] = {
+    'Director': 1,
+    'Co-Director': 1,
+    'Creator': 2,
+    'Writer': 3,
+    'Screenplay': 3,
+    'Story': 3,
+    'Original Story': 3,
+    'Showrunner': 4,
+    'Executive Producer': 4,
+    'Producer': 5,
+    'Co-Producer': 5,
+    'Line Producer': 5,
+    'Editor': 6,
+    'Director of Photography': 7,
+    'Cinematography': 7,
+    'Original Music Composer': 8,
+    'Composer': 8,
+    'Casting Director': 9,
+    'Casting': 9,
+    'Production Design': 10,
+    'Art Direction': 10,
+    'Costume Design': 11,
+}
+
+
 def get_crew_from_tmdb(
     crew_type: str,
     tmdb_id: int,
     dbtype: str
 ) -> list[dict]:
-    """Get crew members (directors/writers/creators) from TMDB.
+    """Get crew members from TMDB.
+
+    `crew_type` may be `director`, `writer`, `creator`, or empty/`all` for full crew
+    (deduped by person, multiple jobs joined as `Director, Producer`).
 
     Returns list of dicts with id, name, profile_path, job.
     """
@@ -417,11 +446,35 @@ def get_crew_from_tmdb(
     crew = data["credits"].get("crew") or []
 
     if crew_type == "director":
-        job_filter = {"Director"}
+        job_filter: Optional[set[str]] = {"Director"}
     elif crew_type == "writer":
         job_filter = {"Writer", "Screenplay", "Story", "Original Story"}
+    elif crew_type in ("", "all"):
+        job_filter = None
     else:
         return []
+
+    if job_filter is None:
+        sorted_members = sorted(crew, key=lambda m: _CREW_JOB_PRIORITY.get(m.get("job", ""), 99))
+
+        by_person: dict[int, dict] = {}
+        for member in sorted_members:
+            person_id = member.get("id")
+            if not person_id:
+                continue
+            job = member.get("job", "")
+            existing = by_person.get(person_id)
+            if existing:
+                if job and job not in existing["job"].split(", "):
+                    existing["job"] = f"{existing['job']}, {job}"
+            else:
+                by_person[person_id] = {
+                    "id": person_id,
+                    "name": member.get("name", ""),
+                    "profile_path": member.get("profile_path"),
+                    "job": job
+                }
+        return list(by_person.values())
 
     seen_ids: set[int] = set()
     result = []

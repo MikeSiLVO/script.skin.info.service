@@ -85,7 +85,6 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         self.selected_index = None
         self.result = None
-        self.multiart_result = None
         self.queued_multiart = None
 
         self.full_artwork_list = kwargs.get('full_artwork_list', [])
@@ -395,12 +394,6 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         self.setProperty('show_change_language', 'true' if show_lang_button else 'false')
 
         self._populate_artwork_list()
-
-    def _switch_language(self, new_language: str) -> None:
-        """Refresh list control with new language filter."""
-        self.current_language = new_language
-        self._resort_artwork()
-
 
 def show_artwork_selection_dialog(
     title: str,

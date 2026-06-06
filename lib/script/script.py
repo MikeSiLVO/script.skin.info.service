@@ -4,8 +4,6 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import set_prop, clear_prop, resolve_infolabel
-from lib.data.api.utilities import tmdb_image_url
-from lib.service import blur
 
 
 def _set_window_prop(key: str, value: str, window: str) -> None:
@@ -56,6 +54,7 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
             except (ValueError, TypeError):
                 radius = 40
 
+        from lib.service import blur
         blurred_path = blur.blur_image(source, radius)
 
         if blurred_path:
@@ -190,17 +189,20 @@ def _handle_set_setting(args: dict) -> None:
         value = False
     elif value.isdigit():
         value = int(value)
-    set_setting(setting, value)
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    set_setting(setting, value, noconfirm)
 
 
 def _handle_toggle_setting(args: dict) -> None:
     from lib.skin.settings import toggle_setting
-    toggle_setting(args.get('setting', ""))
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    toggle_setting(args.get('setting', ""), noconfirm)
 
 
 def _handle_reset_setting(args: dict) -> None:
     from lib.skin.settings import reset_setting
-    reset_setting(args.get('setting', ""))
+    noconfirm = args.get('noconfirm', 'false').lower() == 'true'
+    reset_setting(args.get('setting', ""), noconfirm)
 
 
 def _handle_update_library_ratings(args: dict) -> None:
@@ -353,6 +355,7 @@ def _handle_tmdb_search(args: dict) -> None:
 
         listitem = xbmcgui.ListItem(label=title, label2=label2, offscreen=True)
         if poster:
+            from lib.data.api.utilities import tmdb_image_url
             image_url = tmdb_image_url(poster, 'w500')
             listitem.setArt({'icon': image_url, 'thumb': image_url})
 
@@ -611,6 +614,226 @@ def _handle_online_fetch(args: dict) -> None:
     xbmc.executebuiltin(f"SetProperty({property_name},{plugin_url},{window})")
 
 
+def _handle_dialog_actor_info(args: dict) -> None:
+    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    try:
+        _handle_dialog_actor_info_inner(args)
+    finally:
+        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+
+
+def _handle_dialog_actor_info_inner(args: dict) -> None:
+    from lib.data.api import person as person_api
+    from lib.data.database._infrastructure import init_database
+
+    init_database()
+
+    person_id_str = args.get('person_id')
+    name = args.get('name', '')
+    role = args.get('role', '')
+    dbid = args.get('dbid')
+    dbtype = args.get('dbtype', 'movie')
+    crew = args.get('crew', '')
+    separator = args.get('separator', ' / ')
+    auto_search = args.get('auto_search', 'true').lower() == 'true'
+    online = args.get('online', 'false').lower() == 'true'
+    set_home_props = args.get('set_home_props', 'false').lower() == 'true'
+
+    person_id = None
+    if person_id_str:
+        try:
+            person_id = int(person_id_str)
+        except (ValueError, TypeError):
+            log("General", f"dialog_actor_info: Invalid person_id '{person_id_str}'", xbmc.LOGERROR)
+            return
+
+    if not person_id and crew:
+        if crew not in ('director', 'writer', 'creator'):
+            log("General", f"dialog_actor_info: Invalid crew type '{crew}'", xbmc.LOGERROR)
+            return
+        if not dbid:
+            log("General", "dialog_actor_info: crew mode requires dbid", xbmc.LOGERROR)
+            return
+        try:
+            dbid_int = int(dbid)
+        except (ValueError, TypeError):
+            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
+            return
+
+        tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
+        if not tmdb_id:
+            log("General", f"dialog_actor_info: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGERROR)
+            return
+
+        if not name:
+            crew_list = person_api.get_crew_from_tmdb(crew, tmdb_id, dbtype)
+            if not crew_list:
+                return
+            if len(crew_list) == 1:
+                person_id = crew_list[0]['id']
+                name = crew_list[0]['name']
+            else:
+                import xbmcgui as _xbmcgui
+                items = []
+                for member in crew_list:
+                    item = _xbmcgui.ListItem(member['name'], offscreen=True)
+                    if member.get('job'):
+                        item.setLabel2(member['job'])
+                    if member.get('profile_path'):
+                        url = f"https://image.tmdb.org/t/p/h632{member['profile_path']}"
+                        item.setArt({'thumb': url, 'icon': url})
+                    items.append(item)
+                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", items, useDetails=True)
+                if selected < 0:
+                    return
+                person_id = crew_list[selected]['id']
+                name = crew_list[selected]['name']
+        else:
+            names = [n.strip() for n in name.split(separator) if n.strip()]
+            if not names:
+                return
+            if len(names) == 1:
+                selected_name = names[0]
+            else:
+                import xbmcgui as _xbmcgui
+                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", names)
+                if selected < 0:
+                    return
+                selected_name = names[selected]
+            name = selected_name
+            person_id = person_api.match_crew_to_person_id(selected_name, crew, tmdb_id, dbtype, auto_search=auto_search)
+            if not person_id:
+                return
+
+    elif not person_id:
+        if not name or not dbid:
+            log("General", "dialog_actor_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
+            return
+        try:
+            dbid_int = int(dbid)
+        except (ValueError, TypeError):
+            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
+            return
+
+        sourceid = args.get('sourceid')
+        if dbtype in ('set', 'season'):
+            if not sourceid:
+                log("General", f"dialog_actor_info: {dbtype} requires sourceid", xbmc.LOGERROR)
+                return
+            try:
+                source_dbid = int(sourceid)
+                source_dbtype = 'movie' if dbtype == 'set' else 'episode'
+            except (ValueError, TypeError):
+                return
+            resolve_dbtype = source_dbtype
+            resolve_dbid = source_dbid
+        else:
+            source_dbid = dbid_int
+            source_dbtype = dbtype
+            resolve_dbtype = dbtype
+            resolve_dbid = dbid_int
+
+        tmdb_id = person_api.resolve_tmdb_id(resolve_dbtype, resolve_dbid)
+        if not tmdb_id:
+            return
+
+        person_id = person_api.match_actor_to_person_id(
+            name, role, tmdb_id, source_dbtype, source_dbid,
+            auto_search=auto_search, online=online,
+        )
+        if not person_id:
+            return
+
+    from lib.info.dialogs.actor import open_actor_info
+    open_actor_info(
+        person_id=person_id,
+        person_name=name,
+        set_home_props=set_home_props,
+    )
+
+
+def _handle_dialog_image_viewer(args: dict) -> None:
+    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    try:
+        _handle_dialog_image_viewer_inner(args)
+    finally:
+        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+
+
+def _handle_dialog_image_viewer_inner(args: dict) -> None:
+    images_path = args.get('images_path', '')
+    if not images_path:
+        log("General", "dialog_image_viewer: Missing images_path", xbmc.LOGWARNING)
+        return
+
+    selected_index_str = args.get('selected_index', '0')
+    try:
+        selected_index = max(0, int(selected_index_str) - 1)
+    except (ValueError, TypeError):
+        selected_index = 0
+
+    from lib.info.dialogs.image import open_image_viewer
+    open_image_viewer(images_path=images_path, selected_index=selected_index)
+
+
+def _handle_dialog_video_info(args: dict) -> None:
+    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    try:
+        _handle_dialog_video_info_inner(args)
+    finally:
+        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+
+
+def _handle_dialog_video_info_inner(args: dict) -> None:
+    from lib.data.database._infrastructure import init_database
+
+    init_database()
+
+    media_type = args.get('dbtype', '')
+    if media_type == 'tv':
+        media_type = 'tvshow'
+    dbid = args.get('dbid', '')
+    tmdb_id = args.get('tmdb_id', '')
+    imdb_id = args.get('imdb_id', '')
+    set_home_props = args.get('set_home_props', 'false').lower() == 'true'
+
+    if not tmdb_id and not imdb_id:
+        if not dbid or not media_type:
+            log("General", "dialog_video_info: Need dbid+dbtype or tmdb_id/imdb_id", xbmc.LOGWARNING)
+            return
+
+        from lib.kodi.client import get_item_details
+        try:
+            dbid_int = int(dbid)
+        except (ValueError, TypeError):
+            log("General", f"dialog_video_info: Invalid dbid '{dbid}'", xbmc.LOGWARNING)
+            return
+
+        if media_type == 'episode':
+            episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
+            if episode_details and episode_details.get("tvshowid"):
+                details = get_item_details("tvshow", episode_details["tvshowid"], ["uniqueid"])
+            else:
+                return
+        else:
+            details = get_item_details(media_type, dbid_int, ["uniqueid"])
+
+        if not details:
+            return
+        uniqueid = details.get("uniqueid") or {}
+        imdb_id = uniqueid.get("imdb", "")
+        tmdb_id = uniqueid.get("tmdb", "")
+
+    from lib.info.dialogs.video import open_video_info
+    open_video_info(
+        tmdb_id=tmdb_id,
+        imdb_id=imdb_id,
+        media_type=media_type,
+        dbid=dbid,
+        set_home_props=set_home_props,
+    )
+
+
 _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "colorpicker": _handle_colorpicker,
     "blur": _handle_blur,
@@ -645,6 +868,9 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "tmdb_search": _handle_tmdb_search,
     "search_library_person": _handle_search_library_person,
     "online_fetch": _handle_online_fetch,
+    "dialog_actor_info": _handle_dialog_actor_info,
+    "dialog_video_info": _handle_dialog_video_info,
+    "dialog_image_viewer": _handle_dialog_image_viewer,
 }
 
 

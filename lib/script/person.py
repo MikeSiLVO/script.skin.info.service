@@ -92,7 +92,7 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
         if member.get('job'):
             item.setLabel2(member['job'])
         if member.get('profile_path'):
-            image_url = tmdb_image_url(member['profile_path'], 'w185')
+            image_url = tmdb_image_url(member['profile_path'], 'h632')
             item.setArt({'thumb': image_url, 'icon': image_url})
         items.append(item)
 

@@ -131,7 +131,7 @@ def _generate_mock_art_items(art_type: str, count: int = 12) -> List[Dict[str, A
     }
 
     image_file, dimensions = art_type_map.get(art_type.lower(), ('artwork_test_poster.png', (1000, 1500)))
-    test_image = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/media/artwork_test/{image_file}')
+    test_image = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/skins/default/media/artwork_test/{image_file}')
 
     mock_items = []
 

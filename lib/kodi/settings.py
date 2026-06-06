@@ -41,35 +41,6 @@ class KodiSettings:
             return cls._cache[key]
 
     @classmethod
-    def get_int(cls, key: str) -> int:
-        """Get int setting with caching."""
-        with cls._cache_lock:
-            if key not in cls._cache:
-                cls._cache[key] = cls._get_addon().getSettingInt(key)
-            return cls._cache[key]
-
-    @classmethod
-    def set_bool(cls, key: str, value: bool) -> None:
-        """Set boolean setting and update cache atomically."""
-        with cls._cache_lock:
-            cls._get_addon().setSettingBool(key, value)
-            cls._cache[key] = value
-
-    @classmethod
-    def set_string(cls, key: str, value: str) -> None:
-        """Set string setting and update cache atomically."""
-        with cls._cache_lock:
-            cls._get_addon().setSetting(key, value)
-            cls._cache[key] = value
-
-    @classmethod
-    def set_int(cls, key: str, value: int) -> None:
-        """Set int setting and update cache atomically."""
-        with cls._cache_lock:
-            cls._get_addon().setSettingInt(key, value)
-            cls._cache[key] = value
-
-    @classmethod
     def clear_cache(cls) -> None:
         """Clear the settings cache. Use when settings change externally."""
         with cls._cache_lock:
@@ -145,7 +116,3 @@ class KodiSettings:
                 art_types.append(art_type)
         return ','.join(art_types)
 
-    @classmethod
-    def trakt_access_token(cls) -> str:
-        """Get Trakt access token."""
-        return cls.get_string('trakt_access_token')

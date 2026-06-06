@@ -199,8 +199,14 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
         image_url = tmdb_image_url(file_path)
         item.setArt({'thumb': image_url, 'icon': image_url})
 
-        item.setProperty('Width', str(image.get('width', '')))
-        item.setProperty('Height', str(image.get('height', '')))
+        width = image.get('width')
+        height = image.get('height')
+        if width:
+            item.setProperty('Width', str(width))
+        if height:
+            item.setProperty('Height', str(height))
+        if width and height:
+            item.setProperty('Dimensions', f"{width}x{height}")
 
         vote_average = image.get('vote_average')
         if vote_average:
@@ -488,20 +494,29 @@ def _create_credit_listitem(credit: dict) -> xbmcgui.ListItem:
 
 
 def handle_crew_list(handle: int, params: dict) -> None:
-    """Plugin entry for crew listings (director/writer/creator) for a movie or TV show."""
+    """Plugin entry for crew listings (director/writer/creator) for a movie or TV show.
+
+    Accepts `tmdb_id` directly for TMDB-only items (no library entry).
+    """
     from lib.data.api import person as person_api
     from lib.data.api.person import resolve_tmdb_id
 
     crew_type = params.get('crew_type', [''])[0]
     dbtype = params.get('dbtype', [''])[0]
     dbid_str = params.get('dbid', [''])[0]
+    tmdb_id_str = params.get('tmdb_id', [''])[0]
 
-    if not crew_type or not dbtype or not dbid_str:
-        log("Plugin", "Crew List: Missing required parameters", xbmc.LOGWARNING)
+    if not dbtype:
+        log("Plugin", "Crew List: Missing required parameters (dbtype)", xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
-    if crew_type not in ('director', 'writer', 'creator'):
+    if not dbid_str and not tmdb_id_str:
+        log("Plugin", "Crew List: Missing required parameters (need tmdb_id or dbid)", xbmc.LOGWARNING)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+        return
+
+    if crew_type and crew_type not in ('director', 'writer', 'creator', 'all'):
         log("Plugin", f"Crew List: Invalid crew_type '{crew_type}'", xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
@@ -511,23 +526,32 @@ def handle_crew_list(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
-    try:
-        dbid = int(dbid_str)
-    except (ValueError, TypeError):
-        log("Plugin", f"Crew List: Invalid dbid '{dbid_str}'", xbmc.LOGWARNING)
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
-        return
+    tmdb_id: int = 0
+    if tmdb_id_str:
+        try:
+            tmdb_id = int(tmdb_id_str)
+        except (ValueError, TypeError):
+            tmdb_id = 0
 
-    tmdb_id = resolve_tmdb_id(dbtype, dbid)
     if not tmdb_id:
-        log("Plugin", f"Crew List: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
-        return
+        try:
+            dbid = int(dbid_str)
+        except (ValueError, TypeError):
+            log("Plugin", f"Crew List: Invalid dbid '{dbid_str}'", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        resolved = resolve_tmdb_id(dbtype, dbid)
+        tmdb_id = resolved or 0
+        if not tmdb_id:
+            log("Plugin", f"Crew List: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
 
     crew_list = person_api.get_crew_from_tmdb(crew_type, tmdb_id, dbtype)
 
     if not crew_list:
-        log("Plugin", f"Crew List: No {crew_type}s found for {dbtype} {dbid}", xbmc.LOGINFO)
+        log("Plugin", f"Crew List: No {crew_type}s found for {dbtype} tmdb={tmdb_id}", xbmc.LOGINFO)
         xbmcplugin.endOfDirectory(handle, succeeded=True)
         return
 
@@ -540,7 +564,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
 
         profile_path = member.get('profile_path')
         if profile_path:
-            image_url = tmdb_image_url(profile_path, 'w185')
+            image_url = tmdb_image_url(profile_path, 'h632')
             item.setArt({'thumb': image_url, 'icon': image_url})
         else:
             item.setArt({'thumb': 'DefaultActor.png', 'icon': 'DefaultActor.png'})
@@ -556,7 +580,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
     xbmcplugin.setContent(handle, 'actors')
     xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
 
-    log("Plugin", f"Crew List: Returned {len(crew_list)} {crew_type}s for {dbtype} {dbid}", xbmc.LOGDEBUG)
+    log("Plugin", f"Crew List: Returned {len(crew_list)} {crew_type}s for {dbtype} tmdb={tmdb_id}", xbmc.LOGDEBUG)
 
 
 def handle_tmdb_details(handle: int, params: dict) -> None:

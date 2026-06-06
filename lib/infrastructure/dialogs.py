@@ -154,27 +154,3 @@ def show_select(
     return xbmcgui.Dialog().select(heading, options, preselect=preselect)
 
 
-def show_input(
-    heading: str,
-    default: str = "",
-    input_type: int = xbmcgui.INPUT_ALPHANUM
-) -> str:
-    """Show input dialog."""
-    return xbmcgui.Dialog().input(heading, default, type=input_type)
-
-
-def show_error(message: str) -> None:
-    """Show error notification."""
-    show_notification(xbmc.getLocalizedString(257), message, xbmcgui.NOTIFICATION_ERROR, 5000)
-
-
-def show_warning(message: str) -> None:
-    """Show warning notification."""
-    show_notification(xbmc.getLocalizedString(14117), message, xbmcgui.NOTIFICATION_WARNING, 4000)
-
-
-def show_info(message: str) -> None:
-    """Show info notification."""
-    show_notification(xbmc.getLocalizedString(29915), message, xbmcgui.NOTIFICATION_INFO, 3000)
-
-

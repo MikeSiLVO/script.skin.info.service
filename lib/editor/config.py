@@ -227,14 +227,6 @@ TVSHOW_STATUS_VALUES = [
     "ended",
 ]
 
-CATEGORIES_ORDER = [
-    CATEGORY_CORE_TEXT,
-    CATEGORY_DATES_NUMBERS,
-    CATEGORY_LISTS,
-    CATEGORY_RATINGS,
-]
-
-
 def get_fields_for_media_type(media_type: str) -> list[str]:
     """Get list of editable fields for a media type."""
     return MEDIA_TYPE_FIELDS.get(media_type, [])
@@ -243,28 +235,6 @@ def get_fields_for_media_type(media_type: str) -> list[str]:
 def get_field_def(field_name: str) -> FieldDef | None:
     """Get field definition by name."""
     return FIELD_DEFINITIONS.get(field_name)
-
-
-def get_categories_for_media_type(media_type: str) -> list[str]:
-    """Get available categories for a media type based on its fields."""
-    fields = get_fields_for_media_type(media_type)
-    categories = set()
-    for field in fields:
-        field_def = get_field_def(field)
-        if field_def:
-            categories.add(field_def["category"])
-    return [cat for cat in CATEGORIES_ORDER if cat in categories]
-
-
-def get_fields_for_category(media_type: str, category: str) -> list[str]:
-    """Get fields for a media type filtered by category."""
-    fields = get_fields_for_media_type(media_type)
-    result = []
-    for field in fields:
-        field_def = get_field_def(field)
-        if field_def and field_def["category"] == category:
-            result.append(field)
-    return result
 
 
 _DEFAULT_PROPERTIES: dict[str, list[str]] = {

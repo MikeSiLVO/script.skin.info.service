@@ -34,7 +34,10 @@ class LibraryMonitor(xbmc.Monitor):
         if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
             self.service_main.refresh.increment()
         if method == 'VideoLibrary.OnUpdate':
+            self.service_main.focus.invalidate_asset_view()
             self._on_video_update(data)
+        if method == 'Player.OnAVStop':
+            self.service_main.focus.invalidate_asset_view()
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
                       'AudioLibrary.OnCleanFinished'):
             from lib.plugin.dbid import clear_musicvideo_library_art_cache
@@ -138,6 +141,7 @@ class ServiceMain(threading.Thread):
                     log("Service", f"Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service", xbmc.LOGERROR)
                     break
         finally:
+            self.slideshow.cleanup()
             log("Service", "Library service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:

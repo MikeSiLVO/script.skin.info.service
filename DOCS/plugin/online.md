@@ -77,6 +77,37 @@ Two modes available:
 
 ---
 
+## RunScript Trigger
+
+`action=online_fetch` runs the same online fetch as the plugin URL above, then writes a plugin URL into a Window property the skin can bind to a container. Use this when the source item is set by a button or click rather than by a static skin path.
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=online_fetch,
+  dbid=$INFO[ListItem.DBID],
+  dbtype=$INFO[ListItem.DBType],
+  property=SkinInfo.Online.Content,
+  window=home)</onclick>
+
+<control type="list" id="9001">
+    <content>$INFO[Window(Home).Property(SkinInfo.Online.Content)]</content>
+</control>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | Yes | - | `movie`, `tvshow`, `episode` |
+| `dbid` | * | - | Library ID |
+| `tmdb_id` | * | - | TMDB ID |
+| `imdb_id` | * | - | IMDb ID |
+| `property` | No | `SkinInfo.Online.Content` | Window property name to set |
+| `window` | No | `home` | Window to set the property on (`home` for Home window) |
+
+\* Provide one of `dbid`, `tmdb_id`, or `imdb_id`.
+
+---
+
 ## Two-Container Pattern
 
 Use two hidden containers - Kodi data loads instantly, online data appears when ready:

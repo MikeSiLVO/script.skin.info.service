@@ -97,7 +97,7 @@ class PlayerVideoTracker:
                 "title", "plot", "year", "premiered", "rating", "votes",
                 "genre", "studio", "mpaa", "runtime", "episode", "season",
                 "watchedepisodes", "imdbnumber", "originaltitle",
-                "art", "userrating", "ratings", "status",
+                "art", "userrating", "ratings",
             ],
             cache_key=f"player:tvshow:{tvshowid}:details",
         )

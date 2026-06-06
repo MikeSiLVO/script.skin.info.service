@@ -243,13 +243,14 @@ Multiple ListItems for profile images.
 
 ### Images Properties
 
-| Property      | Description   |
-|---------------|---------------|
-| `Width`       | Image width   |
-| `Height`      | Image height  |
-| `Rating`      | TMDB rating   |
-| `Votes`       | Vote count    |
-| `AspectRatio` | Aspect ratio  |
+| Property      | Description                           |
+|---------------|---------------------------------------|
+| `Width`       | Image width in pixels                 |
+| `Height`      | Image height in pixels                |
+| `Dimensions`  | Pre-formatted `{width}x{height}`      |
+| `Rating`      | TMDB rating                           |
+| `Votes`       | Vote count                            |
+| `AspectRatio` | Aspect ratio                          |
 
 ### Images Artwork
 
@@ -365,24 +366,36 @@ Same as filmography plus:
 
 ## Crew Lists
 
-Plugin paths for directors, writers, or creators.
+Plugin paths for full crew or crew filtered by job (directors, writers, creators).
 
 ### Crew List Usage
 
 ```xml
-<!-- Directors -->
+<!-- Full crew, sorted by job importance -->
+<content>plugin://script.skin.info.service/
+  ?action=crew
+  &amp;dbtype=movie
+  &amp;dbid=$INFO[ListItem.DBID]</content>
+
+<!-- Or with TMDB ID directly (no library entry required) -->
+<content>plugin://script.skin.info.service/
+  ?action=crew
+  &amp;dbtype=movie
+  &amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]</content>
+
+<!-- Directors only -->
 <content>plugin://script.skin.info.service/
   ?action=directors
   &amp;dbtype=movie
   &amp;dbid=$INFO[ListItem.DBID]</content>
 
-<!-- Writers -->
+<!-- Writers only -->
 <content>plugin://script.skin.info.service/
   ?action=writers
   &amp;dbtype=movie
   &amp;dbid=$INFO[ListItem.DBID]</content>
 
-<!-- TV Creators -->
+<!-- TV creators -->
 <content>plugin://script.skin.info.service/
   ?action=creators
   &amp;dbtype=tvshow
@@ -391,20 +404,21 @@ Plugin paths for directors, writers, or creators.
 
 ### Crew List Parameters
 
-| Parameter | Values                       | Description  |
-|-----------|------------------------------|--------------|
-| `action`  | directors, writers, creators | Action type  |
-| `dbtype`  | movie, tvshow                | Media type   |
-| `dbid`    | integer                      | Database ID  |
+| Parameter | Values                              | Description                              |
+|-----------|-------------------------------------|------------------------------------------|
+| `action`  | crew, directors, writers, creators  | `crew` = full crew; others filter by job |
+| `dbtype`  | movie, tvshow                       | Media type                               |
+| `dbid`    | integer                             | Library ID (provide this OR `tmdb_id`)   |
+| `tmdb_id` | integer                             | TMDB ID (alternative to `dbid`)          |
 
 ### Crew List Properties
 
-| Property   | Description    |
-|------------|----------------|
-| `Label`    | Person name    |
-| `Label2`   | Job title      |
+| Property    | Description    |
+|-------------|----------------|
+| `Label`     | Person name    |
+| `Label2`    | Job title      |
 | `person_id` | TMDB person ID |
-| `Job`      | Job title      |
+| `Job`       | Job title      |
 
 ### Crew List Artwork
 
@@ -414,7 +428,9 @@ Plugin paths for directors, writers, or creators.
 
 - `creators` only works with `dbtype=tvshow`
 - Writers include: Writer, Screenplay, Story jobs
-- Duplicates filtered (same person appears once)
+- `crew` returns all jobs sorted by importance: Director → Writer → Producer → Editor → DP → Composer → Casting → Production Design → Costume → others
+- A person who held multiple jobs appears once at their highest-priority job; the `Job` property reads as `"Director, Producer"`
+- `tmdb_id` supersedes `dbid` if both are provided; useful for TMDB-only items (no library entry)
 
 ---
 

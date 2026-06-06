@@ -18,6 +18,14 @@ Window properties and plugin paths for Kodi skins.
 | [Online Properties](service/online.md) | External API data (TMDb, etc.)       |
 | [Stinger Notifications](service/stinger.md) | Mid/post-credits scene detection |
 
+## Info Dialogs
+
+| Document                                  | Description                                       |
+|-------------------------------------------|---------------------------------------------------|
+| [Actor Info Dialog](dialogs/actor-info.md) | TMDB person info with filmography and images     |
+| [Video Info Dialog](dialogs/video-info.md) | TMDB movie/TV info with cast, recommendations    |
+| [Image Viewer Dialog](dialogs/image-viewer.md) | Full-screen image gallery for any plugin URL |
+
 ## Plugin Paths
 
 | Document                           | Description                          |
@@ -39,10 +47,13 @@ Window properties and plugin paths for Kodi skins.
 | [Blur](tools/blur.md)                     | Generate blurred images           |
 | [Color Picker](tools/color-picker.md)     | RGBA color picker dialog          |
 | [Download Artwork](tools/download-artwork.md) | Download artwork and actor images to filesystem |
+| [Fix Library IDs](tools/fix-library-ids.md) | Resolve missing IMDb/TMDB/TVDB uniqueids |
 | [GIF Scanner](tools/gif-scanner.md)       | Find animated artwork in library  |
 | [Metadata Editor](tools/metadata-editor.md) | Edit library item metadata      |
+| [Ratings Update](tools/ratings-update.md) | Refresh IMDb/TMDB/Trakt ratings in bulk |
 | [Slideshow](tools/slideshow.md)           | Rotating fanart backgrounds       |
 | [Texture Cache](tools/texture-cache.md)   | Texture database utilities        |
+| [IMDb Top 250 Update](tools/top250-update.md) | Set Top 250 rank on library items |
 
 ## Reference
 

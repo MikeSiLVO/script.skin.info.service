@@ -278,14 +278,6 @@ class ApiTrakt(RatingSource):
         finally:
             self.session.clear_pause_context()
 
-    def get_ratings(self, media_type: str, ids: Dict[str, str]) -> Optional[Dict[str, Dict[str, float]]]:
-        """Extract ratings from cached Trakt data as `{"trakt": {"rating", "votes"}}`."""
-        data = self.get_trakt_data(media_type, ids)
-        if not data:
-            return None
-
-        return self._extract_ratings(data)
-
     def _extract_ratings(self, data: dict) -> Optional[Dict[str, Dict[str, float]]]:
         """Extract ratings dict from full Trakt response."""
         rating = data.get("rating")

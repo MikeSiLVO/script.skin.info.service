@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta25"
+	   version="2.0.0~beta29"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -34,10 +34,32 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta29
+- New: set_setting/toggle_setting/reset_setting accept noconfirm=true to skip the confirmation dialog for skin-scoped settings (lookandfeel.skincolors, lookandfeel.skintheme, lookandfeel.font)
+- Setting confirmation dialogs now use Kodi's translated strings and show the localized setting name
+- IMDb auto-update progress is now labeled as an IMDb update and shows each item's title
+- Fix: failed or empty IMDb dataset downloads no longer wipe existing ratings/episode data
+- Fix: online data updater ran continuously instead of idling between refresh cycles
+- Fix: color picker dialog rendered at the wrong scale
+- Stinger window props now cleared when the service stops
+- Cleanup
+
+2.0.0~beta28
+- Fix: New info dialogs (actor/video/image) failed to open on case-sensitive filesystems (CoreELEC/LibreELEC) due to skin folder casing and missing texture references
+- SkinInfo.Slideshow.* window props now cleared when the service stops
+
+2.0.0~beta27
+- New: Movie.Extras.* aggregates (Count, Unwatched, runtimes) in video versions/extras view; parent Movie.* persists across focus on the Extras folder (Piers+)
+
+2.0.0~beta26
+- New: Actor Info, Video Info and Image Viewer dialogs (RunScript actions dialog_actor_info, dialog_video_info, dialog_image_viewer)
+- New: TMDB Recommendations widget for a specific movie/show (action=tmdb_recommendations)
+- Crew, Similar, Directors, Writers and online Cast widgets now accept tmdb_id
+- Profile images expose a Dimensions property (WxH)
+
 2.0.0~beta25
 - BREAKING: action=json is now a generic JSON-RPC wrapper (method, params, mode, prop_prefix args). Old presets removed.
 - New: Tools > Sync TV Show Metadata (foreground bulk fetch with cancel)
-- New: SkinInfo.Online.ItemDBID property for skin-side staleness gating
 - Crew widget supports job filter parameter
 - IMDb auto-update no longer skips a day after manual updates; backs off on dataset download errors
 - Stinger notifications no longer require the skin to opt in to the service

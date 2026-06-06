@@ -162,33 +162,6 @@ class ApiAudioDb:
 
         return result
 
-    def get_album_artwork(self, musicbrainz_release_group_id: str, abort_flag=None) -> Dict[str, List[dict]]:
-        """Get artwork for an album from TheAudioDB."""
-        album = self.get_album(musicbrainz_release_group_id, abort_flag)
-        if not album:
-            return {}
-
-        result: Dict[str, List[dict]] = {}
-
-        artwork_map = {
-            'strAlbumThumb': 'thumb',
-            'strAlbumCDart': 'discart',
-            'strAlbumThumbBack': 'back',
-            'strAlbumSpine': 'spine',
-            'strAlbum3DCase': '3dcase',
-            'strAlbum3DFlat': '3dflat',
-            'strAlbum3DFace': '3dface',
-            'strAlbum3DThumb': '3dthumb',
-        }
-
-        for api_key, art_type in artwork_map.items():
-            url = album.get(api_key)
-            if url:
-                artwork = self._format_artwork_item(url)
-                result.setdefault(art_type, []).append(artwork)
-
-        return result
-
     def get_album_artwork_from_data(self, album: dict) -> Dict[str, List[dict]]:
         """Extract artwork from an already-fetched album dict (no API call)."""
         result: Dict[str, List[dict]] = {}
