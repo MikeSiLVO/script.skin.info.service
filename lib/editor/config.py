@@ -238,18 +238,23 @@ def get_field_def(field_name: str) -> FieldDef | None:
 
 
 _DEFAULT_PROPERTIES: dict[str, list[str]] = {
-    "artist": ["artist"],  # artist endpoint requires "artist" rather than "title"
+    "artist": [],
+}
+
+_UNREQUESTABLE_PROPERTIES: dict[str, set[str]] = {
+    "artist": {"artist"},
 }
 
 
 def get_properties_for_media_type(media_type: str) -> list[str]:
     """Get JSON-RPC properties to fetch for a media type."""
     properties = list(_DEFAULT_PROPERTIES.get(media_type, ["title"]))
+    unrequestable = _UNREQUESTABLE_PROPERTIES.get(media_type, set())
     for field_name in get_fields_for_media_type(media_type):
         field_def = get_field_def(field_name)
         if field_def:
             prop = field_def["get_property"]
-            if prop not in properties:
+            if prop not in properties and prop not in unrequestable:
                 properties.append(prop)
     return properties
 
