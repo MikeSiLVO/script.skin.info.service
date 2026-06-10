@@ -7,13 +7,11 @@ TMDB details: deep details for movie/tv/person by TMDB id (used by tmdb_search r
 """
 from __future__ import annotations
 
-from datetime import datetime
 import xbmc
 import xbmcgui
 import xbmcplugin
 
 from lib.kodi.client import log, extract_result
-from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.utilities import tmdb_image_url
 
 
@@ -67,113 +65,17 @@ def handle_person_info(handle: int, params: dict) -> None:
 
 def _handle_person_details(handle: int, person_data: dict) -> None:
     """Return single ListItem with all person details."""
-    name = person_data.get('name', 'Unknown')
-    item = xbmcgui.ListItem(name, offscreen=True)
+    from lib.data.api.person import build_person_props
 
-    item.setProperty('Name', name)
+    props = build_person_props(person_data)
+    item = xbmcgui.ListItem(props['Name'], offscreen=True)
 
-    if person_data.get('biography'):
-        item.setProperty('Biography', person_data['biography'])
+    profile_image = props.get('ProfileImage')
+    if profile_image:
+        item.setArt({'thumb': profile_image, 'icon': profile_image})
 
-    birthday = person_data.get('birthday')
-    deathday = person_data.get('deathday')
-
-    if birthday:
-        item.setProperty('Birthday', birthday)
-
-        try:
-            birth_date = datetime.strptime(birthday, '%Y-%m-%d')
-
-            if deathday:
-                end_date = datetime.strptime(deathday, '%Y-%m-%d')
-            else:
-                end_date = datetime.now()
-
-            age = end_date.year - birth_date.year
-            if (end_date.month, end_date.day) < (birth_date.month, birth_date.day):
-                age -= 1
-
-            item.setProperty('Age', str(age))
-
-            date_format = xbmc.getRegion('dateshort')
-            item.setProperty('BirthdayFormatted', birth_date.strftime(date_format))
-        except (ValueError, TypeError):
-            pass
-
-    if deathday:
-        item.setProperty('Deathday', deathday)
-
-        try:
-            death_date = datetime.strptime(deathday, '%Y-%m-%d')
-            date_format = xbmc.getRegion('dateshort')
-            item.setProperty('DeathdayFormatted', death_date.strftime(date_format))
-        except (ValueError, TypeError):
-            pass
-
-    if person_data.get('place_of_birth'):
-        item.setProperty('Birthplace', person_data['place_of_birth'])
-
-    if person_data.get('known_for_department'):
-        item.setProperty('KnownFor', person_data['known_for_department'])
-
-    person_id = person_data.get('id')
-    if person_id:
-        item.setProperty('person_id', str(person_id))
-
-    if person_data.get('imdb_id'):
-        item.setProperty('imdb_id', person_data['imdb_id'])
-
-    gender = person_data.get('gender')
-    if gender:
-        gender_text = {1: 'Female', 2: 'Male'}.get(gender)
-        if gender_text:
-            item.setProperty('Gender', gender_text)
-
-    external_ids = person_data.get('external_ids', {})
-    for key in ['instagram_id', 'twitter_id', 'facebook_id', 'tiktok_id', 'youtube_id']:
-        value = external_ids.get(key)
-        if value:
-            prop_name = key.replace('_id', '').title()
-            item.setProperty(prop_name, value)
-
-    profile_path = person_data.get('profile_path')
-    if profile_path:
-        image_url = tmdb_image_url(profile_path)
-        item.setArt({'thumb': image_url, 'icon': image_url})
-
-    combined_credits = person_data.get('combined_credits', {})
-    cast = combined_credits.get('cast', [])
-
-    if cast:
-        movies = [c for c in cast if c.get('media_type') == 'movie']
-        tv_shows = [c for c in cast if c.get('media_type') == 'tv']
-
-        movies.sort(key=lambda x: x.get('popularity', 0), reverse=True)
-        tv_shows.sort(key=lambda x: x.get('popularity', 0), reverse=True)
-
-        seen_movie_ids = set()
-        unique_movies = []
-        for m in movies:
-            movie_id = m.get('id')
-            if movie_id and movie_id not in seen_movie_ids:
-                seen_movie_ids.add(movie_id)
-                unique_movies.append(m)
-
-        seen_tv_ids = set()
-        unique_tv = []
-        for t in tv_shows:
-            tv_id = t.get('id')
-            if tv_id and tv_id not in seen_tv_ids:
-                seen_tv_ids.add(tv_id)
-                unique_tv.append(t)
-
-        top_movies = MULTI_VALUE_SEP.join([m.get('title', '') for m in unique_movies[:5] if m.get('title')])
-        top_tv = MULTI_VALUE_SEP.join([t.get('name', '') for t in unique_tv[:5] if t.get('name')])
-
-        if top_movies:
-            item.setProperty('TopMovies', top_movies)
-        if top_tv:
-            item.setProperty('TopTVShows', top_tv)
+    for key, value in props.items():
+        item.setProperty(key, value)
 
     xbmcplugin.addDirectoryItem(handle, '', item, False)
     xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
@@ -325,9 +227,10 @@ def _filter_credits(credits: list, params: dict) -> list:
     exclude_unreleased = params.get('exclude_unreleased', ['false'])[0].lower() == 'true'
     if exclude_unreleased:
         today = datetime.now().strftime('%Y-%m-%d')
+        # undated credits are unannounced future projects: treat as unreleased
         credits = [
             c for c in credits
-            if (c.get('release_date') or c.get('first_air_date', '0000')) <= today
+            if (c.get('release_date') or c.get('first_air_date') or '9999') <= today
         ]
 
     return credits

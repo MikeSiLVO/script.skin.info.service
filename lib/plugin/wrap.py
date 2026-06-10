@@ -171,7 +171,7 @@ def handle_wrap(handle: int, params: dict) -> None:
         items.append((file_path, li, is_folder))
 
     xbmcplugin.addDirectoryItems(handle, items, len(items))
-    xbmcplugin.endOfDirectory(handle, succeeded=True)
+    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
 
     if enable_debug:
         log("Plugin", f"Path Wrapper: Successfully wrapped {len(items)} items", xbmc.LOGDEBUG)

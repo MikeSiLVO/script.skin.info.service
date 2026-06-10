@@ -27,6 +27,91 @@ def _get_metadata_language() -> str:
     return lang
 
 
+def format_tmdb_image(image: dict, preview_size: str) -> Optional[dict]:
+    """Format a TMDB image entry to the common artwork format."""
+    file_path = image.get('file_path')
+    if not file_path:
+        return None
+
+    # Skip SVG files - Kodi cannot render them
+    if file_path.lower().endswith('.svg'):
+        return None
+
+    return {
+        'url': tmdb_image_url(file_path),
+        'previewurl': tmdb_image_url(file_path, preview_size),
+        'width': image.get('width', 0),
+        'height': image.get('height', 0),
+        'rating': image.get('vote_average', 0),
+        'language': image.get('iso_639_1') or '',
+        'source': 'TMDB'
+    }
+
+
+def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
+    """Transform a TMDB images response to common format.
+
+    All backdrops go to landscape, sorted by language preference:
+    user's language > English > no language > other languages.
+
+    Only no-language backdrops go to fanart (text-free backgrounds).
+    """
+    result: Dict[str, List[dict]] = {}
+
+    logos = data.get('logos') or []
+    formatted_logos = [format_tmdb_image(entry, 'w500') for entry in logos]
+    formatted_logos = [entry for entry in formatted_logos if entry]
+    if formatted_logos:
+        result['clearlogo'] = formatted_logos
+
+    posters = data.get('posters') or []
+    keyart = []
+    all_posters = []
+    for poster in posters:
+        formatted = format_tmdb_image(poster, 'w500')
+        if formatted:
+            all_posters.append(formatted)
+            if not poster.get('iso_639_1'):
+                keyart.append(formatted)
+    if all_posters:
+        result['poster'] = all_posters
+    if keyart:
+        result['keyart'] = keyart
+
+    backdrops = data.get('backdrops') or []
+    if not backdrops:
+        return result
+
+    user_lang = _get_metadata_language().split('-')[0].lower()
+
+    formatted_backdrops: List[tuple[dict, str | None]] = []
+    for backdrop in backdrops:
+        formatted = format_tmdb_image(backdrop, 'w780')
+        if formatted:
+            lang = backdrop.get('iso_639_1')
+            formatted_backdrops.append((formatted, lang.lower() if lang else None))
+
+    def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
+        lang = item[1]
+        if lang == user_lang:
+            return (0, '')
+        if lang == 'en' and user_lang != 'en':
+            return (1, '')
+        if lang is None or lang == 'xx':
+            return (2, '')
+        return (3, lang or '')
+
+    formatted_backdrops.sort(key=lang_sort_key)
+
+    all_backdrops = [item[0] for item in formatted_backdrops]
+
+    if all_backdrops:
+        result['fanart'] = all_backdrops
+        result['landscape'] = all_backdrops
+
+    return result
+
+
 def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -> str | None:
     """Resolve a valid TMDB ID, correcting invalid ones via IMDB lookup if possible."""
     if is_valid_tmdb_id(tmdb_id):
@@ -119,7 +204,7 @@ class ApiTmdb(RatingSource):
         if not data:
             return {}
 
-        return self._transform_images(data)
+        return transform_tmdb_images(data)
 
     def get_episode_images(
         self,
@@ -140,7 +225,7 @@ class ApiTmdb(RatingSource):
         stills = data.get('stills', [])
         result = {}
         if stills:
-            result['thumb'] = [self._format_image(img, 'w300') for img in stills if self._format_image(img, 'w300')]
+            result['thumb'] = [format_tmdb_image(img, 'w300') for img in stills if format_tmdb_image(img, 'w300')]
 
         return result
 
@@ -151,90 +236,7 @@ class ApiTmdb(RatingSource):
         if not data:
             return {}
 
-        return self._transform_images(data)
-
-    def _transform_images(self, data: dict) -> dict:
-        """Transform TMDB image response to common format.
-
-        All backdrops go to landscape, sorted by language preference:
-        user's language > English > no language > other languages.
-
-        Only no-language backdrops go to fanart (text-free backgrounds).
-        """
-        result: Dict[str, List[dict]] = {}
-
-        logos = data.get('logos') or []
-        formatted_logos = [self._format_image(entry, 'w500') for entry in logos]
-        formatted_logos = [entry for entry in formatted_logos if entry]
-        if formatted_logos:
-            result['clearlogo'] = formatted_logos
-
-        posters = data.get('posters') or []
-        keyart = []
-        all_posters = []
-        for poster in posters:
-            formatted = self._format_image(poster, 'w500')
-            if formatted:
-                all_posters.append(formatted)
-                if not poster.get('iso_639_1'):
-                    keyart.append(formatted)
-        if all_posters:
-            result['poster'] = all_posters
-        if keyart:
-            result['keyart'] = keyart
-
-        backdrops = data.get('backdrops') or []
-        if not backdrops:
-            return result
-
-        user_lang = _get_metadata_language().split('-')[0].lower()
-
-        formatted_backdrops: List[tuple[dict, str | None]] = []
-        for backdrop in backdrops:
-            formatted = self._format_image(backdrop, 'w780')
-            if formatted:
-                lang = backdrop.get('iso_639_1')
-                formatted_backdrops.append((formatted, lang.lower() if lang else None))
-
-        def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
-            lang = item[1]
-            if lang == user_lang:
-                return (0, '')
-            if lang == 'en' and user_lang != 'en':
-                return (1, '')
-            if lang is None or lang == 'xx':
-                return (2, '')
-            return (3, lang or '')
-
-        formatted_backdrops.sort(key=lang_sort_key)
-
-        all_backdrops = [item[0] for item in formatted_backdrops]
-
-        if all_backdrops:
-            result['fanart'] = all_backdrops
-            result['landscape'] = all_backdrops
-
-        return result
-
-    def _format_image(self, image: dict, preview_size: str) -> Optional[dict]:
-        """Format TMDB image entry to common format."""
-        file_path = image.get('file_path')
-        if not file_path:
-            return None
-
-        # Skip SVG files - Kodi cannot render them
-        if file_path.lower().endswith('.svg'):
-            return None
-
-        return {
-            'url': tmdb_image_url(file_path),
-            'previewurl': tmdb_image_url(file_path, preview_size),
-            'width': image.get('width', 0),
-            'height': image.get('height', 0),
-            'rating': image.get('vote_average', 0),
-            'language': image.get('iso_639_1') or '',
-            'source': 'TMDB'
-        }
+        return transform_tmdb_images(data)
 
     def fetch_ratings(
         self,
@@ -497,7 +499,7 @@ class ApiTmdb(RatingSource):
             entries = images.get(response_key) or []
             if not entries:
                 continue
-            formatted = [self._format_image(img, preview_size) for img in entries]
+            formatted = [format_tmdb_image(img, preview_size) for img in entries]
             formatted = [img for img in formatted if img]
             if formatted:
                 db.cache_artwork(media_type, str(tmdb_id), 'tmdb', art_type,

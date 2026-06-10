@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import traceback
+from typing import Optional
+
 import xbmc
 import xbmcgui
 import xbmcplugin
@@ -77,11 +79,11 @@ def _create_cast_listitems(handle: int, cast_list: list) -> int:
     return items_added
 
 
-def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -> int:
-    """Fetch cast from TMDB and render as directory. Returns count added.
+def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -> Optional[int]:
+    """Fetch cast from TMDB and add ListItems. Returns count added, or None on lookup failure.
 
     Accepts either a Kodi `dbid` (resolved to TMDB ID via library uniqueid) or a `tmdb_id` directly.
-    `tmdb_id` takes precedence when provided.
+    `tmdb_id` takes precedence when provided. The caller owns `endOfDirectory`.
     """
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
@@ -92,8 +94,7 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
         tmdb_id = resolved or 0
     if not tmdb_id:
         log("Plugin", f"Online Cast: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
-        xbmcplugin.endOfDirectory(handle, succeeded=False)
-        return 0
+        return None
 
     api = ApiTmdb()
     cast = []
@@ -112,14 +113,12 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
         details = get_item_details(dbtype, dbid, ['season'])
         if not details:
             log("Plugin", f"Online Cast: Failed to get season details for {dbid}", xbmc.LOGWARNING)
-            xbmcplugin.endOfDirectory(handle, succeeded=False)
-            return 0
+            return None
 
         season_num = details.get('season')
         if season_num is None:
             log("Plugin", f"Online Cast: No season number for {dbid}", xbmc.LOGWARNING)
-            xbmcplugin.endOfDirectory(handle, succeeded=False)
-            return 0
+            return None
 
         season_data = api.get_season_details(tmdb_id, season_num)
         if season_data:
@@ -136,8 +135,7 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
         details = get_item_details(dbtype, dbid, ['season', 'episode'])
         if not details:
             log("Plugin", f"Online Cast: Failed to get episode details for {dbid}", xbmc.LOGWARNING)
-            xbmcplugin.endOfDirectory(handle, succeeded=False)
-            return 0
+            return None
 
         season_num = details.get('season')
         episode_num = details.get('episode')
@@ -150,7 +148,6 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
 
     if not cast:
         log("Plugin", f"Online Cast: No cast found for {dbtype} {dbid}", xbmc.LOGINFO)
-        xbmcplugin.endOfDirectory(handle, succeeded=True)
         return 0
 
     log("Plugin", f"Online Cast: Found {len(cast)} cast members for {dbtype} {dbid}", xbmc.LOGDEBUG)
@@ -196,7 +193,14 @@ def handle_get_cast(handle: int, params: dict) -> None:
         if online:
             log("Plugin", f"Library Cast: Using online TMDB data for {dbtype} (dbid={dbid}, tmdb_id={tmdb_id})", xbmc.LOGDEBUG)
             items_added = _handle_online_cast(handle, dbtype, int(dbid) if dbid else 0, tmdb_id)
-        elif dbtype in ('movie', 'episode', 'tvshow'):
+            if items_added is None:
+                xbmcplugin.endOfDirectory(handle, succeeded=False)
+                return
+            log("Plugin", f"Library Cast: Created {items_added} ListItems", xbmc.LOGINFO)
+            xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+            return
+
+        if dbtype in ('movie', 'episode', 'tvshow'):
             if dbtype == 'movie':
                 details = get_item_details('movie', int(dbid), ['cast'])
             elif dbtype == 'episode':

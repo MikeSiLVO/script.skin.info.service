@@ -230,4 +230,8 @@ class PlayerMusicTracker:
             props[f"{prefix}Album.{i + 1}.Year"] = str(year) if year else ''
             props[f"{prefix}Album.{i + 1}.Thumb"] = decode_image_url(album.get('art', {}).get('thumb', ''))
 
+        # a fast track skip can change the artist while this thread was fetching
+        if artist_name != self._last_music_artist:
+            return
+
         batch_set_props(props)

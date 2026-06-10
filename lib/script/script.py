@@ -206,11 +206,13 @@ def _handle_reset_setting(args: dict) -> None:
 
 
 def _handle_update_library_ratings(args: dict) -> None:
+    from lib.rating.menu import _initialize_sources
     from lib.rating.updater import update_library_ratings
     media_type = args.get('dbtype', 'movie').lower()
     if media_type not in ("movie", "tvshow", "episode"):
         media_type = "movie"
-    update_library_ratings(media_type, args.get('background', 'true').lower() == 'true')
+    use_background = args.get('background', 'true').lower() == 'true'
+    update_library_ratings(media_type, _initialize_sources(), use_background=use_background)
 
 
 def _handle_sync_tvshows(_args: dict) -> None:
@@ -648,98 +650,17 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
             return
 
     if not person_id and crew:
-        if crew not in ('director', 'writer', 'creator'):
-            log("General", f"dialog_actor_info: Invalid crew type '{crew}'", xbmc.LOGERROR)
+        from lib.script.person import _resolve_via_crew
+        resolved = _resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
+        if not resolved:
             return
-        if not dbid:
-            log("General", "dialog_actor_info: crew mode requires dbid", xbmc.LOGERROR)
-            return
-        try:
-            dbid_int = int(dbid)
-        except (ValueError, TypeError):
-            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
-            return
-
-        tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
-        if not tmdb_id:
-            log("General", f"dialog_actor_info: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGERROR)
-            return
-
-        if not name:
-            crew_list = person_api.get_crew_from_tmdb(crew, tmdb_id, dbtype)
-            if not crew_list:
-                return
-            if len(crew_list) == 1:
-                person_id = crew_list[0]['id']
-                name = crew_list[0]['name']
-            else:
-                import xbmcgui as _xbmcgui
-                items = []
-                for member in crew_list:
-                    item = _xbmcgui.ListItem(member['name'], offscreen=True)
-                    if member.get('job'):
-                        item.setLabel2(member['job'])
-                    if member.get('profile_path'):
-                        url = f"https://image.tmdb.org/t/p/h632{member['profile_path']}"
-                        item.setArt({'thumb': url, 'icon': url})
-                    items.append(item)
-                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", items, useDetails=True)
-                if selected < 0:
-                    return
-                person_id = crew_list[selected]['id']
-                name = crew_list[selected]['name']
-        else:
-            names = [n.strip() for n in name.split(separator) if n.strip()]
-            if not names:
-                return
-            if len(names) == 1:
-                selected_name = names[0]
-            else:
-                import xbmcgui as _xbmcgui
-                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", names)
-                if selected < 0:
-                    return
-                selected_name = names[selected]
-            name = selected_name
-            person_id = person_api.match_crew_to_person_id(selected_name, crew, tmdb_id, dbtype, auto_search=auto_search)
-            if not person_id:
-                return
+        person_id, name = resolved
 
     elif not person_id:
-        if not name or not dbid:
-            log("General", "dialog_actor_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
-            return
-        try:
-            dbid_int = int(dbid)
-        except (ValueError, TypeError):
-            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
-            return
-
-        sourceid = args.get('sourceid')
-        if dbtype in ('set', 'season'):
-            if not sourceid:
-                log("General", f"dialog_actor_info: {dbtype} requires sourceid", xbmc.LOGERROR)
-                return
-            try:
-                source_dbid = int(sourceid)
-                source_dbtype = 'movie' if dbtype == 'set' else 'episode'
-            except (ValueError, TypeError):
-                return
-            resolve_dbtype = source_dbtype
-            resolve_dbid = source_dbid
-        else:
-            source_dbid = dbid_int
-            source_dbtype = dbtype
-            resolve_dbtype = dbtype
-            resolve_dbid = dbid_int
-
-        tmdb_id = person_api.resolve_tmdb_id(resolve_dbtype, resolve_dbid)
-        if not tmdb_id:
-            return
-
-        person_id = person_api.match_actor_to_person_id(
-            name, role, tmdb_id, source_dbtype, source_dbid,
-            auto_search=auto_search, online=online,
+        from lib.script.person import _resolve_via_actor
+        person_id = _resolve_via_actor(
+            person_api, name, role, dbid, dbtype, auto_search, online,
+            args.get('sourceid'), open_window='', set_search_query=False,
         )
         if not person_id:
             return

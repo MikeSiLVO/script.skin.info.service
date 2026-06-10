@@ -1,7 +1,9 @@
 """Slideshow pool population + property update integration."""
 from __future__ import annotations
 
+import threading
 import time
+from typing import Optional
 
 import xbmc
 
@@ -14,6 +16,8 @@ class SlideshowDriver:
     def __init__(self):
         self._pool_populated = False
         self._last_update = 0.0
+        self._update_thread: Optional[threading.Thread] = None
+        self._stopping = False
 
     def populate_pool_if_needed(self) -> None:
         """First-run pool population. Subsequent calls are no-ops."""
@@ -49,17 +53,33 @@ class SlideshowDriver:
         if (now - self._last_update) < interval:
             return
 
+        # runs on a thread: force-caching fanart does blocking xbmcvfs reads
+        # that would stall the 100ms service loop
+        if self._update_thread and self._update_thread.is_alive():
+            return
+        self._update_thread = threading.Thread(target=self._run_update, daemon=True)
+        self._update_thread.start()
+
+    def _run_update(self) -> None:
         try:
+            if self._stopping:
+                return
             from lib.service.slideshow import update_all_slideshow_properties
             update_all_slideshow_properties()
             self._last_update = time.time()
-
         except Exception as e:
             log("Service", f"Slideshow: Update error: {str(e)}", xbmc.LOGERROR)
 
     def cleanup(self) -> None:
-        """Clear `SkinInfo.Slideshow.*` window properties."""
+        """Clear `SkinInfo.Slideshow.*` window properties.
+
+        Waits briefly for an in-flight update so it can't re-set props after the clear.
+        """
         try:
+            self._stopping = True
+            thread = self._update_thread
+            if thread and thread.is_alive():
+                thread.join(timeout=5)
             from lib.service.slideshow import clear_slideshow_properties
             clear_slideshow_properties()
         except Exception as e:

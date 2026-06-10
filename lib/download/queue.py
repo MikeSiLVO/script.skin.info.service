@@ -30,6 +30,8 @@ class DownloadQueue(WorkerQueue):
         self.stats_failed = 0
         self.stats_bytes = 0
         self.stats_folders: Dict[str, int] = {}
+        self.stats_error_categories: Dict[str, int] = {}
+        self.stats_activity = 0
 
     def add_download(self, url: str, local_path: str, artwork_type: str, title: str,
                      alternate_path: Optional[str] = None, media_type: str = '') -> bool:
@@ -47,23 +49,31 @@ class DownloadQueue(WorkerQueue):
                 'skipped': self.stats_skipped,
                 'failed': self.stats_failed,
                 'bytes_downloaded': self.stats_bytes,
-                'folder_counts': dict(self.stats_folders)
+                'folder_counts': dict(self.stats_folders),
+                'error_categories': dict(self.stats_error_categories),
+                'activity': self.stats_activity
             })
         return base_stats
 
+    def _on_progress(self, _chunk_bytes: int) -> None:
+        """Per-chunk heartbeat so the coordinator can tell a slow download from a stalled one."""
+        with self._stats_lock:
+            self.stats_activity += 1
+
     def _process_item(self, item: Any, worker_id: int) -> Dict:
         """WorkerQueue entry point: download one item and update per-queue stats."""
-        url, local_path, artwork_type, title, alternate_path, media_type = item
+        url, local_path, artwork_type, title, alternate_path, _media_type = item
 
         if worker_id not in self.artworks:
             self.artworks[worker_id] = DownloadArtwork()
 
         downloader = self.artworks[worker_id]
 
-        success, error, bytes_downloaded = downloader.download_artwork(
+        success, error, bytes_downloaded, error_category = downloader.download_artwork(
             url=url,
             local_path=local_path,            existing_file_mode=self.existing_file_mode,
-            alternate_path=alternate_path,            abort_flag=self.abort_flag
+            alternate_path=alternate_path,            abort_flag=self.abort_flag,
+            progress_callback=self._on_progress
         )
 
         with self._stats_lock:
@@ -76,8 +86,10 @@ class DownloadQueue(WorkerQueue):
                     self.stats_folders[folder_path] = self.stats_folders.get(folder_path, 0) + 1
             elif error is None:
                 self.stats_skipped += 1
-            else:
+            elif error_category != DownloadArtwork.ERROR_ABORTED:
                 self.stats_failed += 1
+                category = error_category or DownloadArtwork.ERROR_UNEXPECTED
+                self.stats_error_categories[category] = self.stats_error_categories.get(category, 0) + 1
 
         return {
             'url': url,

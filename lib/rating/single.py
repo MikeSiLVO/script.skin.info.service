@@ -137,7 +137,9 @@ def merge_and_apply_ratings(
             old_val = final_ratings[rating_name]["rating"]
             old_votes = final_ratings[rating_name]["votes"]
 
-            if new_votes > old_votes:
+            # a changed rating value must win even when the provider's vote
+            # count declined (providers renormalize their counts)
+            if new_votes > old_votes or abs(old_val - new_val) > 0.01:
                 final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
                 if abs(old_val - new_val) > 0.01:
                     updated_ratings.append(f"{rating_name} ({old_val:.1f} -> {new_val:.1f})")

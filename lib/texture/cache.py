@@ -268,7 +268,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
                 if progress_dialog:
                     queue_stats = queue.get_stats()
                     completed = queue_stats['completed']
-                    total = queue_stats['total']
+                    total = queue_stats['total_queued']
                     percent = 25 + int((completed / total) * 75) if total > 0 else 100
 
                     current_time = time.time()

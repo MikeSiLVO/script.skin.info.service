@@ -102,7 +102,6 @@ def fetch_mdblist_data(
 
         rt_status = mdblist.get_rt_status(mdblist_media_type, ids, abort_flag=abort_flag)
         if rt_status:
-            # Set Tomatometer: Certified > Fresh > Rotten
             if rt_status.get("certified"):
                 props["Tomatometer"] = "Certified"
             elif rt_status.get("fresh"):
@@ -110,7 +109,6 @@ def fetch_mdblist_data(
             elif rt_status.get("rotten"):
                 props["Tomatometer"] = "Rotten"
 
-            # Set Popcornmeter: Hot > Fresh > Spilled
             if rt_status.get("hot"):
                 props["Popcornmeter"] = "Hot"
             elif rt_status.get("popcorn"):
@@ -219,7 +217,6 @@ def handle_online(handle: int, params: dict) -> None:
         log("Plugin", f"Online: Library mode - {media_type} DBID {dbid}", xbmc.LOGDEBUG)
 
         if is_episode:
-            # Get parent tvshow ID from episode, then get show's uniqueids
             episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
             if not episode_details or not episode_details.get("tvshowid"):
                 log("Plugin", f"Online: Could not get parent show for episode {dbid}", xbmc.LOGWARNING)

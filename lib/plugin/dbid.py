@@ -111,8 +111,6 @@ _ARTIST_PROPERTIES = [
     "compilationartist", "isalbumartist",
 ]
 
-_ARTIST_PROPERTIES_MIN = ["genre", "art", "thumbnail", "fanart", "description"]
-
 _ARTIST_ALBUM_PROPERTIES = [
     "title", "year", "artist", "artistid",
     "genre", "art", "albumlabel", "playcount", "rating",
@@ -357,13 +355,6 @@ def fetch_artist_details(artistid: int) -> Optional[Tuple[dict, List[dict]]]:
         _ARTIST_PROPERTIES,
         cache_key=f"artist:{artistid}:details",
     )
-    if not artist:
-        artist = get_item_details(
-            'artist',
-            artistid,
-            _ARTIST_PROPERTIES_MIN,
-            cache_key=f"artist:{artistid}:details:min",
-        )
     if not isinstance(artist, dict):
         return None
 

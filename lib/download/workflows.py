@@ -23,6 +23,18 @@ LOG_FILE = LOG_DIR + 'artwork_download.log'
 LOG_FILE_PREVIOUS = LOG_DIR + 'artwork_download_previous.log'
 MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
+STALL_TIMEOUT_SECONDS = 120
+
+ERROR_CATEGORY_LABELS = {
+    'network': "Network errors (timeouts / connection failures)",
+    'provider_blocked': "Source blocked after repeated failures (one server kept erroring)",
+    'storage_blocked': "Writing stopped after repeated file errors (check disk space / permissions)",
+    'directory': "Could not create destination folder (check permissions)",
+    'bad_content': "Server returned a non-image response",
+    'input': "Missing URL or destination path",
+    'unexpected': "Unexpected errors (see debug log)",
+}
+
 # Valid properties per media type from Kodi JSON-RPC introspect
 DOWNLOAD_PROPERTIES = {
     'movie': ['art', 'title', 'file'],
@@ -104,19 +116,16 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
 
 
 def _resolve_album_folders(album_ids: List[int]) -> Dict[int, str]:
-    """Batch-resolve album folders by querying one song file path per album."""
+    """Batch-resolve album folders from one song file path per album."""
+    wanted = set(album_ids)
     folder_map: Dict[int, str] = {}
-    for album_id in album_ids:
-        if album_id in folder_map:
-            continue
-        resp = request("AudioLibrary.GetSongs", {
-            "filter": {"albumid": album_id},
-            "properties": ["file"],
-            "limits": {"start": 0, "end": 1}
-        })
-        songs = extract_result(resp, "songs", [])
-        if songs and songs[0].get("file"):
-            folder_map[album_id] = vfs_dirname(songs[0]["file"])
+    resp = request("AudioLibrary.GetSongs", {"properties": ["file", "albumid"]})
+    for song in extract_result(resp, "songs", []):
+        album_id = song.get("albumid")
+        if album_id in wanted and album_id not in folder_map and song.get("file"):
+            folder_map[album_id] = vfs_dirname(song["file"])
+            if len(folder_map) == len(wanted):
+                break
     return folder_map
 
 
@@ -403,14 +412,12 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
 
                 log("Artwork", f"Queued {len(jobs)} download jobs to {queue.num_workers} worker threads")
                 last_update_time = time.time()
-                loop_start_time = time.time()
+                last_progress_time = time.time()
+                last_completed = 0
+                last_activity = 0
+                stalled = False
 
                 while not queue.queue.empty() or queue.processing_set:
-                    if time.time() - loop_start_time > 300:
-                        log("Artwork", "Download loop timeout (5 minutes) - forcing exit")
-                        queue.stop(wait=False)
-                        break
-
                     if monitor.abortRequested() or ctx.abort_flag.is_requested() or (isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()):
                         abort_reason = "monitor" if monitor.abortRequested() else "ctx.abort_flag" if ctx.abort_flag.is_requested() else "progress.iscanceled"
                         log("Artwork", f"Download cancelled by user ({abort_reason})")
@@ -422,9 +429,21 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                         stats = queue.get_stats()
                         total = stats.get('total_queued', 0)
                         completed = stats.get('completed', 0)
+                        activity = stats.get('activity', 0)
                         downloaded = stats.get('downloaded', 0)
                         skipped = stats.get('skipped', 0)
                         failed = stats.get('failed', 0)
+
+                        if completed > last_completed or activity > last_activity:
+                            last_completed = completed
+                            last_activity = activity
+                            last_progress_time = current_time
+                        elif current_time - last_progress_time > STALL_TIMEOUT_SECONDS:
+                            stalled = True
+                            log("Artwork", f"Download stalled - no progress for {STALL_TIMEOUT_SECONDS}s at "
+                                f"{completed}/{total}, forcing exit", xbmc.LOGWARNING)
+                            queue.stop(wait=False)
+                            break
 
                         if total > 0:
                             percent = 25 + int((completed / total) * 75)
@@ -458,6 +477,11 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
 
                 progress.close()
 
+                log("Artwork", f"Download finished: downloaded={final_stats.get('downloaded', 0)} "
+                    f"skipped={final_stats.get('skipped', 0)} failed={final_stats.get('failed', 0)} "
+                    f"of {len(jobs)} jobs (cancelled={cancelled}, stalled={stalled}) "
+                    f"errors={final_stats.get('error_categories', {})}")
+
                 db.save_operation_stats('artwork_download', {
                     'total_jobs': len(jobs),
                     'total_items': len(items),
@@ -466,12 +490,14 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                     'failed': final_stats.get('failed', 0),
                     'bytes_downloaded': final_stats.get('bytes_downloaded', 0),
                     'cancelled': cancelled,
+                    'stalled': stalled,
                     'mismatch_counts': mismatch_counts,
-                    'folder_counts': final_stats.get('folder_counts', {})
+                    'folder_counts': final_stats.get('folder_counts', {}),
+                    'error_categories': final_stats.get('error_categories', {})
                 }, scope=scope)
 
                 _show_download_report(final_stats, len(jobs), scope=scope, use_background=use_background,
-                                     mismatch_counts=mismatch_counts)
+                                     mismatch_counts=mismatch_counts, stalled=stalled)
 
             finally:
                 queue.stop(wait=False)
@@ -512,6 +538,18 @@ _MISMATCH_LABELS: List[Tuple[str, str, str]] = [
 ]
 
 
+def format_failure_section(error_categories: Optional[Dict[str, int]]) -> List[str]:
+    """Format the per-category failure breakdown. Returns empty list when no failures."""
+    if not error_categories or sum(error_categories.values()) <= 0:
+        return []
+    lines = ["", "[B]Failure Breakdown[/B]", ""]
+    for category, count in sorted(error_categories.items(), key=lambda x: x[1], reverse=True):
+        if count > 0:
+            label = ERROR_CATEGORY_LABELS.get(category, category)
+            lines.append(f"{count} - {label}")
+    return lines
+
+
 def format_mismatch_section(mismatch_counts: Optional[Dict[str, int]]) -> List[str]:
     """Format the file-handling mismatch breakdown. Returns empty list when no mismatches."""
     if not mismatch_counts or sum(mismatch_counts.values()) <= 0:
@@ -527,7 +565,8 @@ def format_mismatch_section(mismatch_counts: Optional[Dict[str, int]]) -> List[s
 
 def _show_download_report(stats: Dict, total_jobs: int, scope: str = 'all',
                           use_background: bool = False,
-                          mismatch_counts: Optional[Dict[str, int]] = None) -> None:
+                          mismatch_counts: Optional[Dict[str, int]] = None,
+                          stalled: bool = False) -> None:
     """Show the post-run report: toast in background mode, textviewer in foreground."""
     from lib.infrastructure.dialogs import show_notification
 
@@ -557,7 +596,14 @@ def _show_download_report(stats: Dict, total_jobs: int, scope: str = 'all',
         "",
         f"Total size: {mb:.2f} MB",
     ]
+    if stalled:
+        lines.extend([
+            "",
+            "[B]Stopped early: downloads stalled[/B]",
+            f"No progress for over {STALL_TIMEOUT_SECONDS}s. Run the download again to finish the rest.",
+        ])
     lines.extend(format_folder_section(stats.get('folder_counts', {})))
+    lines.extend(format_failure_section(stats.get('error_categories', {})))
     lines.extend(format_mismatch_section(mismatch_counts))
 
     text = "\n".join(lines)

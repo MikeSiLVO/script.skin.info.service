@@ -443,10 +443,13 @@ def show_artwork_selection_dialog(
     result = dialog.result
     selected_index = dialog.selected_index
     queued_multiart = dialog.queued_multiart
+    # the in-dialog language filter/sort reorders the list, so selected_index
+    # is only valid against the dialog's copy
+    final_art_list = dialog.available_art
     del dialog
 
     if result == 'selected' and selected_index is not None:
-        return ('selected', available_art[selected_index], queued_multiart)
+        return ('selected', final_art_list[selected_index], queued_multiart)
     elif result == 'skip':
         return ('skip', None, queued_multiart)
     else:

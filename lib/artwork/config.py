@@ -22,13 +22,6 @@ REVIEW_MEDIA_FILTERS = {
     'music': ['artist', 'album'],
 }
 
-REVIEW_SCAN_MAP = {
-    'movies': 'movies',
-    'tvshows': 'tvshows',
-    'music': 'music',
-    'all': 'all',
-}
-
 REVIEW_MODE_MISSING = 'missing_only'
 
 

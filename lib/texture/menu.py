@@ -9,7 +9,6 @@ from typing import Optional, List, Union, Dict, Any
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog
-from lib.infrastructure.menus import confirm_cancel_running_task
 
 _RESUME_HINT = "[B]CANCEL TO RESUME LATER[/B]"
 from lib.kodi.client import log, ADDON
@@ -118,24 +117,8 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
     operation_name = ADDON.getLocalizedString(32455)
 
     try:
-        if use_background:
-            if task_manager.is_task_running():
-                task_info = task_manager.get_task_info()
-                current_task = task_info['name'] if task_info else "Unknown task"
-                dialog.ok(
-                    ADDON.getLocalizedString(32172),
-                    f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32458)}"
-                )
-                return
-        else:
-            if task_manager.is_task_running():
-                if not confirm_cancel_running_task(operation_name):
-                    return
-
-                task_manager.cancel_task()
-                monitor = xbmc.Monitor()
-                while task_manager.is_task_running() and not monitor.abortRequested():
-                    monitor.waitForAbort(0.1)
+        if not task_manager.acquire_task_slot(operation_name, use_background):
+            return
 
         with task_manager.TaskContext(operation_name) as ctx:
             progress = ProgressDialog(
@@ -265,24 +248,8 @@ def _execute_standard_cleanup(use_background: bool) -> None:
     dialog = xbmcgui.Dialog()
 
     try:
-        if use_background:
-            if task_manager.is_task_running():
-                task_info = task_manager.get_task_info()
-                current_task = task_info['name'] if task_info else "Unknown task"
-                dialog.ok(
-                    ADDON.getLocalizedString(32172),
-                    f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32458)}"
-                )
-                return
-        else:
-            if task_manager.is_task_running():
-                if not confirm_cancel_running_task(ADDON.getLocalizedString(32334)):
-                    return
-
-                task_manager.cancel_task()
-                monitor = xbmc.Monitor()
-                while task_manager.is_task_running() and not monitor.abortRequested():
-                    monitor.waitForAbort(0.1)
+        if not task_manager.acquire_task_slot(ADDON.getLocalizedString(32334), use_background):
+            return
 
         with task_manager.TaskContext(ADDON.getLocalizedString(32334)) as ctx:
             progress = ProgressDialog(
@@ -361,8 +328,12 @@ def _handle_stats() -> None:
 def cleanup_textures_by_age(age_days: int,
                             progress_dialog: Optional[Union[xbmcgui.DialogProgress,
                                                             xbmcgui.DialogProgressBG]] = None,
-                            task_context: Optional[Any] = None) -> Dict[str, int]:
-    """Remove cached textures unused in the last `age_days`. Returns counts."""
+                            task_context: Optional[Any] = None,
+                            textures: Optional[List[Dict[str, Any]]] = None) -> Dict[str, int]:
+    """Remove cached textures unused in the last `age_days`. Returns counts.
+
+    `textures`: pre-fetched texture list; fetched fresh when omitted.
+    """
     from datetime import datetime, timedelta
 
     stats = {
@@ -377,7 +348,8 @@ def cleanup_textures_by_age(age_days: int,
         if progress_dialog:
             progress_dialog.update(0, ADDON.getLocalizedString(32490))
 
-        textures = get_cached_textures()
+        if textures is None:
+            textures = get_cached_textures()
         stats['total_textures'] = len(textures)
 
         if not textures:
@@ -390,7 +362,7 @@ def cleanup_textures_by_age(age_days: int,
             progress_dialog.update(10, ADDON.getLocalizedString(32332).format(len(textures)))
 
         for i, texture in enumerate(textures):
-            if task_context and task_context.is_cancelled():
+            if task_context and task_context.abort_flag.is_requested():
                 stats['cancelled'] = True
                 return stats
 
@@ -405,7 +377,7 @@ def cleanup_textures_by_age(age_days: int,
                 continue
 
             for size in sizes:
-                lastusetime = size.get('lastusetime')
+                lastusetime = size.get('lastused')
                 if lastusetime:
                     try:
                         last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
@@ -424,7 +396,7 @@ def cleanup_textures_by_age(age_days: int,
             progress_dialog.update(50, ADDON.getLocalizedString(32492).format(len(old_textures)))
 
         for i, texture in enumerate(old_textures):
-            if task_context and task_context.is_cancelled():
+            if task_context and task_context.abort_flag.is_requested():
                 stats['cancelled'] = True
                 return stats
 
@@ -501,7 +473,7 @@ def _execute_age_cleanup(age_days: int) -> None:
                 continue
 
             for size in sizes:
-                lastusetime = size.get('lastusetime')
+                lastusetime = size.get('lastused')
                 if lastusetime:
                     try:
                         last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
@@ -543,13 +515,14 @@ def _execute_age_cleanup(age_days: int) -> None:
     from lib.infrastructure.menus import Menu, MenuItem
 
     menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), lambda: _execute_age_cleanup_with_mode(age_days, False)),
-        MenuItem(ADDON.getLocalizedString(32412), lambda: _execute_age_cleanup_with_mode(age_days, True)),
+        MenuItem(ADDON.getLocalizedString(32411), lambda: _execute_age_cleanup_with_mode(age_days, False, textures)),
+        MenuItem(ADDON.getLocalizedString(32412), lambda: _execute_age_cleanup_with_mode(age_days, True, textures)),
     ])
     return menu.show()
 
 
-def _execute_age_cleanup_with_mode(age_days: int, use_background: bool) -> None:
+def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
+                                   textures: Optional[List[Dict[str, Any]]] = None) -> None:
     """Execute age cleanup with selected mode."""
     from lib.infrastructure import tasks as task_manager
 
@@ -557,24 +530,8 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool) -> None:
     dialog = xbmcgui.Dialog()
 
     try:
-        if use_background:
-            if task_manager.is_task_running():
-                task_info = task_manager.get_task_info()
-                current_task = task_info['name'] if task_info else "Unknown task"
-                dialog.ok(
-                    ADDON.getLocalizedString(32172),
-                    f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32458)}"
-                )
-                return
-        else:
-            if task_manager.is_task_running():
-                if not confirm_cancel_running_task(ADDON.getLocalizedString(32333)):
-                    return
-
-                task_manager.cancel_task()
-                monitor = xbmc.Monitor()
-                while task_manager.is_task_running() and not monitor.abortRequested():
-                    monitor.waitForAbort(0.1)
+        if not task_manager.acquire_task_slot(ADDON.getLocalizedString(32333), use_background):
+            return
 
         with task_manager.TaskContext(ADDON.getLocalizedString(32333)) as ctx:
             if use_background:
@@ -583,7 +540,8 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool) -> None:
             else:
                 progress = xbmcgui.DialogProgress()
                 progress.create(ADDON.getLocalizedString(32333), ADDON.getLocalizedString(32335))
-            stats = cleanup_textures_by_age(age_days, progress_dialog=progress, task_context=ctx)
+            stats = cleanup_textures_by_age(age_days, progress_dialog=progress, task_context=ctx,
+                                            textures=textures)
             progress.close()
 
         save_operation_stats('texture_age_cleanup', {

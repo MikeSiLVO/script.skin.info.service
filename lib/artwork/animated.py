@@ -457,7 +457,6 @@ class ArtworkAnimated:
             if not os.path.isdir(folder):
                 return None
 
-            # Try exact match first (backwards compatible, fastest)
             for pattern in self.patterns:
                 gif_path = os.path.join(folder, pattern)
                 if os.path.isfile(gif_path):
@@ -474,18 +473,16 @@ class ArtworkAnimated:
                 pattern_lower = pattern.lower()
                 pattern_base, pattern_ext = os.path.splitext(pattern_lower)
 
-                # If pattern has no extension or wrong extension, treat whole pattern as base
                 if pattern_ext != '.gif':
                     pattern_base = pattern_lower
 
                 for filename in files:
                     file_base, file_ext = os.path.splitext(filename)
 
-                    # Must be a .gif file and basename must end with pattern base
                     if file_ext.lower() == '.gif' and file_base.lower().endswith(pattern_base):
                         matches.append((filename, len(filename)))
 
-            # Return shortest match (most specific)
+            # shortest match is the most specific
             if matches:
                 matches.sort(key=lambda x: x[1])
                 return os.path.join(folder, matches[0][0])

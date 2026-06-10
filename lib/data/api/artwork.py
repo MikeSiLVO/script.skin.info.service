@@ -9,8 +9,7 @@ import xbmc
 from typing import Optional, Dict, List, Any
 
 from lib.data import database as db
-from lib.data.api.tmdb import ApiTmdb
-from lib.data.api.utilities import tmdb_image_url
+from lib.data.api.tmdb import ApiTmdb, transform_tmdb_images
 from lib.data.api.fanarttv import ApiFanarttv
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
 from lib.kodi.client import log
@@ -132,7 +131,7 @@ class ApiArtworkFetcher:
 
         if complete_data and 'images' in complete_data:
             images = complete_data['images']
-            tmdb_art = self._transform_complete_images(images)
+            tmdb_art = transform_tmdb_images(images)
             for art_type, artworks in tmdb_art.items():
                 all_art.setdefault(art_type, []).extend(artworks)
 
@@ -182,93 +181,6 @@ class ApiArtworkFetcher:
             cached.setdefault(art_type, []).extend(artworks)
 
         return cached
-
-    def _transform_complete_images(self, images: dict) -> Dict[str, List[dict]]:
-        """Transform images from complete_data response to artwork format.
-
-        Raw TMDB images have file_path but need url/previewurl/source for the dialog.
-
-        All backdrops go to landscape, sorted by language preference:
-        user's language > English > no language > other languages.
-
-        Only no-language backdrops go to fanart (text-free backgrounds).
-        """
-        from lib.kodi.settings import KodiSettings
-
-        result: Dict[str, List[dict]] = {}
-
-        logos = images.get('logos') or []
-        formatted_logos = [self._format_tmdb_image(entry, 'w500') for entry in logos]
-        formatted_logos = [entry for entry in formatted_logos if entry]
-        if formatted_logos:
-            result['clearlogo'] = formatted_logos
-
-        posters = images.get('posters') or []
-        keyart = []
-        all_posters = []
-        for poster in posters:
-            formatted = self._format_tmdb_image(poster, 'w500')
-            if formatted:
-                all_posters.append(formatted)
-                if not poster.get('iso_639_1'):
-                    keyart.append(formatted)
-        if all_posters:
-            result['poster'] = all_posters
-        if keyart:
-            result['keyart'] = keyart
-
-        backdrops = images.get('backdrops') or []
-        if not backdrops:
-            return result
-
-        user_lang = KodiSettings.online_metadata_language().split('-')[0].lower()
-
-        formatted_backdrops: List[tuple[dict, str | None]] = []
-        for backdrop in backdrops:
-            formatted = self._format_tmdb_image(backdrop, 'w780')
-            if formatted:
-                lang = backdrop.get('iso_639_1')
-                formatted_backdrops.append((formatted, lang.lower() if lang else None))
-
-        def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
-            lang = item[1]
-            if lang == user_lang:
-                return (0, '')
-            if lang == 'en' and user_lang != 'en':
-                return (1, '')
-            if lang is None or lang == 'xx':
-                return (2, '')
-            return (3, lang or '')
-
-        formatted_backdrops.sort(key=lang_sort_key)
-
-        all_backdrops = [item[0] for item in formatted_backdrops]
-
-        if all_backdrops:
-            result['fanart'] = all_backdrops
-            result['landscape'] = all_backdrops
-
-        return result
-
-    def _format_tmdb_image(self, image: dict, preview_size: str) -> Optional[dict]:
-        """Format raw TMDB image entry to common artwork format."""
-        file_path = image.get('file_path')
-        if not file_path:
-            return None
-
-        # Skip SVG files - Kodi cannot render them
-        if file_path.lower().endswith('.svg'):
-            return None
-
-        return {
-            'url': tmdb_image_url(file_path),
-            'previewurl': tmdb_image_url(file_path, preview_size),
-            'width': image.get('width', 0),
-            'height': image.get('height', 0),
-            'rating': image.get('vote_average', 0),
-            'language': image.get('iso_639_1') or '',
-            'source': 'TMDB'
-        }
 
     def _fetch_fanart_art(self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]) -> Dict[str, List[dict]]:
         if media_type == 'tvshow' and tvdb_id:
@@ -370,7 +282,10 @@ class ApiArtworkFetcher:
         if not movie_tmdb_id:
             return {}
 
-        movie_details = self.tmdb_api._make_request(f"/movie/{movie_tmdb_id}")
+        try:
+            movie_details = self.tmdb_api.get_complete_data('movie', int(movie_tmdb_id))
+        except (ValueError, TypeError):
+            return {}
 
         if not movie_details:
             return {}
