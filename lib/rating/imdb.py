@@ -1,6 +1,7 @@
 """IMDb-only ratings paths: incremental sync, IMDb batch update, IMDb single update, dataset/correction helpers."""
 from __future__ import annotations
 
+import time
 from typing import Dict, List, Optional, Set, Tuple
 
 import xbmc
@@ -14,7 +15,7 @@ from lib.kodi.client import (
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import workflow as db
 from lib.infrastructure.dialogs import show_textviewer, show_yesnocustom
-from lib.rating.ids import get_tvshow_uniqueid, update_kodi_uniqueid
+from lib.rating.ids import get_tvshow_uniqueid, prefetch_tvshow_uniqueids, update_kodi_uniqueid
 
 
 PROGRESS_SAVE_INTERVAL = 50
@@ -24,6 +25,7 @@ _DRIP_DELAY = {
     "library": {"movie": 500, "tvshow": 1500, "episode": 1500},
 }
 _PLAYBACK_POLL_MS = 10000
+_RESUME_GRACE_S = 300
 _SYNC_FLUSH_SIZE = 50
 
 
@@ -33,6 +35,30 @@ def _get_kodi_state() -> str:
     if xbmc.getCondVisibility("Window.IsVisible(10025)"):
         return "library"
     return "idle"
+
+
+def _wait_until_video_idle(monitor: xbmc.Monitor) -> bool:
+    """Block until video playback has been stopped for `_RESUME_GRACE_S` straight.
+
+    New playback during the grace window restarts the wait, so back-to-back
+    episodes don't get update churn between them. Returns False on abort.
+    """
+    while True:
+        while xbmc.getCondVisibility("Player.HasVideo"):
+            if monitor.waitForAbort(_PLAYBACK_POLL_MS / 1000):
+                return False
+
+        idle_since = time.time()
+        restarted = False
+        while time.time() - idle_since < _RESUME_GRACE_S:
+            if monitor.waitForAbort(_PLAYBACK_POLL_MS / 1000):
+                return False
+            if xbmc.getCondVisibility("Player.HasVideo"):
+                restarted = True
+                break
+
+        if not restarted:
+            return True
 
 
 def preserve_other_ratings(existing_ratings: Dict, kodi_ratings: Dict) -> None:
@@ -108,10 +134,7 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
                 db.update_synced_ratings_batch(sync_batch)
                 sync_batch = []
             progress.close()
-            while xbmc.getCondVisibility("Player.HasVideo"):
-                if monitor.waitForAbort(_PLAYBACK_POLL_MS / 1000):
-                    break
-            if monitor.abortRequested():
+            if not _wait_until_video_idle(monitor):
                 break
             progress.create(heading)
             state = _get_kodi_state()
@@ -152,7 +175,8 @@ def update_changed_imdb_ratings(media_type: str = "", monitor: Optional[xbmc.Mon
             sync_batch = []
 
         delay_ms = _DRIP_DELAY.get(state, _DRIP_DELAY["idle"]).get(item_media_type, 100)
-        xbmc.sleep(delay_ms)
+        if delay_ms > 0:
+            xbmc.sleep(delay_ms)
 
     progress.close()
 
@@ -208,6 +232,14 @@ def _collect_new_library_items(media_type: str, monitor: Optional[xbmc.Monitor] 
         items = get_library_items([mtype], properties=props)
         if not items:
             continue
+
+        if mtype == "episode":
+            unsynced_shows: Set[int] = {item["tvshowid"] for item in items
+                                        if item.get("tvshowid")
+                                        and item.get(id_key) and item.get(id_key) not in synced_dbids}
+            # one bulk request costs about the same as ~30 per-show lookups
+            if len(unsynced_shows) > 30:
+                prefetch_tvshow_uniqueids(unsynced_shows)
 
         new_items = []
         imdb_ids_needed: List[str] = []

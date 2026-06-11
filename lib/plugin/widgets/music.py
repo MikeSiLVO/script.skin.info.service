@@ -1,7 +1,7 @@
 """Music library widget handlers for plugin content."""
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 import xbmc
 import xbmcgui
@@ -255,22 +255,10 @@ def handle_similar_artists(handle: int, params: dict) -> None:
         return
 
     result = request('AudioLibrary.GetArtists', {
+        'filter': {'or': [{'field': 'artist', 'operator': 'is', 'value': n} for n in similar_names]},
         'properties': _ARTIST_PROPERTIES,
     })
-    library_artists = extract_result(result, 'artists', [])
-
-    if not library_artists:
-        xbmcplugin.endOfDirectory(handle, succeeded=True)
-        return
-
-    similar_lower = {n.lower() for n in similar_names}
-    matched: List[dict] = []
-    for artist in library_artists:
-        name = artist.get('artist') or artist.get('label', '')
-        if name.lower() in similar_lower:
-            matched.append(artist)
-
-    matched = matched[:limit]
+    matched = extract_result(result, 'artists', [])[:limit]
 
     for artist in matched:
         item = _create_artist_listitem(artist)
@@ -289,8 +277,9 @@ def handle_artist_albums(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
+    from lib.plugin.widgets import validate_sort_method
     limit = int(params.get('limit', ['25'])[0])
-    sort_method = params.get('sort', ['year'])[0]
+    sort_method = validate_sort_method(params.get('sort', ['year'])[0], 'year')
 
     artistid = _resolve_artist_id(artist_name)
     if artistid is None:
@@ -325,7 +314,6 @@ def handle_artist_musicvideos(handle: int, params: dict) -> None:
 
     limit = int(params.get('limit', ['25'])[0])
 
-    # Exclude source item if dbid+dbtype=musicvideo provided
     exclude_id: Optional[int] = None
     dbid_str = params.get('dbid', [''])[0]
     dbtype = params.get('dbtype', [''])[0]

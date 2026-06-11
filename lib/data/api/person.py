@@ -1,14 +1,99 @@
 """Person data coordination - matching actors to TMDB person IDs."""
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Dict, Optional
+
 import xbmc
 import xbmcgui
-from typing import Optional
 
 from lib.kodi.client import log, get_item_details, ADDON
+from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.tmdb import ApiTmdb
 from lib.data.api.utilities import tmdb_image_url
 from lib.data import database as db
+
+
+def build_person_props(person_data: dict) -> Dict[str, str]:
+    """Build display properties from a TMDB person payload.
+
+    Shared by the actor info dialog (window properties) and the person plugin
+    handler (ListItem properties). Includes `ProfileImage` for consumers that
+    also want it as art.
+    """
+    props: Dict[str, str] = {'Name': person_data.get('name', 'Unknown')}
+
+    if person_data.get('biography'):
+        props['Biography'] = person_data['biography']
+
+    birthday = person_data.get('birthday')
+    deathday = person_data.get('deathday')
+
+    if birthday:
+        props['Birthday'] = birthday
+        try:
+            birth_date = datetime.strptime(birthday, '%Y-%m-%d')
+            end_date = datetime.strptime(deathday, '%Y-%m-%d') if deathday else datetime.now()
+            age = end_date.year - birth_date.year
+            if (end_date.month, end_date.day) < (birth_date.month, birth_date.day):
+                age -= 1
+            props['Age'] = str(age)
+            props['BirthdayFormatted'] = birth_date.strftime(xbmc.getRegion('dateshort'))
+        except (ValueError, TypeError):
+            pass
+
+    if deathday:
+        props['Deathday'] = deathday
+        try:
+            death_date = datetime.strptime(deathday, '%Y-%m-%d')
+            props['DeathdayFormatted'] = death_date.strftime(xbmc.getRegion('dateshort'))
+        except (ValueError, TypeError):
+            pass
+
+    if person_data.get('place_of_birth'):
+        props['Birthplace'] = person_data['place_of_birth']
+
+    if person_data.get('known_for_department'):
+        props['KnownFor'] = person_data['known_for_department']
+
+    if person_data.get('id'):
+        props['person_id'] = str(person_data['id'])
+
+    if person_data.get('imdb_id'):
+        props['imdb_id'] = person_data['imdb_id']
+
+    gender_text = {1: 'Female', 2: 'Male'}.get(person_data.get('gender') or 0)
+    if gender_text:
+        props['Gender'] = gender_text
+
+    external_ids = person_data.get('external_ids', {})
+    for key in ('instagram_id', 'twitter_id', 'facebook_id', 'tiktok_id', 'youtube_id'):
+        value = external_ids.get(key)
+        if value:
+            props[key.replace('_id', '').title()] = value
+
+    profile_path = person_data.get('profile_path')
+    if profile_path:
+        props['ProfileImage'] = tmdb_image_url(profile_path)
+
+    cast = person_data.get('combined_credits', {}).get('cast', [])
+    if cast:
+        for media_type, title_key, prop in (('movie', 'title', 'TopMovies'),
+                                            ('tv', 'name', 'TopTVShows')):
+            entries = sorted((c for c in cast if c.get('media_type') == media_type),
+                             key=lambda c: c.get('popularity', 0), reverse=True)
+            seen: set = set()
+            unique = []
+            for entry in entries:
+                entry_id = entry.get('id')
+                if entry_id and entry_id not in seen:
+                    seen.add(entry_id)
+                    unique.append(entry)
+            top = MULTI_VALUE_SEP.join(e.get(title_key, '') for e in unique[:5] if e.get(title_key))
+            if top:
+                props[prop] = top
+
+    return props
 
 
 def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:

@@ -5,6 +5,7 @@ Manages cache tables with dynamic TTL based on media age.
 from __future__ import annotations
 
 import random
+import time
 import xbmc
 from datetime import datetime, timedelta
 from typing import Any, Optional, Dict, List, Tuple
@@ -414,7 +415,17 @@ def clear_expired_cache() -> int:
         )
         online_deleted = cursor.rowcount
 
-        deleted = artwork_deleted + metadata_deleted + season_deleted + genre_deleted + online_deleted
+        # provider_cache has per-read TTL logic but no expires_at column;
+        # 30 days is past every computed TTL
+        provider_cutoff = (now - timedelta(days=30)).isoformat()
+        cursor.execute(
+            'DELETE FROM provider_cache WHERE cached_at < ?',
+            (provider_cutoff,)
+        )
+        provider_deleted = cursor.rowcount
+
+        deleted = (artwork_deleted + metadata_deleted + season_deleted
+                   + genre_deleted + online_deleted + provider_deleted)
 
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")
@@ -424,8 +435,6 @@ def clear_expired_cache() -> int:
 
 def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
     """Cache compressed TMDB person data with a days-based TTL."""
-    import time
-
     now = int(time.time())
     expires = now + (ttl_days * 86400)
 
@@ -438,8 +447,6 @@ def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
 
 def get_cached_person_data(person_id: int) -> Optional[dict]:
     """Return cached TMDB person data, or None if missing/expired."""
-    import time
-
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT data FROM person_cache

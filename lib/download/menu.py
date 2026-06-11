@@ -109,16 +109,12 @@ def _select_mode(scope: str, media_filter: Optional[List[str]]):
     from lib.infrastructure.menus import Menu, MenuItem
 
     def run_foreground():
+        if not task_manager.acquire_task_slot("Download Artwork", use_background=False):
+            return
         download_scope_artwork(scope=scope, media_filter=media_filter, use_background=False)
 
     def run_background():
-        if task_manager.is_task_running():
-            task_info = task_manager.get_task_info()
-            current_task = task_info['name'] if task_info else "Unknown task"
-            show_ok(
-                ADDON.getLocalizedString(32172),
-                f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32458)}"
-            )
+        if not task_manager.acquire_task_slot("Download Artwork", use_background=True):
             return
         download_scope_artwork(scope=scope, media_filter=media_filter, use_background=True)
 

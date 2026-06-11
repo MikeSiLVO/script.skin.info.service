@@ -239,6 +239,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
                     "title": ep.get("title"),
                     "season": ep.get("season"),
                     "episode": ep.get("episode"),
+                    "tvshowid": tvshowid,
                     "show_imdb": show_imdb,
                     "show_tmdb": show_tmdb,
                     "uniqueid": ep.get("uniqueid", {})
@@ -483,8 +484,13 @@ def clear_tvshow_uniqueid_cache() -> None:
     _tvshow_uniqueid_cache.clear()
 
 
-def prefetch_tvshow_uniqueids() -> None:
-    """Pre-fetch all TV show uniqueids in one request to populate the cache."""
+def prefetch_tvshow_uniqueids(tvshow_ids: Optional[Set[int]] = None) -> None:
+    """Pre-fetch all TV show uniqueids in one request to populate the cache.
+
+    `tvshow_ids` skips the request entirely when every wanted show is already cached.
+    """
+    if tvshow_ids is not None and not (set(tvshow_ids) - set(_tvshow_uniqueid_cache)):
+        return
     response = request("VideoLibrary.GetTVShows", {"properties": ["uniqueid"]})
     if not response:
         return

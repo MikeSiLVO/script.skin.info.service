@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta29"
+	   version="2.0.0~beta31"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -36,6 +36,17 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta31
+- Fix: artwork downloads on large libraries could stop partway and finish early
+- Fix: texture cleanup by age never matched any textures
+- IMDb auto-update waits 5 minutes after playback ends before resuming
+- Much faster music artwork downloads on large libraries
+- Download report breaks down failures by cause
+- Various fixes and improvements
+
+2.0.0~beta30
+- Fix: metadata editor failed to open for artists due to an invalid JSON-RPC property request
+
 2.0.0~beta29
 - New: set_setting/toggle_setting/reset_setting accept noconfirm=true to skip the confirmation dialog for skin-scoped settings (lookandfeel.skincolors, lookandfeel.skintheme, lookandfeel.font)
 - Setting confirmation dialogs now use Kodi's translated strings and show the localized setting name

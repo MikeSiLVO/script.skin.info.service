@@ -13,7 +13,7 @@ import uuid
 import xbmc
 import xbmcgui
 from typing import Optional, Dict, Any
-from lib.kodi.client import log
+from lib.kodi.client import log, ADDON
 
 # Task is considered stale if no heartbeat for ~3x the heartbeat interval.
 HEARTBEAT_INTERVAL = 5
@@ -182,6 +182,37 @@ def is_task_running() -> bool:
     """True if a background task is registered."""
     with _lock:
         return _is_task_running_unlocked()
+
+
+def acquire_task_slot(operation_name: str, use_background: bool) -> bool:
+    """Resolve a task collision before starting `operation_name`.
+
+    Background mode informs the user and bails. Foreground mode offers to cancel
+    the running task and waits for it to clear. Returns True when the caller may proceed.
+    """
+    if not is_task_running():
+        return True
+
+    if use_background:
+        task_info = get_task_info()
+        current_task = task_info['name'] if task_info else "Unknown task"
+        xbmcgui.Dialog().ok(
+            ADDON.getLocalizedString(32172),
+            f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32458)}"
+        )
+        return False
+
+    from lib.infrastructure.menus import confirm_cancel_running_task
+    if not confirm_cancel_running_task(operation_name):
+        return False
+
+    cancel_task()
+    monitor = xbmc.Monitor()
+    while is_task_running() and not monitor.abortRequested():
+        # a dead task owner never deregisters; stale detection unblocks the wait
+        cleanup_stale_tasks()
+        monitor.waitForAbort(0.5)
+    return True
 
 
 def clear_task() -> None:

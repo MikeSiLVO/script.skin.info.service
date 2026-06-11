@@ -31,7 +31,6 @@ from lib.artwork.config import (
     REVIEW_SCOPE_OPTIONS,
     REVIEW_SCOPE_LABELS,
     REVIEW_MEDIA_FILTERS,
-    REVIEW_SCAN_MAP,
     REVIEW_MODE_MISSING,
     SESSION_DETAIL_KEYS,
     default_session_stats as _default_session_stats,
@@ -51,13 +50,12 @@ def _count_pending_for_scope(pending_counts: Dict[str, int], scope: str) -> int:
     return sum(pending_counts.get(mt, 0) for mt in media_types)
 
 
-def _scan_scope(scope: str, scan_mode: str = REVIEW_MODE_MISSING) -> Optional[ArtworkScanner]:
+def _scan_scope(scope: str) -> Optional[ArtworkScanner]:
     """Run artwork scanner for the selected scope and return the scanner on success."""
 
-    scan_target = REVIEW_SCAN_MAP.get(scope, scope)
     scanner = ArtworkScanner()
-    log("Artwork", f"Running scan for scope '{scope}' (mode={REVIEW_MODE_MISSING})")
-    result = scanner.scan(scan_target)
+    log("Artwork", f"Running scan for scope '{scope}'")
+    result = scanner.scan(scope)
     if not result:
         show_ok(ADDON.getLocalizedString(32273), ADDON.getLocalizedString(32274))
         return None
@@ -360,9 +358,10 @@ def _download_selected_artwork(
             log("Artwork", f"Could not build download path for {media_type} '{title}' {artwork_type}")
             continue
 
-        success, error, bytes_downloaded = downloader.download_artwork(
+        success, error, bytes_downloaded, _ = downloader.download_artwork(
             url=url,
-            local_path=local_path,            existing_file_mode=existing_file_mode
+            local_path=local_path,
+            existing_file_mode=existing_file_mode
         )
 
         if success:
@@ -1159,11 +1158,6 @@ class ArtworkSelection:
         })
         return True
 
-    def _filter_artwork_by_language(self, art_type: str, available: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Filter artwork options based on language preferences for the art type."""
-        from lib.artwork.utilities import filter_artwork_by_language
-        return filter_artwork_by_language(available, art_type=art_type)
-
     def _log_no_options(self, queue_entry: QueueEntry, art_type: str) -> None:
         """Log when no artwork options are available for an item."""
         self._log_review_event('manual_auto', {
@@ -1189,7 +1183,6 @@ class ArtworkSelection:
             (flow_control, applied_any) where flow_control is 'cancel', 'continue', or 'applied'.
         """
         if action == 'cancel':
-            self._handle_user_cancel(queue_entry, applied_any)
             return ('cancel', applied_any)
 
         if action == 'skip':
@@ -1238,6 +1231,8 @@ class ArtworkSelection:
 
     def _review_single_item(self, queue_entry: QueueEntry, art_items: List[ArtItemEntry], current_art: Dict[str, Any]) -> str:
         """Review a single queue item with visual artwork selection."""
+        from lib.artwork.utilities import filter_artwork_by_language
+
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
             art_types = [item.art_type for item in art_items]
@@ -1257,7 +1252,7 @@ class ArtworkSelection:
 
         for art_item in sorted_items:
             full_available = all_available_art.get(art_item.art_type, [])
-            filtered_available = self._filter_artwork_by_language(art_item.art_type, full_available)
+            filtered_available = filter_artwork_by_language(full_available, art_type=art_item.art_type)
 
             if not filtered_available:
                 self._log_no_options(queue_entry, art_item.art_type)
@@ -1638,7 +1633,7 @@ class ArtworkManager:
         if not self.scope:
             return
 
-        scanner = _scan_scope(self.scope, REVIEW_MODE_MISSING)
+        scanner = _scan_scope(self.scope)
         if not scanner:
             return
         if scanner.cancelled:
@@ -1713,7 +1708,7 @@ class ArtworkManager:
             return False
 
         if need_scan:
-            scanner = _scan_scope(self.scope, self.review_mode)
+            scanner = _scan_scope(self.scope)
             if not scanner:
                 return False
             if scanner.cancelled:

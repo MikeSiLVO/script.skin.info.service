@@ -167,7 +167,7 @@ def download_actor_images(
         profile_path = _match_actor_to_profile(name, role, tmdb_credits) if tmdb_credits else None
         if profile_path:
             url = tmdb_image_url(profile_path)
-            success, error, _ = downloader.download_artwork(
+            success, error, _, _ = downloader.download_artwork(
                 url=url,
                 local_path=local_path,
                 existing_file_mode=existing_file_mode,
@@ -184,7 +184,7 @@ def download_actor_images(
         if thumbnail:
             decoded_url = decode_image_url(thumbnail)
             if decoded_url.startswith("http"):
-                success, error, _ = downloader.download_artwork(
+                success, error, _, _ = downloader.download_artwork(
                     url=decoded_url,
                     local_path=local_path,
                     existing_file_mode=existing_file_mode,

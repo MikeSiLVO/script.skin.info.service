@@ -29,7 +29,7 @@ def handle_next_up(handle: int, params: dict) -> None:
 
     result = request('VideoLibrary.GetTVShows', {
         'filter': {'field': 'inprogress', 'operator': 'true', 'value': ''},
-        'properties': ['art', 'title', 'mpaa', 'studio'],
+        'properties': ['art', 'title', 'mpaa', 'studio', 'episode', 'watchedepisodes'],
         'sort': {'method': 'lastplayed', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
@@ -37,6 +37,9 @@ def handle_next_up(handle: int, params: dict) -> None:
 
     items = []
     for show in shows:
+        if show.get('episode', 0) <= show.get('watchedepisodes', 0):
+            continue
+
         last_result = request('VideoLibrary.GetEpisodes', {
             'tvshowid': show['tvshowid'],
             'filter': {
@@ -1044,9 +1047,10 @@ SEASONAL_TAGS = {
 
 def handle_seasonal(handle: int, params: dict) -> None:
     """Plugin entry: seasonal movies filtered by TMDB keywords stored in Kodi's tag field."""
+    from lib.plugin.widgets import validate_sort_method
     season = params.get('season', [''])[0].lower()
     limit = int(params.get('limit', ['50'])[0])
-    sort_method = params.get('sort', ['random'])[0]
+    sort_method = validate_sort_method(params.get('sort', ['random'])[0], 'random')
 
     if season not in SEASONAL_TAGS:
         xbmcplugin.endOfDirectory(handle)

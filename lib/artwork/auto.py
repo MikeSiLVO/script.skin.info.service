@@ -143,7 +143,6 @@ class ArtworkAuto:
 
             art_items = db.get_art_items_for_queue(queue_item['id'])
 
-            # OPTIMIZATION: Fetch ALL artwork types at once (90% API reduction)
             all_available_art = self.source_fetcher.fetch_all(media_type, dbid)
 
             applied_any = False
@@ -154,7 +153,7 @@ class ArtworkAuto:
                 art_type = art_item.art_type
                 review_mode = art_item.review_mode or db.ARTITEM_REVIEW_MISSING
 
-                # PROTECTION: Auto-process should NEVER overwrite existing artwork
+                # auto-process must never overwrite existing artwork
                 if review_mode != db.ARTITEM_REVIEW_MISSING:
                     continue
 
@@ -275,12 +274,13 @@ class ArtworkAuto:
 
             existing_file_mode_setting = KodiSettings.existing_file_mode()
             existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
-            existing_file_mode = ['skip', 'overwrite', 'use_existing'][existing_file_mode_int]
+            existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
             downloader = DownloadArtwork()
-            success, error, bytes_downloaded = downloader.download_artwork(
+            success, error, bytes_downloaded, _ = downloader.download_artwork(
                 url=url,
-                local_path=local_path,                existing_file_mode=existing_file_mode
+                local_path=local_path,
+                existing_file_mode=existing_file_mode
             )
 
             if success:

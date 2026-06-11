@@ -5,6 +5,7 @@ Provides window properties with random fanart from library for skin slideshows.
 from __future__ import annotations
 
 import random
+import threading
 import time
 import xbmc
 import xbmcvfs
@@ -233,7 +234,7 @@ def update_all_slideshow_properties() -> None:
             'year': tvshow['year']
         })
 
-    video = random.choice(videos) if videos else None
+    video = pick_item(videos)
     if video:
         set_video_slideshow_properties({
             'title': video['title'],
@@ -279,20 +280,28 @@ def clear_slideshow_properties() -> None:
 
 
 class SlideshowMonitor(xbmc.Monitor):
-    """Monitor for library changes to sync slideshow pool."""
+    """Monitor for library changes to sync slideshow pool.
+
+    Syncs run on a daemon thread: the pool sync does full-library JSON-RPC reads,
+    which would otherwise block the Monitor callback thread for seconds.
+    """
+
+    _sync_lock = threading.Lock()
+
+    def _sync_pool(self, reason: str) -> None:
+        # blocking: scan-finished and clean-finished arrive back-to-back and
+        # both syncs must run; each is already off the Monitor callback thread
+        with self._sync_lock:
+            try:
+                log("Service", f"Slideshow: {reason}, syncing pool...", xbmc.LOGDEBUG)
+                sync_slideshow_pool()
+            except Exception as e:
+                log("Service", f"Slideshow: Error syncing pool: {e}", xbmc.LOGERROR)
 
     def onScanFinished(self, library: str) -> None:
-        """Sync slideshow pool when library scan completes."""
-        try:
-            log("Service", f"Slideshow: Library scan finished ({library}), syncing pool...", xbmc.LOGDEBUG)
-            sync_slideshow_pool()
-        except Exception as e:
-            log("Service", f"Slideshow: Error syncing pool after scan: {e}", xbmc.LOGERROR)
+        threading.Thread(target=self._sync_pool,
+                         args=(f"Library scan finished ({library})",), daemon=True).start()
 
     def onCleanFinished(self, library: str) -> None:
-        """Sync slideshow pool when library clean completes."""
-        try:
-            log("Service", f"Slideshow: Library clean finished ({library}), syncing pool...", xbmc.LOGDEBUG)
-            sync_slideshow_pool()
-        except Exception as e:
-            log("Service", f"Slideshow: Error syncing pool after clean: {e}", xbmc.LOGERROR)
+        threading.Thread(target=self._sync_pool,
+                         args=(f"Library clean finished ({library})",), daemon=True).start()

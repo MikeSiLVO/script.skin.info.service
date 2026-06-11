@@ -213,7 +213,7 @@ class ApiMdblist(RatingSource):
         data = self.get_mdblist_data(media_type, ids)
         if not data:
             data = self.fetch_data(media_type, ids, abort_flag)
-        return data or None
+        return data
 
     def get_extra_data(
         self,
