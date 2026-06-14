@@ -29,6 +29,8 @@ def edit_api_key(provider: str) -> None:
         settings.setString(f"{provider}_configured", "true")
         settings.setString(f"{provider}_api_key_display", keyboard)
 
+        # open dialog overwrites getSettings() on close; setSetting persists
+        ADDON.setSetting(config["setting_path"], keyboard)
         ADDON.setSetting(f"{provider}_configured", "true")
         ADDON.setSetting(f"{provider}_api_key_display", keyboard)
 
@@ -52,6 +54,7 @@ def clear_api_key(provider: str) -> None:
         settings.setString(f"{provider}_configured", "false")
         settings.setString(f"{provider}_api_key_display", not_configured)
 
+        ADDON.setSetting(config["setting_path"], "")
         ADDON.setSetting(f"{provider}_configured", "false")
         ADDON.setSetting(f"{provider}_api_key_display", not_configured)
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta31"
+	   version="2.0.0~beta32"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -36,6 +36,9 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta32
+- Fix: MDBList and OMDb API keys could fail to save, making the connection test fail after reopening settings
+
 2.0.0~beta31
 - Fix: artwork downloads on large libraries could stop partway and finish early
 - Fix: texture cleanup by age never matched any textures
