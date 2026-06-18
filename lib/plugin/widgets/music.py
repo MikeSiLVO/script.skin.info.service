@@ -255,7 +255,8 @@ def handle_similar_artists(handle: int, params: dict) -> None:
         return
 
     result = request('AudioLibrary.GetArtists', {
-        'filter': {'or': [{'field': 'artist', 'operator': 'is', 'value': n} for n in similar_names]},
+        'filter': {'or': [{'field': 'artist', 'operator': 'is', 'value': n}
+                          for n in similar_names]},
         'properties': _ARTIST_PROPERTIES,
     })
     matched = extract_result(result, 'artists', [])[:limit]
@@ -266,7 +267,8 @@ def handle_similar_artists(handle: int, params: dict) -> None:
 
     xbmcplugin.setContent(handle, 'artists')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
-    log("Plugin", f"similar_artists: Returned {len(matched)} artists for '{artist_name}'", xbmc.LOGDEBUG)
+    log("Plugin", f"similar_artists: Returned {len(matched)} artists for '{artist_name}'",
+        xbmc.LOGDEBUG)
 
 
 def handle_artist_albums(handle: int, params: dict) -> None:
@@ -301,7 +303,8 @@ def handle_artist_albums(handle: int, params: dict) -> None:
 
     xbmcplugin.setContent(handle, 'albums')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
-    log("Plugin", f"artist_albums: Returned {len(albums)} albums for '{artist_name}'", xbmc.LOGDEBUG)
+    log("Plugin", f"artist_albums: Returned {len(albums)} albums for '{artist_name}'",
+        xbmc.LOGDEBUG)
 
 
 def handle_artist_musicvideos(handle: int, params: dict) -> None:
@@ -344,7 +347,8 @@ def handle_artist_musicvideos(handle: int, params: dict) -> None:
 
     xbmcplugin.setContent(handle, 'musicvideos')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
-    log("Plugin", f"artist_musicvideos: Returned {count} musicvideos for '{artist_name}'", xbmc.LOGDEBUG)
+    log("Plugin", f"artist_musicvideos: Returned {count} musicvideos for '{artist_name}'",
+        xbmc.LOGDEBUG)
 
 
 def handle_genre_artists(handle: int, params: dict) -> None:
@@ -361,7 +365,8 @@ def handle_genre_artists(handle: int, params: dict) -> None:
 
         artistid = _resolve_artist_id(source_artist)
         if artistid is None:
-            log("Plugin", f"genre_artists: Artist '{source_artist}' not in AudioLibrary", xbmc.LOGDEBUG)
+            log("Plugin", f"genre_artists: Artist '{source_artist}' not in AudioLibrary",
+                xbmc.LOGDEBUG)
             xbmcplugin.endOfDirectory(handle, succeeded=True)
             return
 

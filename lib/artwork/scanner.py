@@ -26,7 +26,8 @@ class ArtworkScanner:
         self.scan_mode = REVIEW_MODE_MISSING
         self.preferred_language = get_preferred_language_code()
         self.cancelled = False
-        self.progress = ProgressDialog(use_background=False, heading=ADDON.getLocalizedString(32273))
+        self.progress = ProgressDialog(
+            use_background=False, heading=ADDON.getLocalizedString(32273))
         self.scanned_count = 0
         self.queued_count = 0
         self.missing_count = 0
@@ -94,18 +95,6 @@ class ArtworkScanner:
 
         self.progress.update(percent, message)
 
-    # Properties needed per media type for scanning
-    _SCAN_PROPERTIES = {
-        'movie': ["title", "art", "year"],
-        'tvshow': ["title", "art", "year"],
-        'episode': ["title", "art", "showtitle", "season", "episode"],
-        'season': ["title", "art", "season", "showtitle"],
-        'musicvideo': ["title", "art", "artist"],
-        'artist': ["artist", "art"],
-        'album': ["title", "artist", "art", "year"],
-        'set': ["title", "art"],
-    }
-
     def scan(self, media_type: str, resume_session_id: Optional[int] = None) -> bool:
         """Scan library for missing artwork.
 
@@ -142,34 +131,39 @@ class ArtworkScanner:
                 movie_art_types = self._get_art_types_to_check("movie")
                 scan_steps.append((
                     'movies',
-                    lambda art_types=movie_art_types: self._scan_movies(art_types, session_id, scope_label='movies')
+                    lambda art_types=movie_art_types: self._scan_movies(
+                        art_types, session_id, scope_label='movies')
                 ))
 
             if "tvshow" in media_types:
                 tvshow_art_types = self._get_art_types_to_check("tvshow")
                 scan_steps.append((
                     'tvshows',
-                    lambda art_types=tvshow_art_types: self._scan_tvshows(art_types, session_id, scope_label='tvshows')
+                    lambda art_types=tvshow_art_types: self._scan_tvshows(
+                        art_types, session_id, scope_label='tvshows')
                 ))
 
                 season_art_types = self._get_art_types_to_check("season")
                 scan_steps.append((
                     'seasons',
-                    lambda art_types=season_art_types: self._scan_seasons(art_types, session_id, scope_label='seasons')
+                    lambda art_types=season_art_types: self._scan_seasons(
+                        art_types, session_id, scope_label='seasons')
                 ))
 
             if "artist" in media_types:
                 artist_art_types = self._get_art_types_to_check("artist")
                 scan_steps.append((
                     'artists',
-                    lambda art_types=artist_art_types: self._scan_artists(art_types, session_id, scope_label='artists')
+                    lambda art_types=artist_art_types: self._scan_artists(
+                        art_types, session_id, scope_label='artists')
                 ))
 
             if "album" in media_types:
                 album_art_types = self._get_art_types_to_check("album")
                 scan_steps.append((
                     'albums',
-                    lambda art_types=album_art_types: self._scan_albums(art_types, session_id, scope_label='albums')
+                    lambda art_types=album_art_types: self._scan_albums(
+                        art_types, session_id, scope_label='albums')
                 ))
 
             for _, runner in scan_steps:
@@ -305,7 +299,9 @@ class ArtworkScanner:
 
             self.queued_count += len(queue_items)
 
-        log("Artwork", f"{progress_title}: scanned {total}, queued {len(queue_items)} items ({len(art_items)} art types)")
+        log("Artwork",
+            f"{progress_title}: scanned {total}, queued {len(queue_items)} items "
+            f"({len(art_items)} art types)")
 
         return not self.cancelled
 
@@ -316,16 +312,22 @@ class ArtworkScanner:
             art_types = [t.strip() for t in setting_value.split(",") if t.strip()]
         else:
             defaults = {
-                'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
-                'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart', 'keyart'],
+                'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape',
+                          'discart', 'keyart'],
+                'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape',
+                           'characterart', 'keyart'],
                 'season': ['poster', 'banner', 'landscape', 'fanart'],
                 'episode': ['thumb'],
                 'musicvideo': ['thumb', 'fanart'],
-                'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
+                'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape',
+                        'discart', 'keyart'],
                 'artist': ['thumb', 'fanart', 'clearlogo', 'banner'],
                 'album': ['thumb', 'discart'],
             }
-            art_types = defaults.get(media_type if media_type else 'movie', ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'])
+            art_types = defaults.get(
+                media_type if media_type else 'movie',
+                ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape',
+                 'discart', 'keyart'])
 
         if media_type == "season":
             supported = ['poster', 'banner', 'landscape', 'fanart']
@@ -359,7 +361,7 @@ class ArtworkScanner:
         },
         'artist': {
             'fetch_media_type': 'artist', 'id_key': 'artistid',
-            'properties': ["artist", "art"],
+            'properties': ["art"],
             'title_key': 'artist', 'year_key': None,
             'progress_title': "Scanning Artists",
         },
@@ -407,18 +409,23 @@ class ArtworkScanner:
             progress_title=cfg['progress_title'],
         )
 
-    def _scan_movies(self, art_types: List[str], session_id: int, scope_label: str = 'movies') -> bool:
+    def _scan_movies(self, art_types: List[str], session_id: int,
+                     scope_label: str = 'movies') -> bool:
         return self._scan_collection('movie', art_types, session_id, scope_label)
 
-    def _scan_tvshows(self, art_types: List[str], session_id: int, scope_label: str = 'tvshows') -> bool:
+    def _scan_tvshows(self, art_types: List[str], session_id: int,
+                      scope_label: str = 'tvshows') -> bool:
         return self._scan_collection('tvshow', art_types, session_id, scope_label)
 
-    def _scan_seasons(self, art_types: List[str], session_id: int, scope_label: str = 'seasons') -> bool:
+    def _scan_seasons(self, art_types: List[str], session_id: int,
+                      scope_label: str = 'seasons') -> bool:
         return self._scan_collection('season', art_types, session_id, scope_label)
 
-    def _scan_artists(self, art_types: List[str], session_id: int, scope_label: str = 'artists') -> bool:
+    def _scan_artists(self, art_types: List[str], session_id: int,
+                      scope_label: str = 'artists') -> bool:
         return self._scan_collection('artist', art_types, session_id, scope_label)
 
-    def _scan_albums(self, art_types: List[str], session_id: int, scope_label: str = 'albums') -> bool:
+    def _scan_albums(self, art_types: List[str], session_id: int,
+                     scope_label: str = 'albums') -> bool:
         return self._scan_collection('album', art_types, session_id, scope_label)
 

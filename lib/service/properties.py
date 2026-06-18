@@ -9,7 +9,9 @@ import os
 import urllib.request
 import xbmc
 
-from lib.kodi.utilities import clear_prop, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
+from lib.kodi.utilities import (
+    clear_prop, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
+)
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
 
 
@@ -62,7 +64,10 @@ def media_streamdetails(filename: str, streamdetails: dict) -> Dict[str, str]:
                 break
         else:
             info["videoresolution"] = ""
-    elif ("dvd" in name and not any(x in name for x in ("hddvd", "hd-dvd"))) or name.endswith((".vob", ".ifo")):
+    elif (
+        ("dvd" in name and not any(x in name for x in ("hddvd", "hd-dvd")))
+        or name.endswith((".vob", ".ifo"))
+    ):
         info["videoresolution"] = "576"
     elif any(x in name for x in ("bluray", "blu-ray", "brrip", "bdrip", "hddvd", "hd-dvd")):
         info["videoresolution"] = "1080"
@@ -338,7 +343,8 @@ def _extract_file_extension(file_path: Optional[str]) -> str:
     return filename[period_pos:]
 
 
-def _set_art_props(prefix: str, art: Optional[Dict[str, Any]], keys: Tuple[str, ...], fallbacks: Optional[Dict[str, Any]] = None) -> None:
+def _set_art_props(prefix: str, art: Optional[Dict[str, Any]], keys: Tuple[str, ...],
+                   fallbacks: Optional[Dict[str, Any]] = None) -> None:
     art = art or {}
     fallbacks = fallbacks or {}
 
@@ -517,7 +523,9 @@ def set_movie_extras_aggregates(count: int, total_runtime: int, unwatched: int,
         "SkinInfo.Movie.Extras.Count": str(count) if has_extras else "",
         "SkinInfo.Movie.Extras.TotalRuntime": str(total_min) if has_extras and total_min else "",
         "SkinInfo.Movie.Extras.Unwatched": str(unwatched) if has_extras else "",
-        "SkinInfo.Movie.Extras.UnwatchedRuntime": str(unwatched_min) if has_extras and unwatched_min else "",
+        "SkinInfo.Movie.Extras.UnwatchedRuntime": (
+            str(unwatched_min) if has_extras and unwatched_min else ""
+        ),
     })
 
 
@@ -577,7 +585,9 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         block_plot = use_outline if use_outline else (m.get("plot") or "")
         if label:
             if year is not None:
-                plot_blocks.append(f"{_BOLD_OPEN}{label} ({year}){_BOLD_CLOSE}{_CR}{block_plot}{_CR}{_CR}")
+                plot_blocks.append(
+                    f"{_BOLD_OPEN}{label} ({year}){_BOLD_CLOSE}{_CR}{block_plot}{_CR}{_CR}"
+                )
             else:
                 plot_blocks.append(f"{_BOLD_OPEN}{label}{_BOLD_CLOSE}{_CR}{block_plot}{_CR}{_CR}")
 
@@ -662,7 +672,9 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     for idx, m in enumerate(movies, 1):
         m_art = m.get("art") or {}
         for key in MOVIE_ART_KEYS:
-            art_props[f"SkinInfo.Set.Movie.{idx}.Art({key})"] = m_art.get(key) or (m.get("thumbnail") if key == "thumbnail" else "")
+            art_props[f"SkinInfo.Set.Movie.{idx}.Art({key})"] = (
+                m_art.get(key) or (m.get("thumbnail") if key == "thumbnail" else "")
+            )
 
     batch_set_props(art_props)
 
@@ -670,11 +682,15 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
     _STATE["set_studios"] = metadata["prim_list_count"]
     _trim_simple_index("SkinInfo.Set.Writers", _STATE["set_writers"], metadata["writers_count"])
     _STATE["set_writers"] = metadata["writers_count"]
-    _trim_simple_index("SkinInfo.Set.Directors", _STATE["set_directors"], metadata["directors_count"])
+    _trim_simple_index(
+        "SkinInfo.Set.Directors", _STATE["set_directors"], metadata["directors_count"]
+    )
     _STATE["set_directors"] = metadata["directors_count"]
     _trim_simple_index("SkinInfo.Set.Genres", _STATE["set_genres"], metadata["genres_count"])
     _STATE["set_genres"] = metadata["genres_count"]
-    _trim_simple_index("SkinInfo.Set.Countries", _STATE["set_countries"], metadata["countries_count"])
+    _trim_simple_index(
+        "SkinInfo.Set.Countries", _STATE["set_countries"], metadata["countries_count"]
+    )
     _STATE["set_countries"] = metadata["countries_count"]
     _trim_indexed("SkinInfo.Set.Movie", _STATE["set_movies"], metadata["movies_count"])
     _STATE["set_movies"] = metadata["movies_count"]
@@ -770,12 +786,18 @@ def set_artist_properties(artist: dict, albums: List[dict]) -> None:
 
     artist_art = artist.get("art") or {}
     art_props = {}
-    art_props["SkinInfo.Artist.Art(thumb)"] = artist_art.get("thumb") or artist.get("thumbnail") or ""
-    art_props["SkinInfo.Artist.Art(fanart)"] = artist_art.get("fanart") or artist.get("fanart") or ""
+    art_props["SkinInfo.Artist.Art(thumb)"] = (
+        artist_art.get("thumb") or artist.get("thumbnail") or ""
+    )
+    art_props["SkinInfo.Artist.Art(fanart)"] = (
+        artist_art.get("fanart") or artist.get("fanart") or ""
+    )
 
     for idx, a in enumerate(albums, 1):
         a_art = a.get("art") or {}
-        art_props[f"SkinInfo.Artist.Album.{idx}.Art(thumb)"] = a_art.get("thumb") or a.get("thumbnail") or ""
+        art_props[f"SkinInfo.Artist.Album.{idx}.Art(thumb)"] = (
+            a_art.get("thumb") or a.get("thumbnail") or ""
+        )
         art_props[f"SkinInfo.Artist.Album.{idx}.Art(discart)"] = a_art.get("discart") or ""
 
     batch_set_props(art_props)
@@ -826,7 +848,9 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
 
     songgenres_list = album.get("songgenres") or []
     if songgenres_list:
-        genre_titles = [g.get("title") for g in songgenres_list if isinstance(g, dict) and g.get("title")]
+        genre_titles = [
+            g.get("title") for g in songgenres_list if isinstance(g, dict) and g.get("title")
+        ]
         data["SongGenres"] = join_multi(genre_titles)
     else:
         data["SongGenres"] = ""

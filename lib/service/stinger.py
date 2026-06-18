@@ -84,7 +84,6 @@ def get_settings() -> Dict[str, Any]:
     }
 
 
-
 def get_stinger_from_tmdb(ids: Dict[str, Optional[str]]) -> Optional[StingerInfo]:
     """Fetch stinger info from TMDB via cached complete movie data.
 
@@ -188,10 +187,12 @@ def get_stinger_info(ids: Optional[Dict[str, Optional[str]]] = None,
     return None
 
 
-def set_stinger_properties(info: Optional[StingerInfo], window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
+def set_stinger_properties(
+        info: Optional[StingerInfo], window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
     """Set `SkinInfo.Stinger.*` on `window_id`. Pass `info=None` to clear.
 
-    Properties: `HasDuring`, `HasAfter`, `Type` (during/after/both/none), `Source` (tmdb/trakt/kodi_tags).
+    Properties: `HasDuring`, `HasAfter`, `Type` (during/after/both/none),
+    `Source` (tmdb/trakt/kodi_tags).
     """
     window = xbmcgui.Window(window_id)
 
@@ -222,7 +223,7 @@ def set_notify_property(show: bool, window_id: int = FULLSCREEN_VIDEO_WINDOW_ID)
 
 
 def _get_notification_icon() -> str:
-    """Return notification icon path, honoring `Skin.String(SkinInfo.Stinger.NotificationIcon)` override."""
+    """Icon path; honors `Skin.String(SkinInfo.Stinger.NotificationIcon)` override else default."""
     skin_icon = _skin_override("NotificationIcon")
     if skin_icon and xbmcvfs.exists(skin_icon):
         return skin_icon
@@ -391,7 +392,9 @@ class StingerMonitor:
 
         if self.stinger_info and self.stinger_info.has_stinger:
             set_stinger_properties(self.stinger_info)
-            log("Service", f"Stinger detected (fallback): {self.stinger_info.stinger_type.value}", xbmc.LOGDEBUG)
+            log("Service",
+                f"Stinger detected (fallback): {self.stinger_info.stinger_type.value}",
+                xbmc.LOGDEBUG)
 
     def check_notification(self) -> None:
         """Check if notification should be shown based on playback position."""

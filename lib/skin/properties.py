@@ -13,7 +13,7 @@ def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
 
 
 def copy_container_item(container, infolabels='', artwork='', prefix='', window='home'):
-    """Copy `Container.ListItem.X` infolabels and `Art(...)` types to `SkinInfo.Selected[.{prefix}].*` window props."""
+    """Copy `Container.ListItem` infolabels/`Art(...)` to `SkinInfo.Selected[.prefix].*` props."""
     if not container:
         return
 
@@ -65,7 +65,7 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
 
 
 def refresh_counter(uid, prefix='SkinInfo'):
-    """Increment `{prefix}.{uid}` window property. Useful for triggering widget refresh via URL params."""
+    """Increment `{prefix}.{uid}` window prop. Useful to trigger widget refresh via URL params."""
     window = 'home'
     prop_name = f'{prefix}.{uid}'
     current = xbmc.getInfoLabel(f'Window({window}).Property({prop_name})')

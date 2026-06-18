@@ -26,13 +26,14 @@ def get_rating(imdb_id: str) -> Optional[Dict[str, float | int]]:
         return _select_rating(cursor, imdb_id)
 
 
-def get_rating_with_cursor(imdb_id: str, cursor: sqlite3.Cursor) -> Optional[Dict[str, float | int]]:
+def get_rating_with_cursor(imdb_id: str,
+                           cursor: sqlite3.Cursor) -> Optional[Dict[str, float | int]]:
     """Same as `get_rating`, but uses a caller-provided cursor for shared-connection loops."""
     return _select_rating(cursor, imdb_id)
 
 
 def get_ratings_batch(imdb_ids: List[str]) -> Dict[str, Dict[str, float | int]]:
-    """Return `imdb_id -> {rating, votes}` for all hits. Chunks queries to stay under SQLite parameter limits."""
+    """Return `imdb_id -> {rating, votes}` for hits; chunks to stay under SQLite param limits."""
     if not imdb_ids:
         return {}
 
@@ -88,7 +89,8 @@ def bulk_episode_lookup() -> Generator[Callable[..., Optional[str]], None, None]
     with get_db() as cursor:
         def lookup(show_imdb_id: str, season: int, episode: int) -> Optional[str]:
             cursor.execute(
-                "SELECT episode_id FROM imdb_episodes WHERE parent_id = ? AND season = ? AND episode = ?",
+                "SELECT episode_id FROM imdb_episodes "
+                "WHERE parent_id = ? AND season = ? AND episode = ?",
                 (show_imdb_id, season, episode)
             )
             row = cursor.fetchone()
@@ -196,7 +198,7 @@ def get_episode_meta() -> Tuple[Optional[str], int]:
 
 
 def import_ratings_begin(cursor: sqlite3.Cursor) -> None:
-    """Create a fresh `imdb_ratings_new` staging table; the live table is left untouched until commit."""
+    """Create a fresh `imdb_ratings_new` staging table; live table untouched until commit."""
     cursor.execute("PRAGMA synchronous = OFF")
     cursor.execute("DROP TABLE IF EXISTS imdb_ratings_new")
     cursor.execute('''
@@ -227,7 +229,7 @@ def import_ratings_commit(cursor: sqlite3.Cursor) -> None:
 
 
 def import_episodes_begin(cursor: sqlite3.Cursor) -> None:
-    """Create a fresh `imdb_episodes_new` staging table; the live table is left untouched until commit."""
+    """Create a fresh `imdb_episodes_new` staging table; live table untouched until commit."""
     cursor.execute("PRAGMA synchronous = OFF")
     cursor.execute("DROP TABLE IF EXISTS imdb_episodes_new")
     cursor.execute('''
@@ -241,10 +243,12 @@ def import_episodes_begin(cursor: sqlite3.Cursor) -> None:
     ''')
 
 
-def import_episodes_batch(cursor: sqlite3.Cursor, batch: List[Tuple[str, int, int, str]]) -> None:
-    """Bulk-insert a batch of (parent_id, season, episode, episode_id) tuples into the staging table."""
+def import_episodes_batch(cursor: sqlite3.Cursor,
+                          batch: List[Tuple[str, int, int, str]]) -> None:
+    """Bulk-insert (parent_id, season, episode, episode_id) tuples into the staging table."""
     cursor.executemany(
-        "INSERT OR REPLACE INTO imdb_episodes_new (parent_id, season, episode, episode_id) VALUES (?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO imdb_episodes_new (parent_id, season, episode, episode_id) "
+        "VALUES (?, ?, ?, ?)",
         batch
     )
 
@@ -257,4 +261,6 @@ def import_episodes_commit(cursor: sqlite3.Cursor) -> None:
     """
     cursor.execute("DROP TABLE IF EXISTS imdb_episodes")
     cursor.execute("ALTER TABLE imdb_episodes_new RENAME TO imdb_episodes")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)"
+    )

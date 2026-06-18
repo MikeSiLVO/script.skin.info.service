@@ -94,7 +94,8 @@ def build_actors_folder_path(media_type: str, file_path: str,
                              show_path: Optional[str] = None) -> Optional[str]:
     """Build `.actors` folder path matching Kodi's VideoInfoScanner/VideoDatabase conventions.
 
-    Movie: parent of movie file. TV/Episode: show root (shared). `show_path` is required for episodes.
+    Movie: parent of movie file. TV/Episode: show root (shared).
+    `show_path` is required for episodes.
     """
     if media_type == "movie":
         if not file_path:
@@ -187,7 +188,7 @@ class PathBuilder:
 
     @staticmethod
     def _make_legal_filename(name: str, fallback: str = "Unknown", parent_dir: str = "") -> str:
-        """Sanitize `name` via Kodi's `makeLegalFilename`. `parent_dir` triggers filesystem-aware sanitization."""
+        """Sanitize `name` via `makeLegalFilename`; `parent_dir` triggers filesystem-aware mode."""
         if not name:
             return fallback
         # makeLegalFilename wraps CUtil::MakeLegalPath which skips
@@ -305,7 +306,9 @@ class PathBuilder:
             if not movie_sets_folder:
                 return None
 
-            sanitized_title = PathBuilder._make_legal_filename(media_file, "Unnamed Set", movie_sets_folder)
+            sanitized_title = PathBuilder._make_legal_filename(
+                media_file, "Unnamed Set", movie_sets_folder
+            )
 
             if artwork_type.startswith('set.'):
                 clean_art_type = artwork_type[4:]
@@ -326,16 +329,24 @@ class PathBuilder:
             if not artist_folder:
                 return None
 
-            folder_name = PathBuilder._make_music_folder_name(media_file, "Unknown Artist", artist_folder)
+            folder_name = PathBuilder._make_music_folder_name(
+                media_file, "Unknown Artist", artist_folder
+            )
 
             if mbid and PathBuilder._count_library_artists(media_file) > 1:
                 folder_name += '_' + mbid[:4]
 
-            art_name = PathBuilder._get_music_thumb_filename() if artwork_type == 'thumb' else artwork_type
+            art_name = (
+                PathBuilder._get_music_thumb_filename()
+                if artwork_type == 'thumb' else artwork_type
+            )
             return vfs_join(artist_folder, folder_name, art_name)
 
         elif media_type == 'album':
-            art_name = PathBuilder._get_music_thumb_filename() if artwork_type == 'thumb' else artwork_type
+            art_name = (
+                PathBuilder._get_music_thumb_filename()
+                if artwork_type == 'thumb' else artwork_type
+            )
             return vfs_join(vfs_rstrip_sep(media_file), art_name)
 
         return None

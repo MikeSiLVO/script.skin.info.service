@@ -48,7 +48,7 @@ class ApiArtworkFetcher:
 
         properties = ['uniqueid']
 
-        if media_type in ('movie', 'tvshow', 'set'):
+        if media_type in ('movie', 'tvshow'):
             properties.append('premiered')
         elif media_type == 'episode':
             properties.append('firstaired')
@@ -83,7 +83,10 @@ class ApiArtworkFetcher:
 
         return result
 
-    def fetch_all(self, media_type: str, dbid: int, season_number: Optional[int] = None, episode_number: Optional[int] = None, bypass_cache: bool = False) -> Dict[str, List[dict]]:
+    def fetch_all(
+        self, media_type: str, dbid: int, season_number: Optional[int] = None,
+        episode_number: Optional[int] = None, bypass_cache: bool = False,
+    ) -> Dict[str, List[dict]]:
         """Fetch ALL artwork types for an item in a single operation.
 
         Performance-critical: minimizes API calls by checking cache first
@@ -117,7 +120,9 @@ class ApiArtworkFetcher:
         cache_marker_type = '_full_fetch_complete'
 
         if not bypass_cache:
-            cached_marker = db.get_cached_artwork(media_type, str(tmdb_id), 'system', cache_marker_type)
+            cached_marker = db.get_cached_artwork(
+                media_type, str(tmdb_id), 'system', cache_marker_type
+            )
 
             if cached_marker is not None:
                 cached_art = self._load_cached_artwork(media_type, tmdb_id, tvdb_id)
@@ -139,21 +144,32 @@ class ApiArtworkFetcher:
         for art_type, artworks in fanart_items.items():
             if artworks:
                 cache_id = str(tvdb_id) if tvdb_id and media_type == 'tvshow' else str(tmdb_id)
-                db.cache_artwork(media_type, cache_id, 'fanarttv', art_type, artworks, release_date, ttl_hours)
+                db.cache_artwork(
+                    media_type, cache_id, 'fanarttv', art_type, artworks, release_date, ttl_hours
+                )
                 all_art.setdefault(art_type, []).extend(artworks)
 
         if tmdb_id:
-            db.cache_artwork(media_type, str(tmdb_id), 'system', cache_marker_type, [{'marker': 'complete'}], release_date, ttl_hours)
+            db.cache_artwork(
+                media_type, str(tmdb_id), 'system', cache_marker_type,
+                [{'marker': 'complete'}], release_date, ttl_hours,
+            )
 
         finalised = self._finalise_artwork(media_type, all_art)
 
         total_items = sum(len(v) for v in finalised.values())
         source_summary = [f"{key}:{len(values)}" for key, values in finalised.items()]
-        log("Artwork", f"Fetched {media_type}:{dbid} - {total_items} art items ({', '.join(source_summary)})")
+        log(
+            "Artwork",
+            f"Fetched {media_type}:{dbid} - {total_items} art items "
+            f"({', '.join(source_summary)})",
+        )
 
         return finalised
 
-    def _load_cached_artwork(self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]) -> Dict[str, List[dict]]:
+    def _load_cached_artwork(
+        self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]
+    ) -> Dict[str, List[dict]]:
         cache_id = str(tvdb_id) if tvdb_id and media_type == 'tvshow' else str(tmdb_id)
 
         media_ids = {
@@ -182,14 +198,18 @@ class ApiArtworkFetcher:
 
         return cached
 
-    def _fetch_fanart_art(self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]) -> Dict[str, List[dict]]:
+    def _fetch_fanart_art(
+        self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]
+    ) -> Dict[str, List[dict]]:
         if media_type == 'tvshow' and tvdb_id:
             art = self.fanart_api.get_tv_artwork(tvdb_id)
         else:
             art = self.fanart_api.get_movie_artwork(tmdb_id)
         return art or {}
 
-    def _finalise_artwork(self, _media_type: str, artwork: Dict[str, List[dict]]) -> Dict[str, List[dict]]:
+    def _finalise_artwork(
+        self, _media_type: str, artwork: Dict[str, List[dict]]
+    ) -> Dict[str, List[dict]]:
         """Finalize artwork: sort each type's list by popularity."""
         if not artwork:
             return {}
@@ -200,7 +220,9 @@ class ApiArtworkFetcher:
 
         return artwork
 
-    def _fetch_season_artwork(self, season_dbid: int, season_number: Optional[int] = None) -> Dict[str, List[dict]]:
+    def _fetch_season_artwork(
+        self, season_dbid: int, season_number: Optional[int] = None
+    ) -> Dict[str, List[dict]]:
         """Fetch artwork for a TV season from TMDB and fanart.tv."""
         details = get_item_details('season', season_dbid, ['season', 'tvshowid'])
         if not isinstance(details, dict):
@@ -233,7 +255,10 @@ class ApiArtworkFetcher:
 
         return self._finalise_artwork('season', all_art)
 
-    def _fetch_episode_artwork(self, episode_dbid: int, season_number: Optional[int] = None, episode_number: Optional[int] = None) -> Dict[str, List[dict]]:
+    def _fetch_episode_artwork(
+        self, episode_dbid: int, season_number: Optional[int] = None,
+        episode_number: Optional[int] = None,
+    ) -> Dict[str, List[dict]]:
         """Fetch artwork for a TV episode. Season/episode numbers fetched from Kodi if None."""
         details = get_item_details('episode', episode_dbid, ['season', 'episode', 'tvshowid'])
         if not isinstance(details, dict):
@@ -312,7 +337,9 @@ class ApiArtworkFetcher:
 
         return self._finalise_artwork('set', all_art)
 
-    def _fetch_artist_artwork(self, artist_dbid: int, bypass_cache: bool = False) -> Dict[str, List[dict]]:
+    def _fetch_artist_artwork(
+        self, artist_dbid: int, bypass_cache: bool = False
+    ) -> Dict[str, List[dict]]:
         """Fetch artwork for a music artist from fanart.tv."""
         details = get_item_details('artist', artist_dbid, ['musicbrainzartistid'])
         if not isinstance(details, dict):
@@ -353,11 +380,16 @@ class ApiArtworkFetcher:
                 db.cache_artwork('artist', mbid, 'theaudiodb', art_type, artworks, None, ttl_hours)
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        db.cache_artwork('artist', mbid, 'system', cache_marker_type, [{'marker': 'complete'}], None, ttl_hours)
+        db.cache_artwork(
+            'artist', mbid, 'system', cache_marker_type,
+            [{'marker': 'complete'}], None, ttl_hours,
+        )
 
         return self._finalise_artwork('artist', all_art)
 
-    def _fetch_musicvideo_artwork(self, musicvideo_dbid: int, bypass_cache: bool = False) -> Dict[str, List[dict]]:
+    def _fetch_musicvideo_artwork(
+        self, musicvideo_dbid: int, bypass_cache: bool = False
+    ) -> Dict[str, List[dict]]:
         """Fetch artwork for a music video.
 
         Tries track screenshots from AudioDB first, falls back to artist artwork
@@ -368,7 +400,11 @@ class ApiArtworkFetcher:
             return {}
 
         artist_list = details.get('artist')
-        artist_name = MULTI_VALUE_SEP.join(artist_list) if isinstance(artist_list, list) else str(artist_list or '')
+        artist_name = (
+            MULTI_VALUE_SEP.join(artist_list)
+            if isinstance(artist_list, list)
+            else str(artist_list or '')
+        )
         title = details.get('title') or ''
         if not artist_name or not title:
             return {}
@@ -377,9 +413,13 @@ class ApiArtworkFetcher:
         ttl_hours = db.get_fanarttv_cache_ttl_hours()
 
         if not bypass_cache:
-            marker = db.get_cached_artwork('musicvideo', cache_key, 'system', '_full_fetch_complete')
+            marker = db.get_cached_artwork(
+                'musicvideo', cache_key, 'system', '_full_fetch_complete'
+            )
             if marker is not None:
-                return self._finalise_artwork('musicvideo', self._load_musicvideo_cached_artwork(cache_key))
+                return self._finalise_artwork(
+                    'musicvideo', self._load_musicvideo_cached_artwork(cache_key)
+                )
 
         from lib.data.api.audiodb import ApiAudioDb
         audiodb = ApiAudioDb()
@@ -391,7 +431,9 @@ class ApiArtworkFetcher:
             track_art = audiodb.get_track_artwork_from_data(track_data)
             for art_type, artworks in track_art.items():
                 if artworks:
-                    db.cache_artwork('musicvideo', cache_key, 'theaudiodb', art_type, artworks, None, ttl_hours)
+                    db.cache_artwork(
+                        'musicvideo', cache_key, 'theaudiodb', art_type, artworks, None, ttl_hours
+                    )
                     all_art.setdefault(art_type, []).extend(artworks)
 
         album = details.get('album') or None
@@ -401,10 +443,16 @@ class ApiArtworkFetcher:
                 fanart_art = self.fanart_api.get_artist_artwork(mbid)
                 for art_type, artworks in fanart_art.items():
                     if art_type != 'albums' and artworks:
-                        db.cache_artwork('musicvideo', cache_key, 'fanarttv', art_type, artworks, None, ttl_hours)
+                        db.cache_artwork(
+                            'musicvideo', cache_key, 'fanarttv', art_type, artworks, None, ttl_hours
+                        )
                         all_art.setdefault(art_type, []).extend(artworks)
             except Exception as e:
-                log("Artwork", f"Fanart.tv artist artwork error for musicvideo {musicvideo_dbid}: {e}", xbmc.LOGWARNING)
+                log(
+                    "Artwork",
+                    f"Fanart.tv artist artwork error for musicvideo {musicvideo_dbid}: {e}",
+                    xbmc.LOGWARNING,
+                )
 
             try:
                 from lib.data.database.music import get_cached_artist, SOURCE_AUDIODB
@@ -415,12 +463,22 @@ class ApiArtworkFetcher:
                     tadb_art = audiodb.get_artist_artwork_from_data(audiodb_artist)
                     for art_type, artworks in tadb_art.items():
                         if artworks:
-                            db.cache_artwork('musicvideo', cache_key, 'theaudiodb', art_type, artworks, None, ttl_hours)
+                            db.cache_artwork(
+                                'musicvideo', cache_key, 'theaudiodb', art_type, artworks,
+                                None, ttl_hours,
+                            )
                             all_art.setdefault(art_type, []).extend(artworks)
             except Exception as e:
-                log("Artwork", f"AudioDB artist artwork error for musicvideo {musicvideo_dbid}: {e}", xbmc.LOGWARNING)
+                log(
+                    "Artwork",
+                    f"AudioDB artist artwork error for musicvideo {musicvideo_dbid}: {e}",
+                    xbmc.LOGWARNING,
+                )
 
-        db.cache_artwork('musicvideo', cache_key, 'system', '_full_fetch_complete', [{'marker': 'complete'}], None, ttl_hours)
+        db.cache_artwork(
+            'musicvideo', cache_key, 'system', '_full_fetch_complete',
+            [{'marker': 'complete'}], None, ttl_hours,
+        )
         return self._finalise_artwork('musicvideo', all_art)
 
     def _load_musicvideo_cached_artwork(self, cache_key: str) -> Dict[str, List[dict]]:
@@ -432,7 +490,9 @@ class ApiArtworkFetcher:
             cached.setdefault(art_type, []).extend(artworks)
         return cached
 
-    def _fetch_album_artwork(self, album_dbid: int, bypass_cache: bool = False) -> Dict[str, List[dict]]:
+    def _fetch_album_artwork(
+        self, album_dbid: int, bypass_cache: bool = False
+    ) -> Dict[str, List[dict]]:
         """Fetch artwork for a music album from fanart.tv and TheAudioDB.
 
         Uses artist endpoint and extracts album-specific artwork by release group ID.
@@ -458,21 +518,32 @@ class ApiArtworkFetcher:
             return {}
 
         if not release_group_id:
-            log("Artwork", f"No MusicBrainz release group ID for album {album_dbid}", xbmc.LOGWARNING)
+            log(
+                "Artwork",
+                f"No MusicBrainz release group ID for album {album_dbid}",
+                xbmc.LOGWARNING,
+            )
             return {}
 
         ttl_hours = db.get_fanarttv_cache_ttl_hours()
         cache_marker_type = '_full_fetch_complete'
 
         if not bypass_cache:
-            cached_marker = db.get_cached_artwork('album', release_group_id, 'system', cache_marker_type)
+            cached_marker = db.get_cached_artwork(
+                'album', release_group_id, 'system', cache_marker_type
+            )
             if cached_marker is not None:
                 cached_art = self._load_music_cached_artwork('album', release_group_id)
                 return self._finalise_artwork('album', cached_art)
 
         all_art: Dict[str, List[dict]] = {}
 
-        log("Artwork", f"Album {album_dbid}: looking up release_group={release_group_id}, artist={artist_mbid}", xbmc.LOGDEBUG)
+        log(
+            "Artwork",
+            f"Album {album_dbid}: looking up release_group={release_group_id}, "
+            f"artist={artist_mbid}",
+            xbmc.LOGDEBUG,
+        )
 
         artist_data = self.fanart_api.get_artist_artwork(artist_mbid)
         albums = artist_data.get('albums', {})
@@ -490,11 +561,17 @@ class ApiArtworkFetcher:
                 album_art = albums.get(resolved_old_id, {})
 
         if not album_art and not albums:
-            log("Artwork", f"Album {album_dbid}: no album artwork on Fanart.tv for artist {artist_mbid}", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Album {album_dbid}: no album artwork on Fanart.tv for artist {artist_mbid}",
+                xbmc.LOGDEBUG,
+            )
 
         for art_type, artworks in album_art.items():
             if artworks:
-                db.cache_artwork('album', release_group_id, 'fanarttv', art_type, artworks, None, ttl_hours)
+                db.cache_artwork(
+                    'album', release_group_id, 'fanarttv', art_type, artworks, None, ttl_hours
+                )
                 all_art.setdefault(art_type, []).extend(artworks)
 
         from lib.data.api.audiodb import ApiAudioDb
@@ -513,14 +590,23 @@ class ApiArtworkFetcher:
         if album_data:
             audiodb_art = audiodb.get_album_artwork_from_data(album_data)
         else:
-            log("Artwork", f"Album {album_dbid}: no data on TheAudioDB for release_group={release_group_id}", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Album {album_dbid}: no data on TheAudioDB for release_group={release_group_id}",
+                xbmc.LOGDEBUG,
+            )
 
         for art_type, artworks in audiodb_art.items():
             if artworks:
-                db.cache_artwork('album', release_group_id, 'theaudiodb', art_type, artworks, None, ttl_hours)
+                db.cache_artwork(
+                    'album', release_group_id, 'theaudiodb', art_type, artworks, None, ttl_hours
+                )
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        db.cache_artwork('album', release_group_id, 'system', cache_marker_type, [{'marker': 'complete'}], None, ttl_hours)
+        db.cache_artwork(
+            'album', release_group_id, 'system', cache_marker_type,
+            [{'marker': 'complete'}], None, ttl_hours,
+        )
 
         return self._finalise_artwork('album', all_art)
 
@@ -539,18 +625,31 @@ class ApiArtworkFetcher:
         cached_old_ids = db.get_mb_id_mappings_by_canonical(canonical_id)
         for old_id in cached_old_ids:
             if old_id in fanart_albums:
-                log("Artwork", f"Album {album_dbid}: resolved via cached mapping {old_id} -> {canonical_id}", xbmc.LOGDEBUG)
+                log(
+                    "Artwork",
+                    f"Album {album_dbid}: resolved via cached mapping {old_id} -> {canonical_id}",
+                    xbmc.LOGDEBUG,
+                )
                 return old_id, None
 
         # Fall back to TheAudioDB name search
         album_title = album_details.get('title', '')
         artist_name = album_details.get('displayartist', '')
         if not album_title or not artist_name:
-            log("Artwork", f"Album {album_dbid}: release_group={canonical_id} not found on Fanart.tv, "
-                "cannot search (missing title/artist)", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Album {album_dbid}: release_group={canonical_id} not found on Fanart.tv, "
+                "cannot search (missing title/artist)",
+                xbmc.LOGDEBUG,
+            )
             return None, None
 
-        log("Artwork", f"Album {album_dbid}: ID mismatch, searching TheAudioDB for '{artist_name}' - '{album_title}'", xbmc.LOGDEBUG)
+        log(
+            "Artwork",
+            f"Album {album_dbid}: ID mismatch, searching TheAudioDB for "
+            f"'{artist_name}' - '{album_title}'",
+            xbmc.LOGDEBUG,
+        )
 
         from lib.data.api.audiodb import ApiAudioDb
         audiodb = ApiAudioDb()
@@ -562,7 +661,11 @@ class ApiArtworkFetcher:
             return None, None
 
         if not search_result:
-            log("Artwork", f"Album {album_dbid}: not found on TheAudioDB by name search", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Album {album_dbid}: not found on TheAudioDB by name search",
+                xbmc.LOGDEBUG,
+            )
             return None, None
 
         tadb_mbid = search_result.get('strMusicBrainzID', '')
@@ -571,12 +674,20 @@ class ApiArtworkFetcher:
 
         # Found an old ID, cache the mapping
         db.save_mb_id_mapping(tadb_mbid, canonical_id)
-        log("Artwork", f"Album {album_dbid}: resolved stale ID {tadb_mbid} -> {canonical_id} via TheAudioDB", xbmc.LOGINFO)
+        log(
+            "Artwork",
+            f"Album {album_dbid}: resolved stale ID {tadb_mbid} -> {canonical_id} via TheAudioDB",
+            xbmc.LOGINFO,
+        )
 
         if tadb_mbid in fanart_albums:
             return tadb_mbid, search_result
 
-        log("Artwork", f"Album {album_dbid}: TheAudioDB has ID {tadb_mbid} but not found on Fanart.tv either", xbmc.LOGDEBUG)
+        log(
+            "Artwork",
+            f"Album {album_dbid}: TheAudioDB has ID {tadb_mbid} but not found on Fanart.tv either",
+            xbmc.LOGDEBUG,
+        )
         return None, search_result
 
 

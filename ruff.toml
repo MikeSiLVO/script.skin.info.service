@@ -1,6 +1,12 @@
 # Ruff configuration for script.skin.info.service
 
+line-length = 100
+
 [lint]
+
+extend-select = [
+    "E501",  # Line too long (enforced at line-length above)
+]
 
 ignore = [
     "E402",  # Module level import not at top - needed for Kodi addon initialization order

@@ -7,19 +7,30 @@ from typing import Optional, List, Dict, Any
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import get_library_items, log, ADDON, decode_image_url
+from lib.kodi.client import get_library_items, log, ADDON, decode_image_url, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.texture.utilities import should_precache_url, is_library_artwork_url
 from lib.texture.queues import TextureCache, TextureCacheDownload
 from lib.texture.library import (
-    _DEFAULT_TEXTURE_MEDIA_TYPES,
+    DEFAULT_TEXTURE_MEDIA_TYPES,
     get_all_library_artwork_urls,
     get_library_scan_data,
     load_cached_urls_once,
     clear_cached_urls_cache,
     remove_texture,
 )
+
+_PRECACHE_PROPERTIES = {
+    'movie': ['art', 'title', 'file'],
+    'tvshow': ['art', 'title', 'file', 'season', 'episode'],
+    'episode': ['art', 'title', 'file', 'season', 'episode', 'tvshowid'],
+    'musicvideo': ['art', 'title', 'file'],
+    'set': ['art', 'title'],
+    'season': ['art', 'title', 'season', 'episode', 'tvshowid'],
+    'artist': ['art', 'musicbrainzartistid'],
+    'album': ['art', 'title'],
+}
 
 
 def precache_library_artwork(media_types: Optional[List[str]] = None,
@@ -42,17 +53,21 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
 
     try:
         if media_types is None:
-            media_types = list(_DEFAULT_TEXTURE_MEDIA_TYPES)
+            media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
         if progress_dialog:
             progress_dialog.update(0, "Scanning library for artwork URLs...")
 
-        def progress_callback(current: int, total: int, media_type: str):
+        def progress_callback(type_index: int, type_count: int, media_type: str,
+                              done: int, total: int):
             if progress_dialog:
-                percent = int((current / total) * 10)
-                progress_dialog.update(percent, f"Scanning {media_type} library")
+                frac = (type_index - 1 + (done / total if total else 1)) / type_count
+                progress_dialog.update(int(frac * 10),
+                                       f"Scanning {media_type}: {done:,} / {total:,}")
 
-        library_urls = get_all_library_artwork_urls(media_types, progress_callback=progress_callback)
+        library_urls = get_all_library_artwork_urls(
+            media_types, progress_callback=progress_callback
+        )
 
         log("Artwork",f"Pre-cache: found {len(library_urls)} total library artwork URLs")
 
@@ -111,7 +126,11 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
             last_percent = -1
 
             while not cache_queue.queue.empty() or cache_queue.processing_set:
-                if monitor.abortRequested() or (task_context and task_context.abort_flag.is_requested()) or (progress_dialog and progress_dialog.is_cancelled()):
+                if (
+                    monitor.abortRequested()
+                    or (task_context and task_context.abort_flag.is_requested())
+                    or (progress_dialog and progress_dialog.is_cancelled())
+                ):
                     stats['cancelled'] = True
                     break
 
@@ -128,9 +147,14 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
 
                     if time_since_update >= 0.5 or percent_changed:
                         if progress_dialog.use_background:
-                            progress_dialog.update(percent, f"Cached: {completed}/{total} ({remaining} remaining)")
+                            progress_dialog.update(
+                                percent, f"Cached: {completed}/{total} ({remaining} remaining)"
+                            )
                         else:
-                            progress_dialog.update(percent, f"Cached: {completed} of {total}[CR]Remaining: {remaining}")
+                            progress_dialog.update(
+                                percent,
+                                f"Cached: {completed} of {total}[CR]Remaining: {remaining}",
+                            )
                         last_update_time = current_time
                         last_percent = percent
 
@@ -146,7 +170,8 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
 
             status = "cancelled" if stats['cancelled'] else "complete"
             log("Artwork",
-                f"Pre-cache {status}: {stats['successfully_cached']} cached, {stats['failed']} failed"
+                f"Pre-cache {status}: {stats['successfully_cached']} cached, "
+                f"{stats['failed']} failed"
             )
 
         finally:
@@ -181,7 +206,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
     }
 
     if media_types is None:
-        media_types = list(_DEFAULT_TEXTURE_MEDIA_TYPES)
+        media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
     monitor = xbmc.Monitor()
 
@@ -189,25 +214,26 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
         if progress_dialog:
             progress_dialog.update(5, "Scanning library...")
 
-        properties = ["art", "title", "file", "season", "episode", "tvshowid"]
-
         def has_artwork(item: Dict[str, Any]) -> bool:
             art = item.get('art', {})
             return bool(art and isinstance(art, dict))
 
+        items: List[Dict[str, Any]] = []
         try:
-            items = get_library_items(
-                media_types=media_types,
-                properties=properties,
-                decode_urls=True,
-                filter_func=has_artwork
-            )
-
-            for item in items:
-                if 'title' not in item:
-                    item['title'] = "Unknown"
-                if 'file' not in item:
-                    item['file'] = ""
+            for media_type in media_types:
+                properties = _PRECACHE_PROPERTIES.get(media_type, ['art', 'title'])
+                type_items = get_library_items(
+                    media_types=[media_type],
+                    properties=properties,
+                    decode_urls=True,
+                    filter_func=has_artwork
+                )
+                for item in type_items:
+                    if 'title' not in item:
+                        item['title'] = "Unknown"
+                    if 'file' not in item:
+                        item['file'] = ""
+                items.extend(type_items)
 
         except Exception as e:
             log("Texture",
@@ -226,7 +252,9 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
             progress_dialog.update(15, f"Processing {len(items)} items...")
 
         existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode_int = (
+            int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        )
         existing_file_mode = ['skip', 'overwrite', 'use_existing'][existing_file_mode_int]
 
         queue = TextureCacheDownload(
@@ -261,7 +289,11 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
             last_percent = -1
 
             while not queue.queue.empty() or queue.processing_set:
-                if monitor.abortRequested() or (task_context and task_context.abort_flag.is_requested()) or (progress_dialog and progress_dialog.is_cancelled()):
+                if (
+                    monitor.abortRequested()
+                    or (task_context and task_context.abort_flag.is_requested())
+                    or (progress_dialog and progress_dialog.is_cancelled())
+                ):
                     stats['cancelled'] = True
                     break
 
@@ -281,9 +313,17 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
                         downloaded = queue_stats['downloaded']
 
                         if progress_dialog.use_background:
-                            progress_dialog.update(percent, f"Processed: {completed}/{total} ({remaining} remaining)")
+                            progress_dialog.update(
+                                percent,
+                                f"Processed: {completed}/{total} ({remaining} remaining)",
+                            )
                         else:
-                            progress_dialog.update(percent, f"Processed: {completed} of {total}[CR]Remaining: {remaining}[CR]Cached: {cached} | Downloaded: {downloaded}")
+                            progress_dialog.update(
+                                percent,
+                                f"Processed: {completed} of {total}[CR]"
+                                f"Remaining: {remaining}[CR]"
+                                f"Cached: {cached} | Downloaded: {downloaded}",
+                            )
                         last_update_time = current_time
                         last_percent = percent
 
@@ -299,7 +339,8 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
 
             status = "cancelled" if stats['cancelled'] else "complete"
             log("Artwork",
-                f"Pre-cache+download {status}: {stats['cached']} cached, {stats['downloaded']} downloaded"
+                f"Pre-cache+download {status}: {stats['cached']} cached, "
+                f"{stats['downloaded']} downloaded"
             )
 
         finally:
@@ -334,7 +375,16 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
     try:
         log("Artwork",f"Starting orphaned texture cleanup for media types: {media_types}")
 
-        scan_data = get_library_scan_data(media_types, progress_dialog, include_cast=True)
+        def aborted() -> bool:
+            return bool(
+                monitor.abortRequested()
+                or (task_context and task_context.abort_flag.is_requested())
+                or (progress_dialog is not None and progress_dialog.is_cancelled())
+            )
+
+        scan_data = get_library_scan_data(
+            media_types, progress_dialog, include_cast=True, abort_check=aborted
+        )
 
         library_urls = scan_data['library_urls']
         cached_textures = scan_data['cached_textures']
@@ -392,7 +442,10 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
             progress_dialog.update(60, f"Removing {stats['orphaned_found']} orphaned textures...")
 
         for idx, texture in enumerate(orphaned):
-            if monitor.abortRequested() or (task_context and task_context.abort_flag.is_requested()):
+            if (
+                monitor.abortRequested()
+                or (task_context and task_context.abort_flag.is_requested())
+            ):
                 stats['cancelled'] = True
                 break
 
@@ -412,6 +465,10 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
 
         status = "cancelled" if stats['cancelled'] else "complete"
         log("Artwork",f"Cleanup {status}: {stats['removed']} removed, {stats['failed']} failed")
+
+    except LibraryScanAborted:
+        stats['cancelled'] = True
+        log("Artwork", "Orphaned cleanup cancelled during library scan")
 
     except Exception as e:
         log("Texture",f"Orphaned cleanup failed: {str(e)}", xbmc.LOGERROR)

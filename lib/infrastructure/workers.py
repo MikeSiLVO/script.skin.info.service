@@ -85,7 +85,11 @@ class WorkerQueue:
     def add_item(self, item: Any, dedupe_key: Optional[Any] = None) -> bool:
         """Queue an item for background processing. Returns False if already queued/processing."""
         if not self.running:
-            log("General", f"{self.__class__.__name__} cannot add item, queue not started", xbmc.LOGWARNING)
+            log(
+                "General",
+                f"{self.__class__.__name__} cannot add item, queue not started",
+                xbmc.LOGWARNING,
+            )
             return False
 
         key = dedupe_key if dedupe_key is not None else item
@@ -132,7 +136,8 @@ class WorkerQueue:
     def get_stats(self) -> Dict:
         """Return current queue statistics.
 
-        Keys: `queued, processing, completed, successful, failed, total_queued, num_workers, results`.
+        Keys: `queued, processing, completed, successful, failed, total_queued,
+        num_workers, results`.
         """
         with self.results_lock:
             successful = sum(1 for r in self.results if r.get('success', False))
@@ -180,7 +185,11 @@ class WorkerQueue:
             except Empty:
                 continue
             except Exception as e:
-                log("General", f"{self.__class__.__name__} worker {worker_id} unexpected error: {str(e)}", xbmc.LOGERROR)
+                log(
+                    "General",
+                    f"{self.__class__.__name__} worker {worker_id} unexpected error: {str(e)}",
+                    xbmc.LOGERROR,
+                )
 
     def _run_item(self, item: tuple, worker_id: int, monitor: xbmc.Monitor) -> bool:
         """Process one queued item, record result, fire callbacks, clean up.
@@ -222,7 +231,11 @@ class WorkerQueue:
             with self.results_lock:
                 self.results.append(result)
 
-            log("General", f"{self.__class__.__name__} worker {worker_id} error: {str(e)}", xbmc.LOGWARNING)
+            log(
+                "General",
+                f"{self.__class__.__name__} worker {worker_id} error: {str(e)}",
+                xbmc.LOGWARNING,
+            )
 
             self._on_item_complete(item_data, result)
 

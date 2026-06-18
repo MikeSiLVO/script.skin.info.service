@@ -18,12 +18,16 @@ import xbmcgui
 
 from lib.data import database as db
 from lib.data.database.queue import QueueEntry, ArtItemEntry
-from lib.kodi.client import request, extract_result, get_item_details, decode_image_url, KODI_GET_DETAILS_METHODS
+from lib.kodi.client import (
+    request, extract_result, get_item_details, decode_image_url, KODI_GET_DETAILS_METHODS,
+)
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.menus import Menu, MenuItem, RETURN_TO_MAIN_SENTINEL
-from lib.infrastructure.dialogs import show_ok, show_yesno, show_textviewer, show_select, show_notification
+from lib.infrastructure.dialogs import (
+    show_ok, show_yesno, show_textviewer, show_select, show_notification,
+)
 from lib.actor.downloader import download_actor_images
 
 # Import from new artwork package
@@ -230,7 +234,8 @@ def _show_session_report(session_row) -> None:
             pending_after = run.get('pending_after', 'n/a')
             lines.append(f"  Run #{idx} ({ts_display})")
             lines.append(
-                f"    Processed: {processed} | Applied: {auto_applied} | Skipped: {skipped_auto} | Errors: {errors}"
+                f"    Processed: {processed} | Applied: {auto_applied} | "
+                f"Skipped: {skipped_auto} | Errors: {errors}"
             )
             lines.append(f"    Remaining after run: {pending_after}")
             _append_detail_section(
@@ -329,7 +334,9 @@ def _download_selected_artwork(
         existing_file_mode = 'overwrite'
     else:
         existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode_int = (
+            int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        )
         existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
@@ -355,7 +362,10 @@ def _download_selected_artwork(
         )
 
         if not local_path:
-            log("Artwork", f"Could not build download path for {media_type} '{title}' {artwork_type}")
+            log(
+                "Artwork",
+                f"Could not build download path for {media_type} '{title}' {artwork_type}",
+            )
             continue
 
         success, error, bytes_downloaded, _ = downloader.download_artwork(
@@ -365,7 +375,10 @@ def _download_selected_artwork(
         )
 
         if success:
-            log("Artwork", f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)")
+            log(
+                "Artwork",
+                f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)",
+            )
         elif error:
             log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
 
@@ -431,7 +444,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
     try:
         if media_type == 'artist':
             detail_properties = ["art"]
-        elif media_type == 'album':
+        elif media_type in ('album', 'set'):
             detail_properties = ["title", "art"]
         else:
             detail_properties = ["title", "art", "file"]
@@ -473,7 +486,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         actor_count = 0
 
         existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode_int = (
+            int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        )
         existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
         if progress.iscanceled():
@@ -520,7 +535,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     continue
 
                 season_art = season.get("art", {})
-                season_downloadable = _extract_downloadable_art(season_art, skip_prefixes=["tvshow."])
+                season_downloadable = _extract_downloadable_art(
+                    season_art, skip_prefixes=["tvshow."]
+                )
 
                 if season_downloadable:
                     season_id = season.get("seasonid")
@@ -529,7 +546,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     if season_id:
                         pct = 10 + int((processed / max(total_items, 1)) * 85)
                         progress.update(pct, f"{title}\n{season_title}")
-                        _download_selected_artwork("season", season_id, f"{title} - {season_title}", season_downloadable)
+                        _download_selected_artwork(
+                            "season", season_id, f"{title} - {season_title}", season_downloadable
+                        )
                         art_count += len(season_downloadable)
                         season_count += 1
 
@@ -545,7 +564,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     continue
 
                 episode_art = episode.get("art", {})
-                episode_downloadable = _extract_downloadable_art(episode_art, skip_prefixes=["tvshow.", "season."])
+                episode_downloadable = _extract_downloadable_art(
+                    episode_art, skip_prefixes=["tvshow.", "season."]
+                )
 
                 if episode_downloadable:
                     episode_id = episode.get("episodeid")
@@ -555,7 +576,10 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     if episode_id:
                         pct = 10 + int((processed / max(total_items, 1)) * 85)
                         progress.update(pct, f"{title}\n{ep_num} {ep_title}")
-                        _download_selected_artwork("episode", episode_id, f"{title} - {ep_num} {ep_title}", episode_downloadable)
+                        _download_selected_artwork(
+                            "episode", episode_id, f"{title} - {ep_num} {ep_title}",
+                            episode_downloadable,
+                        )
                         art_count += len(episode_downloadable)
                         episode_count += 1
 
@@ -590,7 +614,11 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         return
 
     total_count = art_count + actor_count
-    log("Artwork", f"Download counts - art: {art_count}, actors: {actor_count}, total: {total_count}", xbmc.LOGDEBUG)
+    log(
+        "Artwork",
+        f"Download counts - art: {art_count}, actors: {actor_count}, total: {total_count}",
+        xbmc.LOGDEBUG,
+    )
     if total_count == 0:
         show_notification(
             ADDON.getLocalizedString(32290),
@@ -610,7 +638,10 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             message = ADDON.getLocalizedString(32045) + " " + ", ".join(parts)
         else:
             if actor_count > 0:
-                message = ADDON.getLocalizedString(32013).format(art_count) + ", " + ADDON.getLocalizedString(32982).format(actor_count)
+                message = (
+                    ADDON.getLocalizedString(32013).format(art_count) + ", "
+                    + ADDON.getLocalizedString(32982).format(actor_count)
+                )
             else:
                 message = ADDON.getLocalizedString(32013).format(art_count)
 
@@ -647,12 +678,19 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
     dbid_int = int(dbid)
 
     art_type_options = {
-        'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
-        'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart', 'keyart'],
+        'movie': [
+            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'
+        ],
+        'tvshow': [
+            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart',
+            'keyart',
+        ],
         'season': ['poster', 'banner', 'landscape', 'fanart'],
         'episode': ['thumb'],
         'musicvideo': ['thumb', 'fanart'],
-        'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'],
+        'set': [
+            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'
+        ],
         'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
         'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],
     }
@@ -673,7 +711,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     properties = ["art"]
     if dbtype_lower == 'album':
-        properties.extend(["title", "year", "musicbrainzalbumartistid", "musicbrainzreleasegroupid"])
+        properties.extend(
+            ["title", "year", "musicbrainzalbumartistid", "musicbrainzreleasegroupid"]
+        )
     elif dbtype_lower == 'artist':
         properties.append("musicbrainzartistid")
     else:
@@ -755,7 +795,11 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
-    available_by_type = {art_type: all_artwork.get(art_type, []) for art_type in art_types if all_artwork.get(art_type)}
+    available_by_type = {
+        art_type: all_artwork.get(art_type, [])
+        for art_type in art_types
+        if all_artwork.get(art_type)
+    }
 
     if not available_by_type:
         show_notification(
@@ -774,7 +818,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     last_selected = 0
     while True:
-        selected = show_select(ADDON.getLocalizedString(32555).format(title), art_type_labels, preselect=last_selected)
+        selected = show_select(
+            ADDON.getLocalizedString(32555).format(title), art_type_labels, preselect=last_selected
+        )
 
         if selected < 0:
             return
@@ -817,7 +863,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
                 2000
             )
             if KodiSettings.download_after_manage_artwork():
-                _download_selected_artwork(dbtype_lower, dbid_int, title, art_updates, force_overwrite=True)
+                _download_selected_artwork(
+                    dbtype_lower, dbid_int, title, art_updates, force_overwrite=True
+                )
             refreshed_details = extract_result(
                 request(method_name, {id_key: dbid_int, "properties": ["art"]}),
                 result_key
@@ -856,7 +904,9 @@ class ArtworkSelection:
         self.review_mode = REVIEW_MODE_MISSING
         self.review_log: Dict[str, List[Dict[str, Any]]] = {key: [] for key in SESSION_DETAIL_KEYS}
         self.remaining_pending: int = 0
-        self.loading_progress = ProgressDialog(use_background=False, heading=ADDON.getLocalizedString(32273))
+        self.loading_progress = ProgressDialog(
+            use_background=False, heading=ADDON.getLocalizedString(32273)
+        )
         self.enable_download = enable_download
         self._current_art_cache: Dict[Tuple[str, int], Dict[str, Any]] = {}
         self._session_base_stats: Dict[str, Any] = {}
@@ -899,8 +949,14 @@ class ArtworkSelection:
 
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
-            pending_count = len(db.get_next_batch(batch_size=1000, status='pending', media_types=self.media_filter))
-            log("Artwork", f"Manual review starting: {pending_count} pending items, media_filter={self.media_filter}")
+            pending_count = len(
+                db.get_next_batch(batch_size=1000, status='pending', media_types=self.media_filter)
+            )
+            log(
+                "Artwork",
+                f"Manual review starting: {pending_count} pending items, "
+                f"media_filter={self.media_filter}",
+            )
 
         self._initialize_session()
         assert self.session_id is not None
@@ -934,7 +990,9 @@ class ArtworkSelection:
                         break
 
                     art_items = art_items_by_queue.get(queue_entry.id, [])
-                    pending_art, current_art = self._collect_pending_art_items(queue_entry, art_items)
+                    pending_art, current_art = self._collect_pending_art_items(
+                        queue_entry, art_items
+                    )
                     if not pending_art:
                         continue
 
@@ -950,7 +1008,10 @@ class ArtworkSelection:
                     elif result == 'auto':
                         self.stats['auto'] += 1
 
-                    db.update_session_stats(self.session_id, _serialise_session_stats(self._build_stats_payload()))
+                    db.update_session_stats(
+                        self.session_id,
+                        _serialise_session_stats(self._build_stats_payload()),
+                    )
         finally:
             self.loading_progress.close()
 
@@ -958,7 +1019,8 @@ class ArtworkSelection:
         if enable_debug:
             status = "cancelled" if cancelled else "complete"
             log("Artwork",
-                f"Manual review {status}: applied={self.stats['applied']}, skipped={self.stats['skipped']}, "
+                f"Manual review {status}: applied={self.stats['applied']}, "
+                f"skipped={self.stats['skipped']}, "
                 f"auto={self.stats.get('auto', 0)}, session={self.session_id}"
             )
 
@@ -973,14 +1035,24 @@ class ArtworkSelection:
         self.remaining_pending = remaining
 
         if cancelled:
-            db.pause_session(self.session_id, _serialise_session_stats(self._build_stats_payload()))
-            heading = f"Paused: manual {manual_total} (applied {applied_count}, skipped {skipped_count})"
+            db.pause_session(
+                self.session_id, _serialise_session_stats(self._build_stats_payload())
+            )
+            heading = (
+                f"Paused: manual {manual_total} "
+                f"(applied {applied_count}, skipped {skipped_count})"
+            )
             message = f"Auto-skipped: {auto_count}, Remaining: {remaining}"
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
         else:
-            db.update_session_stats(self.session_id, _serialise_session_stats(self._build_stats_payload()))
+            db.update_session_stats(
+                self.session_id, _serialise_session_stats(self._build_stats_payload())
+            )
             db.complete_session(self.session_id)
-            heading = f"Complete: manual {manual_total} (applied {applied_count}, skipped {skipped_count})"
+            heading = (
+                f"Complete: manual {manual_total} "
+                f"(applied {applied_count}, skipped {skipped_count})"
+            )
             message = f"Auto-skipped: {auto_count}"
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
 
@@ -1076,7 +1148,11 @@ class ArtworkSelection:
         try:
             details = get_item_details(media_type, dbid, ['art'])
         except Exception as e:
-            log("Artwork", f"Failed to get current artwork for {media_type}:{dbid}: {e}", xbmc.LOGERROR)
+            log(
+                "Artwork",
+                f"Failed to get current artwork for {media_type}:{dbid}: {e}",
+                xbmc.LOGERROR,
+            )
             return {}
 
         if not isinstance(details, dict):
@@ -1089,11 +1165,15 @@ class ArtworkSelection:
         return current_art
 
 
-    def _load_available_artwork(self, media_type: str, dbid: int, title: str) -> Dict[str, List[Any]]:
+    def _load_available_artwork(
+        self, media_type: str, dbid: int, title: str
+    ) -> Dict[str, List[Any]]:
         """Load all available artwork for a media item, bypassing cache for manual review."""
         self.loading_progress.update(10, ADDON.getLocalizedString(32276).format(title))
         try:
-            all_available_art = self.auto.source_fetcher.fetch_all(media_type, dbid, bypass_cache=True)
+            all_available_art = self.auto.source_fetcher.fetch_all(
+                media_type, dbid, bypass_cache=True
+            )
         except Exception as exc:
             log("Artwork", f"Failed to load artwork for {title}: {exc}", xbmc.LOGERROR)
             all_available_art = {}
@@ -1229,14 +1309,21 @@ class ArtworkSelection:
                 })
         return 'skipped' if had_options else 'auto'
 
-    def _review_single_item(self, queue_entry: QueueEntry, art_items: List[ArtItemEntry], current_art: Dict[str, Any]) -> str:
+    def _review_single_item(
+        self, queue_entry: QueueEntry, art_items: List[ArtItemEntry],
+        current_art: Dict[str, Any],
+    ) -> str:
         """Review a single queue item with visual artwork selection."""
         from lib.artwork.utilities import filter_artwork_by_language
 
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
             art_types = [item.art_type for item in art_items]
-            log("Artwork", f"Reviewing item: '{queue_entry.title}' ({len(art_items)} art types: {', '.join(art_types)})")
+            log(
+                "Artwork",
+                f"Reviewing item: '{queue_entry.title}' "
+                f"({len(art_items)} art types: {', '.join(art_types)})",
+            )
 
         art_priority = {
             'poster': 1, 'fanart': 2, 'clearlogo': 3, 'clearart': 4,
@@ -1244,7 +1331,9 @@ class ArtworkSelection:
         }
         sorted_items = sorted(art_items, key=lambda item: art_priority.get(item.art_type, 99))
 
-        all_available_art = self._load_available_artwork(queue_entry.media_type, queue_entry.dbid, queue_entry.title)
+        all_available_art = self._load_available_artwork(
+            queue_entry.media_type, queue_entry.dbid, queue_entry.title
+        )
 
         applied_any = False
         had_options = False
@@ -1252,7 +1341,9 @@ class ArtworkSelection:
 
         for art_item in sorted_items:
             full_available = all_available_art.get(art_item.art_type, [])
-            filtered_available = filter_artwork_by_language(full_available, art_type=art_item.art_type)
+            filtered_available = filter_artwork_by_language(
+                full_available, art_type=art_item.art_type
+            )
 
             if not filtered_available:
                 self._log_no_options(queue_entry, art_item.art_type)
@@ -1280,7 +1371,9 @@ class ArtworkSelection:
             elif flow_control == 'applied':
                 applied_any = True
 
-        result = self._finalize_review_status(queue_entry, art_items, applied_any, had_options, auto_logged)
+        result = self._finalize_review_status(
+            queue_entry, art_items, applied_any, had_options, auto_logged
+        )
 
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
@@ -1327,7 +1420,9 @@ class ArtworkManager:
             return False
 
         self.scope = self.scope_arg
-        self.media_filter = None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
+        self.media_filter = (
+            None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
+        )
         self.session_id = None
 
         pending_counts = self._get_pending_counts()
@@ -1337,15 +1432,39 @@ class ArtworkManager:
         items = []
 
         if pending_for_scope > 0:
-            items.append(MenuItem(ADDON.getLocalizedString(32501).format(pending_for_scope), self._handle_resume))
+            items.append(
+                MenuItem(
+                    ADDON.getLocalizedString(32501).format(pending_for_scope), self._handle_resume
+                )
+            )
 
-        items.append(MenuItem(ADDON.getLocalizedString(32502), lambda: self._handle_manual_review(enable_download=False)))
+        items.append(
+            MenuItem(
+                ADDON.getLocalizedString(32502),
+                lambda: self._handle_manual_review(enable_download=False),
+            )
+        )
 
         if KodiSettings.enable_combo_workflows():
-            items.append(MenuItem(ADDON.getLocalizedString(32503), lambda: self._handle_manual_review(enable_download=True)))
+            items.append(
+                MenuItem(
+                    ADDON.getLocalizedString(32503),
+                    lambda: self._handle_manual_review(enable_download=True),
+                )
+            )
 
-        items.append(MenuItem(ADDON.getLocalizedString(32504), lambda: self._run_auto_apply_and_return_false()))
-        items.append(MenuItem(ADDON.getLocalizedString(32086), lambda: self._view_scope_report(scope_label), loop=True))
+        items.append(
+            MenuItem(
+                ADDON.getLocalizedString(32504), lambda: self._run_auto_apply_and_return_false()
+            )
+        )
+        items.append(
+            MenuItem(
+                ADDON.getLocalizedString(32086),
+                lambda: self._view_scope_report(scope_label),
+                loop=True,
+            )
+        )
 
         menu = Menu(f"{scope_label} - Select Action", items)
         result = menu.show()
@@ -1388,10 +1507,18 @@ class ArtworkManager:
                 ))
 
         # Main actions
-        items.append(MenuItem(ADDON.getLocalizedString(32502), self._handle_manual_review_flow, loop=True))
+        items.append(
+            MenuItem(ADDON.getLocalizedString(32502), self._handle_manual_review_flow, loop=True)
+        )
 
         if KodiSettings.enable_combo_workflows():
-            items.append(MenuItem(ADDON.getLocalizedString(32503), self._handle_manual_review_download_flow, loop=True))
+            items.append(
+                MenuItem(
+                    ADDON.getLocalizedString(32503),
+                    self._handle_manual_review_download_flow,
+                    loop=True,
+                )
+            )
 
         items.extend([
             MenuItem(ADDON.getLocalizedString(32504), self._handle_auto_apply_flow, loop=True),
@@ -1404,7 +1531,9 @@ class ArtworkManager:
     def _handle_resume_for_scope(self, scope: str):
         """Resume pending items for a specific scope."""
         self.scope = scope
-        self.media_filter = None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
+        self.media_filter = (
+            None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
+        )
         self.session_id = None
         return self._handle_resume()
 
@@ -1413,7 +1542,11 @@ class ArtworkManager:
         items = []
 
         for scope, label in REVIEW_SCOPE_OPTIONS:
-            items.append(MenuItem(label, lambda s=scope: self._start_scan_for_scope(s, enable_download=False)))
+            items.append(
+                MenuItem(
+                    label, lambda s=scope: self._start_scan_for_scope(s, enable_download=False)
+                )
+            )
 
         menu = Menu(ADDON.getLocalizedString(32507), items)
         return menu.show()
@@ -1423,7 +1556,9 @@ class ArtworkManager:
         items = []
 
         for scope, label in REVIEW_SCOPE_OPTIONS:
-            items.append(MenuItem(label, lambda s=scope: self._start_scan_for_scope(s, enable_download=True)))
+            items.append(
+                MenuItem(label, lambda s=scope: self._start_scan_for_scope(s, enable_download=True))
+            )
 
         menu = Menu(ADDON.getLocalizedString(32508), items)
         return menu.show()
@@ -1474,13 +1609,19 @@ class ArtworkManager:
 
     def _handle_view_reports_flow(self):
         """Handle 'View Session History' flow with scope selection."""
-        items = [MenuItem(ADDON.getLocalizedString(32510), self._view_last_report_any_scope, loop=True)]
+        items = [
+            MenuItem(ADDON.getLocalizedString(32510), self._view_last_report_any_scope, loop=True)
+        ]
 
         for scope, label in REVIEW_SCOPE_OPTIONS:
             if scope != 'all':
-                items.append(MenuItem(label, lambda s=scope: self._view_report_for_scope(s), loop=True))
+                items.append(
+                    MenuItem(label, lambda s=scope: self._view_report_for_scope(s), loop=True)
+                )
 
-        items.append(MenuItem(ADDON.getLocalizedString(32511), self._show_overall_queue_status, loop=True))
+        items.append(
+            MenuItem(ADDON.getLocalizedString(32511), self._show_overall_queue_status, loop=True)
+        )
 
         menu = Menu(ADDON.getLocalizedString(32512), items)
         return menu.show()
@@ -1585,11 +1726,21 @@ class ArtworkManager:
         items = []
 
         if session or has_pending:
-            items.append(MenuItem(ADDON.getLocalizedString(32514), lambda s=session: self._start_new_scan(s)))
+            items.append(
+                MenuItem(ADDON.getLocalizedString(32514), lambda s=session: self._start_new_scan(s))
+            )
             if session and session['stats']:
-                items.append(MenuItem(ADDON.getLocalizedString(32515), lambda s=session: _show_session_report(s), loop=True))
+                items.append(
+                    MenuItem(
+                        ADDON.getLocalizedString(32515),
+                        lambda s=session: _show_session_report(s),
+                        loop=True,
+                    )
+                )
         else:
-            items.append(MenuItem(ADDON.getLocalizedString(32516), lambda s=session: self._start_new_scan(s)))
+            items.append(
+                MenuItem(ADDON.getLocalizedString(32516), lambda s=session: self._start_new_scan(s))
+            )
 
         menu = Menu(f"{scope_label}", items)
         return menu.show()

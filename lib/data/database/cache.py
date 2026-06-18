@@ -54,7 +54,9 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
     air_date_str = next_air or next_air_incomplete
     if air_date_str:
         try:
-            days_until = (datetime.fromisoformat(air_date_str) - datetime.now()).total_seconds() / 86400
+            days_until = (
+                datetime.fromisoformat(air_date_str) - datetime.now()
+            ).total_seconds() / 86400
         except (ValueError, AttributeError):
             days_until = None
 
@@ -95,11 +97,14 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
     return random.randint(3, 7) * 24
 
 
-def get_cache_ttl_hours(release_date: Optional[str], hints: Optional[Dict[str, Any]] = None) -> int:
+def get_cache_ttl_hours(
+    release_date: Optional[str], hints: Optional[Dict[str, Any]] = None
+) -> int:
     """Dynamic cache TTL (hours) based on content status and metadata hints.
 
     Movies age-tiered off `release_date`:
-      <90d random 24-48h, <1y random 3-6d, <2y random 7-14d, >2y random 14-30d, unknown random 24-48h.
+      <90d random 24-48h, <1y random 3-6d, <2y random 7-14d, >2y random 14-30d,
+      unknown random 24-48h.
     TV shows ignore `release_date` and route through `_tv_show_ttl(hints)`.
 
     Recognised `hints` keys: status, next_episode_air_date,
@@ -146,7 +151,9 @@ def get_fanarttv_cache_ttl_hours() -> int:
     return 168
 
 
-def get_cached_artwork(media_type: str, media_id: str, source: str, art_type: str) -> Optional[list]:
+def get_cached_artwork(
+    media_type: str, media_id: str, source: str, art_type: str
+) -> Optional[list]:
     """Return cached artwork list, or None if missing/expired."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
@@ -218,7 +225,10 @@ def get_cached_artwork_batch(
         return results
 
 
-def cache_artwork(media_type: str, media_id: str, source: str, art_type: str, data: list, release_date: Optional[str] = None, ttl_hours: Optional[int] = None) -> None:
+def cache_artwork(
+    media_type: str, media_id: str, source: str, art_type: str, data: list,
+    release_date: Optional[str] = None, ttl_hours: Optional[int] = None,
+) -> None:
     """Cache artwork list. TTL derived from `release_date` unless `ttl_hours` is given."""
     if ttl_hours is None:
         ttl_hours = get_cache_ttl_hours(release_date)
@@ -226,10 +236,17 @@ def cache_artwork(media_type: str, media_id: str, source: str, art_type: str, da
     with get_db(DB_PATH) as cursor:
         expires_at = datetime.now() + timedelta(hours=ttl_hours)
 
-        cursor.execute('''
-            INSERT OR REPLACE INTO artwork_cache (media_type, media_id, source, art_type, data, release_date, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (media_type, media_id, source, art_type, _compress_data(data), release_date, expires_at.isoformat()))
+        cursor.execute(
+            '\n'
+            '            INSERT OR REPLACE INTO artwork_cache '
+            '(media_type, media_id, source, art_type, data, release_date, expires_at)\n'
+            '            VALUES (?, ?, ?, ?, ?, ?, ?)\n'
+            '        ',
+            (
+                media_type, media_id, source, art_type, _compress_data(data),
+                release_date, expires_at.isoformat(),
+            ),
+        )
 
 
 def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
@@ -252,7 +269,10 @@ def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
             return None
 
 
-def cache_metadata(media_type: str, tmdb_id: str, data: dict, release_date: Optional[str], hints: Optional[Dict[str, Any]] = None, ttl_hours: Optional[int] = None) -> None:
+def cache_metadata(
+    media_type: str, tmdb_id: str, data: dict, release_date: Optional[str],
+    hints: Optional[Dict[str, Any]] = None, ttl_hours: Optional[int] = None,
+) -> None:
     """Cache zlib-compressed metadata with dynamic TTL.
 
     For movies/tvshows, also copies `external_ids` into the id_mappings table.
@@ -380,7 +400,7 @@ def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
 
 
 def clear_expired_cache() -> int:
-    """Remove expired artwork/metadata entries and very old (180d+) online props. Returns count removed."""
+    """Remove expired artwork/metadata entries and 180d+ online props; returns count removed."""
     now = datetime.now()
     with get_db(DB_PATH) as cursor:
         cursor.execute(

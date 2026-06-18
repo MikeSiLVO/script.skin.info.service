@@ -9,7 +9,11 @@ import xbmcgui
 import xbmcplugin
 
 from lib.kodi.client import log
-from lib.kodi.formatters import format_rating_props, build_common_sense_summary, RATING_SOURCE_NORMALIZE
+from lib.kodi.formatters import (
+    format_rating_props,
+    build_common_sense_summary,
+    RATING_SOURCE_NORMALIZE,
+)
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
@@ -91,14 +95,21 @@ def fetch_mdblist_data(
                 props["CommonSense.Summary"] = summary
                 props["CommonSense.Reasons"] = reasons
 
-        service_ratings = mdblist.get_service_ratings(mdblist_media_type, ids, abort_flag=abort_flag)
+        service_ratings = mdblist.get_service_ratings(
+            mdblist_media_type, ids, abort_flag=abort_flag
+        )
         if abort_flag and abort_flag.is_requested():
             return props
         if service_ratings:
             for source, rating_data in service_ratings.items():
-                if isinstance(rating_data, dict) and "rating" in rating_data and "votes" in rating_data:
+                if (
+                    isinstance(rating_data, dict)
+                    and "rating" in rating_data and "votes" in rating_data
+                ):
                     normalized_source = RATING_SOURCE_NORMALIZE.get(source, source)
-                    props.update(format_rating_props(normalized_source, rating_data["rating"], int(rating_data["votes"])))
+                    props.update(format_rating_props(
+                        normalized_source, rating_data["rating"], int(rating_data["votes"])
+                    ))
 
         rt_status = mdblist.get_rt_status(mdblist_media_type, ids, abort_flag=abort_flag)
         if rt_status:
@@ -154,7 +165,9 @@ def fetch_trakt_data(
             return props
         if trakt_ratings and "trakt" in trakt_ratings:
             trakt_data = trakt_ratings["trakt"]
-            props.update(format_rating_props("trakt", trakt_data["rating"], int(trakt_data["votes"])))
+            props.update(format_rating_props(
+                "trakt", trakt_data["rating"], int(trakt_data["votes"])
+            ))
 
         if not is_episode:
             trakt_id = imdb_id or tmdb_id
@@ -195,7 +208,12 @@ def handle_online(handle: int, params: dict) -> None:
     valid_types = ("movie", "tvshow", "episode")
 
     if media_type not in valid_types:
-        log("Plugin", f"Online: Invalid media type '{media_type}', expected one of: {', '.join(valid_types)}", xbmc.LOGWARNING)
+        log(
+            "Plugin",
+            f"Online: Invalid media type '{media_type}', expected one of: "
+            f"{', '.join(valid_types)}",
+            xbmc.LOGWARNING,
+        )
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
@@ -219,7 +237,11 @@ def handle_online(handle: int, params: dict) -> None:
         if is_episode:
             episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
             if not episode_details or not episode_details.get("tvshowid"):
-                log("Plugin", f"Online: Could not get parent show for episode {dbid}", xbmc.LOGWARNING)
+                log(
+                    "Plugin",
+                    f"Online: Could not get parent show for episode {dbid}",
+                    xbmc.LOGWARNING,
+                )
                 xbmcplugin.endOfDirectory(handle, succeeded=False)
                 return
             tvshow_dbid = episode_details["tvshowid"]
@@ -237,7 +259,11 @@ def handle_online(handle: int, params: dict) -> None:
         tmdb_id = uniqueid_dict.get("tmdb") or ""
         tvdb_id = uniqueid_dict.get("tvdb") or ""
     else:
-        log("Plugin", "Online: Missing required parameter - provide dbid, tmdb_id, or imdb_id", xbmc.LOGWARNING)
+        log(
+            "Plugin",
+            "Online: Missing required parameter - provide dbid, tmdb_id, or imdb_id",
+            xbmc.LOGWARNING,
+        )
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 

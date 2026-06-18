@@ -11,7 +11,7 @@ from lib.kodi.utilities import clear_group, batch_set_props
 from lib.service.online.helpers import (
     make_cache_key,
     resolve_ids_from,
-    _PLAYER_SKININFO_PREFIX_MAP,
+    PLAYER_SKININFO_PREFIX_MAP,
 )
 from lib.service.online.fetchers import fetch_all_online_data
 
@@ -54,7 +54,7 @@ class PlayerHandler:
             return
 
         imdb_id, tmdb_id = resolve_ids_from(
-            dbtype, dbid, "VideoPlayer", _PLAYER_SKININFO_PREFIX_MAP
+            dbtype, dbid, "VideoPlayer", PLAYER_SKININFO_PREFIX_MAP
         )
 
         if not imdb_id and not tmdb_id:

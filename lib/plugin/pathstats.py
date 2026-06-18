@@ -88,7 +88,9 @@ def get_path_statistics(path: str) -> Dict[str, Any]:
 
 
 def handle_path_stats(handle: int, params: dict) -> None:
-    """Plugin entry for path stats. Returns an invisible ListItem with `SkinInfo.PathStats.*` properties.
+    """Plugin entry for path stats.
+
+    Returns an invisible ListItem with `SkinInfo.PathStats.*` properties.
 
     Sets: `Count, Watched, Unwatched, InProgress, TVShowCount, Episodes,
     WatchedEpisodes, UnWatchedEpisodes`.

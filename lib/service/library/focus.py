@@ -92,7 +92,7 @@ def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> List[i
     return [e["runtime"] for e in episodes if e.get("runtime", 0) > 0]
 
 
-def _resolve_show_runtime(tvshowid: int) -> Tuple[int, int]:
+def resolve_show_runtime(tvshowid: int) -> Tuple[int, int]:
     """Return (total_runtime, avg_episode_runtime); cache-miss fetches via GetEpisodes."""
     from lib.data.database import runtime as runtime_cache
     cached = runtime_cache.get_show_runtime(tvshowid)
@@ -172,7 +172,9 @@ class FocusDispatcher:
             self._set_movie(parent_dbid)
             self._last_id = parent_dbid
             self._last_type = "movie"
-            count, total_runtime, unwatched, unwatched_runtime = _fetch_extras_aggregates(parent_dbid)
+            count, total_runtime, unwatched, unwatched_runtime = (
+                _fetch_extras_aggregates(parent_dbid)
+            )
             set_movie_extras_aggregates(count, total_runtime, unwatched, unwatched_runtime)
             self._last_asset_parent = parent_dbid
         return True
@@ -206,7 +208,9 @@ class FocusDispatcher:
             cur_type = "musicvideo_artist"
         elif dbtype == "album" and mv_mediatype == "album":
             cur_type = "musicvideo_album"
-        elif dbtype in ("set", "movie", "artist", "album", "tvshow", "season", "episode", "musicvideo"):
+        elif dbtype in (
+            "set", "movie", "artist", "album", "tvshow", "season", "episode", "musicvideo"
+        ):
             cur_type = dbtype
         elif dbid == self._last_id and self._last_type:
             cur_type = self._last_type
@@ -287,7 +291,10 @@ class FocusDispatcher:
             self._last_type = "musicvideo"
             self._service.musicvideo.set_focus_details(dbid)
         else:
-            if self._last_type in ("movie", "set", "artist", "album", "tvshow", "season", "episode", "musicvideo", "musicvideo_artist", "musicvideo_album"):
+            if self._last_type in (
+                "movie", "set", "artist", "album", "tvshow", "season", "episode",
+                "musicvideo", "musicvideo_artist", "musicvideo_album",
+            ):
                 self.clear_media_type(self._last_type)
             self._last_id = dbid
             self._last_type = ""
@@ -391,7 +398,7 @@ class FocusDispatcher:
         if not isinstance(details, dict):
             return
 
-        total, avg = _resolve_show_runtime(int(tvshowid))
+        total, avg = resolve_show_runtime(int(tvshowid))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total
@@ -414,7 +421,7 @@ class FocusDispatcher:
         tvshowid = details.get("tvshowid")
         season_num = details.get("season")
         if tvshowid and tvshowid != -1:
-            _, avg = _resolve_show_runtime(int(tvshowid))
+            _, avg = resolve_show_runtime(int(tvshowid))
             if avg:
                 details["runtime"] = avg
             if season_num is not None:

@@ -46,10 +46,13 @@ class Menu:
         while not monitor.abortRequested():
             selected_idx = preselect if preselect is not None else self._last_selected_idx
 
-            options: list[tuple[str, Optional[str]]] = [(item.label, str(idx)) for idx, item in enumerate(self.items)]
+            options: list[tuple[str, Optional[str]]] = [
+                (item.label, str(idx)) for idx, item in enumerate(self.items)
+            ]
             options.append(("Cancel", '__cancel__'))
 
-            choice_str, cancelled = show_menu_with_cancel(self.title, options, preselect=selected_idx)
+            choice_str, cancelled = show_menu_with_cancel(self.title, options,
+                                                          preselect=selected_idx)
 
             if cancelled:
                 return None
@@ -128,7 +131,9 @@ def show_menu_with_cancel(title: str, options: Sequence[Tuple[str, Optional[str]
     if adjusted_preselect is not None and task_info:
         adjusted_preselect += 1
 
-    choice = xbmcgui.Dialog().select(title, display_options, preselect=adjusted_preselect if adjusted_preselect is not None else -1)
+    choice = xbmcgui.Dialog().select(
+        title, display_options,
+        preselect=adjusted_preselect if adjusted_preselect is not None else -1)
 
     if choice == -1:
         return ('__back__', False)

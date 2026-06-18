@@ -289,7 +289,8 @@ class ApiMdblist(RatingSource):
         if not data:
             return None
 
-        keywords = {k.get("name", "").lower() for k in data.get("keywords", []) if isinstance(k, dict)}
+        keywords = {
+            k.get("name", "").lower() for k in data.get("keywords", []) if isinstance(k, dict)}
 
         result: dict = {}
 

@@ -227,7 +227,7 @@ def clear_task() -> None:
 
 
 def cleanup_stale_tasks() -> None:
-    """Remove stale task registrations: no heartbeat for 15s (crash) or no progress for 60s (stuck)."""
+    """Remove stale tasks: no heartbeat 15s (crash) or no progress 60s (stuck)."""
     task_info = get_task_info()
     if not task_info:
         return
@@ -236,12 +236,20 @@ def cleanup_stale_tasks() -> None:
 
     heartbeat_age = now - task_info.get('last_heartbeat', 0)
     if heartbeat_age > STALE_TIMEOUT:
-        log("General", f"Clearing stale task '{task_info['name']}' (no heartbeat for {heartbeat_age:.0f}s)", xbmc.LOGWARNING)
+        log(
+            "General",
+            f"Clearing stale task '{task_info['name']}' (no heartbeat for {heartbeat_age:.0f}s)",
+            xbmc.LOGWARNING,
+        )
         clear_task()
         return
 
     progress_age = now - task_info.get('last_progress', 0)
     if progress_age > STUCK_TIMEOUT:
-        log("General", f"Clearing stuck task '{task_info['name']}' (no progress for {progress_age:.0f}s)", xbmc.LOGWARNING)
+        log(
+            "General",
+            f"Clearing stuck task '{task_info['name']}' (no progress for {progress_age:.0f}s)",
+            xbmc.LOGWARNING,
+        )
         clear_task()
         return

@@ -93,7 +93,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
             pass
 
     def _resort_artwork(self) -> None:
-        """Subclasses must implement: re-sort `full_artwork_list` honoring sort_mode/source_pref/language."""
+        """Subclasses re-sort `full_artwork_list` by sort_mode/source_pref/language."""
         raise NotImplementedError
 
     def create_artwork_listitem(

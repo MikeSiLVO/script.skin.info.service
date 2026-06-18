@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import time
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future, TimeoutError as FuturesTimeoutError
+from concurrent.futures import (
+    ThreadPoolExecutor, as_completed, Future, TimeoutError as FuturesTimeoutError
+)
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Any
 import xbmc
@@ -80,7 +82,9 @@ class RatingBatchExecutor:
         self.pending_futures: Dict[Future, FetchJob] = {}
         self.item_states: Dict[int, ItemState] = {}
 
-        self.source_paused_until: Dict[str, float] = {name: 0.0 for name in self.source_names.values()}
+        self.source_paused_until: Dict[str, float] = {
+            name: 0.0 for name in self.source_names.values()
+        }
 
         self._lock = threading.Lock()
         self._cancelled = False
@@ -145,7 +149,9 @@ class RatingBatchExecutor:
             return
 
         if dbid in self.item_states:
-            log("Ratings", f"   WARNING: Item {dbid} ({title}) already submitted, skipping duplicate", xbmc.LOGWARNING)
+            log("Ratings",
+                f"   WARNING: Item {dbid} ({title}) already submitted, skipping duplicate",
+                xbmc.LOGWARNING)
             return
 
         state = ItemState(
@@ -177,15 +183,21 @@ class RatingBatchExecutor:
             return
 
         if state.finalized:
-            log("Ratings", f"   BUG: Trying to submit {source_name} for finalized item {state.title}", xbmc.LOGWARNING)
+            log("Ratings",
+                f"   BUG: Trying to submit {source_name} for finalized item {state.title}",
+                xbmc.LOGWARNING)
             return
 
         if source_name in state.submitted_sources:
-            log("Ratings", f"   BUG: Trying to re-submit {source_name} for {state.title}", xbmc.LOGWARNING)
+            log("Ratings",
+                f"   BUG: Trying to re-submit {source_name} for {state.title}",
+                xbmc.LOGWARNING)
             return
 
         if source_name in state.completed_sources:
-            log("Ratings", f"   BUG: Trying to submit {source_name} for {state.title} but already completed", xbmc.LOGWARNING)
+            log("Ratings",
+                f"   BUG: Trying to submit {source_name} for {state.title} but already completed",
+                xbmc.LOGWARNING)
             return
 
         state.submitted_sources.add(source_name)
@@ -209,7 +221,7 @@ class RatingBatchExecutor:
         self.active_per_source[source_name] += 1
 
     def collect_results(self, timeout: float = POLL_INTERVAL) -> List[tuple[int, str, Any]]:
-        """Return completed results up to `timeout` as `[(dbid, source_name, result_or_exception)]`."""
+        """Return completed `(dbid, source_name, result_or_exception)` results, up to `timeout`."""
         if not self.pending_futures:
             return []
 
@@ -275,11 +287,15 @@ class RatingBatchExecutor:
         """Update an item's state from one source's result."""
         state = self.item_states.get(dbid)
         if not state:
-            log("Ratings", f"   {source_name}: Result for unknown item {dbid}, discarding", xbmc.LOGDEBUG)
+            log("Ratings",
+                f"   {source_name}: Result for unknown item {dbid}, discarding",
+                xbmc.LOGDEBUG)
             return
 
         if state.finalized:
-            log("Ratings", f"   {source_name}: Late result for {state.title}, discarding", xbmc.LOGDEBUG)
+            log("Ratings",
+                f"   {source_name}: Late result for {state.title}, discarding",
+                xbmc.LOGDEBUG)
             return
 
         state.completed_sources.add(source_name)
@@ -310,7 +326,8 @@ class RatingBatchExecutor:
         state.retryable_failures.append({"source": source_name, "reason": reason})
 
     def check_item_timeout(self, dbid: int) -> bool:
-        """True if the item has been in-flight longer than `ITEM_TIMEOUT` (pause-adjusted) and isn't finalized.
+        """True if the item has been in-flight longer than `ITEM_TIMEOUT`
+        (pause-adjusted) and isn't finalized.
 
         Time spent waiting on currently-paused sources doesn't count toward the deadline.
         """
@@ -335,7 +352,10 @@ class RatingBatchExecutor:
         """Mark an item as finalized (ratings applied to Kodi)."""
         state = self.item_states.get(dbid)
         if state:
-            log("Ratings", f"   Finalizing {state.title}: completed={state.completed_sources}, deferred={state.deferred_sources}", xbmc.LOGDEBUG)
+            log("Ratings",
+                f"   Finalizing {state.title}: completed={state.completed_sources}, "
+                f"deferred={state.deferred_sources}",
+                xbmc.LOGDEBUG)
             state.finalized = True
 
     def get_unfinalized_items(self) -> List[int]:

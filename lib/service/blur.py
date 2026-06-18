@@ -94,8 +94,9 @@ def _resolve_source_for_mtime(source_path: str) -> Optional[str]:
 def _cache_is_fresh(source_path: str, cache_path: str) -> bool:
     """True if the cached blurred copy is at least as new as its source.
 
-    Lets the cache invalidate automatically when a source file is replaced (same path, new content).
-    Returns True if mtime can't be compared so a working cache isn't thrown away on transient errors.
+    Lets the cache invalidate automatically when a source file is replaced
+    (same path, new content). Returns True if mtime can't be compared so a working
+    cache isn't thrown away on transient errors.
     """
     try:
         cache_mtime = os.path.getmtime(cache_path)
@@ -194,7 +195,10 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
 
             img = img.filter(ImageFilter.GaussianBlur(radius=blur_radius))
 
-            img.save(xbmcvfs.translatePath(cache_path), "JPEG", quality=70, optimize=False, subsampling=2)
+            img.save(
+                xbmcvfs.translatePath(cache_path),
+                "JPEG", quality=70, optimize=False, subsampling=2,
+            )
 
         return cache_path
 

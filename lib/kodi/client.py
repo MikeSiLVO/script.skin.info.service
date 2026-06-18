@@ -63,7 +63,8 @@ MEDIA_TYPE_SPECS: Dict[str, MediaTypeSpec] = {
     'season':     _spec('Season',     'Seasons'),
     'episode':    _spec('Episode',    'Episodes'),
     'musicvideo': _spec('MusicVideo', 'MusicVideos'),
-    'set': MediaTypeSpec(  # 'set' breaks the pattern: id_key='setid' but library uses 'MovieSets'/'sets'
+    # 'set' breaks the pattern: id_key='setid' but library uses 'MovieSets'/'sets'
+    'set': MediaTypeSpec(
         get_method='VideoLibrary.GetMovieSetDetails',
         set_method='VideoLibrary.SetMovieSetDetails',
         id_key='setid',
@@ -76,10 +77,14 @@ MEDIA_TYPE_SPECS: Dict[str, MediaTypeSpec] = {
     'song':   _spec('Song',   'Songs',   library='AudioLibrary'),
 }
 
-KODI_GET_DETAILS_METHODS = {mt: (s.get_method, s.id_key, s.details_key) for mt, s in MEDIA_TYPE_SPECS.items()}
+KODI_GET_DETAILS_METHODS = {
+    mt: (s.get_method, s.id_key, s.details_key) for mt, s in MEDIA_TYPE_SPECS.items()
+}
 KODI_SET_DETAILS_METHODS = {mt: (s.set_method, s.id_key) for mt, s in MEDIA_TYPE_SPECS.items()}
 KODI_ID_KEYS = {mt: s.id_key for mt, s in MEDIA_TYPE_SPECS.items()}
-KODI_GET_LIBRARY_METHODS = {mt: (s.library_method, s.library_key) for mt, s in MEDIA_TYPE_SPECS.items()}
+KODI_GET_LIBRARY_METHODS = {
+    mt: (s.library_method, s.library_key) for mt, s in MEDIA_TYPE_SPECS.items()
+}
 
 KODI_MOVIE_PROPERTIES = [
     "title", "streamdetails", "set", "setid", "ratings",
@@ -240,7 +245,11 @@ def request(method: str, params: Optional[Dict[str, Any]] = None,
                 else:
                     _L1[cache_key] = (monotonic() + float(ttl), data)
             except Exception as e:
-                log("General", f"Failed to cache result for key '{cache_key}': {str(e)}", xbmc.LOGWARNING)
+                log(
+                    "General",
+                    f"Failed to cache result for key '{cache_key}': {str(e)}",
+                    xbmc.LOGWARNING,
+                )
 
     return data
 
@@ -249,7 +258,8 @@ def batch_request(calls: List[Dict[str, Any]],
                   ttl_seconds: Optional[int] = None) -> List[Optional[dict]]:
     """Execute multiple JSON-RPC calls in one batch. Each entry: `{method, params?, cache_key?}`.
 
-    Returns responses in input order; `None` for individual failures. Short-circuits if all keys hit cache.
+    Returns responses in input order; `None` for individual failures. Short-circuits if all
+    keys hit cache.
     """
     global _request_count
 
@@ -320,14 +330,19 @@ def batch_request(calls: List[Dict[str, Any]],
                     else:
                         _L1[key] = (now + float(ttl), resp)
                 except Exception as e:
-                    log("General", f"Failed to cache batch result for key '{key}': {str(e)}", xbmc.LOGWARNING)
+                    log(
+                        "General",
+                        f"Failed to cache batch result for key '{key}': {str(e)}",
+                        xbmc.LOGWARNING,
+                    )
 
     return results
 
 
 def get_item_details(media_type: str, dbid: int, properties: List[str], cache_key: str = "",
                      ttl_seconds: Optional[int] = None, **extra_params: Any) -> Any:
-    """Fetch item details for `media_type`, looking up the right `GetXDetails` method and result key.
+    """Fetch item details for `media_type`, looking up the right `GetXDetails` method and
+    result key.
 
     `extra_params` is merged into the request payload (e.g. movie-sets pass nested 'movies' dict).
     """
@@ -373,7 +388,7 @@ def decode_image_url(url: str) -> str:
 
 
 def encode_image_url(decoded_url: str) -> str:
-    """Wrap a URL into `image://` format for `xbmcvfs.File()`/texture cache. Inverse of `decode_image_url`."""
+    """Wrap URL in `image://` for `xbmcvfs.File()`/texture cache; inverse of `decode_image_url`."""
     if not decoded_url:
         return decoded_url
 
@@ -401,87 +416,111 @@ def _decode_art_dict(art: Dict[str, str]) -> Dict[str, str]:
     return decoded
 
 
+class LibraryScanAborted(Exception):
+    """Raised by `get_library_items` when `abort_check` signals cancellation mid-scan."""
+
+
 def get_library_items(media_types: List[str], properties: List[str], *,
                       decode_urls: bool = False, include_nested_seasons: bool = False,
                       season_properties: Optional[List[str]] = None,
                       filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
-                      progress_callback: Optional[Callable[[int, int, str], None]] = None
-                      ) -> List[Dict[str, Any]]:
-    """Fetch library items across multiple `media_types`, optionally decoding art and folding in seasons.
+                      progress_callback: Optional[Callable[[str, int, int], None]] = None,
+                      abort_check: Optional[Callable[[], bool]] = None,
+                      page_size: int = 2000) -> List[Dict[str, Any]]:
+    """Fetch library items across `media_types`, optionally decoding art and folding in seasons.
 
     Each item gets `media_type` and `dbid` injected. `filter_func(item) -> bool` filters per-item.
+    Items are fetched in pages of `page_size`; `progress_callback(media_type, done, total)` fires
+    after each page and `abort_check()` is polled per page, raising `LibraryScanAborted` if True.
     """
     all_items: List[Dict[str, Any]] = []
 
-    for idx, media_type in enumerate(media_types, 1):
+    for media_type in media_types:
         if media_type not in KODI_GET_LIBRARY_METHODS:
             continue
 
         method, result_key = KODI_GET_LIBRARY_METHODS[media_type]
         id_key = KODI_ID_KEYS.get(media_type, 'id')
 
-        if progress_callback:
-            progress_callback(idx, len(media_types), media_type)
+        start = 0
+        total = 0
+        done = 0
 
-        resp = request(method, {"properties": properties})
-        if not resp:
-            log("General", f"Failed to fetch {media_type} from library", xbmc.LOGWARNING)
-            continue
+        while True:
+            resp = request(method, {
+                "properties": properties,
+                "limits": {"start": start, "end": start + page_size},
+            })
+            if not resp:
+                log("General", f"Failed to fetch {media_type} from library", xbmc.LOGWARNING)
+                break
 
-        items = extract_result(resp, result_key, [])
+            result = resp.get("result") or {}
+            items = result.get(result_key) or []
+            total = result.get("limits", {}).get("total", len(items))
 
-        for item in items:
-            if not isinstance(item, dict):
-                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
 
-            item['media_type'] = media_type
+                item['media_type'] = media_type
 
-            dbid = item.get(id_key)
-            if dbid:
-                item['dbid'] = dbid
+                dbid = item.get(id_key)
+                if dbid:
+                    item['dbid'] = dbid
 
-            if decode_urls and 'art' in item and isinstance(item['art'], dict):
-                item['art'] = _decode_art_dict(item['art'])
+                if decode_urls and 'art' in item and isinstance(item['art'], dict):
+                    item['art'] = _decode_art_dict(item['art'])
 
-            if filter_func and not filter_func(item):
-                continue
+                if filter_func and not filter_func(item):
+                    continue
 
-            all_items.append(item)
+                all_items.append(item)
 
-            if include_nested_seasons and media_type == 'tvshow' and dbid:
-                tvshowid = dbid
-                season_props = season_properties or properties
-                seasons_resp = request("VideoLibrary.GetSeasons", {
-                    "tvshowid": tvshowid,
-                    "properties": season_props
-                })
+                if include_nested_seasons and media_type == 'tvshow' and dbid:
+                    tvshowid = dbid
+                    season_props = season_properties or properties
+                    seasons_resp = request("VideoLibrary.GetSeasons", {
+                        "tvshowid": tvshowid,
+                        "properties": season_props
+                    })
 
-                if seasons_resp:
-                    seasons = extract_result(seasons_resp, 'seasons', [])
-                    for season in seasons:
-                        if not isinstance(season, dict):
-                            continue
+                    if seasons_resp:
+                        seasons = extract_result(seasons_resp, 'seasons', [])
+                        for season in seasons:
+                            if not isinstance(season, dict):
+                                continue
 
-                        season['media_type'] = 'season'
-                        season['tvshowid'] = tvshowid
+                            season['media_type'] = 'season'
+                            season['tvshowid'] = tvshowid
 
-                        if 'file' not in season and 'file' in item:
-                            season['file'] = item['file']
+                            if 'file' not in season and 'file' in item:
+                                season['file'] = item['file']
 
-                        if 'showtitle' not in season and 'title' in item:
-                            season['showtitle'] = item['title']
+                            if 'showtitle' not in season and 'title' in item:
+                                season['showtitle'] = item['title']
 
-                        season_id = season.get('seasonid')
-                        if season_id:
-                            season['dbid'] = season_id
+                            season_id = season.get('seasonid')
+                            if season_id:
+                                season['dbid'] = season_id
 
-                        if decode_urls and 'art' in season and isinstance(season['art'], dict):
-                            season['art'] = _decode_art_dict(season['art'])
+                            if decode_urls and 'art' in season and isinstance(season['art'], dict):
+                                season['art'] = _decode_art_dict(season['art'])
 
-                        if filter_func and not filter_func(season):
-                            continue
+                            if filter_func and not filter_func(season):
+                                continue
 
-                        all_items.append(season)
+                            all_items.append(season)
+
+            done += len(items)
+            if progress_callback:
+                progress_callback(media_type, done, total)
+            if abort_check and abort_check():
+                raise LibraryScanAborted()
+
+            start += page_size
+            if not items or start >= total:
+                break
 
     return all_items
 

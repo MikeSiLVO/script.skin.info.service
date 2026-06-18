@@ -12,28 +12,36 @@ from lib.kodi.client import log, request, extract_result
 from lib.data.api.utilities import tmdb_image_url
 
 # Trakt wrapped responses nest the media object under "movie" or "show"
-_TRAKT_WRAPPED = {"trakt_trending", "trakt_anticipated", "trakt_watched", "trakt_collected", "trakt_boxoffice"}
+_TRAKT_WRAPPED = {
+    "trakt_trending", "trakt_anticipated", "trakt_watched", "trakt_collected", "trakt_boxoffice",
+}
 
 WIDGET_REGISTRY: Dict[str, dict] = {
     "tmdb_trending":     {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Trending"},
     "tmdb_popular":      {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Popular"},
     "tmdb_top_rated":    {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Top Rated"},
-    "tmdb_now_playing":  {"provider": "tmdb", "types": ("movie",),     "label": "TMDB Now Playing"},
-    "tmdb_upcoming":     {"provider": "tmdb", "types": ("movie",),     "label": "TMDB Upcoming"},
-    "tmdb_airing_today": {"provider": "tmdb", "types": ("tv",),        "label": "TMDB Airing Today"},
-    "tmdb_on_the_air":   {"provider": "tmdb", "types": ("tv",),        "label": "TMDB On The Air"},
-    "trakt_trending":         {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Trending"},
-    "trakt_popular":          {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Popular"},
-    "trakt_anticipated":      {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Anticipated"},
-    "trakt_watched":          {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Most Watched"},
-    "trakt_collected":        {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Most Collected"},
-    "trakt_boxoffice":        {"provider": "trakt", "types": ("movie",),      "label": "Trakt Box Office"},
-    "trakt_recommendations":  {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Recommendations", "auth": "oauth"},
+    "tmdb_now_playing":  {"provider": "tmdb", "types": ("movie",), "label": "TMDB Now Playing"},
+    "tmdb_upcoming":     {"provider": "tmdb", "types": ("movie",), "label": "TMDB Upcoming"},
+    "tmdb_airing_today": {"provider": "tmdb", "types": ("tv",), "label": "TMDB Airing Today"},
+    "tmdb_on_the_air":   {"provider": "tmdb", "types": ("tv",), "label": "TMDB On The Air"},
+    "trakt_trending":    {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Trending"},
+    "trakt_popular":     {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Popular"},
+    "trakt_anticipated": {"provider": "trakt", "types": ("movie", "tv"),
+                          "label": "Trakt Anticipated"},
+    "trakt_watched":     {"provider": "trakt", "types": ("movie", "tv"),
+                          "label": "Trakt Most Watched"},
+    "trakt_collected":   {"provider": "trakt", "types": ("movie", "tv"),
+                          "label": "Trakt Most Collected"},
+    "trakt_boxoffice":   {"provider": "trakt", "types": ("movie",), "label": "Trakt Box Office"},
+    "trakt_recommendations": {
+        "provider": "trakt", "types": ("movie", "tv"),
+        "label": "Trakt Recommendations", "auth": "oauth",
+    },
 }
 
 
 def _get_library_lookup(media_type: str) -> Dict[str, Dict[str, object]]:
-    """Return `tmdb_id -> {dbid, file}` for all library items of `media_type` (enables "in library" matching)."""
+    """Map `tmdb_id -> {dbid, file}` for library `media_type` items, for "in library" matching."""
     lookup: Dict[str, Dict[str, object]] = {}
 
     if media_type == "movie":
@@ -117,7 +125,7 @@ def _trakt_image_url(paths: Optional[list]) -> str:
 
 
 def _normalize_trakt_item(media: dict, media_type: str) -> dict:
-    """Convert a Trakt media object (with `extended=full` images) into the normalized listitem dict."""
+    """Convert a Trakt media object (`extended=full` images) to a normalized listitem dict."""
     is_movie = media_type == "movie"
     ids = media.get("ids", {})
 
@@ -235,10 +243,13 @@ def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: st
         "trakt_trending": lambda: api.get_trending(trakt_type, limit=limit, page=page),
         "trakt_popular": lambda: api.get_popular(trakt_type, limit=limit, page=page),
         "trakt_anticipated": lambda: api.get_anticipated(trakt_type, limit=limit, page=page),
-        "trakt_watched": lambda: api.get_most_watched(trakt_type, period=period, limit=limit, page=page),
-        "trakt_collected": lambda: api.get_most_collected(trakt_type, period=period, limit=limit, page=page),
+        "trakt_watched": lambda: api.get_most_watched(
+            trakt_type, period=period, limit=limit, page=page),
+        "trakt_collected": lambda: api.get_most_collected(
+            trakt_type, period=period, limit=limit, page=page),
         "trakt_boxoffice": lambda: api.get_box_office(limit=limit),
-        "trakt_recommendations": lambda: api.get_recommendations(trakt_type, limit=limit, page=page),
+        "trakt_recommendations": lambda: api.get_recommendations(
+            trakt_type, limit=limit, page=page),
     }
     return dispatch[action]()
 
@@ -304,7 +315,8 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         xbmcplugin.setContent(handle, content)
         xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
 
-        log("Plugin", f"Discover: {action} ({media_type}) returned {len(items)} items", xbmc.LOGINFO)
+        log("Plugin", f"Discover: {action} ({media_type}) returned {len(items)} items",
+            xbmc.LOGINFO)
 
     except Exception as e:
         log("Plugin", f"Discover: Error - {e}", xbmc.LOGERROR)
@@ -389,7 +401,9 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
         xbmcplugin.setContent(handle, "movies" if media_type == "movie" else "tvshows")
         xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
 
-        log("Plugin", f"TMDB Recommendations: Returned {len(items)} items for {dbtype} tmdb={tmdb_id}", xbmc.LOGINFO)
+        log("Plugin",
+            f"TMDB Recommendations: Returned {len(items)} items for {dbtype} tmdb={tmdb_id}",
+            xbmc.LOGINFO)
 
     except Exception as e:
         log("Plugin", f"TMDB Recommendations: Error - {e}", xbmc.LOGERROR)
@@ -404,8 +418,10 @@ def _discover_url(action: str, media_type: str) -> str:
 def handle_discover_menu(handle: int, params: dict) -> None:
     """Render the top-level Discover menu (Movies / TV Shows)."""
     items = [
-        ("Movies", "plugin://script.skin.info.service/?action=discover_movies_menu", "DefaultMovies.png"),
-        ("TV Shows", "plugin://script.skin.info.service/?action=discover_tvshows_menu", "DefaultTVShows.png"),
+        ("Movies", "plugin://script.skin.info.service/?action=discover_movies_menu",
+         "DefaultMovies.png"),
+        ("TV Shows", "plugin://script.skin.info.service/?action=discover_tvshows_menu",
+         "DefaultTVShows.png"),
     ]
 
     for label, path, icon in items:

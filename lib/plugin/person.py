@@ -241,7 +241,10 @@ def _sort_credits(credits: list, params: dict) -> list:
     sort_method = params.get('sort', ['popularity'])[0]
 
     if sort_method == 'date_desc':
-        credits.sort(key=lambda c: c.get('release_date') or c.get('first_air_date', '0000'), reverse=True)
+        credits.sort(
+            key=lambda c: c.get('release_date') or c.get('first_air_date', '0000'),
+            reverse=True,
+        )
     elif sort_method == 'date_asc':
         credits.sort(key=lambda c: c.get('release_date') or c.get('first_air_date', '9999'))
     elif sort_method == 'rating':
@@ -415,7 +418,11 @@ def handle_crew_list(handle: int, params: dict) -> None:
         return
 
     if not dbid_str and not tmdb_id_str:
-        log("Plugin", "Crew List: Missing required parameters (need tmdb_id or dbid)", xbmc.LOGWARNING)
+        log(
+            "Plugin",
+            "Crew List: Missing required parameters (need tmdb_id or dbid)",
+            xbmc.LOGWARNING,
+        )
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
@@ -447,7 +454,11 @@ def handle_crew_list(handle: int, params: dict) -> None:
         resolved = resolve_tmdb_id(dbtype, dbid)
         tmdb_id = resolved or 0
         if not tmdb_id:
-            log("Plugin", f"Crew List: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
+            log(
+                "Plugin",
+                f"Crew List: Could not resolve TMDB ID for {dbtype} {dbid}",
+                xbmc.LOGWARNING,
+            )
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
@@ -483,7 +494,11 @@ def handle_crew_list(handle: int, params: dict) -> None:
     xbmcplugin.setContent(handle, 'actors')
     xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
 
-    log("Plugin", f"Crew List: Returned {len(crew_list)} {crew_type}s for {dbtype} tmdb={tmdb_id}", xbmc.LOGDEBUG)
+    log(
+        "Plugin",
+        f"Crew List: Returned {len(crew_list)} {crew_type}s for {dbtype} tmdb={tmdb_id}",
+        xbmc.LOGDEBUG,
+    )
 
 
 def handle_tmdb_details(handle: int, params: dict) -> None:
@@ -548,7 +563,9 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
         video_tag.setTagLine(data['tagline'])
 
     if data.get('original_title' if media_type == 'movie' else 'original_name'):
-        video_tag.setOriginalTitle(data.get('original_title' if media_type == 'movie' else 'original_name'))
+        video_tag.setOriginalTitle(
+            data.get('original_title' if media_type == 'movie' else 'original_name')
+        )
 
     if media_type == 'movie':
         if data.get('release_date'):
@@ -604,7 +621,10 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
         if directors:
             video_tag.setDirectors(directors)
 
-        writers = [c['name'] for c in credits['crew'] if c.get('job') in ('Writer', 'Screenplay', 'Story')]
+        writers = [
+            c['name'] for c in credits['crew']
+            if c.get('job') in ('Writer', 'Screenplay', 'Story')
+        ]
         if writers:
             video_tag.setWriters(writers)
 
@@ -629,7 +649,10 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
 
     videos = data.get('videos', {})
     if videos.get('results'):
-        trailers = [v for v in videos['results'] if v.get('type') == 'Trailer' and v.get('site') == 'YouTube']
+        trailers = [
+            v for v in videos['results']
+            if v.get('type') == 'Trailer' and v.get('site') == 'YouTube'
+        ]
         if trailers:
             trailer_url = f"plugin://plugin.video.youtube/play/?video_id={trailers[0]['key']}"
             video_tag.setTrailer(trailer_url)

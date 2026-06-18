@@ -47,7 +47,8 @@ class ApiImdbDataset:
         )
 
     def get_rating(self, imdb_id: str, cursor=None) -> Optional[dict[str, float | int]]:
-        """Look up rating for an IMDb ID. Pass cursor for bulk operations to avoid connection overhead.
+        """Look up rating for an IMDb ID. Pass cursor for bulk operations to avoid connection
+        overhead.
 
         Returns {"rating": 9.3, "votes": 2800000} or None if not found.
         """
@@ -80,7 +81,8 @@ class ApiImdbDataset:
                 return RefreshResult.Current
 
             log("IMDb", f"Dataset update available (local: {local_mod}, remote: {remote_mod})")
-            return RefreshResult.Updated if self._download_and_import(abort_flag) else RefreshResult.Failed
+            return (RefreshResult.Updated if self._download_and_import(abort_flag)
+                    else RefreshResult.Failed)
 
         except Exception as e:
             log("IMDb", f"Error checking for dataset updates: {e}", xbmc.LOGWARNING)
@@ -122,7 +124,8 @@ class ApiImdbDataset:
             count = self._stream_and_import_ratings(response, abort_flag)
 
             if count == 0:
-                log("IMDb", "Ratings dataset had no usable rows; keeping existing data", xbmc.LOGWARNING)
+                log("IMDb", "Ratings dataset had no usable rows; keeping existing data",
+                    xbmc.LOGWARNING)
                 return False
 
             if last_mod:
@@ -247,7 +250,8 @@ class ApiImdbDataset:
             count = self._stream_and_filter_episodes(response, user_show_ids, abort_flag)
 
             if last_mod:
-                db_imdb.save_meta("episodes", last_mod, count, library_episode_count=library_episode_count)
+                db_imdb.save_meta("episodes", last_mod, count,
+                                  library_episode_count=library_episode_count)
 
             log("IMDb", f"Imported {count:,} episode IDs for {len(user_show_ids)} shows")
             return count
@@ -282,9 +286,11 @@ class ApiImdbDataset:
 
                     parts = line.strip().split("\t")
                     if len(parts) >= 4:
-                        ep_id, parent_id, season_str, episode_str = parts[0], parts[1], parts[2], parts[3]
+                        ep_id, parent_id, season_str, episode_str = (
+                            parts[0], parts[1], parts[2], parts[3])
 
-                        if parent_id in user_show_ids and season_str != "\\N" and episode_str != "\\N":
+                        if (parent_id in user_show_ids and season_str != "\\N"
+                                and episode_str != "\\N"):
                             try:
                                 season = int(season_str)
                                 episode = int(episode_str)
@@ -310,7 +316,8 @@ class ApiImdbDataset:
             local_mod, stored_ep_count = db_imdb.get_episode_meta()
 
             if stored_ep_count != library_episode_count:
-                log("IMDb", f"Library episode count changed ({stored_ep_count} -> {library_episode_count})")
+                log("IMDb",
+                    f"Library episode count changed ({stored_ep_count} -> {library_episode_count})")
                 return True
 
             response = self.session.head(

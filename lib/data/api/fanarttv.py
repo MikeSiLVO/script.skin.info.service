@@ -222,7 +222,8 @@ class ApiFanarttv:
         (keyed by MusicBrainz release group ID).
 
         Artist types: fanart (1920x1080), thumb (1000x1000), clearlogo (800x310), banner (1000x185).
-        Album types (under 'albums'): thumb (1000x1000, square unlike video 16:9 thumb), discart (1000x1000).
+        Album types (under 'albums'): thumb (1000x1000, square unlike video 16:9 thumb),
+        discart (1000x1000).
         """
         data = self._make_request(f"/music/{musicbrainz_id}", abort_flag)
 

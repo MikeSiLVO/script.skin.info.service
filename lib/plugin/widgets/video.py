@@ -24,7 +24,7 @@ def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
 
 
 def handle_next_up(handle: int, params: dict) -> None:
-    """Plugin entry: return next unwatched episode for each in-progress show (`limit` param, default 25)."""
+    """Plugin entry: next unwatched episode per in-progress show (`limit`, default 25)."""
     limit = int(params.get('limit', ['25'])[0])
 
     result = request('VideoLibrary.GetTVShows', {
@@ -102,7 +102,7 @@ def handle_next_up(handle: int, params: dict) -> None:
 
 
 def _create_episode_listitem(episode: dict) -> xbmcgui.ListItem:
-    """Create an episode ListItem. Label format: `"2x05. Episode Title"` (or `"S05. Special Title"` for specials)."""
+    """Create an episode ListItem labeled `2x05. Title` (or `S05. Title` for specials)."""
     season = episode.get('season', 0)
     ep_num = episode.get('episode', 0)
     title = episode.get('title', '')
@@ -403,7 +403,8 @@ def handle_by_actor(handle: int, params: dict) -> None:
             actor = random.choice(top_cast)['name']
             window.setProperty(lock_property_actor, actor)
             window.setProperty(lock_property_dbid, str(dbid))
-            log('Plugin', f"by_actor: Picked and locked actor '{actor}' for dbid={dbid}", xbmc.LOGINFO)
+            log('Plugin', f"by_actor: Picked and locked actor '{actor}' for dbid={dbid}",
+                xbmc.LOGINFO)
     else:
         window.clearProperty(lock_property_actor)
         window.clearProperty(lock_property_dbid)
@@ -638,7 +639,9 @@ def handle_by_director(handle: int, params: dict) -> None:
                             'properties': ['art']
                         })
                         show = extract_result(show_result, 'tvshowdetails', {})
-                        show_art_cache[tvshowid] = show.get('art', {}) if isinstance(show, dict) else {}
+                        show_art_cache[tvshowid] = (
+                            show.get('art', {}) if isinstance(show, dict) else {}
+                        )
 
                     show_art = show_art_cache[tvshowid]
                     if show_art:
@@ -662,7 +665,8 @@ def handle_by_director(handle: int, params: dict) -> None:
 
 
 def handle_similar(handle: int, params: dict) -> None:
-    """Plugin entry: library items similar to the source, scored by genre overlap + year/MPAA proximity.
+    """Plugin entry: library items similar to the source, scored by genre overlap
+    + year/MPAA proximity.
 
     Seed item lookup: prefers library `dbid`+`dbtype` (full year/MPAA data); falls back to
     `tmdb_id`+`dbtype` (TMDB genres + release year, no MPAA proximity score).
@@ -711,7 +715,9 @@ def handle_similar(handle: int, params: dict) -> None:
             from lib.data.api.tmdb import ApiTmdb
             tmdb_data = ApiTmdb().get_complete_data(dbtype, tmdb_id)
             if tmdb_data:
-                genres = [g.get('name', '') for g in (tmdb_data.get('genres') or []) if g.get('name')]
+                genres = [
+                    g.get('name', '') for g in (tmdb_data.get('genres') or []) if g.get('name')
+                ]
                 date_str = tmdb_data.get('release_date') or tmdb_data.get('first_air_date') or ''
                 if date_str and len(date_str) >= 4:
                     try:
@@ -811,7 +817,8 @@ def handle_similar(handle: int, params: dict) -> None:
 def handle_recommended(handle: int, params: dict) -> None:
     """Plugin entry: recommendations scored from recent watch history (genre, MPAA, year).
 
-    `strict_rating=true` enforces the MPAA context from history. `min_rating` filters low-rated items.
+    `strict_rating=true` enforces the MPAA context from history.
+    `min_rating` filters low-rated items.
     """
     dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])

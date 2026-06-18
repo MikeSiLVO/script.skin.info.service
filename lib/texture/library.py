@@ -10,7 +10,7 @@ from lib.kodi.client import request, get_library_items, log, decode_image_url
 from lib.infrastructure.dialogs import ProgressDialog
 
 
-_DEFAULT_TEXTURE_MEDIA_TYPES = [
+DEFAULT_TEXTURE_MEDIA_TYPES = [
     'movie', 'tvshow', 'season', 'episode', 'musicvideo', 'set', 'artist', 'album',
 ]
 _CAST_MEDIA_TYPES = {'movie', 'tvshow', 'episode'}
@@ -44,7 +44,7 @@ def get_cached_textures(url_filter: Optional[str] = None) -> List[Dict[str, Any]
 
 
 def remove_texture(texture_id: int) -> bool:
-    """Remove a texture from Kodi's cache. Kodi re-caches the image automatically when next displayed."""
+    """Remove a texture from Kodi's cache. Kodi re-caches the image when next displayed."""
     try:
         resp = request("Textures.RemoveTexture", {"textureid": texture_id})
         return resp is not None
@@ -55,25 +55,35 @@ def remove_texture(texture_id: int) -> bool:
 
 def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
                                  progress_callback: Optional[Callable] = None,
-                                 include_cast: bool = False) -> Set[str]:
+                                 include_cast: bool = False,
+                                 abort_check: Optional[Callable[[], bool]] = None) -> Set[str]:
     """Return all decoded artwork URLs across `media_types`.
 
     `include_cast=True` walks `cast[].thumbnail` for cleanup-protection use.
     Precache callers leave it False so cast thumbs aren't proactively downloaded.
+    `progress_callback(type_index, type_count, media_type, done, total)` fires per fetched page.
+    Propagates `LibraryScanAborted` so callers never act on a partial scan.
     """
     if media_types is None:
-        media_types = list(_DEFAULT_TEXTURE_MEDIA_TYPES)
+        media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
     all_urls: Set[str] = set()
-    fetch_cast = include_cast and any(mt in _CAST_MEDIA_TYPES for mt in media_types)
-    properties = ["art", "cast"] if fetch_cast else ["art"]
+    type_count = len(media_types)
 
-    try:
+    for type_index, media_type in enumerate(media_types, 1):
+        want_cast = include_cast and media_type in _CAST_MEDIA_TYPES
+        properties = ["art", "cast"] if want_cast else ["art"]
+
+        def page_cb(mt: str, done: int, total: int, _idx: int = type_index) -> None:
+            if progress_callback:
+                progress_callback(_idx, type_count, mt, done, total)
+
         items = get_library_items(
-            media_types=media_types,
+            media_types=[media_type],
             properties=properties,
             decode_urls=True,
-            progress_callback=progress_callback
+            progress_callback=page_cb,
+            abort_check=abort_check,
         )
 
         for item in items:
@@ -83,7 +93,7 @@ def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
                     if art_url:
                         all_urls.add(art_url)
 
-            if fetch_cast:
+            if want_cast:
                 cast = item.get('cast', [])
                 if cast and isinstance(cast, list):
                     for member in cast:
@@ -93,14 +103,11 @@ def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
                         if thumb:
                             all_urls.add(decode_image_url(thumb))
 
-    except Exception as e:
-        log("Texture", f"Error getting all library URLs: {str(e)}", xbmc.LOGERROR)
-
     return all_urls
 
 
 def load_cached_urls_once() -> Set[str]:
-    """Cache all currently-cached texture URLs in memory for O(1) lookups during a single operation."""
+    """Cache all texture URLs in memory for O(1) lookups during one operation."""
     global _cached_urls_set
 
     with _cache_lock:
@@ -131,21 +138,25 @@ def clear_cached_urls_cache() -> None:
 
 def get_library_scan_data(media_types: Optional[List[str]] = None,
                           progress_dialog: Optional[ProgressDialog] = None,
-                          include_cast: bool = False) -> Dict[str, Any]:
+                          include_cast: bool = False,
+                          abort_check: Optional[Callable[[], bool]] = None) -> Dict[str, Any]:
     """Scan library + texture cache, return `{library_urls, cached_textures, cached_urls, stats}`.
 
     `include_cast=True` adds `cast[].thumbnail` URLs (cleanup protection only).
     """
     if media_types is None:
-        media_types = list(_DEFAULT_TEXTURE_MEDIA_TYPES)
+        media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
-    def progress_callback(current: int, total: int, media_type: str):
+    def progress_callback(type_index: int, type_count: int, media_type: str,
+                          done: int, total: int):
         if progress_dialog:
-            percent = 10 + int((current / total) * 15)
-            progress_dialog.update(percent, f"Scanning {media_type} library")
+            frac = (type_index - 1 + (done / total if total else 1)) / type_count
+            progress_dialog.update(10 + int(frac * 15),
+                                   f"Scanning {media_type}: {done:,} / {total:,}")
 
     library_urls = get_all_library_artwork_urls(
-        media_types, progress_callback=progress_callback, include_cast=include_cast
+        media_types, progress_callback=progress_callback, include_cast=include_cast,
+        abort_check=abort_check,
     )
 
     if progress_dialog:
@@ -156,7 +167,8 @@ def get_library_scan_data(media_types: Optional[List[str]] = None,
     cached_urls = {t['url'] for t in cached_textures}
 
     log("Artwork",
-        f"Library scan complete - {len(library_urls)} library URLs, {len(cached_textures)} cached textures"
+        f"Library scan complete - {len(library_urls)} library URLs, "
+        f"{len(cached_textures)} cached textures"
     )
 
     return {

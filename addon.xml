@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta32"
+	   version="2.0.0~beta33"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -34,247 +34,33 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta33
+- Fix: Download Artwork failed on movie sets
+- Fix: Pre-Cache + Download only processed episodes, skipping movies, sets, music and other types
+- Fix: missing-artwork scan skipped artists
+- Fix: texture cleanup could wrongly remove cached art for music, sets and other item types
+- Texture cleanup shows per-type scan progress and can be cancelled during the scan
+- Fanart slideshow keeps up with artwork changes and shows a more balanced mix of movies, TV shows and music
+
 2.0.0~beta32
 - Fix: MDBList and OMDb API keys could fail to save, making the connection test fail after reopening settings
 
-2.0.0~beta31
-- Fix: artwork downloads on large libraries could stop partway and finish early
-- Fix: texture cleanup by age never matched any textures
-- IMDb auto-update waits 5 minutes after playback ends before resuming
-- Much faster music artwork downloads on large libraries
-- Download report breaks down failures by cause
-- Various fixes and improvements
-
-2.0.0~beta30
-- Fix: metadata editor failed to open for artists due to an invalid JSON-RPC property request
-
-2.0.0~beta29
-- New: set_setting/toggle_setting/reset_setting accept noconfirm=true to skip the confirmation dialog for skin-scoped settings (lookandfeel.skincolors, lookandfeel.skintheme, lookandfeel.font)
-- Setting confirmation dialogs now use Kodi's translated strings and show the localized setting name
-- IMDb auto-update progress is now labeled as an IMDb update and shows each item's title
-- Fix: failed or empty IMDb dataset downloads no longer wipe existing ratings/episode data
-- Fix: online data updater ran continuously instead of idling between refresh cycles
-- Fix: color picker dialog rendered at the wrong scale
-- Stinger window props now cleared when the service stops
-- Cleanup
-
-2.0.0~beta28
-- Fix: New info dialogs (actor/video/image) failed to open on case-sensitive filesystems (CoreELEC/LibreELEC) due to skin folder casing and missing texture references
-- SkinInfo.Slideshow.* window props now cleared when the service stops
-
-2.0.0~beta27
-- New: Movie.Extras.* aggregates (Count, Unwatched, runtimes) in video versions/extras view; parent Movie.* persists across focus on the Extras folder (Piers+)
-
-2.0.0~beta26
-- New: Actor Info, Video Info and Image Viewer dialogs (RunScript actions dialog_actor_info, dialog_video_info, dialog_image_viewer)
-- New: TMDB Recommendations widget for a specific movie/show (action=tmdb_recommendations)
-- Crew, Similar, Directors, Writers and online Cast widgets now accept tmdb_id
-- Profile images expose a Dimensions property (WxH)
-
-2.0.0~beta25
-- BREAKING: action=json is now a generic JSON-RPC wrapper (method, params, mode, prop_prefix args). Old presets removed.
-- New: Tools > Sync TV Show Metadata (foreground bulk fetch with cancel)
-- Crew widget supports job filter parameter
-- IMDb auto-update no longer skips a day after manual updates; backs off on dataset download errors
-- Stinger notifications no longer require the skin to opt in to the service
-- Discovery widgets refresh properly and load faster
-- Trakt Top 250 fetches the full list (was capped at 100)
-- Big libraries no longer silently truncate during scan
-- Fix stale blur when source image is updated
-
-2.0.0~beta24
-- BREAKING: Skins opt in via Skin.SetBool(SkinInfo.Service) not RunScript
-- Fix online cast for items with unknown uniqueid with IMDb IDs
-- Faster services startup
-- Path stats fix for TV shows
-- Service auto-starts with Kodi
-- Thinner entry points for faster startup on older hardware
-- Fix recommended widget scoring and add tagline to movie widgets
-
-2.0.0~beta23
-- Fix stale music video online data when navigating between items
-- Fix cache not updating after editing metadata
-- Updated path stats documentation
-
-2.0.0~beta22
-- DBID rollcall: detect and clean up stale/reused library IDs across all cached data
-- Fix stale Tomatometer/Popcornmeter persisting when navigating between items
-- Fix stale next episode data for TV shows with past air dates
-- Fix stinger notification timing on chaptered files
-- Correct next/last episode data when TMDB base response is stale
-- Database version bump
-
-2.0.0~beta21
-- Fix slow Kodi shutdown caused by updater thread blocking on xbmc.sleep
-- Trakt API falls back to TMDB ID when IMDB unavailable
-
-2.0.0~beta20
-- Continuous TV show updater replaces one-shot warmup
-- Smart TTL tiers for TV shows based on episode schedule and completeness
-- Stale next-episode detection invalidates outdated cache entries
-- Texture cache reports failed artwork URLs for stale library entries
-- JSON-RPC invalid params errors downgraded to debug logging
-
-2.0.0~beta19
-- Kodi version detection for adaptive JSON-RPC queries
-- Blur skips Kodi virtual icons (DefaultShortcut.png, etc.)
-- Widget handlers return empty directory instead of error on missing metadata
-
-2.0.0~beta18
-- Smarter caching, the manual "cache days" setting has been removed
-- TV show warmup for active/returning shows
-- Cross-provider ID mapping table for faster IMDB/TMDB/TVDB lookups
-- New properties: TVShow.TotalRuntime, Season.TotalRuntime (with .Hours/.Minutes)
-- Removed 14 orphaned language strings
-
-2.0.0~beta17
-- Cache invalidation: online and music caches refresh when library items are edited
-- Trakt season prefetching: batch episode rating updates use one API call per season
-- Wikipedia validation: filters out non-music results (films, games, novels)
-- IMDb auto-update: persists check schedule across restarts, shows progress bar
-- IMDb auto-update: always shows completion notification
-- Fixed musicvideo online cache treating all tracks by same artist as identical
-- Removed AudioDB CDN URL rewriting (unnecessary, rescrape if images need new URL's)
-
-2.0.0~beta16
-- Music video online properties: track wiki, tags, album wiki from Last.fm, Wikipedia, AudioDB
-- Wikipedia API: track and album summaries as fallback source (Last.fm → Wikipedia → AudioDB)
-- New player online prefixes: SkinInfo.Player.Online.MusicVideo.*
-- Artist online properties use Artist.* grouping (Artist.Bio, Artist.Clearlogo, etc.)
-- Music video focus: online track/album properties (SkinInfo.MusicVideo.Online.Track/Album.*)
-- Music metadata cache: Wikipedia source with language support
-
-2.0.0~beta15
-- IMDb Top 250: update movie rankings from Trakt's official daily-updated list (Tools menu)
-- Incremental IMDb sync now picks up new library items (not just changed ratings)
-- Service skin toggle: Skin.SetBool(SkinInfo.Service) controls start/stop
-- Duplicate RunScript ignored when service already running
-- SkinInfo.Service.Running window property for skin visibility conditions
-- Post-scan uses incremental sync instead of full update when items already synced
-- Abort handling throughout rating update pipeline for cleaner Kodi shutdown
-
-2.0.0~beta14
-- Music player library properties (artist bio, fanart, album discography)
-- Music player online properties (TheAudioDB bio, rotating fanart slideshow)
-- On-demand artist artwork fetching during playback (Fanart.tv/TheAudioDB)
-- Support for library, local files, and radio addon streams
-- Artist/album artwork download path building
-- Multi-art dialog crash fix on add/remove while editing focused list
-- Rating executor timeout handling improvements
-
-2.0.0~beta13
-- Music artwork: fetch artist and album artwork from Fanart.tv and TheAudioDB
-- Extended album art types: discart, back, spine, 3dcase, 3dflat, 3dface, 3dthumb
-- Stale MusicBrainz ID resolution via TheAudioDB name search with permanent cache
-- Context menu now available for artist, album, and song items
-- Artwork scanner support for music artists and albums
-- Metadata editor support for music artists, albums, and songs
-- Artwork selection dialog layout categories for skin-side layout control
-- Reworked settings layout for API key management
-- Fixed bypass_cache not forwarded to music artwork fetch methods
-- Fixed settings dependency operator (isnot → !is)
-- Fixed smart quote encoding in TheAudioDB search
-- Database init for standalone script entry points (service not required)
-
-2.0.0~beta12
-- Smart TTL caching: cache duration now based on content status and age
-- Batched JSON-RPC calls for ratings updates (reduces Kodi load)
-- Improved abort handling during background updates (responds to Kodi shutdown)
-- Backdrop images now sorted by language preference
-- Landscape art type now prioritizes Fanart.tv source
-- Database v2: cache cleared on upgrade (regenerates automatically)
-- Added abort checks to menu loops for cleaner Kodi shutdown
-- Fixed online service cache key consistency
-- Fixed TMDB rating written as both "tmdb" and "themoviedb" for skin compatibility
-- Fixed container_move skipping unnecessary jumps when already at target position
-
-2.0.0~beta11
-- Added actor image download to Download Artwork context menu (movies and TV shows)
-- New setting: Include TV Episode Guest Stars (default off)
-- New setting: Include Episode Thumbnails (default off)
-- Auto-download after Manage Artwork now always overwrites existing files
-- Fixed episode Download Artwork including parent show/season artwork
-- Simplified IMDb dataset progress messages
-- Fixed hardcoded strings to use localized versions
-- Removed unused localization strings
-
-2.0.0~beta10
-- Updated Fanart.tv API to v3.2 with built-in project key
-- Moved Fanart.tv personal key to Advanced settings (matches TMDB pattern)
-- API keys now save immediately without requiring dialog confirmation
-- Added progress dialog to Download Artwork context menu action
-- Requires Kodi 21+ (xbmc.python 3.0.1)
-
-2.0.0~beta9
-- Fixed episode artwork download failing due to duplicate JSON-RPC property
-
-2.0.0~beta8
-- Added Download Artwork context menu action for single items
-- TV show download now includes all seasons and episodes
-- Fixed season artwork path building
-- Fixed bulk download not including episodes in tvshows scope
-- Fixed inherited artwork prefixes (tvshow.*, season.*) being downloaded
-- Fixed online service cache causing property flicker
-- Fixed slideshow timing bug (sqlite3.Row compatibility)
-- Fixed blur retry logging and stinger exception logging
-- Fixed Python 3.8 compatibility issues
-- Fixed editor save when value unchanged
-- Fixed artwork auto download property fetching
-- Various service and artwork scanner cleanups
-
-2.0.0~beta7
-- Fixed metadata editor for TV shows (removed invalid 'status' field)
-- Fixed artwork downloader downloading tvshow/season art for each episode
-- Fixed season artwork not being downloaded (now included with tvshow downloads)
-- Fixed artwork paths for tvshows/seasons without trailing slash
-- Fixed metadata editor Cancel button looping instead of closing
-
-2.0.0~beta6
-- Added online metadata language setting for TMDb localization
-- Reworked settings with Language category (metadata + artwork)
-- Added auto-download option after Manage Artwork selection
-- Fixed metadata editor year field (now updates premiered date)
-- Fixed metadata editor menu refresh after field edits
-- Replaced some addon strings with Kodi strings
-- Removed duplicate and unused strings from strings.po
-- Added translator comments to ambiguous strings
-- Fixed blur failing on images with alpha channel (LA/PA modes)
-
-2.0.0~beta5
-- Changed addon type to plugin for visibility in My Add-ons
-- Added plugin root menu with Tools, Search, and Widgets
-- Added seasonal submenu with all season options
-- Added setContent for proper content type in widgets
-- Added mpaa/studio infolabels to next_up widget
-- Added TotalSeasons property to tvshow widgets
-- Fixed halloween tag 'witch' to 'witchcraft' to avoid false positives
-- Added halloween tags: slasher, haunted, ghost, supernatural, demon, demonic possession, gore, occult
-
-2.0.0~beta4
-- Added incremental ratings sync for faster auto-updates
-- Added TV show context menu now updates all episodes
-- Added art types settings as individual toggles
-
-2.0.0~beta3
-- Added stinger (mid/post-credits scene) notifications
-- Added custom stinger icon
-- Added skin override support for stinger messages and display
-- Added stinger documentation
-
-2.0.0~beta2
-- Fixed property prefix duplication issue
-- Documentation fixes
-
-2.0.0~beta1
-- Complete rewrite
-- Added online properties from TMDb, OMDb, MDBList, Trakt
-- Added multi-source ratings (IMDb, RT, Metacritic, TMDb, Trakt, etc.)
-- Added plugin paths for widgets, cast, person info, stats
-- Added artwork review tool
-- Added metadata editor
-- Added blur, color picker, slideshow tools
-- Added GIF scanner
-- Added context menu integration
+2.0.0-Betas
+- Complete rewrite of the service
+- Online metadata and multi-source ratings from TMDb, OMDb, MDBList and Trakt (IMDb, Rotten Tomatoes, Metacritic, TMDb, Trakt and more)
+- Incremental IMDb rating updates from the official dataset, plus IMDb Top 250 rankings from Trakt
+- Smart caching that adapts to content age and TV show status, with no manual cache settings
+- Music and music video online data: artist, album and track info and artwork from TheAudioDB, Last.fm, Wikipedia and Fanart.tv
+- Artwork review tool to find and fill missing artwork across the library
+- Download Artwork for single items or in bulk (movies, TV shows, seasons, episodes, music sets and actors)
+- Metadata editor for movies, TV shows, episodes, music videos, artists, albums and songs
+- Plugin widgets: Next Up, Discovery, Recommendations, Cast, Crew, Similar and more
+- Info dialogs: Actor Info, Video Info and Image Viewer
+- Stinger (mid/post-credits) notifications with skin override support
+- Tools: image blur, color picker, fanart slideshow and animated-poster (GIF) scanner
+- Skinner helpers: generic JSON-RPC wrapper (action=json) and skin setting actions (set/toggle/reset)
+- Requires Kodi 21 (Omega) or newer
+- Skins enable the service with Skin.SetBool(SkinInfo.Service)
 		</news>
 	</extension>
 </addon>
