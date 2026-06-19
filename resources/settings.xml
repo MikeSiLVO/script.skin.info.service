@@ -515,6 +515,34 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
+				<setting id="context_show_export_nfo" type="boolean" label="32029">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+			</group>
+			<group id="6" label="32993">
+				<setting id="nfo.write_on_edit" type="boolean" label="32994" help="32995">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="nfo.create_missing" type="boolean" label="32996" help="32997">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle" />
+					<dependencies>
+						<dependency type="enable" setting="nfo.write_on_edit">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="nfo.write_watched_state" type="boolean" label="32998" help="32999">
+					<level>0</level>
+					<default>true</default>
+					<control type="toggle" />
+					<dependencies>
+						<dependency type="enable" setting="nfo.write_on_edit">true</dependency>
+					</dependencies>
+				</setting>
 			</group>
 			<group id="4" label="14260">
 				<setting id="enable_debug" type="boolean" label="32901">
