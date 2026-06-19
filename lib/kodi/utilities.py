@@ -48,7 +48,7 @@ def validate_dbid(dbid: Any) -> bool:
 
 
 def resolve_infolabel(value: str) -> str:
-    """Resolve a single `$INFO[...]` or `$VAR[...]` wrapped string via Kodi. Pass-through otherwise."""
+    """Resolve a `$INFO[...]` or `$VAR[...]` wrapped string via Kodi, else pass through."""
     if value and value.startswith('$'):
         return xbmc.getInfoLabel(value)
     return value

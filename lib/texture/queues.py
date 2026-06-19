@@ -31,7 +31,7 @@ def _cache_url_via_xbmcvfs(url: str) -> tuple[bool, Optional[str]]:
 
 
 class TextureCache(WorkerQueue):
-    """Background texture caching queue (cache-only). Simulates Kodi's `BackgroundCacheImage()` via Python threads."""
+    """Cache-only texture queue; simulates Kodi `BackgroundCacheImage()` via Python threads."""
 
     def __init__(
         self,
@@ -75,7 +75,10 @@ class TextureCache(WorkerQueue):
         success, error = _cache_url_via_xbmcvfs(url)
         if not success and error and error != "file not found or empty":
             log("Texture", f"Worker {worker_id} failed to cache URL: {error}", xbmc.LOGWARNING)
-        return {'url': url, 'success': success, 'error': error} if not success else {'url': url, 'success': True}
+        return (
+            {'url': url, 'success': success, 'error': error} if not success
+            else {'url': url, 'success': True}
+        )
 
     def _on_item_complete(self, item: str, result: Dict) -> None:
         url = item
@@ -91,7 +94,11 @@ class TextureCache(WorkerQueue):
             if response and 'result' in response:
                 textures = extract_result(response, 'textures', [])
                 self.cached_urls_set = {t['url'] for t in textures if 'url' in t}
-                log("Cache", f"TextureCache loaded {len(self.cached_urls_set)} cached URLs for deduplication")
+                log(
+                    "Cache",
+                    f"TextureCache loaded {len(self.cached_urls_set)} cached URLs for "
+                    f"deduplication",
+                )
             else:
                 self.cached_urls_set = set()
         except Exception as e:
@@ -172,7 +179,8 @@ class TextureCacheDownload(WorkerQueue):
                 self.stats_cache_failed += 1
             if cache_error and cache_error != "file not found or empty":
                 log("Texture",
-                    f"SkinInfo: TextureCacheDownload worker {worker_id} failed to cache URL: {cache_error}",
+                    f"SkinInfo: TextureCacheDownload worker {worker_id} failed to cache URL: "
+                    f"{cache_error}",
                     xbmc.LOGWARNING)
 
         if url.startswith('http'):
@@ -190,7 +198,9 @@ class TextureCacheDownload(WorkerQueue):
 
                 downloader = self.artworks[worker_id]
 
-                download_success, download_error, bytes_downloaded, error_category = downloader.download_artwork(
+                (
+                    download_success, download_error, bytes_downloaded, error_category
+                ) = downloader.download_artwork(
                     url=url,
                     local_path=local_path,
                     existing_file_mode=self.existing_file_mode,

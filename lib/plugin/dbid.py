@@ -124,7 +124,9 @@ _ALBUM_PROPERTIES = [
     "sortartist", "songgenres", "totaldiscs", "releasedate", "originaldate", "albumduration",
 ]
 
-_ALBUM_PROPERTIES_MIN = ["title", "art", "year", "artist", "genre", "albumlabel", "playcount", "rating"]
+_ALBUM_PROPERTIES_MIN = [
+    "title", "art", "year", "artist", "genre", "albumlabel", "playcount", "rating",
+]
 
 _ALBUM_SONG_PROPERTIES = ["title", "duration", "track", "disc", "file", "art", "thumbnail"]
 
@@ -139,7 +141,9 @@ def get_item_data_by_dbid(media_type: str, dbid: int) -> Optional[dict]:
         return handler(dbid)
     except Exception as e:
         import traceback
-        log("Plugin", f"Error getting data for {media_type} with DBID {dbid}: {str(e)}\n{traceback.format_exc()}", xbmc.LOGERROR)
+        log("Plugin",
+            f"Error getting data for {media_type} with DBID {dbid}: {str(e)}\n"
+            f"{traceback.format_exc()}", xbmc.LOGERROR)
         return None
 
 
@@ -439,7 +443,7 @@ _MEDIA_TYPE_HANDLERS = {
 
 
 def handle_dbid_query(handle: int, params: dict) -> None:
-    """Plugin entry for `?action=getdetails&dbid=N&dbtype=X`. Returns one ListItem with all library properties."""
+    """Plugin entry `?action=getdetails&dbid=N&dbtype=X`: one ListItem with library properties."""
     dbid = params.get("dbid", [""])[0]
     media_type = params.get("dbtype", [""])[0]
 
@@ -469,10 +473,14 @@ def handle_dbid_query(handle: int, params: dict) -> None:
         handle_musicvideo_node(handle, params, media_type)
         return
 
-    valid_types = ("movie", "tvshow", "season", "episode", "musicvideo", "artist", "album", "set")
+    valid_types = (
+        "movie", "tvshow", "season", "episode", "musicvideo", "artist", "album", "set"
+    )
 
     if media_type not in valid_types:
-        log("Plugin", f"Invalid media type '{media_type}', expected one of: {', '.join(valid_types)}", xbmc.LOGWARNING)
+        log("Plugin",
+            f"Invalid media type '{media_type}', expected one of: {', '.join(valid_types)}",
+            xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
@@ -529,7 +537,8 @@ def handle_dbid_query(handle: int, params: dict) -> None:
                                 if is_default:
                                     default_rating = rating_type
 
-                                pct = max(0, min(100, round((float(rating_val) / float(max_val)) * 100)))
+                                pct = max(0, min(100, round(
+                                    (float(rating_val) / float(max_val)) * 100)))
                                 output_type = RATING_SOURCE_NORMALIZE.get(rating_type, rating_type)
                                 properties_dict[f"Rating.{output_type}.Percent"] = str(pct)
                             except (ValueError, TypeError, ZeroDivisionError):

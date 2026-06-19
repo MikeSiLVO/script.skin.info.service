@@ -34,7 +34,8 @@ class ArtworkAuto:
         source_fetcher: Optional[ApiArtworkFetcher] = None,
         enable_download: bool = False,
     ):
-        self.progress = ProgressDialog(use_background=use_background, heading=ADDON.getLocalizedString(32072))
+        self.progress = ProgressDialog(
+            use_background=use_background, heading=ADDON.getLocalizedString(32072))
         self.progress.enable_throttling()
         self.cancelled = False
         self.total_items = 0  # Track original total
@@ -107,7 +108,8 @@ class ArtworkAuto:
         self.total_items = initial_stats.get('pending', 0)
 
         scope_hint = f", scope={','.join(self.media_filter)}" if self.media_filter else ""
-        log("Artwork", f"Processing queue: {self.total_items} pending items, mode={self.mode}{scope_hint}")
+        log("Artwork",
+            f"Processing queue: {self.total_items} pending items, mode={self.mode}{scope_hint}")
 
         self.progress.create(ADDON.getLocalizedString(32278))
 
@@ -133,6 +135,22 @@ class ArtworkAuto:
             self.progress.close()
 
         self._show_summary()
+
+        if self.applied_items:
+            self._reconcile_slideshow_pool()
+
+    def _reconcile_slideshow_pool(self) -> None:
+        """One batched slideshow-pool reconcile after a bulk run (per-item refresh was deferred)."""
+        pool_types = ('movie', 'tvshow', 'artist')
+        scope = tuple(t for t in pool_types
+                      if self.media_filter is None or t in self.media_filter)
+        if not scope:
+            return
+        try:
+            from lib.service.slideshow import reconcile_pool
+            reconcile_pool(scope)
+        except Exception as e:
+            log("Artwork", f"Slideshow pool reconcile failed: {str(e)}", xbmc.LOGWARNING)
 
     def _process_item(self, queue_item) -> None:
         """Process single queue item."""
@@ -174,7 +192,8 @@ class ArtworkAuto:
                     best = compare_art_quality(filtered_candidates)
 
                 if best:
-                    self._apply_art(media_type, dbid, {art_type: best['url']}, title=title, artwork_type=art_type)
+                    self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
+                                    artwork_type=art_type, defer_pool_refresh=True)
                     db.update_art_item(art_item.id, best['url'], auto_applied=True)
                     applied_any = True
                     self.stats['auto_applied'] += 1
@@ -200,8 +219,13 @@ class ArtworkAuto:
             self.stats['errors'] += 1
             db.update_queue_status(queue_item['id'], 'error')
 
-    def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "", artwork_type: str = "") -> bool:
-        """Apply artwork to library item and optionally download to filesystem."""
+    def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
+                   artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:
+        """Apply artwork to library item and optionally download to filesystem.
+
+        `defer_pool_refresh` skips the per-item slideshow-pool update (the bulk auto-apply path
+        does one batched reconcile at the end instead).
+        """
         if media_type not in KODI_SET_DETAILS_METHODS:
             return False
 
@@ -221,13 +245,19 @@ class ArtworkAuto:
                 if url.startswith('http'):
                     self._download_artwork(media_type, dbid, artwork_type, url, title)
 
+            if (not defer_pool_refresh and 'fanart' in art_dict
+                    and media_type in ('movie', 'tvshow', 'artist')):
+                from lib.service.slideshow import refresh_pool_item
+                refresh_pool_item(media_type, dbid)
+
             return True
 
         except Exception as e:
             log("Artwork", f"Error applying art: {str(e)}", xbmc.LOGERROR)
             return False
 
-    def _download_artwork(self, media_type: str, dbid: int, artwork_type: str, url: str, title: str) -> None:
+    def _download_artwork(self, media_type: str, dbid: int, artwork_type: str, url: str,
+                          title: str) -> None:
         """Download artwork to filesystem after applying to library."""
         try:
             from lib.kodi.client import KODI_GET_DETAILS_METHODS
@@ -269,11 +299,13 @@ class ArtworkAuto:
             )
 
             if not local_path:
-                log("Artwork", f"Could not build download path for {media_type} '{title}' {artwork_type}")
+                log("Artwork",
+                    f"Could not build download path for {media_type} '{title}' {artwork_type}")
                 return
 
             existing_file_mode_setting = KodiSettings.existing_file_mode()
-            existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+            existing_file_mode_int = (
+                int(existing_file_mode_setting) if existing_file_mode_setting else 0)
             existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
             downloader = DownloadArtwork()
@@ -284,7 +316,9 @@ class ArtworkAuto:
             )
 
             if success:
-                log("Artwork", f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)")
+                log("Artwork",
+                    f"Downloaded {artwork_type} for '{title}': {local_path} "
+                    f"({bytes_downloaded} bytes)")
             elif error:
                 log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
 
@@ -298,7 +332,10 @@ class ArtworkAuto:
         else:
             percent = 0
 
-        message = f"Processed: {self.stats['processed']}/{self.total_items}[CR]Auto-applied: {self.stats['auto_applied']}[CR]Skipped: {self.stats['skipped']}"
+        message = (
+            f"Processed: {self.stats['processed']}/{self.total_items}[CR]"
+            f"Auto-applied: {self.stats['auto_applied']}[CR]"
+            f"Skipped: {self.stats['skipped']}")
 
         self.progress.update(percent, message, force=force)
 
@@ -354,7 +391,8 @@ class ArtworkAuto:
 
         if selected == 0 and self.applied_items:
             self._show_applied_report()
-        elif (selected == 1 and self.skipped_items) or (selected == 0 and not self.applied_items and self.skipped_items):
+        elif ((selected == 1 and self.skipped_items)
+              or (selected == 0 and not self.applied_items and self.skipped_items)):
             self._show_skipped_report()
 
     def _show_applied_report(self) -> None:

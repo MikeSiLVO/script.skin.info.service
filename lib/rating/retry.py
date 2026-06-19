@@ -95,7 +95,9 @@ def retry_targeted(entry: RetryPoolEntry, sources: List, paused_until: Dict[str,
         entry.missing_sources = still_missing
         return False
 
-    db.update_synced_ratings(entry.media_type, entry.dbid, final_ratings, build_external_ids(entry.ids))
+    db.update_synced_ratings(
+        entry.media_type, entry.dbid, final_ratings, build_external_ids(entry.ids)
+    )
     entry.applied_ratings = final_ratings
     entry.missing_sources = still_missing
 
@@ -150,7 +152,9 @@ def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], media_type: st
             return _process_retry_queue(retry_queue, media_type, sources, source_mode)
 
         else:
-            log("Ratings", f"User skipped retry of {count} item{'s' if count > 1 else ''}", xbmc.LOGINFO)
+            log("Ratings",
+                f"User skipped retry of {count} item{'s' if count > 1 else ''}",
+                xbmc.LOGINFO)
             return 0
 
 
@@ -173,7 +177,10 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
             break
 
         percent = int((i / max(total, 1)) * 100)
-        progress.update(percent, f"{ADDON.getLocalizedString(32311).format(i+1, total)}\n{entry.title}")
+        progress.update(
+            percent,
+            f"{ADDON.getLocalizedString(32311).format(i+1, total)}\n{entry.title}"
+        )
 
         if source_mode == "imdb":
             success, _ = update_single_item_imdb(entry.item, media_type)
@@ -184,7 +191,9 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
             success_count += 1
             log("Ratings", f"Retry succeeded: {entry.title}", xbmc.LOGDEBUG)
         else:
-            log("Ratings", f"Retry failed: {entry.title} (still missing: {entry.missing_sources})", xbmc.LOGDEBUG)
+            log("Ratings",
+                f"Retry failed: {entry.title} (still missing: {entry.missing_sources})",
+                xbmc.LOGDEBUG)
 
     progress.close()
 

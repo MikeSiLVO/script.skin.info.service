@@ -165,7 +165,9 @@ def handle_userrating(
     options = [ADDON.getLocalizedString(32391)] + [str(i) for i in range(1, 11)]
     preselect = current_value if current_value else 0
 
-    choice = show_select(ADDON.getLocalizedString(32556).format(field_name), options, preselect=preselect)
+    choice = show_select(
+        ADDON.getLocalizedString(32556).format(field_name), options, preselect=preselect
+    )
 
     if choice < 0:
         return None, True
@@ -187,7 +189,9 @@ def handle_status(
                 preselect = i
                 break
 
-    choice = show_select(ADDON.getLocalizedString(32556).format(field_name), options, preselect=preselect)
+    choice = show_select(
+        ADDON.getLocalizedString(32556).format(field_name), options, preselect=preselect
+    )
 
     if choice < 0:
         return None, True
@@ -362,10 +366,14 @@ def _add_rating_source(ratings: dict[str, Any]) -> bool:
     source = source.strip().lower()
 
     if source in ratings:
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32257), ADDON.getLocalizedString(32564).format(source))
+        xbmcgui.Dialog().ok(
+            ADDON.getLocalizedString(32257), ADDON.getLocalizedString(32564).format(source)
+        )
         return False
 
-    rating_str = xbmcgui.Dialog().input(ADDON.getLocalizedString(32565), "0", type=xbmcgui.INPUT_NUMERIC)
+    rating_str = xbmcgui.Dialog().input(
+        ADDON.getLocalizedString(32565), "0", type=xbmcgui.INPUT_NUMERIC
+    )
     if not rating_str:
         return False
 
@@ -379,7 +387,9 @@ def _add_rating_source(ratings: dict[str, Any]) -> bool:
         xbmcgui.Dialog().ok(ADDON.getLocalizedString(32256), error)
         return False
 
-    votes_str = xbmcgui.Dialog().input(ADDON.getLocalizedString(32253), "0", type=xbmcgui.INPUT_NUMERIC)
+    votes_str = xbmcgui.Dialog().input(
+        ADDON.getLocalizedString(32253), "0", type=xbmcgui.INPUT_NUMERIC
+    )
     votes = int(votes_str) if votes_str else 0
 
     is_default = not ratings
@@ -442,7 +452,9 @@ def _edit_single_rating(ratings: dict[str, Any], source: str) -> bool:
         return True
 
     elif choice == 3:
-        if show_yesno(ADDON.getLocalizedString(32301), ADDON.getLocalizedString(32302).format(source)):
+        if show_yesno(
+            ADDON.getLocalizedString(32301), ADDON.getLocalizedString(32302).format(source)
+        ):
             del ratings[source]
             return True
 

@@ -352,31 +352,57 @@ class ApiTrakt(RatingSource):
             return []
         except RateLimitHit as e:
             wait = e.retry_after_seconds
-            log("Trakt", f"Rate limit hit on {endpoint} (Retry-After={wait}); returning empty list", xbmc.LOGWARNING)
+            log("Trakt",
+                f"Rate limit hit on {endpoint} (Retry-After={wait}); returning empty list",
+                xbmc.LOGWARNING)
             return []
         except Exception as e:
             log("Trakt", f"List fetch error for {endpoint}: {e}", xbmc.LOGWARNING)
             return []
 
-    def get_trending(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
-        return self._get_list(f"/{media_type}s/trending", limit=limit, page=page, abort_flag=abort_flag)
+    def get_trending(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
+        return self._get_list(
+            f"/{media_type}s/trending", limit=limit, page=page, abort_flag=abort_flag
+        )
 
-    def get_popular(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
-        return self._get_list(f"/{media_type}s/popular", limit=limit, page=page, abort_flag=abort_flag)
+    def get_popular(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
+        return self._get_list(
+            f"/{media_type}s/popular", limit=limit, page=page, abort_flag=abort_flag
+        )
 
-    def get_anticipated(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
-        return self._get_list(f"/{media_type}s/anticipated", limit=limit, page=page, abort_flag=abort_flag)
+    def get_anticipated(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
+        return self._get_list(
+            f"/{media_type}s/anticipated", limit=limit, page=page, abort_flag=abort_flag
+        )
 
-    def get_most_watched(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
-        return self._get_list(f"/{media_type}s/watched/{period}", limit=limit, page=page, abort_flag=abort_flag)
+    def get_most_watched(
+        self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
+        abort_flag=None
+    ) -> list:
+        return self._get_list(
+            f"/{media_type}s/watched/{period}", limit=limit, page=page, abort_flag=abort_flag
+        )
 
-    def get_most_collected(self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1, abort_flag=None) -> list:
-        return self._get_list(f"/{media_type}s/collected/{period}", limit=limit, page=page, abort_flag=abort_flag)
+    def get_most_collected(
+        self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
+        abort_flag=None
+    ) -> list:
+        return self._get_list(
+            f"/{media_type}s/collected/{period}", limit=limit, page=page, abort_flag=abort_flag
+        )
 
     def get_box_office(self, limit: int = 20, abort_flag=None) -> list:
         return self._get_list("/movies/boxoffice", limit=limit, abort_flag=abort_flag)
 
-    def get_recommendations(self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+    def get_recommendations(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
         return self._get_list(
             f"/recommendations/{media_type}s",
             limit=limit, page=page,

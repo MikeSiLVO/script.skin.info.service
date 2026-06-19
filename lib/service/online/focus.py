@@ -20,7 +20,7 @@ from lib.service.online.helpers import (
     make_cache_key,
     resolve_ids_from,
     resolve_season_ids,
-    _SKININFO_PREFIX_MAP,
+    SKININFO_PREFIX_MAP,
 )
 from lib.service.online.fetchers import fetch_all_online_data
 
@@ -60,7 +60,7 @@ class FocusHandler:
             imdb_id, tmdb_id = resolve_season_ids(dbid)
             effective_type = "tvshow"
         else:
-            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem", _SKININFO_PREFIX_MAP)
+            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem", SKININFO_PREFIX_MAP)
             effective_type = dbtype
             if dbtype == "tvshow":
                 try:

@@ -28,7 +28,9 @@ STALL_TIMEOUT_SECONDS = 120
 ERROR_CATEGORY_LABELS = {
     'network': "Network errors (timeouts / connection failures)",
     'provider_blocked': "Source blocked after repeated failures (one server kept erroring)",
-    'storage_blocked': "Writing stopped after repeated file errors (check disk space / permissions)",
+    'storage_blocked': (
+        "Writing stopped after repeated file errors (check disk space / permissions)"
+    ),
     'directory': "Could not create destination folder (check permissions)",
     'bad_content': "Server returned a non-image response",
     'input': "Missing URL or destination path",
@@ -89,9 +91,14 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
                 truncated_count = len(sorted_folders) - max_folders
 
                 if truncated_count > 0:
-                    truncated_text = f"\n(Truncated {truncated_count} folders to fit 5MB size limit)\n"
+                    truncated_text = (
+                        f"\n(Truncated {truncated_count} folders to fit 5MB size limit)\n"
+                    )
 
-                    folder_lines = [f"{count} files - {path}" for path, count in sorted_folders[:max_folders]]
+                    folder_lines = [
+                        f"{count} files - {path}"
+                        for path, count in sorted_folders[:max_folders]
+                    ]
 
                     report_parts = report_text.split("[B]Downloaded Files by Folder[/B]")
                     if len(report_parts) == 2:
@@ -99,10 +106,17 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
                         after_folders = ""
 
                         if "[B]Filename Pattern Mismatches" in report_parts[1]:
-                            _, mismatch_part = report_parts[1].split("[B]Filename Pattern Mismatches", 1)
-                            after_folders = "\n\n[B]Filename Pattern Mismatches" + mismatch_part
+                            _, mismatch_part = report_parts[1].split(
+                                "[B]Filename Pattern Mismatches", 1
+                            )
+                            after_folders = (
+                                "\n\n[B]Filename Pattern Mismatches" + mismatch_part
+                            )
 
-                        report_text = before_folders + truncated_text + "\n".join(folder_lines) + after_folders
+                        report_text = (
+                            before_folders + truncated_text
+                            + "\n".join(folder_lines) + after_folders
+                        )
                         full_text = header + report_text
 
         with xbmcvfs.File(LOG_FILE, 'w') as f:
@@ -130,7 +144,7 @@ def _resolve_album_folders(album_ids: List[int]) -> Dict[int, str]:
 
 
 def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any]]:
-    """Query Kodi library and return items carrying artwork as `{dbid, media_type, title, file, art}`."""
+    """Query Kodi library, return items with artwork as `{dbid, media_type, title, file, art}`."""
     def has_artwork(item: Dict[str, Any]) -> bool:
         art = item.get('art', {})
         return bool(art and isinstance(art, dict))
@@ -184,8 +198,9 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
         return []
 
 
-def build_download_jobs(items: List[Dict[str, Any]]
-                        ) -> Tuple[List[Tuple[str, str, str, str, Optional[str], str]], Dict[str, int]]:
+def build_download_jobs(
+    items: List[Dict[str, Any]]
+) -> Tuple[List[Tuple[str, str, str, str, Optional[str], str]], Dict[str, int]]:
     """Build download jobs and per-type mismatch counters.
 
     Jobs are `(url, local_path, art_type, title, alternate_path, media_type)` tuples.
@@ -225,7 +240,9 @@ def build_download_jobs(items: List[Dict[str, Any]]
             if media_type == 'movie' and art_type.startswith('set.'):
                 continue
 
-            if media_type == 'episode' and (art_type.startswith('tvshow.') or art_type.startswith('season.')):
+            if media_type == 'episode' and (
+                art_type.startswith('tvshow.') or art_type.startswith('season.')
+            ):
                 continue
 
             if media_type == 'season' and art_type.startswith('tvshow.'):
@@ -248,7 +265,12 @@ def build_download_jobs(items: List[Dict[str, Any]]
 
             if not local_path:
                 failed_build_path += 1
-                log("Download", f"Failed to build path for {media_type} '{title}' art:{art_type} file:{file_path}", xbmc.LOGWARNING)
+                log(
+                    "Download",
+                    f"Failed to build path for {media_type} '{title}' "
+                    f"art:{art_type} file:{file_path}",
+                    xbmc.LOGWARNING,
+                )
                 continue
 
             alternate_path = None
@@ -280,7 +302,8 @@ def build_download_jobs(items: List[Dict[str, Any]]
 
     total_mismatches = sum(mismatch_counts.values())
     log("Artwork", f"Built {len(jobs)} download jobs from {len(items)} items "
-        f"(skipped: {skipped_no_path} no path, {failed_build_path} path build failed, {total_mismatches} mismatches)")
+        f"(skipped: {skipped_no_path} no path, {failed_build_path} path build failed, "
+        f"{total_mismatches} mismatches)")
     return jobs, mismatch_counts
 
 
@@ -331,7 +354,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             )
             return
 
-        if monitor.abortRequested() or (isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()):
+        if monitor.abortRequested() or (
+            isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()
+        ):
             progress.close()
             return
 
@@ -341,7 +366,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             progress.update(15, ADDON.getLocalizedString(32293).format(len(items)))
 
         existing_file_mode_setting = ADDON.getSetting('download.existing_file_mode')
-        existing_file_mode_int = int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        existing_file_mode_int = (
+            int(existing_file_mode_setting) if existing_file_mode_setting else 0
+        )
         existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
         jobs, mismatch_counts = build_download_jobs(items)
@@ -353,9 +380,13 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
             pattern_desc = []
-            if mismatch_counts.get('movie_folder_to_basename', 0) > 0 or mismatch_counts.get('movie_basename_to_folder', 0) > 0:
-                pattern_desc.append(f"Movies: {'basename' if savewith_basefilename else 'folder'} mode")
-            if mismatch_counts.get('mvid_folder_to_basename', 0) > 0 or mismatch_counts.get('mvid_basename_to_folder', 0) > 0:
+            if (mismatch_counts.get('movie_folder_to_basename', 0) > 0
+                    or mismatch_counts.get('movie_basename_to_folder', 0) > 0):
+                pattern_desc.append(
+                    f"Movies: {'basename' if savewith_basefilename else 'folder'} mode"
+                )
+            if (mismatch_counts.get('mvid_folder_to_basename', 0) > 0
+                    or mismatch_counts.get('mvid_basename_to_folder', 0) > 0):
                 pattern_desc.append("Music videos: basename mode")
 
             pattern_text = ", ".join(pattern_desc)
@@ -388,7 +419,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             )
             return
 
-        if monitor.abortRequested() or (isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()):
+        if monitor.abortRequested() or (
+            isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()
+        ):
             progress.close()
             return
 
@@ -408,9 +441,15 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             try:
                 for job in jobs:
                     url, local_path, artwork_type, title, alternate_path, media_type = job
-                    queue.add_download(url, local_path, artwork_type, title, alternate_path, media_type)
+                    queue.add_download(
+                        url, local_path, artwork_type, title, alternate_path, media_type
+                    )
 
-                log("Artwork", f"Queued {len(jobs)} download jobs to {queue.num_workers} worker threads")
+                log(
+                    "Artwork",
+                    f"Queued {len(jobs)} download jobs to "
+                    f"{queue.num_workers} worker threads",
+                )
                 last_update_time = time.time()
                 last_progress_time = time.time()
                 last_completed = 0
@@ -418,8 +457,15 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                 stalled = False
 
                 while not queue.queue.empty() or queue.processing_set:
-                    if monitor.abortRequested() or ctx.abort_flag.is_requested() or (isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled()):
-                        abort_reason = "monitor" if monitor.abortRequested() else "ctx.abort_flag" if ctx.abort_flag.is_requested() else "progress.iscanceled"
+                    if monitor.abortRequested() or ctx.abort_flag.is_requested() or (
+                        isinstance(progress, xbmcgui.DialogProgress)
+                        and progress.iscanceled()
+                    ):
+                        abort_reason = (
+                            "monitor" if monitor.abortRequested()
+                            else "ctx.abort_flag" if ctx.abort_flag.is_requested()
+                            else "progress.iscanceled"
+                        )
                         log("Artwork", f"Download cancelled by user ({abort_reason})")
                         queue.stop(wait=False)
                         break
@@ -440,7 +486,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                             last_progress_time = current_time
                         elif current_time - last_progress_time > STALL_TIMEOUT_SECONDS:
                             stalled = True
-                            log("Artwork", f"Download stalled - no progress for {STALL_TIMEOUT_SECONDS}s at "
+                            log("Artwork",
+                                f"Download stalled - no progress for "
+                                f"{STALL_TIMEOUT_SECONDS}s at "
                                 f"{completed}/{total}, forcing exit", xbmc.LOGWARNING)
                             queue.stop(wait=False)
                             break
@@ -459,7 +507,8 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                         else:
                             message = (
                                 f"Progress: {completed} / {total}[CR]"
-                                f"Downloaded: {downloaded} | Skipped: {skipped} | Failed: {failed}[CR]"
+                                f"Downloaded: {downloaded} | Skipped: {skipped} | "
+                                f"Failed: {failed}[CR]"
                                 f"Size: {mb:.2f} MB"
                             )
                             progress.update(percent, message)
@@ -478,7 +527,8 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                 progress.close()
 
                 log("Artwork", f"Download finished: downloaded={final_stats.get('downloaded', 0)} "
-                    f"skipped={final_stats.get('skipped', 0)} failed={final_stats.get('failed', 0)} "
+                    f"skipped={final_stats.get('skipped', 0)} "
+                    f"failed={final_stats.get('failed', 0)} "
                     f"of {len(jobs)} jobs (cancelled={cancelled}, stalled={stalled}) "
                     f"errors={final_stats.get('error_categories', {})}")
 
@@ -496,8 +546,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                     'error_categories': final_stats.get('error_categories', {})
                 }, scope=scope)
 
-                _show_download_report(final_stats, len(jobs), scope=scope, use_background=use_background,
-                                     mismatch_counts=mismatch_counts, stalled=stalled)
+                _show_download_report(
+                    final_stats, len(jobs), scope=scope, use_background=use_background,
+                    mismatch_counts=mismatch_counts, stalled=stalled)
 
             finally:
                 queue.stop(wait=False)
@@ -509,7 +560,9 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             except Exception:
                 pass
         import traceback
-        log("Download", f"Download artwork failed: {str(e)}\n{traceback.format_exc()}", xbmc.LOGERROR)
+        log("Download",
+            f"Download artwork failed: {str(e)}\n{traceback.format_exc()}",
+            xbmc.LOGERROR)
 
 
 def format_folder_section(folder_stats: Optional[Dict[str, int]]) -> List[str]:
@@ -600,7 +653,10 @@ def _show_download_report(stats: Dict, total_jobs: int, scope: str = 'all',
         lines.extend([
             "",
             "[B]Stopped early: downloads stalled[/B]",
-            f"No progress for over {STALL_TIMEOUT_SECONDS}s. Run the download again to finish the rest.",
+            (
+                f"No progress for over {STALL_TIMEOUT_SECONDS}s. "
+                f"Run the download again to finish the rest."
+            ),
         ])
     lines.extend(format_folder_section(stats.get('folder_counts', {})))
     lines.extend(format_failure_section(stats.get('error_categories', {})))

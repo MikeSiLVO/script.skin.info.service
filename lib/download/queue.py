@@ -41,7 +41,7 @@ class DownloadQueue(WorkerQueue):
         return self.add_item(item, dedupe_key=dedupe_key)
 
     def get_stats(self) -> Dict:
-        """Return WorkerQueue stats augmented with download-specific counters and folder breakdown."""
+        """Return WorkerQueue stats plus download counters and folder breakdown."""
         base_stats = super().get_stats()
         with self._stats_lock:
             base_stats.update({
@@ -89,7 +89,9 @@ class DownloadQueue(WorkerQueue):
             elif error_category != DownloadArtwork.ERROR_ABORTED:
                 self.stats_failed += 1
                 category = error_category or DownloadArtwork.ERROR_UNEXPECTED
-                self.stats_error_categories[category] = self.stats_error_categories.get(category, 0) + 1
+                self.stats_error_categories[category] = (
+                    self.stats_error_categories.get(category, 0) + 1
+                )
 
         return {
             'url': url,

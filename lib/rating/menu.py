@@ -52,7 +52,7 @@ def _notify(message_id: int, level: int = xbmcgui.NOTIFICATION_INFO,
     show_notification(ADDON.getLocalizedString(_RATINGS_HEADING_ID), message, level, duration)
 
 
-def _initialize_sources() -> List:
+def initialize_sources() -> List:
     """Initialize all available rating sources.
 
     Order is significant; sources are consulted in the listed order during
@@ -101,25 +101,27 @@ def run_ratings_menu() -> None:
 
 def _run_update(media_type: str) -> None:
     """Run ratings update for a media type."""
-    _select_mode_and_run([media_type], _initialize_sources(), "multi_source")
+    _select_mode_and_run([media_type], initialize_sources(), "multi_source")
 
 
 def _run_update_all() -> None:
     """Run ratings update for all media types."""
-    _select_mode_and_run(["movie", "tvshow", "episode"], _initialize_sources(), "multi_source")
+    _select_mode_and_run(["movie", "tvshow", "episode"], initialize_sources(), "multi_source")
 
 
 def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str) -> None:
-    """Show foreground/background mode picker, then run `update_library_ratings` for each media type."""
+    """Show foreground/background picker, then run `update_library_ratings` per media type."""
     def run_foreground():
         for media_type in media_types:
-            update_library_ratings(media_type, sources, use_background=False, source_mode=source_mode)
+            update_library_ratings(
+                media_type, sources, use_background=False, source_mode=source_mode)
 
     def run_background():
         if _guard_background_start():
             return
         for media_type in media_types:
-            update_library_ratings(media_type, sources, use_background=True, source_mode=source_mode)
+            update_library_ratings(
+                media_type, sources, use_background=True, source_mode=source_mode)
 
     Menu(ADDON.getLocalizedString(32410), [
         MenuItem(ADDON.getLocalizedString(32411), run_foreground),
@@ -127,7 +129,8 @@ def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str
     ]).show()
 
 
-def _resolve_single_item_target(dbid: Optional[str], dbtype: Optional[str]) -> Optional[Tuple[str, str]]:
+def _resolve_single_item_target(
+        dbid: Optional[str], dbtype: Optional[str]) -> Optional[Tuple[str, str]]:
     """Validate and resolve `(dbid, media_type)` for a single-item update; notify on failure.
 
     Returns `(dbid, media_type)` on success, None when the user is shown a warning.
@@ -204,12 +207,13 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
         return
     dbid, media_type = target
 
-    log("Ratings", f"Updating ratings for single item - dbid={dbid}, dbtype={media_type}", xbmc.LOGINFO)
+    log("Ratings", f"Updating ratings for single item - dbid={dbid}, dbtype={media_type}",
+        xbmc.LOGINFO)
 
     init_database()
     get_imdb_dataset().refresh_if_stale()
 
-    sources = _initialize_sources()
+    sources = initialize_sources()
     if not sources:
         show_ok(ADDON.getLocalizedString(_RATINGS_HEADING_ID), ADDON.getLocalizedString(32400))
         return
@@ -298,7 +302,8 @@ def show_ratings_report() -> None:
     imdb_ids_added = stats.get('imdb_ids_added', 0)
     imdb_ids_corrected = stats.get('imdb_ids_corrected', 0)
 
-    if total_ratings_added > 0 or total_ratings_updated > 0 or imdb_ids_added > 0 or imdb_ids_corrected > 0:
+    if (total_ratings_added > 0 or total_ratings_updated > 0 or imdb_ids_added > 0
+            or imdb_ids_corrected > 0):
         lines.extend([
             "[B]Rating Changes[/B]",
             f"Total ratings added: {total_ratings_added}",

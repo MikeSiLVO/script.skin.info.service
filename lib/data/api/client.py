@@ -26,7 +26,7 @@ _USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
 
 
 def _parse_retry_after(value: Optional[str]) -> Optional[float]:
-    """Parse a Retry-After header. Supports integer-seconds form only (HTTP-date form is rare for 429s)."""
+    """Parse a Retry-After header (integer-seconds form only)."""
     if not value:
         return None
     try:
@@ -57,7 +57,7 @@ class RateLimitHit(Exception):
 
 
 class RetryableError(Exception):
-    """Exception raised for transient errors that may succeed on retry (timeouts, connection errors)."""
+    """Raised for transient errors that may succeed on retry (timeouts, connection errors)."""
     def __init__(self, provider: str, reason: str):
         self.provider = provider
         self.reason = reason
@@ -194,7 +194,8 @@ class ApiSession:
 
         self._tls = threading.local()
 
-    def set_pause_context(self, reporter: Optional[PauseReporter], source_name: Optional[str]) -> None:
+    def set_pause_context(self, reporter: Optional[PauseReporter],
+                          source_name: Optional[str]) -> None:
         """Set per-thread pause-reporter context. Pair with clear_pause_context in finally."""
         self._tls.pause_reporter = reporter
         self._tls.source_name = source_name
@@ -235,7 +236,9 @@ class ApiSession:
         self._check_abort(abort_flag)
 
         if response.status_code == 429:
-            raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
+            raise RateLimitHit(
+                self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
+            )
 
         if response.status_code == 404:
             log("API", f"{self.service_name}: 404 Not Found", xbmc.LOGDEBUG)
@@ -295,7 +298,12 @@ class ApiSession:
             elapsed = time.time() - start
 
             if elapsed > 5.0:
-                log("API", f"{self.service_name}: Response took {elapsed:.1f}s (status={response.status_code})", xbmc.LOGWARNING)
+                log(
+                    "API",
+                    f"{self.service_name}: Response took {elapsed:.1f}s "
+                    f"(status={response.status_code})",
+                    xbmc.LOGWARNING,
+                )
 
             return self._handle_response(response, abort_flag)
 
@@ -411,7 +419,9 @@ class ApiSession:
             )
 
             if response.status_code == 429:
-                raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
+                raise RateLimitHit(
+                self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
+            )
 
             if response.status_code >= 400:
                 log(
@@ -455,7 +465,9 @@ class ApiSession:
             )
 
             if response.status_code == 429:
-                raise RateLimitHit(self.service_name, _parse_retry_after(response.headers.get("Retry-After")))
+                raise RateLimitHit(
+                self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
+            )
 
             if response.status_code >= 400:
                 log(

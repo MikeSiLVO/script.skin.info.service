@@ -108,7 +108,9 @@ def load_session_stats(raw: Any) -> dict:
                 for key in SESSION_DETAIL_KEYS:
                     entries = details.get(key, [])
                     if isinstance(entries, list):
-                        stats['details'][key] = [dict(entry) for entry in entries if isinstance(entry, dict)]
+                        stats['details'][key] = [
+                            dict(entry) for entry in entries if isinstance(entry, dict)
+                        ]
 
             auto_runs = source.get('auto_runs')
             if isinstance(auto_runs, list):

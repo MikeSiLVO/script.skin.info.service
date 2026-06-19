@@ -5,12 +5,16 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import log, ADDON
-from lib.kodi.utilities import resolve_infolabel as _resolve_infolabel, parse_pipe_list as _parse_list
+from lib.kodi.utilities import (
+    resolve_infolabel as _resolve_infolabel,
+    parse_pipe_list as _parse_list,
+)
 
 TEST_DEFAULTS = {
     'heading': 'Test Dialog',
     'message': 'This is a test message for skinning purposes.',
-    'text': 'This is test text content.\nLine 2\nLine 3\nYou can test the scrolling and appearance of the text viewer dialog.',
+    'text': ('This is test text content.\nLine 2\nLine 3\n'
+             'You can test the scrolling and appearance of the text viewer dialog.'),
     'items': 'Option 1|Option 2|Option 3|Option 4|Option 5',
     'nolabel': 'No',
     'yeslabel': 'Yes',
@@ -61,11 +65,13 @@ def _clear_dialog_properties(window: str = 'home') -> None:
 
 def _show_error(message: str) -> None:
     """Show error notification for invalid dialog parameters."""
-    xbmcgui.Dialog().notification(ADDON.getLocalizedString(32561), message, xbmcgui.NOTIFICATION_ERROR, 5000)
+    xbmcgui.Dialog().notification(
+        ADDON.getLocalizedString(32561), message, xbmcgui.NOTIFICATION_ERROR, 5000
+    )
 
 
 def _read_property_mode_items(window: str = 'home') -> tuple:
-    """Read `Dialog.N.{Label,Icon,Label2,Builtin}` window properties. Returns `(listitems, builtins)`."""
+    """Read `Dialog.N.{Label,Icon,Label2,Builtin}` window props; return `(listitems, builtins)`."""
     listitems = []
     builtins = []
 
@@ -102,7 +108,7 @@ def dialog_yesno(
     autoclose: str = '',
     **kwargs
 ) -> None:
-    """Show a Yes/No dialog. `yesaction`/`noaction`/`cancel_action` are pipe-separated builtins to run."""
+    """Show Yes/No dialog. `yesaction`/`noaction`/`cancel_action` are pipe-separated builtins."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
     yeslabel = yeslabel or TEST_DEFAULTS['yeslabel']
@@ -226,7 +232,9 @@ def dialog_select(
         except (ValueError, NameError):
             preselect_index = -1
 
-    log('Dialogs', f"dialog_select: heading='{heading}', items={len(listitems)}, property_mode={is_property_mode}", xbmc.LOGDEBUG)
+    log('Dialogs',
+        f"dialog_select: heading='{heading}', items={len(listitems)}, "
+        f"property_mode={is_property_mode}", xbmc.LOGDEBUG)
 
     result = xbmcgui.Dialog().select(
         heading,
@@ -273,7 +281,7 @@ def dialog_multiselect(
     window: str = 'home',
     **kwargs
 ) -> None:
-    """Show a multiselect dialog. `executebuiltin` runs once per selected item with `{index}`/`{value}` substitution."""
+    """Show multiselect dialog. `executebuiltin` runs per selected item with `{index}`/`{value}`."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     autoclose_ms = _parse_int(autoclose, 0)
     use_details = _parse_bool(usedetails, False)
@@ -308,7 +316,9 @@ def dialog_multiselect(
                 except (ValueError, NameError):
                     pass
 
-    log('Dialogs', f"dialog_multiselect: heading='{heading}', items={len(listitems)}, property_mode={is_property_mode}", xbmc.LOGDEBUG)
+    log('Dialogs',
+        f"dialog_multiselect: heading='{heading}', items={len(listitems)}, "
+        f"property_mode={is_property_mode}", xbmc.LOGDEBUG)
 
     results = xbmcgui.Dialog().multiselect(
         heading,
@@ -381,7 +391,7 @@ def dialog_input(
     autoclose: str = '',
     **kwargs
 ) -> None:
-    """Show text input. `type` is alphanum/numeric/date/time/ipaddress/password. `doneaction` substitutes `{value}`."""
+    """`type` input (alphanum/numeric/date/time/ipaddress/password); `doneaction` subs `{value}`."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     default = _resolve_infolabel(default)
     is_hidden = _parse_bool(hidden, False)
@@ -397,9 +407,11 @@ def dialog_input(
     }
 
     input_type = type_map.get(type.lower(), xbmcgui.INPUT_ALPHANUM)
-    option = xbmcgui.ALPHANUM_HIDE_INPUT if (input_type == xbmcgui.INPUT_ALPHANUM and is_hidden) else 0
+    option = (xbmcgui.ALPHANUM_HIDE_INPUT
+              if (input_type == xbmcgui.INPUT_ALPHANUM and is_hidden) else 0)
 
-    log('Dialogs', f"dialog_input: heading='{heading}', type={type}, hidden={is_hidden}", xbmc.LOGDEBUG)
+    log('Dialogs',
+        f"dialog_input: heading='{heading}', type={type}, hidden={is_hidden}", xbmc.LOGDEBUG)
 
     result = xbmcgui.Dialog().input(
         heading,
@@ -468,14 +480,16 @@ def dialog_textviewer(
         file_path = _resolve_infolabel(file)
         try:
             if not xbmcvfs.exists(file_path):
-                xbmcgui.Dialog().ok(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32562).format(file_path))
+                xbmcgui.Dialog().ok(xbmc.getLocalizedString(257),
+                                    ADDON.getLocalizedString(32562).format(file_path))
                 log('Dialogs', f"textviewer: File not found '{file_path}'", xbmc.LOGERROR)
                 return
             with xbmcvfs.File(file_path, 'r') as f:
                 content = f.read()
             xbmcgui.Dialog().textviewer(heading, content, usemono=use_mono)
         except Exception as e:
-            xbmcgui.Dialog().ok(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32563).format(str(e)))
+            xbmcgui.Dialog().ok(xbmc.getLocalizedString(257),
+                                ADDON.getLocalizedString(32563).format(str(e)))
             log('Dialogs', f"textviewer: Error reading file '{file_path}': {str(e)}", xbmc.LOGERROR)
     else:
         text = _resolve_infolabel(text) or TEST_DEFAULTS['text']
@@ -519,7 +533,7 @@ def dialog_browse(
     cancel_action: str = '',
     **kwargs
 ) -> None:
-    """Show file/folder browser. `type` is directory/file/image/writable. `multiple=true` allows multi-pick."""
+    """Browse `type` directory/file/image/writable; `multiple=true` allows multi-pick."""
     heading = _resolve_infolabel(heading) or 'Choose File'
     shares_str = _resolve_infolabel(shares)
     default_path = _resolve_infolabel(default)
@@ -534,7 +548,8 @@ def dialog_browse(
 
     browse_type = type_map.get(type.lower(), 1)
 
-    log('Dialogs', f"dialog_browse: type={type}, multiple={is_multiple}, heading='{heading}'", xbmc.LOGDEBUG)
+    log('Dialogs',
+        f"dialog_browse: type={type}, multiple={is_multiple}, heading='{heading}'", xbmc.LOGDEBUG)
 
     if is_multiple:
         result = xbmcgui.Dialog().browseMultiple(
@@ -616,7 +631,8 @@ def dialog_progress(
 ) -> None:
     """Show a progress dialog that polls an InfoLabel (`progress_info`) for the current value.
 
-    Closes when value >= `max_value` or after `timeout` polling cycles. `background=true` uses `DialogProgressBG`.
+    Closes when value >= `max_value` or after `timeout` polling cycles.
+    `background=true` uses `DialogProgressBG`.
     """
     heading = _resolve_infolabel(heading) or 'Progress'
     message = _resolve_infolabel(message) or 'Please wait...'
@@ -647,7 +663,8 @@ def dialog_progress(
             if not is_background and dialog_normal and dialog_normal.iscanceled():
                 break
 
-            progress_str = xbmc.getInfoLabel(progress_info) if progress_info.startswith('$') else progress_info
+            progress_str = (xbmc.getInfoLabel(progress_info)
+                            if progress_info.startswith('$') else progress_info)
             try:
                 progress_val = int(progress_str)
             except (ValueError, TypeError):

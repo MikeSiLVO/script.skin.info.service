@@ -29,8 +29,9 @@ class ApiOmdb(RatingSource):
             rate_limit=(20, 1.0)
         )
 
-    def fetch_data(self, imdb_id: str, abort_flag=None, force_refresh: bool = False) -> Optional[dict]:
-        """Fetch complete OMDb data for an item. force_refresh bypasses cache read but still writes."""
+    def fetch_data(self, imdb_id: str, abort_flag=None,
+                   force_refresh: bool = False) -> Optional[dict]:
+        """Fetch full OMDb data for an item; `force_refresh` skips cache read but still writes."""
         if not self.api_key:
             return None
 
@@ -120,7 +121,8 @@ class ApiOmdb(RatingSource):
         if imdb_rating and imdb_rating != "N/A":
             try:
                 rating_val = float(imdb_rating)
-                votes_val = float(imdb_votes.replace(",", "")) if imdb_votes and imdb_votes != "N/A" else 0.0
+                votes_val = (float(imdb_votes.replace(",", ""))
+                             if imdb_votes and imdb_votes != "N/A" else 0.0)
                 result["imdb"] = {
                     "rating": self.normalize_rating(rating_val, 10),
                     "votes": votes_val
@@ -140,13 +142,17 @@ class ApiOmdb(RatingSource):
                 pass
 
         tomato_user_meter = data.get("tomatoUserMeter", "").replace("N/A", "")
-        tomato_user_reviews = data.get("tomatoUserReviews", "0").replace("N/A", "0").replace(",", "")
+        tomato_user_reviews = (
+            data.get("tomatoUserReviews", "0").replace("N/A", "0").replace(",", "")
+        )
 
         if tomato_user_meter:
             try:
                 rating = self.normalize_rating(float(tomato_user_meter), 100)
                 if rating > 0:
-                    result[RT_SOURCE_POPCORN] = {"rating": rating, "votes": float(tomato_user_reviews)}
+                    result[RT_SOURCE_POPCORN] = {
+                        "rating": rating, "votes": float(tomato_user_reviews)
+                    }
             except (ValueError, AttributeError):
                 pass
 
@@ -168,7 +174,8 @@ class ApiOmdb(RatingSource):
                 source = rating_entry.get("Source", "")
                 value = rating_entry.get("Value", "")
 
-                if "Rotten Tomatoes" in source and value and value != "N/A" and RT_SOURCE_TOMATOES not in result:
+                if ("Rotten Tomatoes" in source and value and value != "N/A"
+                        and RT_SOURCE_TOMATOES not in result):
                     try:
                         rating = self.normalize_rating(float(value.rstrip("%")), 100)
                         if rating > 0:
@@ -176,7 +183,8 @@ class ApiOmdb(RatingSource):
                     except ValueError:
                         pass
 
-                elif "Metacritic" in source and value and value != "N/A" and "metacritic" not in result:
+                elif ("Metacritic" in source and value and value != "N/A"
+                        and "metacritic" not in result):
                     try:
                         parts = value.split("/")
                         if len(parts) >= 1:

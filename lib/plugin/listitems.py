@@ -19,7 +19,8 @@ from lib.service.properties import (
 )
 
 
-def _build_art_dict(art: Optional[dict], keys: Tuple[str, ...], fallbacks: Optional[dict] = None) -> Dict[str, str]:
+def _build_art_dict(art: Optional[dict], keys: Tuple[str, ...],
+                    fallbacks: Optional[dict] = None) -> Dict[str, str]:
     """Build art properties dictionary."""
     art = art or {}
     fallbacks = fallbacks or {}

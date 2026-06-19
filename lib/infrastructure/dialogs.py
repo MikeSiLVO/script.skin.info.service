@@ -6,9 +6,9 @@ import xbmc
 import xbmcgui
 
 
-
 class ProgressDialog:
-    """Context-managed progress dialog wrapper that picks `DialogProgress` or `DialogProgressBG` and clamps percent.
+    """Context-managed progress dialog wrapper that picks `DialogProgress` or
+    `DialogProgressBG` and clamps percent.
 
     `fg_message_prefix` is prepended (with a `[CR]`) only in foreground mode — useful for
     cancel-hint banners that don't apply to background dialogs.
@@ -42,7 +42,7 @@ class ProgressDialog:
         self.last_percent = -1
 
     def update(self, percent: int, message: str = "", force: bool = False) -> None:
-        """Update dialog percent/message. Skips no-op updates when throttling is on unless `force=True`."""
+        """Update dialog percent/message; skips no-op updates when throttling on unless `force`."""
         if not self.dialog:
             return
 
@@ -59,7 +59,11 @@ class ProgressDialog:
             self.dialog.update(percent, self.heading, message)
         else:
             assert isinstance(self.dialog, xbmcgui.DialogProgress)
-            full_message = f"{self.fg_message_prefix}[CR]{message}" if self.fg_message_prefix and message else message
+            full_message = (
+                f"{self.fg_message_prefix}[CR]{message}"
+                if self.fg_message_prefix and message
+                else message
+            )
             self.dialog.update(percent, full_message)
 
     def close(self) -> None:

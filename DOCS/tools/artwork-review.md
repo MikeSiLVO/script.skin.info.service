@@ -254,6 +254,7 @@ Kodi will automatically use your skin's version if it exists, otherwise falls ba
 **Window Properties:**
 
 - **Window.Property(arttype)**: Artwork type being selected (poster, fanart, clearlogo, etc.)
+- **Window.Property(artlayout)**: Layout category for art types that share a shape - `poster`, `fanart`, `landscape`, or `square`. Empty for types with a unique shape (banner, clearlogo, characterart, spine, 3dcase, 3dflat, 3dface). Lets one layout serve several art types.
 - **Window.Property(heading)**: Media item title
 - **Window.Property(count)**: Formatted count (e.g., "15 available" or "24 of 58 available (English)")
 - **Window.Property(count_total)**: Total number of artwork options (numeric string)
@@ -268,6 +269,21 @@ Kodi will automatically use your skin's version if it exists, otherwise falls ba
 - **Window.Property(show_change_language)**: "true" or "false"
 - **Window.Property(show_sort_button)**: "true" or "false"
 - **Window.Property(show_source_button)**: "true" or "false"
+- **Window.Property(multiart_queued)**: "true" once a multi-art selection has been queued via the Multi-Art button (otherwise empty)
+
+**ListItem Properties (List 100 - artwork options):**
+
+- `ListItem.Label`: Option number ("Option 1", "Option 2", ...)
+- `ListItem.Art(thumb)`: Preview image
+- `ListItem.Property(fullurl)`: Full resolution image URL
+- `ListItem.Property(is_current)`: "true" when this option is the currently assigned artwork (set only on the matching item)
+- `ListItem.Property(dimensions)`: Width x Height (e.g., "1920x1080") when known
+- `ListItem.Property(width)`: Image width in pixels (when known)
+- `ListItem.Property(height)`: Image height in pixels (when known)
+- `ListItem.Property(source)`: Source name (e.g., "TMDB", "fanart.tv") when known
+- `ListItem.Property(language)`: Language display name (e.g., "English") when known
+- `ListItem.Property(language_short)`: Language code (e.g., "en") when known
+- `ListItem.Property(season)`: Season number (when known)
 
 **Example conditional usage in XML:**
 
@@ -311,6 +327,8 @@ This dialog uses a "working set" approach for managing extra art slots (fanart1+
 - **300**: Apply button (applies working set and closes)
 - **301**: Cancel button
 - **302**: Clear All button (resets to original state)
+- **303**: Sort button (visibility controlled by show_sort_button property)
+- **304**: Source filter button (visibility controlled by show_source_button property)
 
 **How it works:**
 
@@ -323,21 +341,26 @@ This dialog uses a "working set" approach for managing extra art slots (fanart1+
 **ListItem Properties (List 100 - Working Set):**
 
 - `ListItem.Label`: Slot name (fanart1, fanart2, poster1, poster2, etc.)
-- `ListItem.Art(thumb)`: Image URL
+- `ListItem.Art(thumb)`: Preview image
 - `ListItem.Property(url)`: Full URL
 - `ListItem.Property(index)`: Position in working set (0-based)
+- `ListItem.Property(dimensions)`: Width x Height (e.g., "1920x1080") when known
+- `ListItem.Property(width)`: Image width in pixels (when known)
+- `ListItem.Property(height)`: Image height in pixels (when known)
 
 **ListItem Properties (List 200 - Available):**
 
-- `ListItem.Label`: "Option 1 - 1920x1080 - [en]", etc. (includes available metadata)
-- `ListItem.Art(thumb)`: Preview URL
-- `ListItem.Property(url)`: Full URL
-- `ListItem.Property(width)`: Resolution width
-- `ListItem.Property(height)`: Resolution height
-- `ListItem.Property(rating)`: User rating (if available)
-- `ListItem.Property(language)`: Language code (if available)
-- `ListItem.Property(likes)`: Number of likes (if available)
-- `ListItem.Property(season)`: Season number (if available)
+- `ListItem.Label`: Option number ("Option 1", "Option 2", ...)
+- `ListItem.Art(thumb)`: Preview image
+- `ListItem.Property(fullurl)`: Full resolution image URL
+- `ListItem.Property(is_current)`: "true" if this option matches the item's current main art, else "false"
+- `ListItem.Property(dimensions)`: Width x Height (e.g., "1920x1080") when known
+- `ListItem.Property(width)`: Image width in pixels (when known)
+- `ListItem.Property(height)`: Image height in pixels (when known)
+- `ListItem.Property(source)`: Source name (e.g., "TMDB", "fanart.tv") when known
+- `ListItem.Property(language)`: Language display name (e.g., "English") when known
+- `ListItem.Property(language_short)`: Language code (e.g., "en") when known
+- `ListItem.Property(season)`: Season number (when known)
 
 **Window Properties:**
 

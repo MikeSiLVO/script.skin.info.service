@@ -58,7 +58,10 @@ def _call(method: str, params: Dict[str, Any]) -> dict:
     try:
         raw = xbmc.executeJSONRPC(payload)
         parsed = json.loads(raw)
-        return parsed if isinstance(parsed, dict) else {"error": {"message": "non-dict response", "raw": raw}}
+        return (
+            parsed if isinstance(parsed, dict)
+            else {"error": {"message": "non-dict response", "raw": raw}}
+        )
     except Exception as e:
         return {"error": {"message": f"executeJSONRPC failed: {e}"}}
 
@@ -83,7 +86,11 @@ def _bind_properties(method: str, response: dict, prop_prefix: str) -> None:
 
     result = response.get('result')
     if not isinstance(result, dict):
-        log("JSON", f"property mode needs dict result for {method} (got {type(result).__name__})", xbmc.LOGWARNING)
+        log(
+            "JSON",
+            f"property mode needs dict result for {method} (got {type(result).__name__})",
+            xbmc.LOGWARNING,
+        )
         return
 
     for key, value in result.items():

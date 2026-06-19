@@ -103,8 +103,6 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
     return updated_count
 
 
-
-
 def update_library_ratings(
     media_type: str,
     sources: List,
@@ -175,7 +173,11 @@ def update_library_ratings(
         if saved_progress:
             if saved_progress["dataset_date"] == dataset_date:
                 processed_ids = saved_progress["processed_ids"]
-                log("Ratings", f"Resuming IMDb update for {media_type}: {len(processed_ids)}/{len(items)} already processed")
+                log(
+                    "Ratings",
+                    f"Resuming IMDb update for {media_type}: "
+                    f"{len(processed_ids)}/{len(items)} already processed",
+                )
             else:
                 db.clear_imdb_update_progress(media_type)
                 log("Ratings", f"New IMDb dataset detected, starting fresh for {media_type}")
@@ -194,9 +196,13 @@ def update_library_ratings(
 
     with task_manager.TaskContext("Update Library Ratings") as ctx:
         if source_mode == "imdb":
-            run_imdb_batch(media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids)
+            run_imdb_batch(
+                media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids
+            )
         else:
-            run_multi_source_batch(media_type, items, sources, progress, results, retry_queue, ctx, mdblist_fetcher)
+            run_multi_source_batch(
+                media_type, items, sources, progress, results, retry_queue, ctx, mdblist_fetcher
+            )
 
     if progress:
         progress.close()
@@ -215,7 +221,11 @@ def update_library_ratings(
     if pending and not use_background:
         results["imdb_ids_corrected"] = prompt_imdb_corrections(pending)
     elif pending:
-        log("Ratings", f"{len(pending)} IMDb ID redirects found but not corrected (background mode)", xbmc.LOGINFO)
+        log(
+            "Ratings",
+            f"{len(pending)} IMDb ID redirects found but not corrected (background mode)",
+            xbmc.LOGINFO,
+        )
 
     results.pop("pending_corrections", None)
 
@@ -223,8 +233,16 @@ def update_library_ratings(
 
     if not use_background:
         cancelled_text = " (Cancelled)" if results.get("cancelled") else ""
-        imdb_ids_text = f"\nIMDb IDs added: {results['imdb_ids_added']}" if results["imdb_ids_added"] > 0 else ""
-        imdb_ids_corrected_text = f"\nIMDb IDs corrected: {results['imdb_ids_corrected']}" if results["imdb_ids_corrected"] > 0 else ""
+        imdb_ids_text = (
+            f"\nIMDb IDs added: {results['imdb_ids_added']}"
+            if results["imdb_ids_added"] > 0
+            else ""
+        )
+        imdb_ids_corrected_text = (
+            f"\nIMDb IDs corrected: {results['imdb_ids_corrected']}"
+            if results["imdb_ids_corrected"] > 0
+            else ""
+        )
         message = (
             f"Updated: {results['updated']}\n"
             f"Failed: {results['failed']}\n"

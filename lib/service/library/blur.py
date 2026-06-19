@@ -81,7 +81,9 @@ class BlurHandler:
                     f"Set raw infolabel instead. Got: {blur_source_infolabel}",
                     xbmc.LOGWARNING)
 
-            source_path = self._resolve_with_fallbacks(blur_source_infolabel.split("|"), is_var=False)
+            source_path = self._resolve_with_fallbacks(
+                blur_source_infolabel.split("|"), is_var=False
+            )
 
         if not source_path:
             if self._get_last(slot) is not None:

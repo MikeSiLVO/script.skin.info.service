@@ -1,35 +1,9 @@
 """Multi-select ordered image chooser for extra art slots.
 
 Handles EXTRA art slots only (fanart1/fanart2, poster1/poster2, etc.).
-Main art slot (fanart, poster, etc.) is handled by dialogs/artwork_selection.py
+Main art slot (fanart, poster, etc.) is handled by dialogs/select.py
 
-SKINNER XML INTEGRATION:
-
-Control IDs (must match these IDs in your XML):
-  100 - Current/Working art list (shows working set, click to remove)
-  200 - Available art list (shows options NOT in working set, click to add)
-  300 - Confirm/Apply button (applies working set and closes)
-  301 - Cancel button
-  302 - Clear All button (resets to original state)
-
-List 100 items show labels: "fanart1", "fanart2", "fanart3"... based on position (1-based)
-List 200 items show labels: "Option 1 - 1920x1080 - [en]", etc. (with available metadata)
-
-Window Properties Available (use $INFO[Window.Property(name)]):
-  - heading: Media item title (e.g., "The Matrix")
-  - arttype: Art type being managed (e.g., "Multi-Art Fanart")
-  - mediatype: Media type (movie, tvshow, etc.)
-  - count: Selection count text (e.g., "3 images selected")
-  - count_total: Total available images (string)
-  - count_selected: Number of selected images (string)
-  - multiart_dialog_active: "true" when dialog is open, cleared when closed
-
-ListItem Properties Available (for control 200):
-  - ListItem.Property(is_current): "true" if this artwork is currently set as main art (e.g., fanart, poster)
-  - ListItem.Property(dimensions): Width x Height (e.g., "1920x1080")
-  - ListItem.Property(source): Source name (e.g., "TMDB", "fanart.tv")
-  - ListItem.Property(language): Display name for artwork's language
-  - ListItem.Property(fullurl): Full resolution image URL
+Skinner control IDs and window/ListItem properties: DOCS/tools/artwork-review.md
 """
 from __future__ import annotations
 
@@ -87,7 +61,11 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             self._fetch_available_art()
 
         # Set window properties for XML
-        art_label = f"Multi-Art {self.art_type.title()}" if self.art_type != 'fanart' else "Multi-Art Fanart"
+        art_label = (
+            f"Multi-Art {self.art_type.title()}"
+            if self.art_type != 'fanart'
+            else "Multi-Art Fanart"
+        )
         self.setProperty('heading', self.title)
         self.setProperty('arttype', art_label)
         self.setProperty('mediatype', self.media_type)
@@ -168,7 +146,11 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             )
         except Exception as e:
             import traceback
-            log("Artwork", f"Error fetching available art: {str(e)}\n{traceback.format_exc()}", xbmc.LOGERROR)
+            log(
+                "Artwork",
+                f"Error fetching available art: {str(e)}\n{traceback.format_exc()}",
+                xbmc.LOGERROR,
+            )
             self.available_art = []
             self.full_artwork_list = []
 
@@ -189,7 +171,9 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             'discart': ('artwork_test_square.png', (1000, 1000)),
         }
 
-        image_file, _ = art_type_map.get(self.art_type.lower(), ('artwork_test_poster.png', (1000, 1500)))
+        image_file, _ = art_type_map.get(
+            self.art_type.lower(), ('artwork_test_poster.png', (1000, 1500))
+        )
         test_image_path = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/skins/default/media/artwork_test/{image_file}')
 
         self.current_extra_art = {
@@ -199,7 +183,9 @@ class ArtworkDialogMulti(ArtworkDialogBase):
 
         self.working_art = [test_image_path, test_image_path]
 
-        base_dims = FANART_DIMENSIONS_VARIANTS.get(self.art_type, [(1920, 1080), (1280, 720), (3840, 2160)])
+        base_dims = FANART_DIMENSIONS_VARIANTS.get(
+            self.art_type, [(1920, 1080), (1280, 720), (3840, 2160)]
+        )
 
         self.available_art = []
         for i in range(20):
@@ -443,7 +429,9 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         self._update_selection_count()
 
 
-def show_multiart_dialog(media_type: str, dbid: int, title: str, art_type: str = 'fanart', test_mode: bool = False) -> Optional[dict]:
+def show_multiart_dialog(
+    media_type: str, dbid: int, title: str, art_type: str = 'fanart', test_mode: bool = False
+) -> Optional[dict]:
     """Show multi-art dialog and return selected art dict.
 
     Manages numbered slots only (e.g. fanart1, fanart2). Returns dict like

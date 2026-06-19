@@ -98,9 +98,13 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
         votes = rating_data["votes"]
 
         if not (0.0 <= rating <= 10.0):
-            log("Ratings", f"CRITICAL - Rating out of valid range for '{source_name}': {rating:.2f} "
+            log(
+                "Ratings",
+                f"CRITICAL - Rating out of valid range for '{source_name}': {rating:.2f} "
                 f"(Kodi requires 0-10 scale). This indicates a normalization bug in rating source. "
-                f"Clamping to valid range to prevent database corruption.", xbmc.LOGERROR)
+                f"Clamping to valid range to prevent database corruption.",
+                xbmc.LOGERROR,
+            )
             rating = max(0.0, min(10.0, rating))
 
         kodi_ratings[source_name] = {

@@ -120,7 +120,7 @@ def _has_audiodb_text(data: dict, base: str) -> bool:
 
 
 def _has_artist_content(data: dict, source: str) -> bool:
-    """True if artist response has usable bio/wiki content (distinguishes real hits from empty shells)."""
+    """True if artist response has usable bio/wiki content, not an empty shell."""
     if source == SOURCE_AUDIODB:
         return _has_audiodb_text(data, 'strBiography')
     bio = data.get('bio') or data.get('wiki')
@@ -216,7 +216,6 @@ def init_music_database() -> None:
     """Create music metadata tables if missing."""
     with get_db(MUSIC_DB_PATH) as cursor:
         cursor.executescript(_SCHEMA_SQL)
-
 
 
 def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int:
@@ -315,7 +314,8 @@ def _cache_entry(table: str, source: str, lookup_key: str, data: dict,
         )
 
 
-def get_cached_artist(source: str, *, mbid: str = '', name: str = '', lang: str = '') -> Optional[dict]:
+def get_cached_artist(source: str, *, mbid: str = '', name: str = '',
+                      lang: str = '') -> Optional[dict]:
     """Return cached artist data for the given `source` (audiodb/lastfm/wikipedia), or None."""
     key = _artist_key(mbid, name)
     if not key:

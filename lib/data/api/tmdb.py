@@ -225,7 +225,10 @@ class ApiTmdb(RatingSource):
         stills = data.get('stills', [])
         result = {}
         if stills:
-            result['thumb'] = [format_tmdb_image(img, 'w300') for img in stills if format_tmdb_image(img, 'w300')]
+            result['thumb'] = [
+                format_tmdb_image(img, 'w300')
+                for img in stills if format_tmdb_image(img, 'w300')
+            ]
 
         return result
 
@@ -424,7 +427,7 @@ class ApiTmdb(RatingSource):
         return None
 
     def _fix_stale_episodes(self, data: dict, tmdb_id: int, abort_flag=None) -> None:
-        """If next_episode_to_air has a past date, fetch season data to correct both next and last."""
+        """If next_episode_to_air is in the past, fetch season data to fix next and last."""
         import datetime
         next_ep = data.get("next_episode_to_air")
         if not next_ep:
@@ -486,7 +489,8 @@ class ApiTmdb(RatingSource):
         ('logos', 'clearlogo', 'w500'),
     ]
 
-    def _cache_components(self, media_type: str, tmdb_id: int, data: dict, release_date: Optional[str], hints: Optional[dict] = None) -> None:
+    def _cache_components(self, media_type: str, tmdb_id: int, data: dict,
+                          release_date: Optional[str], hints: Optional[dict] = None) -> None:
         """Cache poster/backdrop/logo lists from a complete TMDB response into artwork_cache."""
         from lib.data import database as db
 
@@ -543,7 +547,8 @@ class ApiTmdb(RatingSource):
             abort_flag=abort_flag,
         )
 
-    def get_episode_details_extended(self, tmdb_id: int, season: int, episode: int, abort_flag=None) -> Optional[dict]:
+    def get_episode_details_extended(self, tmdb_id: int, season: int, episode: int,
+                                     abort_flag=None) -> Optional[dict]:
         """Fetch complete episode data in one API call. Returns base details plus appended data."""
         return self._fetch_details_extended(
             f"/tv/{tmdb_id}/season/{season}/episode/{episode}",
@@ -553,7 +558,7 @@ class ApiTmdb(RatingSource):
 
     def get_season_details(self, tmdb_id: int, season_number: int, abort_flag=None,
                            force_refresh: bool = False) -> Optional[dict]:
-        """Get season details (episodes with guest_stars + aggregate_credits) — checks cache first."""
+        """Get season details (episodes + aggregate_credits) from cache, else API."""
         from lib.data import database as db
 
         if not force_refresh:
@@ -565,7 +570,11 @@ class ApiTmdb(RatingSource):
         language = _get_metadata_language()
         data = self.session.get(
             f"/tv/{tmdb_id}/season/{season_number}",
-            params={"api_key": api_key, "language": language, "append_to_response": "aggregate_credits"},
+            params={
+                "api_key": api_key,
+                "language": language,
+                "append_to_response": "aggregate_credits",
+            },
             abort_flag=abort_flag
         )
 
@@ -651,7 +660,8 @@ class ApiTmdb(RatingSource):
             return data.get("results", [])
         return []
 
-    def get_trending(self, media_type: str, window: str = 'week', page: int = 1, abort_flag=None) -> list:
+    def get_trending(self, media_type: str, window: str = 'week', page: int = 1,
+                     abort_flag=None) -> list:
         return self._get_list(f"/trending/{media_type}/{window}", page=page, abort_flag=abort_flag)
 
     def get_popular(self, media_type: str, page: int = 1, abort_flag=None) -> list:

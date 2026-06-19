@@ -49,7 +49,8 @@ _LIBRARY_DRIVE_RE = re.compile(r'^[D-Z]:', re.IGNORECASE)
 
 
 def is_library_artwork_url(url: str) -> bool:
-    """True if URL points at library artwork; False for addon icons, system files, or special folders.
+    """True if URL points at library artwork; False for addon icons, system files,
+    or special folders.
 
     Recognised library: HTTP/HTTPS, `image://video@`/`music@`, drive-letter paths, SMB/NFS shares.
     """
@@ -62,7 +63,11 @@ def is_library_artwork_url(url: str) -> bool:
     if _is_system_artwork(decoded_url):
         return False
 
-    special_folders = ('/.actors/', '\\.actors\\', '/.extrafanart/', '\\.extrafanart\\', '/.extrathumbs/', '\\.extrathumbs\\')
+    special_folders = (
+        '/.actors/', '\\.actors\\',
+        '/.extrafanart/', '\\.extrafanart\\',
+        '/.extrathumbs/', '\\.extrathumbs\\'
+    )
     if any(marker in decoded_url for marker in special_folders):
         return False
 

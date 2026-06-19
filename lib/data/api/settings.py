@@ -70,7 +70,10 @@ def test_api_key(provider: str) -> None:
         return
 
     progress = xbmcgui.DialogProgress()
-    progress.create(ADDON.getLocalizedString(32370).format(config['name']), ADDON.getLocalizedString(32371))
+    progress.create(
+        ADDON.getLocalizedString(32370).format(config['name']),
+        ADDON.getLocalizedString(32371),
+    )
 
     try:
         if provider == "tmdb":

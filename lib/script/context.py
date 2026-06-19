@@ -20,7 +20,7 @@ _MENU_REGISTRY = (
 
 
 def main() -> None:
-    """Context-menu entry: show enabled actions (review/download art, update ratings, edit) and dispatch."""
+    """Context-menu entry: show enabled actions (review/download art, ratings, edit), dispatch."""
     addon: xbmcaddon.Addon = xbmcaddon.Addon()
 
     listitem = getattr(sys, 'listitem', None)

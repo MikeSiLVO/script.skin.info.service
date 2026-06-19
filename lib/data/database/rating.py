@@ -19,7 +19,8 @@ def get_provider_cache(provider: str, media_id: str) -> Optional[dict]:
     """Get cached provider data if not expired based on smart TTL."""
     with get_db() as cursor:
         cursor.execute(
-            "SELECT data, release_date, cached_at FROM provider_cache WHERE provider = ? AND media_id = ?",
+            "SELECT data, release_date, cached_at FROM provider_cache "
+            "WHERE provider = ? AND media_id = ?",
             (provider, media_id)
         )
         row = cursor.fetchone()
@@ -64,9 +65,8 @@ def save_provider_cache(provider: str, media_id: str, data: dict,
     """Upsert a compressed provider response into `provider_cache`."""
     with get_db() as cursor:
         cursor.execute(
-            """
-            INSERT OR REPLACE INTO provider_cache (provider, media_id, data, release_date, cached_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """,
+            "\n            INSERT OR REPLACE INTO provider_cache "
+            "(provider, media_id, data, release_date, cached_at)\n"
+            "            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)\n            ",
             (provider, media_id, _compress_data(data), release_date)
         )

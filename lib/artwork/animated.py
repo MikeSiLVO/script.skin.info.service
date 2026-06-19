@@ -26,7 +26,9 @@ def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) ->
 
     items = [MenuItem(ADDON.getLocalizedString(32540), lambda: _run_scan(scope, scan_mode))]
     if last_stats:
-        items.append(MenuItem(ADDON.getLocalizedString(32086), lambda: _view_report(last_stats), loop=True))
+        items.append(
+            MenuItem(ADDON.getLocalizedString(32086), lambda: _view_report(last_stats), loop=True)
+        )
 
     items.extend([
         MenuItem(ADDON.getLocalizedString(32541), _view_cache_stats, loop=True),
@@ -108,7 +110,11 @@ def _view_cache_stats() -> None:
         lines.append(f"[B]{ADDON.getLocalizedString(32589).format(20)}[/B]")
         for path, metadata in sorted_gifs[:20]:
             scanned_at = metadata.get('scanned_at', xbmc.getLocalizedString(13205))
-            filename = path.split('/')[-1] if '/' in path else path.split('\\')[-1] if '\\' in path else path
+            filename = (
+                path.split('/')[-1] if '/' in path
+                else path.split('\\')[-1] if '\\' in path
+                else path
+            )
             lines.append(f"  {filename}")
             lines.append(f"    Scanned: {scanned_at}")
 
@@ -160,7 +166,11 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
     scope = scope.lower()
     valid_scopes = ("movies", "tvshows", "all")
     if scope not in valid_scopes:
-        log("Artwork", f"Invalid scope '{scope}' for gif scanner. Expected one of: {', '.join(valid_scopes)}", xbmc.LOGWARNING)
+        log(
+            "Artwork",
+            f"Invalid scope '{scope}' for gif scanner. Expected one of: {', '.join(valid_scopes)}",
+            xbmc.LOGWARNING,
+        )
         show_notification(
             ADDON.getLocalizedString(32192),
             ADDON.getLocalizedString(32575).format(scope),
@@ -177,7 +187,11 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
     scan_mode = scan_mode.lower()
     valid_modes = ("incremental", "full")
     if scan_mode not in valid_modes:
-        log("Artwork", f"Invalid scan mode '{scan_mode}'. Expected one of: {', '.join(valid_modes)}", xbmc.LOGWARNING)
+        log(
+            "Artwork",
+            f"Invalid scan mode '{scan_mode}'. Expected one of: {', '.join(valid_modes)}",
+            xbmc.LOGWARNING,
+        )
         show_notification(
             ADDON.getLocalizedString(32192),
             ADDON.getLocalizedString(32576).format(scan_mode),
@@ -226,10 +240,16 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
 
                 if resume_bg:
                     if task_manager.is_task_running():
-                        dialog.ok(ADDON.getLocalizedString(32172), f"{ADDON.getLocalizedString(32173)}.[CR]{ADDON.getLocalizedString(32591)}")
+                        dialog.ok(
+                            ADDON.getLocalizedString(32172),
+                            f"{ADDON.getLocalizedString(32173)}.[CR]"
+                            f"{ADDON.getLocalizedString(32591)}",
+                        )
                         return
                     with task_manager.TaskContext(ADDON.getLocalizedString(32192)) as bg_ctx:
-                        progress_bg = ProgressDialog(use_background=True, heading=ADDON.getLocalizedString(32192))
+                        progress_bg = ProgressDialog(
+                            use_background=True, heading=ADDON.getLocalizedString(32192)
+                        )
                         progress_bg.create(ADDON.getLocalizedString(32577))
                         _run_scan_operation(scope, scan_mode, progress_bg, task_context=bg_ctx)
                         progress_bg.close()
@@ -243,7 +263,9 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
 
     except Exception as e:
         log("Artwork", f"Animated scan failed: {str(e)}", xbmc.LOGERROR)
-        dialog.ok(ADDON.getLocalizedString(32192), f"{ADDON.getLocalizedString(32274)}:[CR]{str(e)}")
+        dialog.ok(
+            ADDON.getLocalizedString(32192), f"{ADDON.getLocalizedString(32274)}:[CR]{str(e)}"
+        )
 
 
 def _run_scan_operation(
@@ -316,10 +338,17 @@ def _get_scan_mode_from_setting() -> Optional[str]:
 
     if setting_value == "always_ask":
         cache = gif_db.get_all_cached_gifs()
-        cache_info = f" ({ADDON.getLocalizedString(32586).format(len(cache))})" if cache else f" ({ADDON.getLocalizedString(32587)})"
+        cache_info = (
+            f" ({ADDON.getLocalizedString(32586).format(len(cache))})" if cache
+            else f" ({ADDON.getLocalizedString(32587)})"
+        )
 
         options = [
-            ("incremental", f"{ADDON.getLocalizedString(32582)}{cache_info}", ADDON.getLocalizedString(32583)),
+            (
+                "incremental",
+                f"{ADDON.getLocalizedString(32582)}{cache_info}",
+                ADDON.getLocalizedString(32583),
+            ),
             ("full", ADDON.getLocalizedString(32584), ADDON.getLocalizedString(32585))
         ]
 
@@ -382,7 +411,10 @@ class ArtworkAnimated:
 
         total = len(items)
         for idx, item in enumerate(items):
-            if (self.task_context and self.task_context.abort_flag.is_requested()) or self.progress.is_cancelled():
+            if (
+                (self.task_context and self.task_context.abort_flag.is_requested())
+                or self.progress.is_cancelled()
+            ):
                 self.cancelled = True
                 break
 
@@ -393,7 +425,11 @@ class ArtworkAnimated:
             current_art = item.get("art", {})
 
             percent = int((idx / total) * 100)
-            message = f"Scanning: {title}\nProgress: {idx + 1}/{total} | Found: {self.found_count} | Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
+            message = (
+                f"Scanning: {title}\n"
+                f"Progress: {idx + 1}/{total} | Found: {self.found_count} | "
+                f"Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
+            )
             self.progress.update(percent, message)
 
             if not item_id or not file_path:
@@ -406,20 +442,38 @@ class ArtworkAnimated:
 
                 if not self.force_full_rescan and self._should_skip_gif(gif_path):
                     self.skipped_cached += 1
-                    log("Artwork", f"GIF scan: Skipped cached GIF for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
+                    log(
+                        "Artwork",
+                        f"GIF scan: Skipped cached GIF for {spec.id_key}={item_id} "
+                        f"({title}): {gif_path}",
+                        xbmc.LOGDEBUG,
+                    )
                     continue
 
-                log("Artwork", f"GIF scan: Setting GIF for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGDEBUG)
+                log(
+                    "Artwork",
+                    f"GIF scan: Setting GIF for {spec.id_key}={item_id} ({title}): {gif_path}",
+                    xbmc.LOGDEBUG,
+                )
                 if self._set_art(media_type, item_id, title, gif_path):
                     self._update_cache(gif_path)
                     self.found_count += 1
                 else:
-                    log("Artwork", f"GIF scan: Failed to apply GIF for {spec.id_key}={item_id} ({title})", xbmc.LOGWARNING)
+                    log(
+                        "Artwork",
+                        f"GIF scan: Failed to apply GIF for {spec.id_key}={item_id} ({title})",
+                        xbmc.LOGWARNING,
+                    )
             else:
                 if current_art.get("animatedposter"):
                     self.skipped_existing += 1
                 else:
-                    log("Artwork", f"GIF scan: No matching GIF found for {spec.id_key}={item_id} ({title}), folder={os.path.dirname(file_path)}", xbmc.LOGDEBUG)
+                    log(
+                        "Artwork",
+                        f"GIF scan: No matching GIF found for {spec.id_key}={item_id} "
+                        f"({title}), folder={os.path.dirname(file_path)}",
+                        xbmc.LOGDEBUG,
+                    )
 
 
     def _find_gif(self, file_path: str) -> Optional[str]:
@@ -498,7 +552,11 @@ class ArtworkAnimated:
         spec = MEDIA_TYPE_SPECS[media_type]
         try:
             if not xbmcvfs.exists(gif_path):
-                log("Artwork", f"GIF file does not exist for {spec.id_key}={item_id} ({title}): {gif_path}", xbmc.LOGWARNING)
+                log(
+                    "Artwork",
+                    f"GIF file does not exist for {spec.id_key}={item_id} ({title}): {gif_path}",
+                    xbmc.LOGWARNING,
+                )
                 return False
 
             resp = request(
@@ -506,13 +564,28 @@ class ArtworkAnimated:
                 {spec.id_key: item_id, "art": {"animatedposter": gif_path}},
             )
             if resp is None:
-                log("Artwork", f"JSON-RPC returned None for {spec.id_key}={item_id} ({title}), path={gif_path}", xbmc.LOGWARNING)
+                log(
+                    "Artwork",
+                    f"JSON-RPC returned None for {spec.id_key}={item_id} ({title}), "
+                    f"path={gif_path}",
+                    xbmc.LOGWARNING,
+                )
                 return False
 
-            log("Artwork", f"Successfully set animatedposter for {spec.id_key}={item_id} ({title}), response: {resp}", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Successfully set animatedposter for {spec.id_key}={item_id} ({title}), "
+                f"response: {resp}",
+                xbmc.LOGDEBUG,
+            )
             return True
         except Exception as e:
-            log("Artwork", f"Exception setting art for {spec.id_key}={item_id} ({title}), path={gif_path}: {str(e)}", xbmc.LOGERROR)
+            log(
+                "Artwork",
+                f"Exception setting art for {spec.id_key}={item_id} ({title}), "
+                f"path={gif_path}: {str(e)}",
+                xbmc.LOGERROR,
+            )
             return False
 
     def _should_skip_gif(self, gif_path: str) -> bool:
@@ -551,9 +624,13 @@ class ArtworkAnimated:
     def show_summary(self) -> None:
         """Show completion notification."""
         if self.cancelled:
-            message = ADDON.getLocalizedString(32593).format(self.found_count, self.skipped_cached, self.skipped_existing)
+            message = ADDON.getLocalizedString(32593).format(
+                self.found_count, self.skipped_cached, self.skipped_existing
+            )
         else:
-            message = ADDON.getLocalizedString(32594).format(self.found_count, self.skipped_cached, self.skipped_existing)
+            message = ADDON.getLocalizedString(32594).format(
+                self.found_count, self.skipped_cached, self.skipped_existing
+            )
 
         show_notification(
             ADDON.getLocalizedString(32192),

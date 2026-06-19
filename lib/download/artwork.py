@@ -24,7 +24,7 @@ class _DownloadAborted(Exception):
 
 
 class DownloadArtwork:
-    """Single artwork file downloader with streaming, content-type detection, and per-provider error gating."""
+    """Single-file artwork downloader: streaming, content-type detect, per-provider error gating."""
 
     CONTENT_TYPE_MAP = {
         'image/jpeg': 'jpg',
@@ -70,7 +70,8 @@ class DownloadArtwork:
         self.provider_errors[hostname] = count
         if count >= self.max_provider_errors:
             self.provider_blocked_until[hostname] = time.time() + self.block_cooldown
-            log("Download", f"Provider {hostname} blocked for {self.block_cooldown:.0f}s after {count} errors",
+            log("Download",
+                f"Provider {hostname} blocked for {self.block_cooldown:.0f}s after {count} errors",
                 xbmc.LOGWARNING)
 
     def _block_file_writes(self) -> None:
@@ -90,10 +91,11 @@ class DownloadArtwork:
         abort_flag=None,
         progress_callback: Optional[Callable[[int], None]] = None
     ) -> Tuple[bool, Optional[str], int, Optional[str]]:
-        """Download one artwork file. `local_path` is extension-less; actual extension comes from Content-Type.
+        """Download one artwork file. `local_path` is extension-less; actual extension
+        comes from Content-Type.
 
-        `existing_file_mode` is `skip`/`overwrite`/`use_existing`. `progress_callback` is invoked with
-        each chunk's byte count during streaming so callers can detect live activity.
+        `existing_file_mode` is `skip`/`overwrite`/`use_existing`. `progress_callback` is
+        invoked with each chunk's byte count during streaming so callers can detect live activity.
         Returns `(success, error_or_None, bytes_written, error_category_or_None)`.
         """
         if not url:
@@ -150,14 +152,17 @@ class DownloadArtwork:
                     response.close()
                     return False, f"Cannot create directory: {parent_dir}", 0, self.ERROR_DIRECTORY
 
-            bytes_written = self._write_file_stream(full_path, response, abort_flag, progress_callback)
+            bytes_written = self._write_file_stream(
+                full_path, response, abort_flag, progress_callback
+            )
 
             if existing_file_mode == 'overwrite' and alternate_path:
                 for ext_type in self.CONTENT_TYPE_MAP.values():
                     alt_file = xbmcvfs.validatePath(alternate_path + '.' + ext_type)
                     if xbmcvfs.exists(alt_file):
                         if not xbmcvfs.delete(alt_file):
-                            log("Download", f"Failed to delete old pattern file: {alt_file}", xbmc.LOGWARNING)
+                            log("Download", f"Failed to delete old pattern file: {alt_file}",
+                                xbmc.LOGWARNING)
 
             self.provider_errors[hostname] = 0
             self.provider_blocked_until.pop(hostname, None)

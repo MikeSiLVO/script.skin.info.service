@@ -1,39 +1,6 @@
 """Visual artwork chooser for manual review.
 
-SKINNER XML INTEGRATION:
-
-Control IDs:
-  100 - Artwork list control (displays available options, click to select)
-  201 - Skip button
-  202 - Cancel button
-  203 - Multi-Art button (visibility controlled automatically by script)
-  204 - Change Language button (visibility controlled by show_change_language property)
-  205 - Sort button (visibility controlled by show_sort_button property)
-  206 - Source button (visibility controlled by show_source_button property)
-Window Properties Available:
-  - property(heading): Title (e.g., "The Matrix")
-  - property(arttype): Art type being selected (e.g., "poster", "fanart", "spine")
-  - property(artlayout): Layout category for shared layouts (e.g., "poster", "fanart", "landscape", "square")
-                         Empty for unique types (banner, clearlogo, characterart, spine, 3dcase, 3dflat, 3dface)
-  - property(mediatype): Media type (movie, tvshow, etc.)
-  - property(year): Release year
-  - property(hascurrentart): "true" or "false" - whether item already has this art type
-  - property(currentarturl): URL of current artwork (if any)
-  - property(show_multiart): "true" or "false" - multi-art button availability
-  - property(language_short): Current language filter code (e.g., "en")
-  - property(language): Display name for current language (e.g., "English")
-  - property(count): Smart display string ("58 available" or "24 of 58 available (English)")
-  - property(count_filtered): Raw number of filtered items (string)
-  - property(count_total): Raw number of total items (string)
-  - property(show_change_language): "true" or "false" - whether to show Change Language button
-  - property(show_sort_button): "true" or "false" - whether to show Sort button (hidden when only one resolution available)
-  - property(show_source_button): "true" or "false" - whether to show Source filter button (hidden when only one source available)
-ListItem Properties Available (for control 100):
-  - ListItem.Property(is_current): "true" if this artwork is currently assigned (use for highlighting)
-  - ListItem.Property(dimensions): Width x Height (e.g., "1920x1080")
-  - ListItem.Property(source): Source name (e.g., "TMDB", "fanart.tv")
-  - ListItem.Property(language): Display name for artwork's language
-  - ListItem.Property(fullurl): Full resolution image URL
+Skinner control IDs and window/ListItem properties: DOCS/tools/artwork-review.md
 """
 from __future__ import annotations
 
@@ -111,7 +78,8 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             art_layout = 'square'
         self.setProperty('artlayout', art_layout)
         self.setProperty('hascurrentart', 'true' if self.current_url else 'false')
-        self.setProperty('currentarturl', decode_image_url(self.current_url) if self.current_url else '')
+        self.setProperty('currentarturl',
+                         decode_image_url(self.current_url) if self.current_url else '')
         self.setProperty('count_total', str(len(self.full_artwork_list)))
         self.setProperty('show_multiart', 'true' if self.art_type == 'fanart' else 'false')
 
@@ -269,7 +237,8 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             return
 
         def count_language(lang: str) -> int:
-            return sum(1 for art in self.full_artwork_list if normalize_language_tag(art.get('language')) == lang)
+            return sum(1 for art in self.full_artwork_list
+                       if normalize_language_tag(art.get('language')) == lang)
 
         preferred_lang = get_preferred_language_code()
         is_filtered = len(self.available_art) != len(self.full_artwork_list)
@@ -380,9 +349,11 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         if len(self.available_art) != len(self.full_artwork_list):
             if is_fanart_no_lang_filter and self.current_language is None:
-                count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available (Text-free)"
+                count_text = (f"{len(self.available_art)} of {len(self.full_artwork_list)} "
+                              "available (Text-free)")
             else:
-                count_text = f"{len(self.available_art)} of {len(self.full_artwork_list)} available ({language_display})"
+                count_text = (f"{len(self.available_art)} of {len(self.full_artwork_list)} "
+                              f"available ({language_display})")
         else:
             count_text = f"{len(self.full_artwork_list)} available"
         self.setProperty('count', count_text)
@@ -390,7 +361,8 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         self.setProperty('language_short', language_short)
 
         # Update Change Language button visibility
-        show_lang_button = len(self.available_languages) > 1 or len(self.available_art) != len(self.full_artwork_list)
+        show_lang_button = (len(self.available_languages) > 1
+                            or len(self.available_art) != len(self.full_artwork_list))
         self.setProperty('show_change_language', 'true' if show_lang_button else 'false')
 
         self._populate_artwork_list()

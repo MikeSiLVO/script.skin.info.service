@@ -38,10 +38,18 @@ class DialogActorInfo(InfoDialogBase):
         encoded_name = urllib.parse.quote(self._person_name)
 
         containers = {
-            'library_movies': f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}",
-            'library_tvshows': f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}",
-            'movies': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=movie",
-            'tvshows': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=tvshow",
+            'library_movies': (
+                f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"
+            ),
+            'library_tvshows': (
+                f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"
+            ),
+            'movies': (
+                f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=movie"
+            ),
+            'tvshows': (
+                f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=tvshow"
+            ),
             'all_credits': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}",
             'crew': f"{base_url}?action=person_info&info_type=crew&person_id={pid}",
             'images': f"{base_url}?action=person_info&info_type=images&person_id={pid}",

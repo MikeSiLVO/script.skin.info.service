@@ -48,7 +48,9 @@ def _select_art_type_menu(dialog_type: str, preselect: int = 0) -> tuple[Optiona
 
 
 def _loop_with_art_menu(dialog_label: str, art_type: Optional[str], runner) -> None:
-    """Show art-type picker (when `art_type` is None) and call `runner(art_type)`. Loops if menu mode.
+    """Show art-type picker (when `art_type` is None) and call `runner(art_type)`.
+
+    Loops if menu mode.
 
     `runner` takes a single `art_type` arg and runs whatever dialog is being tested.
     """
@@ -71,7 +73,7 @@ def _loop_with_art_menu(dialog_label: str, art_type: Optional[str], runner) -> N
 
 
 def test_artwork_selection_dialog(art_type: Optional[str] = None) -> None:
-    """Skinner test: open artwork-selection dialog with mock data. None shows art-type menu + loops."""
+    """Skinner test: artwork-selection dialog with mock data; None shows art-type menu + loops."""
     from lib.artwork.dialogs.select import show_artwork_selection_dialog
     from lib.kodi.client import log
 
@@ -130,8 +132,13 @@ def _generate_mock_art_items(art_type: str, count: int = 12) -> List[Dict[str, A
         'discart': ('artwork_test_square.png', (1000, 1000)),
     }
 
-    image_file, dimensions = art_type_map.get(art_type.lower(), ('artwork_test_poster.png', (1000, 1500)))
-    test_image = xbmcvfs.translatePath(f'special://home/addons/script.skin.info.service/resources/skins/default/media/artwork_test/{image_file}')
+    image_file, dimensions = art_type_map.get(
+        art_type.lower(), ('artwork_test_poster.png', (1000, 1500))
+    )
+    test_image = xbmcvfs.translatePath(
+        f'special://home/addons/script.skin.info.service/resources/skins/default/'
+        f'media/artwork_test/{image_file}'
+    )
 
     mock_items = []
 

@@ -90,13 +90,14 @@ def _calculate_disk_usage(thumbnails_path: str) -> int:
                 except Exception:
                     pass
     except Exception as e:
-        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}", xbmc.LOGWARNING)
+        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}",
+            xbmc.LOGWARNING)
     return disk_usage
 
 
 def calculate_texture_statistics(textures: list[Dict[str, Any]],
                                  progress: xbmcgui.DialogProgress) -> Optional[Dict[str, Any]]:
-    """Compute texture-cache stats: counts, age buckets, usage buckets, type breakdown, disk usage."""
+    """Compute texture-cache stats: counts, age/usage buckets, type breakdown, disk usage."""
     if not textures:
         return None
 

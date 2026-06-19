@@ -44,11 +44,15 @@ def _clear_person_properties() -> None:
         xbmc.executebuiltin(f'ClearProperty({key},home)')
 
 
-def _resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, crew: str,
+def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, crew: str,
                      separator: str, auto_search: bool) -> Optional[tuple]:
     """Resolve `(person_id, name)` via TMDB crew listing. Returns None on failure."""
     if crew not in ('director', 'writer', 'creator'):
-        log("General", f"person_info: Invalid crew type '{crew}', expected director/writer/creator", xbmc.LOGERROR)
+        log(
+            "General",
+            f"person_info: Invalid crew type '{crew}', expected director/writer/creator",
+            xbmc.LOGERROR,
+        )
         return None
     if not dbid:
         log("General", "person_info: crew mode requires dbid parameter", xbmc.LOGERROR)
@@ -62,7 +66,11 @@ def _resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, c
 
     tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
     if not tmdb_id:
-        log("General", f"person_info: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGERROR)
+        log(
+            "General",
+            f"person_info: Could not resolve TMDB ID for {dbtype} {dbid}",
+            xbmc.LOGERROR,
+        )
         return None
 
     if not name:
@@ -83,7 +91,11 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
     if len(crew_list) == 1:
         person_id = crew_list[0]['id']
         name = crew_list[0]['name']
-        log("General", f"person_info: Single {crew} found: {name} (person_id={person_id})", xbmc.LOGDEBUG)
+        log(
+            "General",
+            f"person_info: Single {crew} found: {name} (person_id={person_id})",
+            xbmc.LOGDEBUG,
+        )
         return person_id, name
 
     items = []
@@ -103,7 +115,11 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
 
     person_id = crew_list[selected]['id']
     name = crew_list[selected]['name']
-    log("General", f"person_info: User selected {crew}: {name} (person_id={person_id})", xbmc.LOGDEBUG)
+    log(
+        "General",
+        f"person_info: User selected {crew}: {name} (person_id={person_id})",
+        xbmc.LOGDEBUG,
+    )
     return person_id, name
 
 
@@ -124,7 +140,9 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
             return None
         selected_name = names[selected]
 
-    person_id = person_api.match_crew_to_person_id(selected_name, crew, tmdb_id, dbtype, auto_search=auto_search)
+    person_id = person_api.match_crew_to_person_id(
+        selected_name, crew, tmdb_id, dbtype, auto_search=auto_search
+    )
     if not person_id:
         log("General", f"person_info: Could not match {crew} '{selected_name}'", xbmc.LOGDEBUG)
         return None
@@ -132,7 +150,7 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
     return person_id, selected_name
 
 
-def _resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbtype: str,
+def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbtype: str,
                       auto_search: bool, online: bool, sourceid: Optional[str],
                       open_window: str, set_search_query: bool = True) -> Optional[int]:
     """Resolve a person_id via actor name+role match.
@@ -152,7 +170,11 @@ def _resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], db
 
     if dbtype in ('set', 'season'):
         if not sourceid:
-            log("General", f"person_info: {dbtype.capitalize()}s require sourceid parameter", xbmc.LOGERROR)
+            log(
+                "General",
+                f"person_info: {dbtype.capitalize()}s require sourceid parameter",
+                xbmc.LOGERROR,
+            )
             return None
         try:
             source_dbid = int(sourceid)
@@ -191,7 +213,11 @@ def _resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], db
             search_command += f",open_window={open_window}"
         search_command += ")"
         xbmc.executebuiltin(f'SetProperty(SkinInfo.Person.SearchQuery,{search_command},home)')
-        log("General", f"person_info: Auto-match failed, set SearchQuery property for '{name}'", xbmc.LOGDEBUG)
+        log(
+            "General",
+            f"person_info: Auto-match failed, set SearchQuery property for '{name}'",
+            xbmc.LOGDEBUG,
+        )
     else:
         log("General", f"person_info: Could not match actor '{name}'", xbmc.LOGDEBUG)
     return None
@@ -205,12 +231,18 @@ def _set_person_properties(person_id: int, name: str, open_window: str) -> None:
     xbmc.executebuiltin(f'SetProperty(SkinInfo.person_id,{person_id},home)')
 
     routes = (
-        ('SkinInfo.Person.Details',         f"{base_url}?action=person_info&info_type=details&person_id={person_id}"),
-        ('SkinInfo.Person.Images',          f"{base_url}?action=person_info&info_type=images&person_id={person_id}"),
-        ('SkinInfo.Person.Filmography',     f"{base_url}?action=person_info&info_type=filmography&person_id={person_id}"),
-        ('SkinInfo.Person.Crew',            f"{base_url}?action=person_info&info_type=crew&person_id={person_id}"),
-        ('SkinInfo.Person.LibraryMovies',   f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"),
-        ('SkinInfo.Person.LibraryTVShows',  f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"),
+        ('SkinInfo.Person.Details',
+         f"{base_url}?action=person_info&info_type=details&person_id={person_id}"),
+        ('SkinInfo.Person.Images',
+         f"{base_url}?action=person_info&info_type=images&person_id={person_id}"),
+        ('SkinInfo.Person.Filmography',
+         f"{base_url}?action=person_info&info_type=filmography&person_id={person_id}"),
+        ('SkinInfo.Person.Crew',
+         f"{base_url}?action=person_info&info_type=crew&person_id={person_id}"),
+        ('SkinInfo.Person.LibraryMovies',
+         f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"),
+        ('SkinInfo.Person.LibraryTVShows',
+         f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"),
     )
     for prop, url in routes:
         xbmc.executebuiltin(f'SetProperty({prop},{url},home)')
@@ -222,7 +254,7 @@ def _set_person_properties(person_id: int, name: str, open_window: str) -> None:
 
 
 def _blur_person_profile(profile_path: str) -> None:
-    """Fire-and-forget RunScript to blur the TMDB profile image into `SkinInfo.Person.BlurredImage`."""
+    """Fire-and-forget RunScript to blur TMDB profile into `SkinInfo.Person.BlurredImage`."""
     from lib.data.api.utilities import tmdb_image_url
     profile_url = tmdb_image_url(profile_path)
     xbmc.executebuiltin(
@@ -259,14 +291,18 @@ def _resolve_search_dialog(person_api, query: str) -> Optional[Tuple[int, dict]]
 
     person_data = person_api.get_person_data(person_id)
     if not person_data:
-        log("General", f"person_search: Failed to get details for person_id={person_id}", xbmc.LOGERROR)
+        log(
+            "General",
+            f"person_search: Failed to get details for person_id={person_id}",
+            xbmc.LOGERROR,
+        )
         return None
 
     return person_id, person_data
 
 
 def handle_person_search_action(args: dict) -> None:
-    """Entry point for `RunScript(...,action=person_search,...)`. See module docstring for input modes."""
+    """Entry point for `action=person_search`; see module docstring for input modes."""
     from lib.data.api import person as person_api
     from lib.data.database._infrastructure import init_database
 
@@ -307,7 +343,7 @@ def handle_person_search_action(args: dict) -> None:
 
 
 def handle_person_info_action(args: dict) -> None:
-    """Entry point for `RunScript(...,action=person_info,...)`. See module docstring for input modes."""
+    """Entry point for `action=person_info`; see module docstring for input modes."""
     from lib.data.api import person as person_api
     from lib.data.database._infrastructure import init_database
 
@@ -335,12 +371,12 @@ def handle_person_info_action(args: dict) -> None:
             return
 
     if not person_id and crew:
-        result = _resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
+        result = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
         if result is None:
             return
         person_id, name = result
     elif not person_id:
-        person_id = _resolve_via_actor(
+        person_id = resolve_via_actor(
             person_api, name, role, dbid, dbtype,
             auto_search, online, args.get('sourceid'), open_window,
         )

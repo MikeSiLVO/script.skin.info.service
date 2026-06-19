@@ -16,7 +16,7 @@ _MAX_CAST_ITEMS = 2000
 
 
 def _deduplicate_cast(items: list) -> list:
-    """Dedupe cast across items (by `name`, first occurrence wins). Adds `_source_id` to each actor."""
+    """Dedupe cast across items by `name` (first wins); adds `_source_id` to each actor."""
     seen = set()
     unique_cast = []
 
@@ -93,7 +93,11 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
         resolved = resolve_tmdb_id(dbtype, dbid)
         tmdb_id = resolved or 0
     if not tmdb_id:
-        log("Plugin", f"Online Cast: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGWARNING)
+        log(
+            "Plugin",
+            f"Online Cast: Could not resolve TMDB ID for {dbtype} {dbid}",
+            xbmc.LOGWARNING,
+        )
         return None
 
     api = ApiTmdb()
@@ -155,7 +159,9 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0) -
 
 
 def handle_get_cast(handle: int, params: dict) -> None:
-    """Plugin entry for cast listings. `online=true` fetches from TMDB; default reads the Kodi library.
+    """Plugin entry for cast listings.
+
+    `online=true` fetches from TMDB; default reads the Kodi library.
 
     `tmdb_id` may be supplied directly (instead of `dbid`) when the caller is in an
     online-only context. Online mode is opt-in via `online=true`; defaults remain library.
@@ -172,7 +178,11 @@ def handle_get_cast(handle: int, params: dict) -> None:
             return
 
         if online and not dbid and not tmdb_id_str:
-            log("Plugin", "Online Cast: Missing required parameters (need tmdb_id or dbid)", xbmc.LOGWARNING)
+            log(
+                "Plugin",
+                "Online Cast: Missing required parameters (need tmdb_id or dbid)",
+                xbmc.LOGWARNING,
+            )
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
@@ -191,7 +201,12 @@ def handle_get_cast(handle: int, params: dict) -> None:
         items_added = 0
 
         if online:
-            log("Plugin", f"Library Cast: Using online TMDB data for {dbtype} (dbid={dbid}, tmdb_id={tmdb_id})", xbmc.LOGDEBUG)
+            log(
+                "Plugin",
+                f"Library Cast: Using online TMDB data for {dbtype} "
+                f"(dbid={dbid}, tmdb_id={tmdb_id})",
+                xbmc.LOGDEBUG,
+            )
             items_added = _handle_online_cast(handle, dbtype, int(dbid) if dbid else 0, tmdb_id)
             if items_added is None:
                 xbmcplugin.endOfDirectory(handle, succeeded=False)
@@ -209,7 +224,11 @@ def handle_get_cast(handle: int, params: dict) -> None:
                 details = get_item_details('tvshow', int(dbid), ['cast'])
 
             if not details:
-                log("Plugin", f"Library Cast: {dbtype.capitalize()} {dbid} not found", xbmc.LOGWARNING)
+                log(
+                    "Plugin",
+                    f"Library Cast: {dbtype.capitalize()} {dbid} not found",
+                    xbmc.LOGWARNING,
+                )
                 xbmcplugin.endOfDirectory(handle, succeeded=False)
                 return
 
@@ -219,7 +238,11 @@ def handle_get_cast(handle: int, params: dict) -> None:
                 xbmcplugin.endOfDirectory(handle, succeeded=True)
                 return
 
-            log("Plugin", f"Library Cast: Processing {dbtype} {dbid} - Found {len(cast)} cast members", xbmc.LOGDEBUG)
+            log(
+                "Plugin",
+                f"Library Cast: Processing {dbtype} {dbid} - Found {len(cast)} cast members",
+                xbmc.LOGDEBUG,
+            )
             items_added = _create_cast_listitems(handle, cast)
 
         elif dbtype in ('set', 'season'):
@@ -265,7 +288,12 @@ def handle_get_cast(handle: int, params: dict) -> None:
 
             unique_cast = _deduplicate_cast(items)
 
-            log("Plugin", f"Library Cast: Processing {dbtype} {dbid} - Found {len(items)} items, deduplicated to {len(unique_cast)} unique cast", xbmc.LOGDEBUG)
+            log(
+                "Plugin",
+                f"Library Cast: Processing {dbtype} {dbid} - Found {len(items)} items, "
+                f"deduplicated to {len(unique_cast)} unique cast",
+                xbmc.LOGDEBUG,
+            )
 
             items_added = _create_cast_listitems(handle, unique_cast)
 
@@ -315,7 +343,11 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
                 }
             )
             items = extract_result(result, 'episodes', [])
-            log("Plugin", f"Player Cast: Aggregating cast from entire show (DBID: {tvshow_dbid})", xbmc.LOGDEBUG)
+            log(
+                "Plugin",
+                f"Player Cast: Aggregating cast from entire show (DBID: {tvshow_dbid})",
+                xbmc.LOGDEBUG,
+            )
 
         else:
             details = get_item_details(content_type, int(dbid), ['cast'])
@@ -333,7 +365,12 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
             return
 
         unique_cast = _deduplicate_cast(items)
-        log("Plugin", f"Player Cast: Found {len(items)} items, deduplicated to {len(unique_cast)} unique cast", xbmc.LOGDEBUG)
+        log(
+            "Plugin",
+            f"Player Cast: Found {len(items)} items, "
+            f"deduplicated to {len(unique_cast)} unique cast",
+            xbmc.LOGDEBUG,
+        )
 
         items_added = _create_cast_listitems(handle, unique_cast)
 

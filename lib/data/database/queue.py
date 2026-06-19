@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional, Sequence, Dict, List
 
-from lib.data.database._infrastructure import get_db, DB_PATH, _generate_guid, sql_placeholders as _build_placeholders
+from lib.data.database._infrastructure import (
+    get_db, DB_PATH, generate_guid, sql_placeholders as _build_placeholders)
 from lib.kodi.utilities import validate_media_type, validate_dbid
 from lib.kodi.client import log
 
@@ -151,7 +152,7 @@ def add_art_item(
                 requires_manual = excluded.requires_manual,
                 status = excluded.status,
                 scan_session_id = excluded.scan_session_id
-        ''', (
+        ''', (  # noqa: E501
             queue_id,
             art_type,
             ARTITEM_REVIEW_MISSING,
@@ -179,7 +180,7 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
             priority = item.get('priority', 5)
             scope = item.get('scope', '')
             scan_session_id = item.get('scan_session_id')
-            guid = item.get('guid') or _generate_guid()
+            guid = item.get('guid') or generate_guid()
 
             prepared_items.append((
                 media_type, dbid, title, year, priority,
@@ -195,7 +196,7 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
                 scope = COALESCE(NULLIF(excluded.scope, ''), art_queue.scope),
                 scan_session_id = COALESCE(excluded.scan_session_id, art_queue.scan_session_id),
                 guid = COALESCE(NULLIF(art_queue.guid, ''), excluded.guid)
-        ''', prepared_items)
+        ''', prepared_items)  # noqa: E501
 
         media_dbid_pairs = [(item['media_type'], item['dbid']) for item in items]
 
@@ -213,7 +214,8 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
             key = (item['media_type'], item['dbid'])
             queue_id = id_map.get(key)
             if queue_id is None:
-                raise RuntimeError(f"UPSERT succeeded but SELECT failed for {key} - database corruption?")
+                raise RuntimeError(
+                    f"UPSERT succeeded but SELECT failed for {key} - database corruption?")
             result.append(queue_id)
         return result
 
@@ -266,7 +268,7 @@ def add_art_items_batch(art_items: List[dict]) -> None:
             cursor.executemany('''
                 INSERT INTO art_items (queue_id, art_type, review_mode, requires_manual, status, scan_session_id)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', [(q, a, r, m, STATUS_PENDING, s) for q, a, r, m, s in to_insert])
+            ''', [(q, a, r, m, STATUS_PENDING, s) for q, a, r, m, s in to_insert])  # noqa: E501
 
         if to_update:
             cursor.executemany('''
@@ -352,7 +354,7 @@ def update_art_item(art_item_id: int, selected_url: str, auto_applied: bool = Fa
             UPDATE art_items
             SET selected_url = ?, auto_applied = ?, status = ?, requires_manual = 0, date_processed = ?
             WHERE id = ?
-        ''', (selected_url, int(auto_applied), STATUS_COMPLETED, now, art_item_id))
+        ''', (selected_url, int(auto_applied), STATUS_COMPLETED, now, art_item_id))  # noqa: E501
 
 
 def update_art_item_status(art_item_id: int, status: str) -> None:
@@ -392,7 +394,7 @@ def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, in
 
 
 def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
-    """Return `media_type -> {status: count}`. Example: `{'movie': {'pending': 50, 'completed': 20}}`."""
+    """Return `media_type -> {status: count}`, e.g. `{'movie': {'pending': 5, 'completed': 2}}`."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             SELECT media_type, status, COUNT(*) as count
@@ -482,7 +484,9 @@ def count_queue_items(status: Optional[str] = None,
 
 def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
     """Remove queue items in a terminal state that have no pending art entries."""
-    terminal_statuses = tuple(statuses if statuses is not None else (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_CANCELLED, STATUS_ERROR))
+    terminal_statuses = tuple(
+        statuses if statuses is not None
+        else (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_CANCELLED, STATUS_ERROR))
     if not terminal_statuses:
         return 0
 
@@ -510,7 +514,7 @@ def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
 
 
 def restore_pending_queue_items(media_types: Optional[Sequence[str]] = None) -> int:
-    """Reset queue status to pending for items that still have pending art entries. Returns rows updated."""
+    """Reset queue status to pending for items with pending art entries. Returns rows updated."""
     with get_db(DB_PATH) as cursor:
         query = '''
             UPDATE art_queue

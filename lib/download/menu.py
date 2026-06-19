@@ -96,9 +96,12 @@ def _handle_download():
 
     scope_menu = Menu(ADDON.getLocalizedString(32523), [
         MenuItem(xbmc.getLocalizedString(593), lambda: _select_mode('all', None)),
-        MenuItem(xbmc.getLocalizedString(342), lambda: _select_mode('movies', REVIEW_MEDIA_FILTERS.get('movies'))),
-        MenuItem(xbmc.getLocalizedString(20343), lambda: _select_mode('tvshows', REVIEW_MEDIA_FILTERS.get('tvshows'))),
-        MenuItem(xbmc.getLocalizedString(2), lambda: _select_mode('music', REVIEW_MEDIA_FILTERS.get('music'))),
+        MenuItem(xbmc.getLocalizedString(342),
+                 lambda: _select_mode('movies', REVIEW_MEDIA_FILTERS.get('movies'))),
+        MenuItem(xbmc.getLocalizedString(20343),
+                 lambda: _select_mode('tvshows', REVIEW_MEDIA_FILTERS.get('tvshows'))),
+        MenuItem(xbmc.getLocalizedString(2),
+                 lambda: _select_mode('music', REVIEW_MEDIA_FILTERS.get('music'))),
     ])
     return scope_menu.show()
 
