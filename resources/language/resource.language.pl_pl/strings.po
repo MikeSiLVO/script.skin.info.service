@@ -1785,8 +1785,8 @@ msgid "Online Service"
 msgstr "Usługa online"
 
 msgctxt "#32977"
-msgid "Language for titles, plots, and other metadata from TMDb"
-msgstr "Język dla tytułów, opisów i innych metadanych z TMDb"
+msgid "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
+msgstr "Język dla metadanych online z TMDb, Last.fm i TheAudioDB"
 
 #. Actor image download feature (context menu)
 msgctxt "#32981"
