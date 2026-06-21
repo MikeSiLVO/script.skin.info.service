@@ -1836,3 +1836,31 @@ msgstr "Zaktualizowano: {0:d}[CR]Pominięto: {1:d}[CR]Niepowodzenie: {2:d}"
 msgctxt "#32992"
 msgid "Library Maintenance"
 msgstr "Zarządzanie biblioteką"
+
+msgctxt "#32993"
+msgid "NFO Files"
+msgstr "Pliki NFO"
+
+msgctxt "#32994"
+msgid "Write metadata changes to NFO files"
+msgstr "Zapisuj zmiany metadanych w plikach NFO"
+
+msgctxt "#32995"
+msgid "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
+msgstr "Gdy edytujesz metadane, zapisz zmianę również w pliku NFO elementu, aby przetrwała odświeżanie lub ponowne pobranie biblioteki."
+
+msgctxt "#32996"
+msgid "Create an NFO file when none exists"
+msgstr "Utwórz plik NFO, gdy żaden nie istnieje"
+
+msgctxt "#32997"
+msgid "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
+msgstr "Jeśli element nie ma jeszcze pliku NFO, utwórz go. Gdy wyłączone, aktualizowane są tylko istniejące pliki NFO."
+
+msgctxt "#32998"
+msgid "Include watched state in NFO files"
+msgstr "Uwzględniaj stan obejrzenia w plikach NFO"
+
+msgctxt "#32999"
+msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
+msgstr "Zapisuj licznik odtworzeń i datę ostatniego odtwarzania w plikach NFO. Wyłącz, aby wykluczyć stan obejrzenia z plików NFO."
