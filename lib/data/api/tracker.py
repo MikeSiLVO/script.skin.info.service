@@ -30,7 +30,8 @@ def handle_rate_limit_error(provider: str) -> str:
         import xbmc
         monitor = xbmc.Monitor()
         progress = xbmcgui.DialogProgress()
-        progress.create(ADDON.getLocalizedString(32313).format(provider.upper()), ADDON.getLocalizedString(32314))
+        progress.create(ADDON.getLocalizedString(32313).format(provider.upper()),
+                        ADDON.getLocalizedString(32314))
         for i in range(60):
             if progress.iscanceled() or monitor.abortRequested():
                 progress.close()

@@ -6,6 +6,10 @@ Reference for Kodi settings that can be manipulated via skin utilities.
 
 See [Skin Utilities](skin-utilities.md) for usage instructions.
 
+The tables below cover commonly used settings. For the complete, authoritative list of every setting ID, type, default, and available options, see Kodi's settings definitions: [`system/settings/settings.xml`](https://github.com/xbmc/xbmc/blob/master/system/settings/settings.xml). That link points at `master`; to check a setting as it exists in a specific Kodi release, change `master` in the URL to the release codename (for example `Piers` or `Omega`). Platform-specific settings live beside it in the same folder (`android.xml`, `darwin*.xml`, `linux.xml`, `webos.xml`).
+
+**Reading an entry:** the `id` attribute is the value to pass as `setting` (for example `input.enablemouse`), and the `type` attribute determines what you can do with it. `action`-type entries are buttons and cannot be get/set/toggled, and only `boolean` types can be toggled (see [Setting Types](#setting-types) and [Limitations](#limitations)). `label` and `help` are numeric string IDs, not readable text. Fixed enum values appear in an `<options>` block; an `<options>` that names a filler instead (such as `rendermethods`) is resolved at runtime and has no static list.
+
 ---
 
 ## Table of Contents
@@ -20,6 +24,7 @@ See [Skin Utilities](skin-utilities.md) for usage instructions.
 - [Audio](#audio)
 - [Skin](#skin)
 - [Screensaver](#screensaver)
+- [Input](#input)
 - [Setting Types](#setting-types)
 - [Limitations](#limitations)
 
@@ -249,6 +254,17 @@ See [Skin Utilities](skin-utilities.md) for usage instructions.
 | `screensaver.time` | integer | Screensaver timeout (minutes) |
 | `screensaver.disableforaudio` | boolean | Disable for audio |
 | `screensaver.usedimonpause` | boolean | Dim on pause |
+
+---
+
+## Input
+
+| Setting | Type | Description |
+| ------- | ---- | ----------- |
+| `input.enablemouse` | boolean | Enable mouse and touch screen support |
+| `input.enablejoystick` | boolean | Enable controller support |
+
+The other `input.*` entries (`input.peripherals`, `input.controllerconfig`, etc.) are `action` type and cannot be get/set/toggled.
 
 ---
 

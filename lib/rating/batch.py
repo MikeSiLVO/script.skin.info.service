@@ -1,4 +1,4 @@
-"""Multi-source batch ratings flow: parallel executor driver + MDBList batch fetcher + per-item helpers."""
+"""Multi-source batch ratings: parallel executor driver, MDBList batch fetcher, per-item helpers."""
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Set, Tuple
@@ -9,7 +9,10 @@ import xbmcgui
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import get_api_key, log, ADDON
 from lib.data.api.tmdb import resolve_tmdb_id
-from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource, BATCH_SIZE as MDBLIST_BATCH_SIZE
+from lib.data.api.mdblist import (
+    ApiMdblist as MDBListRatingsSource,
+    BATCH_SIZE as MDBLIST_BATCH_SIZE,
+)
 from lib.data.api.client import RateLimitHit
 from lib.rating.executor import RatingBatchExecutor, ItemState, RetryPoolEntry
 from lib.rating.single import (
@@ -63,7 +66,10 @@ def build_retry_entry(state: ItemState, item_stats: Optional[Dict]) -> Optional[
 def prepare_item_for_batch(
     item: Dict,
     media_type: str,
-) -> Tuple[Optional[int], Optional[str], Optional[str], Optional[Dict], Optional[Dict], Optional[List[Dict]], Optional[List[str]]]:
+) -> Tuple[
+    Optional[int], Optional[str], Optional[str], Optional[Dict], Optional[Dict],
+    Optional[List[Dict]], Optional[List[str]],
+]:
     """Prepare an item for batch processing by extracting IDs and fetching IMDb dataset rating."""
     dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
     if not dbid:
@@ -79,7 +85,10 @@ def prepare_item_for_batch(
 
     initial_ratings, initial_sources = get_imdb_dataset_rating(ids, media_type)
 
-    return dbid, title, str(year) if year else "", ids, existing_ratings, initial_ratings, initial_sources
+    return (
+        dbid, title, str(year) if year else "", ids, existing_ratings,
+        initial_ratings, initial_sources,
+    )
 
 
 def finalize_item_ratings(
@@ -152,7 +161,11 @@ class MdblistBatchFetcher:
         batch_num = (index // MDBLIST_BATCH_SIZE) + 1
         total_batches = (self.total_items + MDBLIST_BATCH_SIZE - 1) // MDBLIST_BATCH_SIZE
 
-        log("Ratings", f"Fetching MDBList batch {batch_num}/{total_batches} ({len(batch_ids)} items)", xbmc.LOGDEBUG)
+        log(
+            "Ratings",
+            f"Fetching MDBList batch {batch_num}/{total_batches} ({len(batch_ids)} items)",
+            xbmc.LOGDEBUG,
+        )
 
         if progress:
             if isinstance(progress, xbmcgui.DialogProgressBG):
@@ -223,7 +236,10 @@ def run_multi_source_batch(
         if not check_state:
             return finalized_count
 
-        in_flight = (check_state.submitted_sources | check_state.pending_sources) - check_state.completed_sources
+        in_flight = (
+            (check_state.submitted_sources | check_state.pending_sources)
+            - check_state.completed_sources
+        )
         all_sources_done = not in_flight
         timed_out = executor.check_item_timeout(check_dbid)
 
@@ -288,9 +304,16 @@ def run_multi_source_batch(
             # starts reporting actual completion.
             percent = int((items_finalized / len(items)) * 100)
             if isinstance(progress, xbmcgui.DialogProgressBG):
-                progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32306).format(i+1, len(items), title))
+                progress.update(
+                    percent,
+                    ADDON.getLocalizedString(32300),
+                    ADDON.getLocalizedString(32306).format(i+1, len(items), title),
+                )
             elif isinstance(progress, xbmcgui.DialogProgress):
-                progress.update(percent, f"{ADDON.getLocalizedString(32307).format(i+1, len(items))}\n{title}")
+                progress.update(
+                    percent,
+                    f"{ADDON.getLocalizedString(32307).format(i+1, len(items))}\n{title}",
+                )
 
         while executor.get_unfinalized_items():
             if executor.is_cancelled():
@@ -310,6 +333,13 @@ def run_multi_source_batch(
 
                 percent = int((items_finalized / len(items)) * 100)
                 if isinstance(progress, xbmcgui.DialogProgressBG):
-                    progress.update(percent, ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32308).format(items_finalized, len(items)))
+                    progress.update(
+                        percent,
+                        ADDON.getLocalizedString(32300),
+                        ADDON.getLocalizedString(32308).format(items_finalized, len(items)),
+                    )
                 elif isinstance(progress, xbmcgui.DialogProgress):
-                    progress.update(percent, ADDON.getLocalizedString(32309).format(items_finalized, len(items)))
+                    progress.update(
+                        percent,
+                        ADDON.getLocalizedString(32309).format(items_finalized, len(items)),
+                    )

@@ -121,7 +121,9 @@ def fetch_tmdb_online_data(
     if not resolved_tmdb_id or is_episode:
         return {}
 
-    return _fetch_tmdb_full_data(media_type, resolved_tmdb_id, abort_flag, is_library_item=is_library_item) or {}
+    return _fetch_tmdb_full_data(
+        media_type, resolved_tmdb_id, abort_flag, is_library_item=is_library_item
+    ) or {}
 
 
 def _fetch_tmdb_full_data(media_type: str, tmdb_id: str,

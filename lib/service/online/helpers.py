@@ -9,13 +9,13 @@ from lib.kodi.utilities import get_prop
 from lib.data.database.cache import invalidate_online_properties
 
 
-_SKININFO_PREFIX_MAP = {
+SKININFO_PREFIX_MAP = {
     "movie": "SkinInfo.Movie",
     "tvshow": "SkinInfo.TVShow",
     "episode": "SkinInfo.Episode",
 }
 
-_PLAYER_SKININFO_PREFIX_MAP = {
+PLAYER_SKININFO_PREFIX_MAP = {
     "movie": "SkinInfo.Player",
     "episode": "SkinInfo.Player",
 }
@@ -82,7 +82,7 @@ def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str) -> str:
 
 def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str,
                      prefix_map: Dict[str, str]) -> Tuple[str, str]:
-    """Resolve `(imdb_id, tmdb_id)` via InfoLabel -> SkinInfo props -> ID map -> JSON-RPC fallback chain."""
+    """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> SkinInfo props -> ID map -> JSON-RPC fallback."""
     imdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(imdb)") or ""
     tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
 

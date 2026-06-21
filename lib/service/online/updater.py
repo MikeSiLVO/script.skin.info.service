@@ -1,4 +1,4 @@
-"""Background updater: refreshes TTL-expired schedule entries and invalidates entries whose `next_episode_to_air` has passed."""
+"""Background updater: refreshes TTL-expired entries, invalidates passed `next_episode_to_air`."""
 from __future__ import annotations
 
 import threading
@@ -104,7 +104,9 @@ class UpdaterHandler:
                 self._idle_wait()
                 continue
 
-            log("Service", f"Online updater: {len(expired)} expired, {len(shows) - len(expired)} cached", xbmc.LOGINFO)
+            log("Service",
+                f"Online updater: {len(expired)} expired, {len(shows) - len(expired)} cached",
+                xbmc.LOGINFO)
 
             fetched = 0
             for show in expired:
@@ -198,4 +200,6 @@ class UpdaterHandler:
         for tmdb_id in stale:
             remove_schedule(tmdb_id)
         if stale:
-            log("Service", f"Online updater: pruned {len(stale)} schedule entries for removed shows", xbmc.LOGDEBUG)
+            log("Service",
+                f"Online updater: pruned {len(stale)} schedule entries for removed shows",
+                xbmc.LOGDEBUG)

@@ -47,6 +47,7 @@ class LibraryMonitor(xbmc.Monitor):
         if method in ('VideoLibrary.OnScanFinished', 'VideoLibrary.OnCleanFinished',
                       'AudioLibrary.OnScanFinished', 'AudioLibrary.OnCleanFinished'):
             threading.Thread(target=self._sync_dbids, daemon=True).start()
+            self.service_main.slideshow.invalidate_playlists()
         if method in ('VideoLibrary.OnScanFinished', 'VideoLibrary.OnCleanFinished'):
             from lib.data.database.runtime import clear_all_runtime_cache
             clear_all_runtime_cache()
@@ -126,6 +127,7 @@ class ServiceMain(threading.Thread):
                 try:
                     self._loop()
                     self.slideshow.update()
+                    self.slideshow.reconcile_if_idle()
                     self.refresh.tick()
                     consecutive_errors = 0
                 except (KeyError, ValueError, TypeError) as e:
@@ -138,7 +140,11 @@ class ServiceMain(threading.Thread):
                     consecutive_errors += 1
 
                 if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
-                    log("Service", f"Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service", xbmc.LOGERROR)
+                    log(
+                        "Service",
+                        f"Too many consecutive errors ({MAX_CONSECUTIVE_ERRORS}), stopping service",
+                        xbmc.LOGERROR,
+                    )
                     break
         finally:
             self.slideshow.cleanup()

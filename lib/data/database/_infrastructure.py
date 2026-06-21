@@ -28,7 +28,8 @@ def decompress_data(blob: bytes) -> Any:
     return json.loads(zlib.decompress(blob).decode('utf-8'))
 
 
-# SQLite's default parameter limit is 999; 900 leaves headroom for fixed params alongside the IN list.
+# SQLite's default parameter limit is 999; 900 leaves headroom for fixed params
+# alongside the IN list.
 SQL_PARAM_CHUNK_SIZE = 900
 
 
@@ -44,7 +45,9 @@ def chunked_in_query(
     values: list,
     chunk_size: int = SQL_PARAM_CHUNK_SIZE,
 ):
-    """Execute an IN-list query in chunks, yielding rows. `sql_template` must contain `{placeholders}`.
+    """Execute an IN-list query in chunks, yielding rows.
+
+    `sql_template` must contain `{placeholders}`.
 
     Use for SELECT/DELETE patterns where the IN-list size could exceed SQLite's parameter limit.
     `fixed_params` come before the chunk; the chunk values are appended for each batch.
@@ -81,7 +84,7 @@ _OLD_DB_PATHS = [
 ]
 
 
-def _generate_guid() -> str:
+def generate_guid() -> str:
     return uuid.uuid4().hex
 
 
@@ -266,19 +269,53 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_queue ON art_items(queue_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_status ON art_items(status)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_review_mode ON art_items(review_mode)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_queue_status_review ON art_items(queue_id, status, review_mode)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_person_cache_expires ON person_cache(expires_at)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_scan_type_activity ON scan_sessions(scan_type, last_activity DESC)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_media_types_session ON session_media_types(session_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_media_types_lookup ON session_media_types(session_id, media_type)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_art_types_session ON session_art_types(session_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_art_types_lookup ON session_art_types(session_id, art_type)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_lookup ON artwork_cache(media_type, media_id, source, art_type)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_art_items_queue_status_review '
+        'ON art_items(queue_id, status, review_mode)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_person_cache_expires ON person_cache(expires_at)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_sessions_scan_type_activity '
+        'ON scan_sessions(scan_type, last_activity DESC)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_session_media_types_session '
+        'ON session_media_types(session_id)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_session_media_types_lookup '
+        'ON session_media_types(session_id, media_type)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_session_art_types_session '
+        'ON session_art_types(session_id)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_session_art_types_lookup '
+        'ON session_art_types(session_id, art_type)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_cache_lookup '
+        'ON artwork_cache(media_type, media_id, source, art_type)'
+    )
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_expires ON artwork_cache(expires_at)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_metadata_cache_lookup ON metadata_cache(media_type, tmdb_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_season_metadata_cache_expires ON season_metadata_cache(expires_at)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tmdb_genre_cache_expires ON tmdb_genre_cache(expires_at)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_operation_history_lookup ON operation_history(operation, timestamp DESC)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_metadata_cache_lookup '
+        'ON metadata_cache(media_type, tmdb_id)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_season_metadata_cache_expires '
+        'ON season_metadata_cache(expires_at)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tmdb_genre_cache_expires ON tmdb_genre_cache(expires_at)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_operation_history_lookup '
+        'ON operation_history(operation, timestamp DESC)'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS provider_cache (
@@ -311,11 +348,21 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         )
     ''')
 
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_imdb ON id_mappings(imdb_id) WHERE imdb_id IS NOT NULL')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_id_mappings_tvdb ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_id_mappings_imdb '
+        'ON id_mappings(imdb_id) WHERE imdb_id IS NOT NULL'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_id_mappings_tvdb '
+        'ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL'
+    )
 
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS slideshow_pool (
@@ -333,7 +380,10 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
 
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_slideshow_media ON slideshow_pool(media_type)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_slideshow_fanart ON slideshow_pool(fanart) WHERE fanart IS NOT NULL')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_slideshow_fanart '
+        'ON slideshow_pool(fanart) WHERE fanart IS NOT NULL'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS gif_cache (
@@ -363,7 +413,9 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         )
     ''')
 
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS imdb_meta (
@@ -398,8 +450,13 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             PRIMARY KEY (media_type, dbid, source)
         )
     ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_synced_lookup ON ratings_synced(media_type, dbid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ratings_synced_external ON ratings_synced(source, external_id)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_ratings_synced_lookup ON ratings_synced(media_type, dbid)'
+    )
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_ratings_synced_external '
+        'ON ratings_synced(source, external_id)'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS online_properties_cache (
@@ -409,7 +466,9 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             expires_at TEXT NOT NULL
         )
     ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_online_cache_expires ON online_properties_cache(expires_at)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_online_cache_expires ON online_properties_cache(expires_at)'
+    )
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS mb_id_mappings (
@@ -438,7 +497,9 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             PRIMARY KEY (tmdb_id)
         )
     ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)')
+    cursor.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)'
+    )
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_status ON tv_schedule(status)')
 
     cursor.execute('''

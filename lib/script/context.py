@@ -9,6 +9,7 @@ import xbmcgui
 
 _ARTWORK_TYPES = ('movie', 'tvshow', 'episode', 'season', 'set', 'musicvideo', 'artist', 'album')
 _RATINGS_TYPES = ('movie', 'tvshow', 'episode')
+_NFO_TYPES = ('movie', 'tvshow', 'episode', 'musicvideo')
 
 # (setting_id, label_id, action, applicable_types_or_None_for_any)
 _MENU_REGISTRY = (
@@ -16,11 +17,12 @@ _MENU_REGISTRY = (
     ('context_show_download_artwork', 32290, 'download_artwork', _ARTWORK_TYPES),
     ('context_show_update_ratings',   32101, 'update_ratings',   _RATINGS_TYPES),
     ('context_show_edit_metadata',    32103, 'edit',             None),
+    ('context_show_export_nfo',       32029, 'export_nfo',       _NFO_TYPES),
 )
 
 
 def main() -> None:
-    """Context-menu entry: show enabled actions (review/download art, update ratings, edit) and dispatch."""
+    """Context-menu entry: show enabled actions (review/download art, ratings, edit), dispatch."""
     addon: xbmcaddon.Addon = xbmcaddon.Addon()
 
     listitem = getattr(sys, 'listitem', None)

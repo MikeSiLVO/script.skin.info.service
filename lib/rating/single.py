@@ -1,4 +1,4 @@
-"""Single-item ratings flow: ID resolution, dataset lookup, merge+apply, public update_single_item."""
+"""Single-item ratings flow: ID resolution, dataset lookup, merge+apply, update_single_item."""
 from __future__ import annotations
 
 import time
@@ -73,7 +73,7 @@ def resolve_item_ids(item: Dict, media_type: str) -> Optional[Dict]:
 
 
 def get_imdb_dataset_rating(ids: Dict, media_type: str) -> Tuple[List[Dict], List[str]]:
-    """Look up IMDb dataset rating for an item's IDs. Returns `(initial_ratings, initial_sources)`."""
+    """Look up IMDb dataset rating for item IDs; returns `(initial_ratings, initial_sources)`."""
     imdb_id = ids.get("imdb_episode") if media_type == "episode" else ids.get("imdb")
     if imdb_id:
         imdb_dataset = get_imdb_dataset()
@@ -137,7 +137,9 @@ def merge_and_apply_ratings(
             old_val = final_ratings[rating_name]["rating"]
             old_votes = final_ratings[rating_name]["votes"]
 
-            if new_votes > old_votes:
+            # a changed rating value must win even when the provider's vote
+            # count declined (providers renormalize their counts)
+            if new_votes > old_votes or abs(old_val - new_val) > 0.01:
                 final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
                 if abs(old_val - new_val) > 0.01:
                     updated_ratings.append(f"{rating_name} ({old_val:.1f} -> {new_val:.1f})")
@@ -193,7 +195,7 @@ def update_single_item(
     abort_flag=None,
     force_refresh: bool = True,
 ) -> tuple[Optional[bool], Optional[Dict]]:
-    """Fetch ratings for a single item (context-menu path). Batch jobs use `RatingBatchExecutor` instead."""
+    """Fetch ratings for one item (context-menu path); batch jobs use `RatingBatchExecutor`."""
     dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
     if not dbid:
         return False, None
@@ -220,7 +222,9 @@ def update_single_item(
 
     with ThreadPoolExecutor(max_workers=len(sources)) as executor:
         futures = {
-            executor.submit(source.fetch_ratings, media_type, ids, abort_flag, force_refresh): source
+            executor.submit(
+                source.fetch_ratings, media_type, ids, abort_flag, force_refresh
+            ): source
             for source in sources
         }
         pending = set(futures.keys())
@@ -235,7 +239,9 @@ def update_single_item(
                     source = futures[future]
                     source_name = source.provider_name
                     retryable_failures.append({"source": source_name, "reason": "timeout"})
-                    log("Ratings", f"   {source_name}: Timeout after {MAX_TOTAL_WAIT}s", xbmc.LOGDEBUG)
+                    log("Ratings",
+                        f"   {source_name}: Timeout after {MAX_TOTAL_WAIT}s",
+                        xbmc.LOGDEBUG)
                 executor.shutdown(wait=False)
                 break
 
@@ -262,10 +268,14 @@ def update_single_item(
                             executor.shutdown(wait=False)
                             return None, None
                         if action == "retry":
-                            retryable_failures.append({"source": source_name, "reason": "rate limit (user chose wait)"})
+                            retryable_failures.append(
+                                {"source": source_name, "reason": "rate limit (user chose wait)"}
+                            )
                         log("Ratings", f"   {source_name}: Rate limit reached", xbmc.LOGDEBUG)
                     except RetryableError as e:
-                        log("Ratings", f"   {source_name}: Retryable error: {e.reason}", xbmc.LOGDEBUG)
+                        log("Ratings",
+                            f"   {source_name}: Retryable error: {e.reason}",
+                            xbmc.LOGDEBUG)
                         retryable_failures.append({"source": source_name, "reason": e.reason})
                     except Exception as e:
                         log("Ratings", f"   {source_name}: Failed: {str(e)}", xbmc.LOGDEBUG)

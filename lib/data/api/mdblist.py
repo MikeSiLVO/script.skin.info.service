@@ -213,7 +213,7 @@ class ApiMdblist(RatingSource):
         data = self.get_mdblist_data(media_type, ids)
         if not data:
             data = self.fetch_data(media_type, ids, abort_flag)
-        return data or None
+        return data
 
     def get_extra_data(
         self,
@@ -289,7 +289,8 @@ class ApiMdblist(RatingSource):
         if not data:
             return None
 
-        keywords = {k.get("name", "").lower() for k in data.get("keywords", []) if isinstance(k, dict)}
+        keywords = {
+            k.get("name", "").lower() for k in data.get("keywords", []) if isinstance(k, dict)}
 
         result: dict = {}
 

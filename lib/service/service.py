@@ -86,7 +86,7 @@ class Orchestrator:
             self._manage_setting_services()
 
     def _ensure_started(self, attr: str, factory) -> None:
-        """Start the thread on `self.<attr>` if it isn't running. `factory` returns a new thread instance."""
+        """Start thread on `self.<attr>` if not running. `factory` returns a new thread instance."""
         thread = getattr(self, attr)
         if thread is None or not thread.is_alive():
             thread = factory()

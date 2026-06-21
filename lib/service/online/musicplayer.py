@@ -103,7 +103,9 @@ class MusicPlayerHandler:
 
     def rotate_fanart(self) -> None:
         """Cycle through artist fanart URLs at the configured slideshow interval."""
-        if len(self._fanart_urls) <= 1:
+        # snapshot: a fetch worker can swap the list mid-rotation
+        urls = self._fanart_urls
+        if len(urls) <= 1:
             return
 
         now = time.time()
@@ -120,10 +122,11 @@ class MusicPlayerHandler:
             return
 
         self._fanart_last_rotate = now
-        self._fanart_index = (self._fanart_index + 1) % len(self._fanart_urls)
+        next_index = (self._fanart_index + 1) % len(urls)
+        self._fanart_index = next_index
         set_prop(
             f"{self._active_prefix}Artist.FanArt",
-            self._fanart_urls[self._fanart_index],
+            urls[next_index],
         )
 
     def _audio_fetch_worker(self, artist_name: str) -> None:

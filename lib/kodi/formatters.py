@@ -70,7 +70,9 @@ def format_movie_props(data: dict) -> Dict[str, str]:
 
     countries = data.get("production_countries") or []
     if countries:
-        props["Country"] = MULTI_VALUE_SEP.join(c.get("name", "") for c in countries if c.get("name"))
+        props["Country"] = MULTI_VALUE_SEP.join(
+            c.get("name", "") for c in countries if c.get("name")
+        )
 
     studios = data.get("production_companies") or []
     if studios:
@@ -141,7 +143,9 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
 
     created_by = data.get("created_by") or []
     if created_by:
-        props["Creator"] = MULTI_VALUE_SEP.join(c.get("name", "") for c in created_by if c.get("name"))
+        props["Creator"] = MULTI_VALUE_SEP.join(
+            c.get("name", "") for c in created_by if c.get("name")
+        )
 
     last_ep = data.get("last_episode_to_air")
     if last_ep:
@@ -196,7 +200,10 @@ def format_credits_props(data: dict) -> Dict[str, str]:
     if directors:
         props["Director"] = MULTI_VALUE_SEP.join(directors)
 
-    writers = [c.get("name") for c in crew if c.get("job") in ("Writer", "Screenplay", "Story") and c.get("name")]
+    writers = [
+        c.get("name") for c in crew
+        if c.get("job") in ("Writer", "Screenplay", "Story") and c.get("name")
+    ]
     if writers:
         props["Writer"] = MULTI_VALUE_SEP.join(writers)
 

@@ -23,7 +23,9 @@ def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
     return max(art_list, key=get_pixel_count)
 
 
-def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mode: str = 'popularity', source_pref: str = 'all') -> List[dict]:
+def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
+                               sort_mode: str = 'popularity',
+                               source_pref: str = 'all') -> List[dict]:
     """Sort artwork by quality and popularity. Returns a new list (input not modified).
 
     sort_mode:
@@ -52,7 +54,9 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '', sort_mo
     if source_pref == 'tmdb':
         art_list = [art for art in art_list if art.get('source', '').lower() == 'tmdb']
     elif source_pref == 'fanart':
-        art_list = [art for art in art_list if art.get('source', '').lower() in ('fanart.tv', 'fanarttv')]
+        art_list = [
+            art for art in art_list if art.get('source', '').lower() in ('fanart.tv', 'fanarttv')
+        ]
 
     if not art_list:
         return art_list
@@ -146,8 +150,10 @@ def filter_artwork_by_language(
     """Filter artwork based on art type rules and language preferences.
 
     Art type filtering rules:
-    - AUTO_NO_LANGUAGE_TYPES (fanart, keyart): Only text-free items (unless prefer_fanart_language=True).
-    - AUTO_LANG_REQUIRED_TYPES (poster, clearlogo, etc.): Preferred language + text-free, fallback to all.
+    - AUTO_NO_LANGUAGE_TYPES (fanart, keyart): Only text-free items (unless
+      prefer_fanart_language=True).
+    - AUTO_LANG_REQUIRED_TYPES (poster, clearlogo, etc.): Preferred language + text-free,
+      fallback to all.
     - Other types or explicit language_code: Filter to specified language.
 
     When language_code is None, uses the preferred language from settings.
@@ -200,7 +206,7 @@ def filter_artwork_by_language(
 
 
 def get_language_display_name(language_code: str) -> str:
-    """Get human-readable name for ISO 639-1 code. Empty code returns localized 'Text-free / Untagged'."""
+    """Human-readable name for ISO 639-1 code; empty returns localized 'Text-free / Untagged'."""
     if not language_code or language_code == '':
         return KodiSettings._get_addon().getLocalizedString(32122)
 

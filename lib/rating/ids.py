@@ -83,19 +83,42 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
 
             if not imdb_id:
                 if media_type == "episode":
-                    log("Ratings", f"TMDB has no IMDb ID for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d})", xbmc.LOGDEBUG)
+                    log(
+                        "Ratings",
+                        f"TMDB has no IMDb ID for episode "
+                        f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d})",
+                        xbmc.LOGDEBUG,
+                    )
                 else:
-                    log("Ratings", f"TMDB has no IMDb ID for {media_type} (tmdb={tmdb_id})", xbmc.LOGDEBUG)
+                    log(
+                        "Ratings",
+                        f"TMDB has no IMDb ID for {media_type} (tmdb={tmdb_id})",
+                        xbmc.LOGDEBUG,
+                    )
 
             return imdb_id
 
         if media_type == "episode" and tvdb_id:
-            log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), trying TVDB fallback", xbmc.LOGDEBUG)
+            log(
+                "Ratings",
+                f"TMDB lookup failed for episode "
+                f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d}), trying TVDB fallback",
+                xbmc.LOGDEBUG,
+            )
             return _try_tvdb_episode_fallback(tmdb_client, str(tvdb_id))
         if media_type == "episode":
-            log("Ratings", f"TMDB lookup failed for episode (tmdb={tmdb_id}, S{season:02d}E{episode:02d}), no TVDB ID for fallback", xbmc.LOGDEBUG)
+            log(
+                "Ratings",
+                f"TMDB lookup failed for episode "
+                f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d}), no TVDB ID for fallback",
+                xbmc.LOGDEBUG,
+            )
         else:
-            log("Ratings", f"TMDB lookup failed for {media_type} (tmdb={tmdb_id})", xbmc.LOGDEBUG)
+            log(
+                "Ratings",
+                f"TMDB lookup failed for {media_type} (tmdb={tmdb_id})",
+                xbmc.LOGDEBUG,
+            )
 
     except Exception as e:
         log("Ratings", f"Error fetching TMDB data for IMDb ID lookup: {e}", xbmc.LOGWARNING)
@@ -104,7 +127,7 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
 
 
 def _try_tvdb_episode_fallback(tmdb_client: ApiTmdb, tvdb_id: str) -> Optional[str]:
-    """Resolve an episode's IMDb ID via TMDB's `/find` by-tvdb endpoint when direct TMDB lookup misses."""
+    """Resolve episode IMDb ID via TMDB `/find` by-tvdb when direct TMDB lookup misses."""
     result = tmdb_client.find_by_external_id(tvdb_id, "tvdb_id", "episode")
     if not result:
         log("Ratings", f"TVDB fallback failed for episode (tvdb={tvdb_id})", xbmc.LOGDEBUG)
@@ -118,7 +141,11 @@ def _try_tvdb_episode_fallback(tmdb_client: ApiTmdb, tvdb_id: str) -> Optional[s
 
     ep_data = tmdb_client.get_episode_details_extended(found_show_id, found_season, found_episode)
     if not ep_data:
-        log("Ratings", f"TVDB fallback episode details fetch failed (tvdb={tvdb_id})", xbmc.LOGDEBUG)
+        log(
+            "Ratings",
+            f"TVDB fallback episode details fetch failed (tvdb={tvdb_id})",
+            xbmc.LOGDEBUG,
+        )
         return None
 
     imdb_id = ep_data.get("external_ids", {}).get("imdb_id")
@@ -163,7 +190,9 @@ def run_fix_library_ids(prompt: bool = True) -> None:
     progress.update(20, ADDON.getLocalizedString(32351))
     shows = get_library_items(["tvshow"], properties=["title", "uniqueid"])
     progress.update(40, ADDON.getLocalizedString(32352))
-    episodes = get_library_items(["episode"], properties=["title", "season", "episode", "tvshowid", "uniqueid"])
+    episodes = get_library_items(
+        ["episode"], properties=["title", "season", "episode", "tvshowid", "uniqueid"]
+    )
 
     progress.update(60, ADDON.getLocalizedString(32353))
 
@@ -239,6 +268,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
                     "title": ep.get("title"),
                     "season": ep.get("season"),
                     "episode": ep.get("episode"),
+                    "tvshowid": tvshowid,
                     "show_imdb": show_imdb,
                     "show_tmdb": show_tmdb,
                     "uniqueid": ep.get("uniqueid", {})
@@ -246,11 +276,18 @@ def run_fix_library_ids(prompt: bool = True) -> None:
 
     progress.close()
 
-    total_missing_imdb = len(missing_imdb_movies) + len(missing_imdb_shows) + len(missing_imdb_episodes)
+    total_missing_imdb = (
+        len(missing_imdb_movies) + len(missing_imdb_shows) + len(missing_imdb_episodes)
+    )
     total_invalid_tmdb = len(invalid_tmdb_movies) + len(invalid_tmdb_shows)
 
     if total_missing_imdb == 0 and total_invalid_tmdb == 0:
-        show_notification(ADDON.getLocalizedString(32260), ADDON.getLocalizedString(32261), xbmcgui.NOTIFICATION_INFO, 3000)
+        show_notification(
+            ADDON.getLocalizedString(32260),
+            ADDON.getLocalizedString(32261),
+            xbmcgui.NOTIFICATION_INFO,
+            3000,
+        )
         return
 
     if prompt:
@@ -297,7 +334,9 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         total_imdb_fixed += matched
 
     if missing_imdb_shows and not progress.iscanceled():
-        matched = _fix_missing_ids_via_tmdb(missing_imdb_shows, "tvshow", progress, "TV shows", show_imdb_map)
+        matched = _fix_missing_ids_via_tmdb(
+            missing_imdb_shows, "tvshow", progress, "TV shows", show_imdb_map
+        )
         total_imdb_fixed += matched
 
     # Refresh show_imdb mapping for episodes whose shows were just fixed
@@ -343,7 +382,10 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
         if i % update_interval == 0:
             percent = int((i / total) * 100)
             if percent != last_percent:
-                progress.update(percent, ADDON.getLocalizedString(32357).format(f"{i + 1:,}", f"{total:,}"))
+                progress.update(
+                    percent,
+                    ADDON.getLocalizedString(32357).format(f"{i + 1:,}", f"{total:,}"),
+                )
                 last_percent = percent
 
         imdb_id = item.get("imdb_id")
@@ -362,9 +404,15 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
         corrected_tmdb = resolve_tmdb_id(None, imdb_id, media_type)
 
         if corrected_tmdb and is_valid_tmdb_id(corrected_tmdb):
-            if update_kodi_uniqueid_field(media_type, dbid, item["uniqueid"], "tmdb", corrected_tmdb):
+            if update_kodi_uniqueid_field(
+                media_type, dbid, item["uniqueid"], "tmdb", corrected_tmdb
+            ):
                 fixed += 1
-                log("Ratings", f"Fixed TMDB ID for {item.get('title', 'unknown')}: {item.get('invalid_tmdb')} -> {corrected_tmdb}")
+                log(
+                    "Ratings",
+                    f"Fixed TMDB ID for {item.get('title', 'unknown')}: "
+                    f"{item.get('invalid_tmdb')} -> {corrected_tmdb}",
+                )
 
     return fixed
 
@@ -372,7 +420,7 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
 def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
                               progress: xbmcgui.DialogProgress, label: str,
                               id_map: Optional[Dict[int, str]] = None) -> int:
-    """Fill missing IMDb IDs on movies/shows by fetching from TMDB. `id_map` is populated for tvshows."""
+    """Fill missing IMDb IDs on movies/shows from TMDB. `id_map` populated for tvshows."""
     matched = 0
     total = len(items)
     last_percent = -1
@@ -386,7 +434,10 @@ def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
         if i % update_interval == 0:
             percent = int((i / total) * 100)
             if percent != last_percent:
-                progress.update(percent, ADDON.getLocalizedString(32358).format(label, f"{i + 1:,}", f"{total:,}"))
+                progress.update(
+                    percent,
+                    ADDON.getLocalizedString(32358).format(label, f"{i + 1:,}", f"{total:,}"),
+                )
                 last_percent = percent
 
         imdb_id = get_imdb_id_from_tmdb(media_type, item["uniqueid"])
@@ -401,7 +452,7 @@ def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
 
 def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
                              progress: xbmcgui.DialogProgress) -> int:
-    """Fill missing episode IMDb IDs via IMDb dataset bulk lookup first, then TMDB per-episode fallback."""
+    """Fill episode IMDb IDs via IMDb dataset bulk lookup, then per-episode TMDB fallback."""
     progress.update(0, ADDON.getLocalizedString(32354))
 
     def progress_callback(status: str):
@@ -426,7 +477,10 @@ def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
                 if i % update_interval == 0:
                     percent = int((i / total) * 100)
                     if percent != last_percent:
-                        progress.update(percent, ADDON.getLocalizedString(32355).format(f"{i + 1:,}", f"{total:,}"))
+                        progress.update(
+                            percent,
+                            ADDON.getLocalizedString(32355).format(f"{i + 1:,}", f"{total:,}"),
+                        )
                         last_percent = percent
 
                 if ep["show_imdb"]:
@@ -437,7 +491,9 @@ def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
                     )
 
                     if ep_imdb:
-                        if update_kodi_uniqueid("episode", ep["episodeid"], ep["uniqueid"], ep_imdb):
+                        if update_kodi_uniqueid(
+                            "episode", ep["episodeid"], ep["uniqueid"], ep_imdb
+                        ):
                             fixed += 1
                         continue
 
@@ -456,7 +512,10 @@ def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
             if i % update_interval == 0:
                 percent = int((i / total) * 100)
                 if percent != last_percent:
-                    progress.update(percent, ADDON.getLocalizedString(32356).format(f"{i + 1:,}", f"{total:,}"))
+                    progress.update(
+                        percent,
+                        ADDON.getLocalizedString(32356).format(f"{i + 1:,}", f"{total:,}"),
+                    )
                     last_percent = percent
 
             show_tmdb = ep.get("show_tmdb")
@@ -483,8 +542,13 @@ def clear_tvshow_uniqueid_cache() -> None:
     _tvshow_uniqueid_cache.clear()
 
 
-def prefetch_tvshow_uniqueids() -> None:
-    """Pre-fetch all TV show uniqueids in one request to populate the cache."""
+def prefetch_tvshow_uniqueids(tvshow_ids: Optional[Set[int]] = None) -> None:
+    """Pre-fetch all TV show uniqueids in one request to populate the cache.
+
+    `tvshow_ids` skips the request entirely when every wanted show is already cached.
+    """
+    if tvshow_ids is not None and not (set(tvshow_ids) - set(_tvshow_uniqueid_cache)):
+        return
     response = request("VideoLibrary.GetTVShows", {"properties": ["uniqueid"]})
     if not response:
         return

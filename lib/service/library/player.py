@@ -104,8 +104,8 @@ class PlayerVideoTracker:
         if not isinstance(details, dict):
             return
 
-        from lib.service.library.focus import _resolve_show_runtime
-        total, avg = _resolve_show_runtime(int(tvshowid))
+        from lib.service.library.focus import resolve_show_runtime
+        total, avg = resolve_show_runtime(int(tvshowid))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total
@@ -133,7 +133,10 @@ class PlayerVideoTracker:
 
         from lib.service.properties import build_musicvideo_data
         data = build_musicvideo_data(details)
-        props = {f"SkinInfo.Player.MusicVideo.{k}": v for k, v in data.items() if not k.startswith("_")}
+        props = {
+            f"SkinInfo.Player.MusicVideo.{k}": v
+            for k, v in data.items() if not k.startswith("_")
+        }
         batch_set_props(props)
 
         self._service.musicvideo.set_library_art(details, prefix="SkinInfo.Player.MusicVideo.")
@@ -228,6 +231,12 @@ class PlayerMusicTracker:
             props[f"{prefix}Album.{i + 1}.Title"] = album.get('title', '')
             year = album.get('year')
             props[f"{prefix}Album.{i + 1}.Year"] = str(year) if year else ''
-            props[f"{prefix}Album.{i + 1}.Thumb"] = decode_image_url(album.get('art', {}).get('thumb', ''))
+            props[f"{prefix}Album.{i + 1}.Thumb"] = decode_image_url(
+                album.get('art', {}).get('thumb', '')
+            )
+
+        # a fast track skip can change the artist while this thread was fetching
+        if artist_name != self._last_music_artist:
+            return
 
         batch_set_props(props)

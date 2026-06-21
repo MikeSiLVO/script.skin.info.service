@@ -20,7 +20,7 @@ _ALLOWED_OPERATORS = {
 
 
 def safe_eval_math(expression):
-    """Safely evaluate a math expression via AST. Supports `+ - * / // % **` and parens. None on failure."""
+    """Evaluate math expression via AST; supports `+ - * / // % **` and parens. None on failure."""
     try:
         node = ast.parse(expression, mode='eval').body
 

@@ -20,7 +20,7 @@ from lib.service.online.helpers import (
     make_cache_key,
     resolve_ids_from,
     resolve_season_ids,
-    _SKININFO_PREFIX_MAP,
+    SKININFO_PREFIX_MAP,
 )
 from lib.service.online.fetchers import fetch_all_online_data
 
@@ -37,7 +37,9 @@ class FocusHandler:
     def __init__(self, service: 'OnlineServiceMain'):
         self._service = service
         self._last_item_key: Optional[str] = None
+        # guarded by _keys_lock: read+swapped from both the poll thread and fetch workers
         self._last_prop_keys: Set[str] = set()
+        self._keys_lock = threading.Lock()
         self._fetch_thread: Optional[threading.Thread] = None
         self._fetch_for_key: Optional[str] = None
 
@@ -58,7 +60,7 @@ class FocusHandler:
             imdb_id, tmdb_id = resolve_season_ids(dbid)
             effective_type = "tvshow"
         else:
-            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem", _SKININFO_PREFIX_MAP)
+            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem", SKININFO_PREFIX_MAP)
             effective_type = dbtype
             if dbtype == "tvshow":
                 try:
@@ -87,10 +89,12 @@ class FocusHandler:
                 if value:
                     props_to_set[f"{ONLINE_PROPERTY_PREFIX}{key}"] = str(value)
                     new_keys.add(key)
-            for old_key in self._last_prop_keys - new_keys:
+            with self._keys_lock:
+                stale_keys = self._last_prop_keys - new_keys
+                self._last_prop_keys = new_keys
+            for old_key in stale_keys:
                 props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
             batch_set_props(props_to_set)
-            self._last_prop_keys = new_keys
             return
 
         if (self._fetch_thread and self._fetch_thread.is_alive()
@@ -138,9 +142,11 @@ class FocusHandler:
                     props_to_set[f"{ONLINE_PROPERTY_PREFIX}{key}"] = str(value)
                     new_keys.add(key)
 
-            for old_key in self._last_prop_keys - new_keys:
+            with self._keys_lock:
+                stale_keys = self._last_prop_keys - new_keys
+                self._last_prop_keys = new_keys
+            for old_key in stale_keys:
                 props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
-            self._last_prop_keys = new_keys
 
             batch_set_props(props_to_set)
 

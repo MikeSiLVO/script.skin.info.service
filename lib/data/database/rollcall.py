@@ -91,8 +91,6 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str]]]:
     return snapshot
 
 
-
-
 def _cleanup_stale_dbids(
     cursor, media_type: str, dbids: Set[int]
 ) -> Dict[str, int]:

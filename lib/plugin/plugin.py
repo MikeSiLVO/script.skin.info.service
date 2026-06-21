@@ -13,9 +13,12 @@ from lib.kodi.client import log
 def _handle_root_menu(handle: int) -> None:
     """Show root menu with Tools, Search, and Widgets folders."""
     items = [
-        ("Tools", "plugin://script.skin.info.service/?action=exec_tools", "DefaultAddonProgram.png", False),
-        ("Search", "plugin://script.skin.info.service/?action=menu_search", "DefaultAddonsSearch.png", True),
-        ("Widgets", "plugin://script.skin.info.service/?action=menu_widgets", "DefaultAddonVideo.png", True),
+        ("Tools", "plugin://script.skin.info.service/?action=exec_tools",
+         "DefaultAddonProgram.png", False),
+        ("Search", "plugin://script.skin.info.service/?action=menu_search",
+         "DefaultAddonsSearch.png", True),
+        ("Widgets", "plugin://script.skin.info.service/?action=menu_widgets",
+         "DefaultAddonVideo.png", True),
     ]
 
     for label, path, icon, is_folder in items:
@@ -29,9 +32,12 @@ def _handle_root_menu(handle: int) -> None:
 def _handle_search_menu(handle: int) -> None:
     """Show search submenu."""
     items = [
-        ("Search Movies", "plugin://script.skin.info.service/?action=exec_search&dbtype=movie", "DefaultMovies.png"),
-        ("Search TV Shows", "plugin://script.skin.info.service/?action=exec_search&dbtype=tv", "DefaultTVShows.png"),
-        ("Search People", "plugin://script.skin.info.service/?action=exec_search&dbtype=person", "DefaultActor.png"),
+        ("Search Movies", "plugin://script.skin.info.service/?action=exec_search&dbtype=movie",
+         "DefaultMovies.png"),
+        ("Search TV Shows", "plugin://script.skin.info.service/?action=exec_search&dbtype=tv",
+         "DefaultTVShows.png"),
+        ("Search People", "plugin://script.skin.info.service/?action=exec_search&dbtype=person",
+         "DefaultActor.png"),
     ]
 
     for label, path, icon in items:
@@ -45,12 +51,19 @@ def _handle_search_menu(handle: int) -> None:
 def _handle_widgets_menu(handle: int) -> None:
     """Show widgets submenu."""
     items = [
-        ("Discover", "plugin://script.skin.info.service/?action=discover_menu", "DefaultAddonVideo.png", True),
-        ("Next Up", "plugin://script.skin.info.service/?action=next_up", "DefaultInProgressShows.png", True),
-        ("Recent Episodes", "plugin://script.skin.info.service/?action=recent_episodes_grouped", "DefaultRecentlyAddedEpisodes.png", True),
-        ("Seasonal", "plugin://script.skin.info.service/?action=menu_seasonal", "DefaultYear.png", True),
-        ("Recommended Movies", "plugin://script.skin.info.service/?action=recommended&dbtype=movie", "DefaultMovies.png", True),
-        ("Recommended TV Shows", "plugin://script.skin.info.service/?action=recommended&dbtype=tvshow", "DefaultTVShows.png", True),
+        ("Discover", "plugin://script.skin.info.service/?action=discover_menu",
+         "DefaultAddonVideo.png", True),
+        ("Next Up", "plugin://script.skin.info.service/?action=next_up",
+         "DefaultInProgressShows.png", True),
+        ("Recent Episodes", "plugin://script.skin.info.service/?action=recent_episodes_grouped",
+         "DefaultRecentlyAddedEpisodes.png", True),
+        ("Seasonal", "plugin://script.skin.info.service/?action=menu_seasonal",
+         "DefaultYear.png", True),
+        ("Recommended Movies", "plugin://script.skin.info.service/?action=recommended&dbtype=movie",
+         "DefaultMovies.png", True),
+        ("Recommended TV Shows",
+         "plugin://script.skin.info.service/?action=recommended&dbtype=tvshow",
+         "DefaultTVShows.png", True),
     ]
 
     for label, path, icon, is_folder in items:
@@ -64,11 +77,16 @@ def _handle_widgets_menu(handle: int) -> None:
 def _handle_seasonal_menu(handle: int) -> None:
     """Show seasonal submenu."""
     items = [
-        ("Christmas", "plugin://script.skin.info.service/?action=seasonal&season=christmas", "DefaultYear.png"),
-        ("Halloween", "plugin://script.skin.info.service/?action=seasonal&season=halloween", "DefaultYear.png"),
-        ("Valentine's Day", "plugin://script.skin.info.service/?action=seasonal&season=valentines", "DefaultYear.png"),
-        ("Thanksgiving", "plugin://script.skin.info.service/?action=seasonal&season=thanksgiving", "DefaultYear.png"),
-        ("Star Wars Day", "plugin://script.skin.info.service/?action=seasonal&season=starwars", "DefaultYear.png"),
+        ("Christmas", "plugin://script.skin.info.service/?action=seasonal&season=christmas",
+         "DefaultYear.png"),
+        ("Halloween", "plugin://script.skin.info.service/?action=seasonal&season=halloween",
+         "DefaultYear.png"),
+        ("Valentine's Day", "plugin://script.skin.info.service/?action=seasonal&season=valentines",
+         "DefaultYear.png"),
+        ("Thanksgiving", "plugin://script.skin.info.service/?action=seasonal&season=thanksgiving",
+         "DefaultYear.png"),
+        ("Star Wars Day", "plugin://script.skin.info.service/?action=seasonal&season=starwars",
+         "DefaultYear.png"),
     ]
 
     for label, path, icon in items:
@@ -281,7 +299,7 @@ _HANDLERS = {
 
 
 def main() -> None:
-    """Plugin entry point: parses `?action=...` from `sys.argv[2]` and dispatches to the matching handler."""
+    """Plugin entry point: parse `?action=...` from `sys.argv[2]` and dispatch to its handler."""
     try:
         handle = int(sys.argv[1])
     except (ValueError, IndexError) as e:

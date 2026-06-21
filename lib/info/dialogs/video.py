@@ -61,8 +61,12 @@ class DialogVideoInfo(InfoDialogBase):
 
         if self._media_type in ('movie', 'tvshow'):
             containers['crew'] = f"{base_url}?action=crew&dbtype={self._media_type}&{id_query}"
-            containers['recommendations'] = f"{base_url}?action=tmdb_recommendations&dbtype={self._media_type}&{id_query}"
-            containers['similar'] = f"{base_url}?action=similar&dbtype={self._media_type}&{id_query}"
+            containers['recommendations'] = (
+                f"{base_url}?action=tmdb_recommendations&dbtype={self._media_type}&{id_query}"
+            )
+            containers['similar'] = (
+                f"{base_url}?action=similar&dbtype={self._media_type}&{id_query}"
+            )
 
         for name, path in containers.items():
             self.setProperty(f"container.{name}.path", path)

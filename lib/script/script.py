@@ -34,7 +34,8 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
                                  window: str = "home") -> None:
     """Blur `source` and set `SkinInfo.[prefix.]BlurredImage` + `.Original` on `window`.
 
-    Empty `source` clears the properties. `radius` defaults to `Skin.String(SkinInfo.BlurRadius)` or 40.
+    Empty `source` clears the properties. `radius` defaults to
+    `Skin.String(SkinInfo.BlurRadius)` or 40.
     """
     prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
     blur_key = f"{prop_base}BlurredImage"
@@ -112,7 +113,8 @@ def _handle_blur(args: dict) -> None:
 def _handle_split_string(args: dict) -> None:
     from lib.skin.strings import split_string
     string = resolve_infolabel(args.get('string', ""))
-    split_string(string, args.get('separator', "|"), args.get('prefix', ''), args.get('window', 'home'))
+    split_string(
+        string, args.get('separator', "|"), args.get('prefix', ''), args.get('window', 'home'))
 
 
 def _handle_urlencode(args: dict) -> None:
@@ -206,11 +208,13 @@ def _handle_reset_setting(args: dict) -> None:
 
 
 def _handle_update_library_ratings(args: dict) -> None:
+    from lib.rating.menu import initialize_sources
     from lib.rating.updater import update_library_ratings
     media_type = args.get('dbtype', 'movie').lower()
     if media_type not in ("movie", "tvshow", "episode"):
         media_type = "movie"
-    update_library_ratings(media_type, args.get('background', 'true').lower() == 'true')
+    use_background = args.get('background', 'true').lower() == 'true'
+    update_library_ratings(media_type, initialize_sources(), use_background=use_background)
 
 
 def _handle_sync_tvshows(_args: dict) -> None:
@@ -251,6 +255,26 @@ def _handle_update_ratings(args: dict) -> None:
 def _handle_edit(args: dict) -> None:
     from lib.editor.menu import run_editor
     run_editor(args.get('dbid'), args.get('dbtype'))
+
+
+def _handle_export_nfo(args: dict) -> None:
+    import xbmcgui
+    from lib.kodi.client import ADDON
+    from lib.editor.nfo import write_nfo
+    from lib.infrastructure.dialogs import show_notification
+
+    dbid = args.get('dbid')
+    dbtype = args.get('dbtype')
+    if not dbid or dbid == "-1" or not dbtype:
+        return
+
+    wrote = write_nfo(dbtype.lower(), int(dbid), forced=True)
+    if wrote:
+        show_notification(ADDON.getLocalizedString(32029), ADDON.getLocalizedString(32030),
+                          xbmcgui.NOTIFICATION_INFO, 3000)
+    else:
+        show_notification(ADDON.getLocalizedString(32029), ADDON.getLocalizedString(32031),
+                          xbmcgui.NOTIFICATION_WARNING, 3000)
 
 
 def _handle_settings_action(args: dict) -> None:
@@ -324,13 +348,15 @@ def _handle_tmdb_search(args: dict) -> None:
         query = query[:year_match.start()].strip()
         log("General", f"tmdb_search: Extracted year={year} from query", xbmc.LOGDEBUG)
 
-    log("General", f"tmdb_search: Searching TMDB for '{query}' (type={media_type}, year={year})", xbmc.LOGDEBUG)
+    log("General", f"tmdb_search: Searching TMDB for '{query}' (type={media_type}, year={year})",
+        xbmc.LOGDEBUG)
 
     api = ApiTmdb()
     results = api.search(query, media_type, year)
 
     if not results:
-        xbmcgui.Dialog().notification('TMDB Search', 'No results found', xbmcgui.NOTIFICATION_INFO, 3000)
+        xbmcgui.Dialog().notification(
+            'TMDB Search', 'No results found', xbmcgui.NOTIFICATION_INFO, 3000)
         log("General", f"tmdb_search: No results found for '{query}'", xbmc.LOGDEBUG)
         return
 
@@ -341,12 +367,14 @@ def _handle_tmdb_search(args: dict) -> None:
         if media_type == 'movie':
             title = result.get('title', 'Unknown')
             year_str = result.get('release_date', '')[:4] if result.get('release_date') else ''
-            label2 = f"{year_str} - {result.get('overview', '')[:100]}" if year_str else result.get('overview', '')[:100]
+            label2 = (f"{year_str} - {result.get('overview', '')[:100]}"
+                      if year_str else result.get('overview', '')[:100])
             poster = result.get('poster_path', '')
         elif media_type == 'tv':
             title = result.get('name', 'Unknown')
             year_str = result.get('first_air_date', '')[:4] if result.get('first_air_date') else ''
-            label2 = f"{year_str} - {result.get('overview', '')[:100]}" if year_str else result.get('overview', '')[:100]
+            label2 = (f"{year_str} - {result.get('overview', '')[:100]}"
+                      if year_str else result.get('overview', '')[:100])
             poster = result.get('poster_path', '')
         else:
             title = result.get('name', 'Unknown')
@@ -405,7 +433,8 @@ def _handle_search_library_person(args: dict) -> None:
     if field == 'writer':
         field = 'writers'
 
-    log("General", f"search_library_person: Searching library for {crew or 'actor'} '{name}'", xbmc.LOGDEBUG)
+    log("General", f"search_library_person: Searching library for {crew or 'actor'} '{name}'",
+        xbmc.LOGDEBUG)
 
     progress = xbmcgui.DialogProgress()
     progress.create(xbmc.getLocalizedString(194), name)
@@ -564,7 +593,8 @@ def _handle_online_fetch(args: dict) -> None:
         if is_episode:
             episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
             if not episode_details or not episode_details.get("tvshowid"):
-                log("General", f"online_fetch: Could not get parent show for episode {dbid}", xbmc.LOGWARNING)
+                log("General", f"online_fetch: Could not get parent show for episode {dbid}",
+                    xbmc.LOGWARNING)
                 return
             tvshow_dbid = episode_details["tvshowid"]
             details = get_item_details("tvshow", tvshow_dbid, ["uniqueid"])
@@ -572,7 +602,8 @@ def _handle_online_fetch(args: dict) -> None:
             details = get_item_details(media_type, dbid_int, ["uniqueid"])
 
         if not details:
-            log("General", f"online_fetch: Could not get details for {media_type} {dbid}", xbmc.LOGWARNING)
+            log("General", f"online_fetch: Could not get details for {media_type} {dbid}",
+                xbmc.LOGWARNING)
             return
 
         uniqueid_dict = details.get("uniqueid") or {}
@@ -580,7 +611,9 @@ def _handle_online_fetch(args: dict) -> None:
         tmdb_id = uniqueid_dict.get("tmdb") or ""
         tvdb_id = uniqueid_dict.get("tvdb") or ""
     else:
-        log("General", "online_fetch: Missing required parameter - provide dbid, tmdb_id, or imdb_id", xbmc.LOGWARNING)
+        log("General",
+            "online_fetch: Missing required parameter - provide dbid, tmdb_id, or imdb_id",
+            xbmc.LOGWARNING)
         return
 
     if is_episode:
@@ -648,98 +681,17 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
             return
 
     if not person_id and crew:
-        if crew not in ('director', 'writer', 'creator'):
-            log("General", f"dialog_actor_info: Invalid crew type '{crew}'", xbmc.LOGERROR)
+        from lib.script.person import resolve_via_crew
+        resolved = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
+        if not resolved:
             return
-        if not dbid:
-            log("General", "dialog_actor_info: crew mode requires dbid", xbmc.LOGERROR)
-            return
-        try:
-            dbid_int = int(dbid)
-        except (ValueError, TypeError):
-            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
-            return
-
-        tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
-        if not tmdb_id:
-            log("General", f"dialog_actor_info: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGERROR)
-            return
-
-        if not name:
-            crew_list = person_api.get_crew_from_tmdb(crew, tmdb_id, dbtype)
-            if not crew_list:
-                return
-            if len(crew_list) == 1:
-                person_id = crew_list[0]['id']
-                name = crew_list[0]['name']
-            else:
-                import xbmcgui as _xbmcgui
-                items = []
-                for member in crew_list:
-                    item = _xbmcgui.ListItem(member['name'], offscreen=True)
-                    if member.get('job'):
-                        item.setLabel2(member['job'])
-                    if member.get('profile_path'):
-                        url = f"https://image.tmdb.org/t/p/h632{member['profile_path']}"
-                        item.setArt({'thumb': url, 'icon': url})
-                    items.append(item)
-                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", items, useDetails=True)
-                if selected < 0:
-                    return
-                person_id = crew_list[selected]['id']
-                name = crew_list[selected]['name']
-        else:
-            names = [n.strip() for n in name.split(separator) if n.strip()]
-            if not names:
-                return
-            if len(names) == 1:
-                selected_name = names[0]
-            else:
-                import xbmcgui as _xbmcgui
-                selected = _xbmcgui.Dialog().select(f"Select {crew.title()}", names)
-                if selected < 0:
-                    return
-                selected_name = names[selected]
-            name = selected_name
-            person_id = person_api.match_crew_to_person_id(selected_name, crew, tmdb_id, dbtype, auto_search=auto_search)
-            if not person_id:
-                return
+        person_id, name = resolved
 
     elif not person_id:
-        if not name or not dbid:
-            log("General", "dialog_actor_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
-            return
-        try:
-            dbid_int = int(dbid)
-        except (ValueError, TypeError):
-            log("General", f"dialog_actor_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
-            return
-
-        sourceid = args.get('sourceid')
-        if dbtype in ('set', 'season'):
-            if not sourceid:
-                log("General", f"dialog_actor_info: {dbtype} requires sourceid", xbmc.LOGERROR)
-                return
-            try:
-                source_dbid = int(sourceid)
-                source_dbtype = 'movie' if dbtype == 'set' else 'episode'
-            except (ValueError, TypeError):
-                return
-            resolve_dbtype = source_dbtype
-            resolve_dbid = source_dbid
-        else:
-            source_dbid = dbid_int
-            source_dbtype = dbtype
-            resolve_dbtype = dbtype
-            resolve_dbid = dbid_int
-
-        tmdb_id = person_api.resolve_tmdb_id(resolve_dbtype, resolve_dbid)
-        if not tmdb_id:
-            return
-
-        person_id = person_api.match_actor_to_person_id(
-            name, role, tmdb_id, source_dbtype, source_dbid,
-            auto_search=auto_search, online=online,
+        from lib.script.person import resolve_via_actor
+        person_id = resolve_via_actor(
+            person_api, name, role, dbid, dbtype, auto_search, online,
+            args.get('sourceid'), open_window='', set_search_query=False,
         )
         if not person_id:
             return
@@ -799,7 +751,8 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
 
     if not tmdb_id and not imdb_id:
         if not dbid or not media_type:
-            log("General", "dialog_video_info: Need dbid+dbtype or tmdb_id/imdb_id", xbmc.LOGWARNING)
+            log("General", "dialog_video_info: Need dbid+dbtype or tmdb_id/imdb_id",
+                xbmc.LOGWARNING)
             return
 
         from lib.kodi.client import get_item_details
@@ -860,6 +813,7 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "download_artwork": _handle_download_artwork,
     "update_ratings": _handle_update_ratings,
     "edit": _handle_edit,
+    "export_nfo": _handle_export_nfo,
     "settings_action": _handle_settings_action,
     "arttest": _handle_arttest,
     "multiarttest": _handle_multiarttest,
@@ -908,7 +862,9 @@ def _dispatch_dialog(dialog: str, args: dict) -> None:
 def main() -> None:
     """Script entry: parse `action=` or `dialog=` from argv, dispatch to the matching handler."""
     if len(sys.argv) <= 1:
-        log("General", "No action or dialog specified. Skins opt in via Skin.SetBool(SkinInfo.Service)", xbmc.LOGWARNING)
+        log("General",
+            "No action or dialog specified. Skins opt in via Skin.SetBool(SkinInfo.Service)",
+            xbmc.LOGWARNING)
         return
 
     args = _parse_args(1)
@@ -918,7 +874,8 @@ def main() -> None:
     if not action and not dialog:
         first_arg = sys.argv[1].lower().strip()
         if '=' not in first_arg:
-            log("General", f"Invalid syntax '{first_arg}'. Use action=name or dialog=type", xbmc.LOGERROR)
+            log("General", f"Invalid syntax '{first_arg}'. Use action=name or dialog=type",
+                xbmc.LOGERROR)
             return
         log("General", "No action or dialog specified", xbmc.LOGERROR)
         return
@@ -929,7 +886,9 @@ def main() -> None:
 
     handler = _HANDLERS.get(action)
     if handler is None:
-        log("General", f"Unknown action '{action}'. Expected one of: {', '.join(sorted(_HANDLERS))}", xbmc.LOGWARNING)
+        log("General",
+            f"Unknown action '{action}'. Expected one of: {', '.join(sorted(_HANDLERS))}",
+            xbmc.LOGWARNING)
         return
 
     handler(args)

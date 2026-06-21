@@ -63,7 +63,7 @@ def _classify_texture_type(url: str) -> str:
 def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
                        usage_buckets: Dict[str, int]) -> None:
     """Update `age_buckets` and `usage_buckets` in place from a single size record."""
-    lastusetime = size.get('lastusetime')
+    lastusetime = size.get('lastused')
     usecount = _real_usecount(size)
 
     if lastusetime:
@@ -90,13 +90,14 @@ def _calculate_disk_usage(thumbnails_path: str) -> int:
                 except Exception:
                     pass
     except Exception as e:
-        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}", xbmc.LOGWARNING)
+        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}",
+            xbmc.LOGWARNING)
     return disk_usage
 
 
 def calculate_texture_statistics(textures: list[Dict[str, Any]],
                                  progress: xbmcgui.DialogProgress) -> Optional[Dict[str, Any]]:
-    """Compute texture-cache stats: counts, age buckets, usage buckets, type breakdown, disk usage."""
+    """Compute texture-cache stats: counts, age/usage buckets, type breakdown, disk usage."""
     if not textures:
         return None
 

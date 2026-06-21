@@ -84,7 +84,6 @@ def get_settings() -> Dict[str, Any]:
     }
 
 
-
 def get_stinger_from_tmdb(ids: Dict[str, Optional[str]]) -> Optional[StingerInfo]:
     """Fetch stinger info from TMDB via cached complete movie data.
 
@@ -147,14 +146,7 @@ def get_stinger_from_trakt(ids: Dict[str, Optional[str]]) -> Optional[StingerInf
 
 
 def get_stinger_from_kodi_tags(movie_details: Dict[str, Any]) -> Optional[StingerInfo]:
-    """Check Kodi library tags for stinger keywords.
-
-    Args:
-        movie_details: Movie details dict from Kodi JSON-RPC
-
-    Returns:
-        StingerInfo if tags found, None otherwise
-    """
+    """Check Kodi library tags for stinger keywords."""
     tags = movie_details.get("tag", [])
     if not tags:
         return None
@@ -195,10 +187,12 @@ def get_stinger_info(ids: Optional[Dict[str, Optional[str]]] = None,
     return None
 
 
-def set_stinger_properties(info: Optional[StingerInfo], window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
+def set_stinger_properties(
+        info: Optional[StingerInfo], window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
     """Set `SkinInfo.Stinger.*` on `window_id`. Pass `info=None` to clear.
 
-    Properties: `HasDuring`, `HasAfter`, `Type` (during/after/both/none), `Source` (tmdb/trakt/kodi_tags).
+    Properties: `HasDuring`, `HasAfter`, `Type` (during/after/both/none),
+    `Source` (tmdb/trakt/kodi_tags).
     """
     window = xbmcgui.Window(window_id)
 
@@ -215,21 +209,12 @@ def set_stinger_properties(info: Optional[StingerInfo], window_id: int = FULLSCR
 
 
 def clear_stinger_properties(window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
-    """Clear all stinger properties from window.
-
-    Args:
-        window_id: Window ID to clear properties from
-    """
+    """Clear all stinger properties from window."""
     set_stinger_properties(None, window_id)
 
 
 def set_notify_property(show: bool, window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
-    """Set the ShowNotify property to trigger skin notification display.
-
-    Args:
-        show: Whether to show notification
-        window_id: Window ID to set property on
-    """
+    """Set the ShowNotify property to trigger skin notification display."""
     window = xbmcgui.Window(window_id)
     if show:
         window.setProperty("SkinInfo.Stinger.ShowNotify", "true")
@@ -238,7 +223,7 @@ def set_notify_property(show: bool, window_id: int = FULLSCREEN_VIDEO_WINDOW_ID)
 
 
 def _get_notification_icon() -> str:
-    """Return notification icon path, honoring `Skin.String(SkinInfo.Stinger.NotificationIcon)` override."""
+    """Icon path; honors `Skin.String(SkinInfo.Stinger.NotificationIcon)` override else default."""
     skin_icon = _skin_override("NotificationIcon")
     if skin_icon and xbmcvfs.exists(skin_icon):
         return skin_icon
@@ -257,12 +242,6 @@ def _get_notification_text(stinger_type: StingerType) -> Tuple[str, str]:
     - Skin.String(SkinInfo.Stinger.MessageDuring)
     - Skin.String(SkinInfo.Stinger.MessageAfter)
     - Skin.String(SkinInfo.Stinger.MessageBoth)
-
-    Args:
-        stinger_type: Type of stinger scene
-
-    Returns:
-        Tuple of (heading, message)
     """
     heading = _skin_override("Heading") or ADDON.getLocalizedString(STR_HEADING)
 
@@ -287,9 +266,6 @@ def _skin_handles_notification() -> bool:
 
     When opted in, the addon skips Dialog().notification() and the skin
     handles display using window properties (SkinInfo.Stinger.ShowNotify, etc).
-
-    Returns:
-        True if skin handles notifications, False to use Kodi notification
     """
     return xbmc.getCondVisibility("Skin.HasSetting(SkinInfo.Stinger.CustomNotification)")
 
@@ -306,10 +282,6 @@ def show_notification(info: StingerInfo, duration_seconds: int = 4) -> None:
     - SkinInfo.Stinger.MessageDuring: Custom message for during-credits scene
     - SkinInfo.Stinger.MessageAfter: Custom message for after-credits scene
     - SkinInfo.Stinger.MessageBoth: Custom message for both types
-
-    Args:
-        info: StingerInfo with stinger details
-        duration_seconds: How long to show notification
     """
     if info.stinger_type == StingerType.NONE:
         return
@@ -338,12 +310,6 @@ def is_near_credits(minutes_before_end: int = 8) -> bool:
 
     Uses chapter detection combined with time-based check. If chapters exist,
     requires both last chapter AND within configured minutes of end.
-
-    Args:
-        minutes_before_end: Minutes before end to trigger
-
-    Returns:
-        True if near credits, False otherwise
     """
     on_last_chapter = False
     has_chapters = False
@@ -426,7 +392,9 @@ class StingerMonitor:
 
         if self.stinger_info and self.stinger_info.has_stinger:
             set_stinger_properties(self.stinger_info)
-            log("Service", f"Stinger detected (fallback): {self.stinger_info.stinger_type.value}", xbmc.LOGDEBUG)
+            log("Service",
+                f"Stinger detected (fallback): {self.stinger_info.stinger_type.value}",
+                xbmc.LOGDEBUG)
 
     def check_notification(self) -> None:
         """Check if notification should be shown based on playback position."""

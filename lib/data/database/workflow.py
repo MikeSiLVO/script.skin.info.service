@@ -32,12 +32,14 @@ def _get_session_values(cursor: sqlite3.Cursor, junction_table: str, value_colum
     return [row[0] for row in cursor.fetchall()]
 
 
-def _insert_session_media_types(cursor: sqlite3.Cursor, session_id: int, media_types: List[str]) -> None:
+def _insert_session_media_types(cursor: sqlite3.Cursor, session_id: int,
+                                media_types: List[str]) -> None:
     """Insert media types for a session into junction table."""
     _insert_session_values(cursor, 'session_media_types', 'media_type', session_id, media_types)
 
 
-def _insert_session_art_types(cursor: sqlite3.Cursor, session_id: int, art_types: List[str]) -> None:
+def _insert_session_art_types(cursor: sqlite3.Cursor, session_id: int,
+                              art_types: List[str]) -> None:
     """Insert art types for a session into junction table."""
     _insert_session_values(cursor, 'session_art_types', 'art_type', session_id, art_types)
 
@@ -86,7 +88,7 @@ def get_session_art_types(session_id: int) -> List[str]:
 
 
 def create_scan_session(scan_type: str, media_types: List[str], art_types: List[str]) -> int:
-    """Create a new scan session and populate its media/art-type junction tables. Returns the session ID."""
+    """Create a scan session, populate its media/art-type junction tables, return session ID."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT INTO scan_sessions (scan_type, last_activity)
@@ -116,7 +118,7 @@ def update_session_stats(session_id: int, stats: dict) -> None:
 
 
 def _update_session(session_id: int, status: str, **extra) -> None:
-    """Update a scan_session row, always touching `last_activity`. `extra` supplies any other columns."""
+    """Update a scan_session row, touching `last_activity`; `extra` supplies other columns."""
     columns = ['status = ?', 'last_activity = ?']
     params: list = [status, datetime.now().isoformat()]
     for col, val in extra.items():
@@ -170,8 +172,10 @@ def get_session(session_id: int) -> Optional[sqlite3.Row]:
         return cursor.fetchone()
 
 
-def get_last_manual_review_session(media_types: Optional[Sequence[str]] = None) -> Optional[sqlite3.Row]:
-    """Return the most recent `manual_review` session; when `media_types` is given, match its exact set."""
+def get_last_manual_review_session(
+    media_types: Optional[Sequence[str]] = None,
+) -> Optional[sqlite3.Row]:
+    """Return most recent `manual_review` session; if `media_types` given, match its exact set."""
     with get_db(DB_PATH) as cursor:
         if not media_types:
             cursor.execute('''
@@ -277,7 +281,7 @@ def get_imdb_update_progress(media_type: str) -> Optional[Dict]:
 
 def save_imdb_update_progress(media_type: str, dataset_date: str,
                               processed_ids: Set[int], total_items: int) -> None:
-    """Save IMDb update progress so it can be resumed later. Preserves `started_at` across upserts."""
+    """Save resumable IMDb update progress, preserving `started_at` across upserts."""
     now = datetime.now().isoformat()
 
     with get_db(DB_PATH) as cursor:
@@ -312,7 +316,7 @@ def clear_imdb_update_progress(media_type: str) -> None:
 def update_synced_ratings(media_type: str, dbid: int,
                           ratings: Dict[str, Dict[str, float]],
                           external_ids: Optional[Dict[str, str]] = None) -> None:
-    """Record that ratings were successfully written to Kodi. Skips sources whose key starts with `_`."""
+    """Record ratings written to Kodi; skips sources whose key starts with `_`."""
     if not ratings:
         return
 
@@ -335,7 +339,7 @@ def update_synced_ratings(media_type: str, dbid: int,
 
 
 def update_synced_ratings_batch(items: List[tuple]) -> None:
-    """Bulk-upsert sync tracking. Each tuple: `(media_type, dbid, source, external_id, rating, votes)`."""
+    """Bulk-upsert sync rows, one per `(media_type, dbid, source, external_id, rating, votes)`."""
     if not items:
         return
 
@@ -345,7 +349,8 @@ def update_synced_ratings_batch(items: List[tuple]) -> None:
             INSERT OR REPLACE INTO ratings_synced
             (media_type, dbid, source, external_id, rating, votes, synced_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', [(mt, dbid, src, ext_id, rating, votes, now) for mt, dbid, src, ext_id, rating, votes in items])
+        ''', [(mt, dbid, src, ext_id, rating, votes, now)
+              for mt, dbid, src, ext_id, rating, votes in items])
 
 
 def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
@@ -367,7 +372,8 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
               ABS(s.rating - r.rating) > 0.01
               OR (s.votes = 0 AND r.votes > 0)
               OR (s.votes > 0 AND s.votes < 100 AND r.votes != s.votes)
-              OR (s.votes >= 100 AND s.votes < 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.1)
+              OR (s.votes >= 100 AND s.votes < 1000
+                  AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.1)
               OR (s.votes >= 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.05)
           )
     '''
@@ -381,7 +387,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
 
 
 def get_synced_items_count(media_type: Optional[str] = None) -> int:
-    """Count unique `(media_type, dbid)` pairs in `ratings_synced`, optionally filtered by media type."""
+    """Count distinct `(media_type, dbid)` pairs in `ratings_synced`, optionally by media type."""
     with get_db(DB_PATH) as cursor:
         if media_type:
             cursor.execute('''

@@ -79,5 +79,7 @@ def reset_setting(setting: str, noconfirm: bool = False) -> None:
 
     `noconfirm` skips the dialog, but only for skin-scoped settings.
     """
-    if (noconfirm and setting in SKIN_SCOPED_SETTINGS) or _confirm(setting, xbmc.getLocalizedString(571)):  # Default
+    if (noconfirm and setting in SKIN_SCOPED_SETTINGS) or _confirm(
+        setting, xbmc.getLocalizedString(571)  # Default
+    ):
         request('Settings.ResetSettingValue', {'setting': setting})

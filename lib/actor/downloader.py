@@ -113,7 +113,11 @@ def download_actor_images(
     if media_type == "tvshow" and ADDON.getSettingBool("download.include_guest_stars"):
         guest_stars = get_episode_guest_stars(dbid)
         if guest_stars:
-            log("Artwork", f"Got {len(guest_stars)} guest star entries from episodes", xbmc.LOGDEBUG)
+            log(
+                "Artwork",
+                f"Got {len(guest_stars)} guest star entries from episodes",
+                xbmc.LOGDEBUG,
+            )
             cast = cast + guest_stars
 
     if not cast:
@@ -122,7 +126,11 @@ def download_actor_images(
 
     actors_folder = build_actors_folder_path(media_type, file_path, show_path)
     if not actors_folder:
-        log("Artwork", f"Could not determine .actors folder for {media_type} {dbid}", xbmc.LOGWARNING)
+        log(
+            "Artwork",
+            f"Could not determine .actors folder for {media_type} {dbid}",
+            xbmc.LOGWARNING,
+        )
         return downloaded, skipped, failed
 
     actors_folder_check = vfs_ensure_dir_slash(actors_folder)
@@ -167,7 +175,7 @@ def download_actor_images(
         profile_path = _match_actor_to_profile(name, role, tmdb_credits) if tmdb_credits else None
         if profile_path:
             url = tmdb_image_url(profile_path)
-            success, error, _ = downloader.download_artwork(
+            success, error, _, _ = downloader.download_artwork(
                 url=url,
                 local_path=local_path,
                 existing_file_mode=existing_file_mode,
@@ -184,7 +192,7 @@ def download_actor_images(
         if thumbnail:
             decoded_url = decode_image_url(thumbnail)
             if decoded_url.startswith("http"):
-                success, error, _ = downloader.download_artwork(
+                success, error, _, _ = downloader.download_artwork(
                     url=decoded_url,
                     local_path=local_path,
                     existing_file_mode=existing_file_mode,
@@ -198,7 +206,11 @@ def download_actor_images(
                     continue
                 else:
                     failed += 1
-                    log("Artwork", f"Failed to download actor image for '{name}': {error}", xbmc.LOGWARNING)
+                    log(
+                        "Artwork",
+                        f"Failed to download actor image for '{name}': {error}",
+                        xbmc.LOGWARNING,
+                    )
                     continue
 
         log("Artwork", f"No image source for actor '{name}'", xbmc.LOGDEBUG)

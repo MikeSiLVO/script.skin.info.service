@@ -291,7 +291,9 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '',
         xbmc.executebuiltin(f'Skin.SetString({setting},{dialog.result_color})')
 
     monitor = xbmc.Monitor()
-    while not monitor.abortRequested() and xbmc.getCondVisibility('Window.IsVisible(script.skin.info.service-ColorPicker.xml)'):
+    while not monitor.abortRequested() and xbmc.getCondVisibility(
+        'Window.IsVisible(script.skin.info.service-ColorPicker.xml)'
+    ):
         monitor.waitForAbort(0.1)
 
     xbmc.executebuiltin('ClearProperty(SkinInfo.ColorPicker.CustomMode,home)')

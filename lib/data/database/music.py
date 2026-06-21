@@ -114,10 +114,15 @@ def _miss_ttl_days(miss_count: int) -> int:
     return min(3 * (2 ** (miss_count - 1)), 30)
 
 
+def _has_audiodb_text(data: dict, base: str) -> bool:
+    """True if any language variant of an AudioDB text field is populated."""
+    return any(data.get(f'{base}{suffix}') for suffix in set(_AUDIODB_LANG_MAP.values()))
+
+
 def _has_artist_content(data: dict, source: str) -> bool:
-    """True if artist response has usable bio/wiki content (distinguishes real hits from empty shells)."""
+    """True if artist response has usable bio/wiki content, not an empty shell."""
     if source == SOURCE_AUDIODB:
-        return bool(data.get('strBiographyEN'))
+        return _has_audiodb_text(data, 'strBiography')
     bio = data.get('bio') or data.get('wiki')
     if isinstance(bio, dict):
         return bool(bio.get('content') or bio.get('summary'))
@@ -127,7 +132,7 @@ def _has_artist_content(data: dict, source: str) -> bool:
 def _has_album_content(data: dict, source: str) -> bool:
     """True if album response has usable description/wiki content."""
     if source == SOURCE_AUDIODB:
-        return bool(data.get('strDescriptionEN'))
+        return _has_audiodb_text(data, 'strDescription')
     if source == SOURCE_WIKIPEDIA:
         return bool(data.get('summary'))
     wiki = data.get('wiki')
@@ -139,7 +144,7 @@ def _has_album_content(data: dict, source: str) -> bool:
 def _has_track_content(data: dict, source: str) -> bool:
     """True if track response has usable content (description, wiki, or toptags)."""
     if source == SOURCE_AUDIODB:
-        return bool(data.get('strDescriptionEN'))
+        return _has_audiodb_text(data, 'strDescription')
     if source == SOURCE_WIKIPEDIA:
         return bool(data.get('summary'))
     wiki = data.get('wiki')
@@ -213,7 +218,6 @@ def init_music_database() -> None:
         cursor.executescript(_SCHEMA_SQL)
 
 
-
 def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int:
     """Delete cached entries for a specific artist/track/album combination.
 
@@ -264,13 +268,11 @@ def _get_cached(table: str, source: str, lookup_key: str) -> Optional[dict]:
     """Fetch a cache row from `table`, return decompressed data or None if missing/expired."""
     with get_db(MUSIC_DB_PATH) as cursor:
         cursor.execute(
-            f'SELECT data, expires_at FROM {table} WHERE source = ? AND lookup_key = ?',
-            (source, lookup_key),
+            f'SELECT data FROM {table} WHERE source = ? AND lookup_key = ? AND expires_at > ?',
+            (source, lookup_key, datetime.now().isoformat()),
         )
         row = cursor.fetchone()
         if not row:
-            return None
-        if datetime.now() > datetime.fromisoformat(row['expires_at']):
             return None
         try:
             return _decompress(row['data'])
@@ -312,7 +314,8 @@ def _cache_entry(table: str, source: str, lookup_key: str, data: dict,
         )
 
 
-def get_cached_artist(source: str, *, mbid: str = '', name: str = '', lang: str = '') -> Optional[dict]:
+def get_cached_artist(source: str, *, mbid: str = '', name: str = '',
+                      lang: str = '') -> Optional[dict]:
     """Return cached artist data for the given `source` (audiodb/lastfm/wikipedia), or None."""
     key = _artist_key(mbid, name)
     if not key:

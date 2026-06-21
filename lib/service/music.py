@@ -252,7 +252,8 @@ def _fetch_and_cache_artist_metadata(
 
     def _fetch_lastfm() -> Optional[dict]:
         try:
-            return ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang, abort_flag=abort_flag)
+            return ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang,
+                                               abort_flag=abort_flag)
         except Exception as e:
             log("Service", f"Last.fm artist metadata fetch error: {e}", xbmc.LOGDEBUG)
             return None
@@ -396,7 +397,8 @@ def fetch_track_online_data(
         if cached_wiki is not None:
             return None
         try:
-            summary = ApiWikipedia().get_track_summary(artist, track, lang=lang, abort_flag=abort_flag)
+            summary = ApiWikipedia().get_track_summary(artist, track, lang=lang,
+                                                       abort_flag=abort_flag)
             return {'summary': summary} if summary else None
         except Exception as e:
             log("Service", f"Wikipedia track fetch error: {e}", xbmc.LOGDEBUG)
@@ -469,7 +471,8 @@ def fetch_album_online_data(
         if cached_wiki is not None:
             return None
         try:
-            summary = ApiWikipedia().get_album_summary(artist, album, lang=lang, abort_flag=abort_flag)
+            summary = ApiWikipedia().get_album_summary(artist, album, lang=lang,
+                                                       abort_flag=abort_flag)
             return {'summary': summary} if summary else None
         except Exception as e:
             log("Service", f"Wikipedia album fetch error: {e}", xbmc.LOGDEBUG)
@@ -480,7 +483,8 @@ def fetch_album_online_data(
             return None
         try:
             api = ApiAudioDb()
-            return api.get_album(mbid, abort_flag) if mbid else api.search_album(artist, album, abort_flag)
+            return (api.get_album(mbid, abort_flag) if mbid
+                    else api.search_album(artist, album, abort_flag))
         except Exception as e:
             log("Service", f"AudioDB album fetch error: {e}", xbmc.LOGDEBUG)
             return None

@@ -60,18 +60,22 @@ def move_to_position(
 
     Args:
         main_focus: Container control ID or pipe-separated list (e.g., "90011|90012|90013")
-        main_position: Target position for main containers (1-indexed, same as Container.CurrentItem)
+        main_position: Target position for main containers (1-indexed, same as
+                      Container.CurrentItem)
                       If None or "0", resets to first item (position 1)
                       Supports pipe-separated values for different positions per container
-        main_action: Optional builtin(s) to execute after moving each main container (pipe-separated)
+        main_action: Optional builtin(s) to execute after moving each main container
+                     (pipe-separated)
         next_focus: Optional container ID(s) to focus after main containers
                    Unconditional: "90003" or "50|60" (pipe-separated, focus all)
-                   Conditional: "condition::focus_id||condition::focus_id||focus_id" (evaluate in order, focus first match)
+                   Conditional: "condition::focus_id||condition::focus_id||focus_id"
+                   (evaluate in order, focus first match)
         next_position: Target position for next containers (1-indexed)
                       If None, just focuses without moving
                       Supports pipe-separated values for different positions per container
                       Only works with unconditional next_focus
-        next_action: Optional builtin(s) to execute after focusing/moving each next container (pipe-separated)
+        next_action: Optional builtin(s) to execute after focusing/moving each next
+                    container (pipe-separated)
                     Only works with unconditional next_focus
 
     Action behavior:
@@ -88,11 +92,13 @@ def move_to_position(
         - next_position and next_action are ignored in conditional mode
 
     Conditional focus (properties):
-        - Use SkinInfo.CM_Focus.1, SkinInfo.CM_Focus.2, etc. properties on home window for better readability
+        - Use SkinInfo.CM_Focus.1, SkinInfo.CM_Focus.2, etc. properties on home window
+          for better readability
         - Set properties before RunScript, they auto-clear after use
         - Properties are checked only if next_focus parameter not provided
         - Format same as parameter: "condition::focus_id" or just "focus_id"
-        - WARNING: Using both next_focus parameter and SkinInfo.CM_Focus properties logs warning and uses parameter
+        - WARNING: Using both next_focus parameter and SkinInfo.CM_Focus properties logs
+          warning and uses parameter
 
     Usage:
         # Reset to first item
@@ -138,7 +144,8 @@ def move_to_position(
 
         # Using SkinInfo.CM_Focus properties (more readable for complex conditions)
         <onload>SetProperty(SkinInfo.CM_Focus.1,String.IsEqual(ListItem.Property(item.type),person)::9876,home)</onload>
-        <onload>SetProperty(SkinInfo.CM_Focus.2,Window.IsActive(Home) + String.IsEqual(ListItem.DBTYPE,tvshow)::808,home)</onload>
+        <onload>SetProperty(SkinInfo.CM_Focus.2,Window.IsActive(Home) +
+                 String.IsEqual(ListItem.DBTYPE,tvshow)::808,home)</onload>
         <onload>SetProperty(SkinInfo.CM_Focus.3,90003,home)</onload>
         <onload>RunScript(script.skin.info.service,action=container_move,main_focus=90017|90016|90015)</onload>
     """
@@ -152,7 +159,10 @@ def _move_main_containers(main_focus: str, main_position: Optional[str],
     main_ids = [cid.strip() for cid in main_focus.split('|')]
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
     has_pipe_main_action = main_action and '|' in main_action
-    main_position_list = [p.strip() for p in main_position.split('|')] if main_position and '|' in main_position else []
+    main_position_list = (
+        [p.strip() for p in main_position.split('|')]
+        if main_position and '|' in main_position else []
+    )
     has_pipe_main_position = main_position and '|' in main_position
 
     for idx, cid in enumerate(main_ids):
@@ -189,7 +199,7 @@ def _move_main_containers(main_focus: str, main_position: Optional[str],
 
 def _handle_next_focus(next_focus: Optional[str], next_position: Optional[str],
                        next_action: Optional[str]) -> None:
-    """Resolve next-focus from parameter (preferred) or `SkinInfo.CM_Focus.*` properties (fallback)."""
+    """Resolve next-focus from parameter (preferred), else `SkinInfo.CM_Focus.*` properties."""
     properties_found = []
     for i in range(1, 100):
         prop_value = xbmc.getInfoLabel(f'Window(home).Property(SkinInfo.CM_Focus.{i})')
@@ -199,7 +209,12 @@ def _handle_next_focus(next_focus: Optional[str], next_position: Optional[str],
             break
 
     if next_focus and properties_found:
-        log("ContainerMove", "Both next_focus parameter and CM_Focus properties set - using parameter, ignoring properties", xbmc.LOGWARNING)
+        log(
+            "ContainerMove",
+            "Both next_focus parameter and CM_Focus properties set - "
+            "using parameter, ignoring properties",
+            xbmc.LOGWARNING,
+        )
         _clear_cm_focus_props(properties_found)
         properties_found = []
 
@@ -219,7 +234,10 @@ def _focus_next_containers(next_focus: str, next_position: Optional[str],
     next_ids = [fid.strip() for fid in next_focus.split('|')]
     next_action_list = [a.strip() for a in next_action.split('|')] if next_action else []
     has_pipe_next_action = next_action and '|' in next_action
-    next_position_list = [p.strip() for p in next_position.split('|')] if next_position and '|' in next_position else []
+    next_position_list = (
+        [p.strip() for p in next_position.split('|')]
+        if next_position and '|' in next_position else []
+    )
     has_pipe_next_position = next_position and '|' in next_position
 
     for idx, fid in enumerate(next_ids):

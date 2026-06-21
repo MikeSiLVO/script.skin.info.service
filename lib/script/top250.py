@@ -5,7 +5,14 @@ from typing import Dict, List, Tuple
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import request, batch_request, ADDON, log, KODI_SET_DETAILS_METHODS, extract_result
+from lib.kodi.client import (
+    request,
+    batch_request,
+    ADDON,
+    log,
+    KODI_SET_DETAILS_METHODS,
+    extract_result,
+)
 from lib.infrastructure.dialogs import show_ok, show_yesno
 
 
@@ -142,7 +149,12 @@ def run_top250_update() -> None:
         progress.close()
 
         status = "cancelled" if cancelled else "complete"
-        log("General", f"Top 250 update {status}: {updated} set, {cleared} cleared, {failed} failed, {already_correct} unchanged", xbmc.LOGINFO)
+        log(
+            "General",
+            f"Top 250 update {status}: {updated} set, {cleared} cleared, "
+            f"{failed} failed, {already_correct} unchanged",
+            xbmc.LOGINFO,
+        )
 
         if cancelled:
             show_ok(

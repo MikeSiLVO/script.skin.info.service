@@ -20,9 +20,10 @@ def _detect_media_type(path: str) -> str:
 
 
 def _play_directory(path: str, shuffled: bool) -> None:
-    """Build a playlist from `path` (recursively) and start playback. Auto-detects music vs video."""
+    """Build a recursive playlist from `path` and start playback. Auto-detects music vs video."""
     if not path:
-        show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32270), xbmcgui.NOTIFICATION_ERROR, 3000)
+        show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32270),
+                          xbmcgui.NOTIFICATION_ERROR, 3000)
         return
 
     media_type = _detect_media_type(path)
@@ -30,7 +31,8 @@ def _play_directory(path: str, shuffled: bool) -> None:
 
     items = request('Files.GetDirectory', {'directory': path, 'media': media_type})
     if not items or not items.get('files'):
-        show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32271), xbmcgui.NOTIFICATION_ERROR, 3000)
+        show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32271),
+                          xbmcgui.NOTIFICATION_ERROR, 3000)
         return
 
     request('Playlist.Clear', {'playlistid': playlistid})

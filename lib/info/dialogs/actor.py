@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import urllib.parse
-from datetime import datetime
 from typing import Dict, Optional
 
 import xbmc
@@ -27,106 +26,11 @@ class DialogActorInfo(InfoDialogBase):
         self._bind_containers()
 
     def _set_person_properties(self) -> None:
-        data = self._person_data
-        props: Dict[str, str] = {}
+        from lib.data.api.person import build_person_props
 
-        props['Name'] = data.get('name', 'Unknown')
+        props = build_person_props(self._person_data)
         props['person_id'] = str(self._person_id)
-
-        if data.get('biography'):
-            props['Biography'] = data['biography']
-
-        birthday = data.get('birthday')
-        deathday = data.get('deathday')
-
-        if birthday:
-            props['Birthday'] = birthday
-            try:
-                birth_date = datetime.strptime(birthday, '%Y-%m-%d')
-                end_date = datetime.strptime(deathday, '%Y-%m-%d') if deathday else datetime.now()
-                age = end_date.year - birth_date.year
-                if (end_date.month, end_date.day) < (birth_date.month, birth_date.day):
-                    age -= 1
-                props['Age'] = str(age)
-                date_format = xbmc.getRegion('dateshort')
-                props['BirthdayFormatted'] = birth_date.strftime(date_format)
-            except (ValueError, TypeError):
-                pass
-
-        if deathday:
-            props['Deathday'] = deathday
-            try:
-                death_date = datetime.strptime(deathday, '%Y-%m-%d')
-                date_format = xbmc.getRegion('dateshort')
-                props['DeathdayFormatted'] = death_date.strftime(date_format)
-            except (ValueError, TypeError):
-                pass
-
-        if data.get('place_of_birth'):
-            props['Birthplace'] = data['place_of_birth']
-
-        if data.get('known_for_department'):
-            props['KnownFor'] = data['known_for_department']
-
-        if data.get('imdb_id'):
-            props['imdb_id'] = data['imdb_id']
-
-        gender = data.get('gender')
-        if gender:
-            gender_text = {1: 'Female', 2: 'Male'}.get(gender)
-            if gender_text:
-                props['Gender'] = gender_text
-
-        external_ids = data.get('external_ids', {})
-        for key in ['instagram_id', 'twitter_id', 'facebook_id', 'tiktok_id', 'youtube_id']:
-            value = external_ids.get(key)
-            if value:
-                props[key.replace('_id', '').title()] = value
-
-        profile_path = data.get('profile_path')
-        if profile_path:
-            props['ProfileImage'] = f"https://image.tmdb.org/t/p/original{profile_path}"
-
-        combined_credits = data.get('combined_credits', {})
-        cast = combined_credits.get('cast', [])
-        if cast:
-            movies = sorted(
-                [c for c in cast if c.get('media_type') == 'movie'],
-                key=lambda x: x.get('popularity', 0), reverse=True
-            )
-            tv_shows = sorted(
-                [c for c in cast if c.get('media_type') == 'tv'],
-                key=lambda x: x.get('popularity', 0), reverse=True
-            )
-
-            seen: set = set()
-            unique_movies = []
-            for m in movies:
-                mid = m.get('id')
-                if mid and mid not in seen:
-                    seen.add(mid)
-                    unique_movies.append(m)
-
-            seen.clear()
-            unique_tv = []
-            for t in tv_shows:
-                tid = t.get('id')
-                if tid and tid not in seen:
-                    seen.add(tid)
-                    unique_tv.append(t)
-
-            top_movies = ' / '.join(m.get('title', '') for m in unique_movies[:5] if m.get('title'))
-            top_tv = ' / '.join(t.get('name', '') for t in unique_tv[:5] if t.get('name'))
-            if top_movies:
-                props['TopMovies'] = top_movies
-            if top_tv:
-                props['TopTVShows'] = top_tv
-
         self._set_window_properties(props)
-
-        if profile_path:
-            image_url = f"https://image.tmdb.org/t/p/original{profile_path}"
-            self.setProperty('ProfileImage', image_url)
 
     def _bind_containers(self) -> None:
         base_url = 'plugin://script.skin.info.service/'
@@ -134,10 +38,18 @@ class DialogActorInfo(InfoDialogBase):
         encoded_name = urllib.parse.quote(self._person_name)
 
         containers = {
-            'library_movies': f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}",
-            'library_tvshows': f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}",
-            'movies': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=movie",
-            'tvshows': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=tvshow",
+            'library_movies': (
+                f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"
+            ),
+            'library_tvshows': (
+                f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"
+            ),
+            'movies': (
+                f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=movie"
+            ),
+            'tvshows': (
+                f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=tvshow"
+            ),
             'all_credits': f"{base_url}?action=person_info&info_type=filmography&person_id={pid}",
             'crew': f"{base_url}?action=person_info&info_type=crew&person_id={pid}",
             'images': f"{base_url}?action=person_info&info_type=images&person_id={pid}",

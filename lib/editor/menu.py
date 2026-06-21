@@ -167,7 +167,8 @@ def _edit_field(
 
     handler = _FIELD_TYPE_HANDLERS.get(field_type)
     if not handler:
-        show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32250), xbmcgui.NOTIFICATION_WARNING)
+        show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32250),
+                          xbmcgui.NOTIFICATION_WARNING)
         return True
 
     new_value, cancelled = handler(display_name, current, media_type, field)
@@ -187,9 +188,14 @@ def _edit_field(
                 item["premiered"] = f"{new_value}{original[4:10]}"
             else:
                 item["premiered"] = f"{new_value}-01-01"
-        show_notification(ADDON.getLocalizedString(32258), f"{display_name} updated", xbmcgui.NOTIFICATION_INFO, 2000)
+        show_notification(ADDON.getLocalizedString(32258), f"{display_name} updated",
+                          xbmcgui.NOTIFICATION_INFO, 2000)
         xbmc.executebuiltin("Container.Refresh")
+
+        from lib.editor.nfo import write_nfo
+        write_nfo(media_type, dbid)
     else:
-        show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32251), xbmcgui.NOTIFICATION_ERROR, 3000)
+        show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32251),
+                          xbmcgui.NOTIFICATION_ERROR, 3000)
 
     return True
