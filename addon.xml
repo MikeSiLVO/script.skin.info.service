@@ -24,8 +24,7 @@
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
-		<description lang="en_GB">Skin Info Service provides additional properties such as ratings, artwork, and stream details for movies, sets, artists, and albums. Includes a gif poster scanner tool to automatically find and add animated gif posters to your library.
-		</description>
+		<description lang="en_GB">Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library.</description>
 		<platform>all</platform>
 		<license>GPL-3.0-only</license>
 		<source>https://github.com/MikeSiLVO/script.skin.info.service</source>
