@@ -191,6 +191,9 @@ def _edit_field(
         show_notification(ADDON.getLocalizedString(32258), f"{display_name} updated",
                           xbmcgui.NOTIFICATION_INFO, 2000)
         xbmc.executebuiltin("Container.Refresh")
+
+        from lib.editor.nfo import write_nfo
+        write_nfo(media_type, dbid)
     else:
         show_notification(ADDON.getLocalizedString(32258), ADDON.getLocalizedString(32251),
                           xbmcgui.NOTIFICATION_ERROR, 3000)

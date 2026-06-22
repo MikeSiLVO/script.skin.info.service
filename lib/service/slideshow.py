@@ -285,8 +285,8 @@ _DETAIL_PROPS = {
     'episode':    ['art', 'title', 'plot', 'firstaired'],
     'musicvideo': ['art', 'title', 'plot', 'year'],
     'set':        ['art', 'title'],
-    'song':       ['art', 'title', 'displayartist'],
-    'album':      ['art', 'title', 'displayartist', 'description'],
+    'song':       ['art', 'title', 'displayartist', 'artistid'],
+    'album':      ['art', 'title', 'displayartist', 'description', 'artistid'],
     'artist':     ['art', 'description'],
 }
 
@@ -295,6 +295,28 @@ LOOKAHEAD_DEPTH = 2
 
 def _detail_fanart(detail: Dict[str, Any]) -> str:
     return (detail.get('art', {}).get('fanart', '') or detail.get('fanart', '')).strip()
+
+
+def _music_artist_fanart(detail: Dict[str, Any]) -> str:
+    """Fanart for a song/album with none of its own, taken from its primary artist.
+
+    Songs and albums only expose artist/album thumbs via JSON-RPC, never fanart, so a music
+    playlist background has to resolve the artist. Also fills an empty description from the
+    artist bio. Returns '' when unavailable.
+    """
+    artist_id = detail.get('artistid')
+    if isinstance(artist_id, list):
+        artist_id = artist_id[0] if artist_id else None
+    if not artist_id:
+        return ''
+    resp = request("AudioLibrary.GetArtistDetails",
+                   {"artistid": int(artist_id), "properties": ["art", "description"]})
+    artist = resp.get('result', {}).get('artistdetails') if resp else None
+    if not isinstance(artist, dict):
+        return ''
+    if not detail.get('description'):
+        detail['description'] = artist.get('description', '')
+    return _detail_fanart(artist)
 
 
 def _year_of(detail: Dict[str, Any]) -> str:
@@ -466,6 +488,8 @@ class PlaylistRotator:
         if not isinstance(detail, dict):
             return None
         fanart = _detail_fanart(detail)
+        if not fanart and media_type in _PLAYLIST_MUSIC_TYPES:
+            fanart = _music_artist_fanart(detail)
         if not fanart or not _cache_image_url(fanart):
             return None
         return {'type': media_type, 'detail': detail, 'fanart': fanart}

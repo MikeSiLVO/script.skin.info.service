@@ -10,6 +10,14 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgctxt "Addon Summary"
+msgid "Provides rich media info and artwork to skins."
+msgstr ""
+
+msgctxt "Addon Description"
+msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
+msgstr ""
+
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr ""
@@ -105,6 +113,18 @@ msgstr ""
 
 msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
+msgstr ""
+
+msgctxt "#32029"
+msgid "Export to NFO"
+msgstr ""
+
+msgctxt "#32030"
+msgid "NFO file written"
+msgstr ""
+
+msgctxt "#32031"
+msgid "Could not write NFO file"
 msgstr ""
 
 msgctxt "#32035"
@@ -1823,4 +1843,32 @@ msgstr ""
 
 msgctxt "#32992"
 msgid "Library Maintenance"
+msgstr ""
+
+msgctxt "#32993"
+msgid "NFO Files"
+msgstr ""
+
+msgctxt "#32994"
+msgid "Write metadata changes to NFO files"
+msgstr ""
+
+msgctxt "#32995"
+msgid "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
+msgstr ""
+
+msgctxt "#32996"
+msgid "Create an NFO file when none exists"
+msgstr ""
+
+msgctxt "#32997"
+msgid "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
+msgstr ""
+
+msgctxt "#32998"
+msgid "Include watched state in NFO files"
+msgstr ""
+
+msgctxt "#32999"
+msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
 msgstr ""

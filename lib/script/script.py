@@ -257,6 +257,26 @@ def _handle_edit(args: dict) -> None:
     run_editor(args.get('dbid'), args.get('dbtype'))
 
 
+def _handle_export_nfo(args: dict) -> None:
+    import xbmcgui
+    from lib.kodi.client import ADDON
+    from lib.editor.nfo import write_nfo
+    from lib.infrastructure.dialogs import show_notification
+
+    dbid = args.get('dbid')
+    dbtype = args.get('dbtype')
+    if not dbid or dbid == "-1" or not dbtype:
+        return
+
+    wrote = write_nfo(dbtype.lower(), int(dbid), forced=True)
+    if wrote:
+        show_notification(ADDON.getLocalizedString(32029), ADDON.getLocalizedString(32030),
+                          xbmcgui.NOTIFICATION_INFO, 3000)
+    else:
+        show_notification(ADDON.getLocalizedString(32029), ADDON.getLocalizedString(32031),
+                          xbmcgui.NOTIFICATION_WARNING, 3000)
+
+
 def _handle_settings_action(args: dict) -> None:
     from lib.data.api import settings as api_settings
     sub_action = args.get('sub_action')
@@ -793,6 +813,7 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "download_artwork": _handle_download_artwork,
     "update_ratings": _handle_update_ratings,
     "edit": _handle_edit,
+    "export_nfo": _handle_export_nfo,
     "settings_action": _handle_settings_action,
     "arttest": _handle_arttest,
     "multiarttest": _handle_multiarttest,
