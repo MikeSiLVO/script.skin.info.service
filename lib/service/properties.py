@@ -641,7 +641,13 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
     for i, c in enumerate(countries_sorted, 1):
         data[f"Countries.{i}"] = c
 
-    data["Years"] = join_multi(years)
+    distinct_years = sorted({int(y) for y in years if y} - {0})
+    data["Years"] = join_multi(distinct_years)
+    if distinct_years:
+        first, last = distinct_years[0], distinct_years[-1]
+        data["Years.Range"] = str(first) if first == last else f"{first} - {last}"
+    else:
+        data["Years.Range"] = ""
     data["Count"] = str(total_count)
 
     data["_metadata"] = {

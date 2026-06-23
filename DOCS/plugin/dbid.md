@@ -327,20 +327,21 @@ Properties (percent values only):
 
 ### Set Aggregate Properties
 
-| Property         | Description    |
-|------------------|----------------|
-| `Titles`         | All titles     |
-| `Plots`          | Combined plots |
-| `ExtendedPlots`  | Titles + plots |
-| `Runtime`        | Total runtime  |
-| `Runtime.Hours`  | Hours          |
-| `Runtime.Minutes`| Minutes        |
-| `Years`          | Years list     |
-| `Writers`        | All writers    |
-| `Directors`      | All directors  |
-| `Genres`         | All genres     |
-| `Countries`      | All countries  |
-| `Studios`        | All studios    |
+| Property          | Description             |
+|-------------------|-------------------------|
+| `Titles`          | All titles              |
+| `Plots`           | Combined plots          |
+| `ExtendedPlots`   | Titles + plots          |
+| `Runtime`         | Total runtime           |
+| `Runtime.Hours`   | Hours                   |
+| `Runtime.Minutes` | Minutes                 |
+| `Years`           | Distinct years, sorted  |
+| `Years.Range`     | Earliest to latest year |
+| `Writers`         | All writers             |
+| `Directors`       | All directors           |
+| `Genres`          | All genres              |
+| `Countries`       | All countries           |
+| `Studios`         | All studios             |
 
 ### Per-Movie Properties
 

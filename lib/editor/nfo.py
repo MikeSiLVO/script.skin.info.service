@@ -7,6 +7,7 @@ JSON-RPC. Merge preserves any element we do not write (incl. those art blocks).
 """
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -28,7 +29,7 @@ _NFO_PROPERTIES = {
     'movie': [
         "title", "originaltitle", "sorttitle", "ratings", "userrating", "top250",
         "plotoutline", "plot", "tagline", "runtime", "mpaa", "playcount", "lastplayed",
-        "imdbnumber", "uniqueid", "genre", "country", "set", "tag", "writer", "director",
+        "imdbnumber", "uniqueid", "genre", "country", "set", "setid", "tag", "writer", "director",
         "premiered", "year", "studio", "trailer", "streamdetails", "cast", "showlink",
         "resume", "dateadded", "file",
     ],
@@ -71,13 +72,20 @@ def _nfo_path(media_type: str, media_file: str) -> Optional[str]:
     return media_file[:dot] + '.nfo'
 
 
+_ILLEGAL_XML = re.compile('[^\t\n\r\x20-\uD7FF\uE000-\uFFFD\U00010000-\U0010FFFF]')
+
+
+def _xml_safe(value: Any) -> str:
+    return _ILLEGAL_XML.sub('', '' if value is None else str(value))
+
+
 def _set_str(parent: ET.Element, tag: str, value: Any) -> None:
-    ET.SubElement(parent, tag).text = '' if value is None else str(value)
+    ET.SubElement(parent, tag).text = _xml_safe(value)
 
 
 def _set_str_if(parent: ET.Element, tag: str, value: Any) -> None:
     if value:
-        ET.SubElement(parent, tag).text = str(value)
+        ET.SubElement(parent, tag).text = _xml_safe(value)
 
 
 def _set_int(parent: ET.Element, tag: str, value: Any) -> None:
@@ -98,7 +106,7 @@ def _set_array(parent: ET.Element, tag: str, values: Any) -> None:
     if isinstance(values, list):
         for v in values:
             if v:
-                ET.SubElement(parent, tag).text = str(v)
+                ET.SubElement(parent, tag).text = _xml_safe(v)
 
 
 def _date_only(value: str) -> str:
@@ -128,7 +136,7 @@ def _add_uniqueids(root: ET.Element, default_id: str, uniqueids: Dict[str, str])
         elem.set("type", id_type)
         if value == default_id:
             elem.set("default", "true")
-        elem.text = str(value)
+        elem.text = _xml_safe(value)
 
 
 def _add_streamdetails(root: ET.Element, streamdetails: Dict[str, Any]) -> None:
@@ -169,6 +177,20 @@ def _add_cast(root: ET.Element, cast: List[Dict[str, Any]]) -> None:
         thumb = member.get("thumbnail")
         if thumb:
             _set_str(actor, "thumb", decode_image_url(thumb))
+
+
+def _fetch_set_overview(setid: Any) -> str:
+    """The set overview lives on the set, not the movie, so resolve it by setid."""
+    try:
+        sid = int(setid)
+    except (TypeError, ValueError):
+        return ""
+    if sid <= 0:
+        return ""
+    details = get_item_details('set', sid, ['plot'])
+    if isinstance(details, dict):
+        return details.get('plot') or ""
+    return ""
 
 
 def _build_root(media_type: str, d: Dict[str, Any], include_watched: bool = True) -> ET.Element:
@@ -219,6 +241,7 @@ def _build_root(media_type: str, d: Dict[str, Any], include_watched: bool = True
     if set_name:
         set_elem = ET.SubElement(root, "set")
         _set_str(set_elem, "name", set_name)
+        _set_str_if(set_elem, "overview", _fetch_set_overview(d.get("setid")))
 
     _set_array(root, "tag", d.get("tag"))
     _set_array(root, "credits", d.get("writer"))

@@ -249,7 +249,8 @@ Aggregates are cleared when focus leaves the versions/extras container. No-op on
 | `Runtime` | Total runtime in minutes |
 | `Runtime.Hours` | Hours component |
 | `Runtime.Minutes` | Minutes component |
-| `Years` | Years list (separated by " / ") |
+| `Years` | Distinct release years, sorted ascending (separated by " / ") |
+| `Years.Range` | Earliest to latest year (e.g. `2008 - 2012`; a single year when all match) |
 | `Writers` | All writers (de-duped, separated by " / ") |
 | `Directors` | All directors (de-duped, separated by " / ") |
 | `Genres` | All genres (de-duped, separated by " / ") |
