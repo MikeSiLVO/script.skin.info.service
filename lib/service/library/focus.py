@@ -136,8 +136,6 @@ class FocusDispatcher:
             clear_group(prefix)
         if media_type == "season":
             clear_group(_MEDIA_TYPE_PREFIXES["tvshow"])
-        if media_type in ("musicvideo", "musicvideo_artist"):
-            self._service.musicvideo.reset_online_key()
 
     def invalidate_asset_view(self) -> None:
         """Force a refetch of extras aggregates on the next tick. Called from the

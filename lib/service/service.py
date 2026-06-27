@@ -9,6 +9,8 @@ from lib.kodi.client import ADDON, log
 from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready
 
 SKIN_BOOL = "SkinInfo.Service"
+SKIN_BOOL_LIBRARY = "SkinInfo.Service.Library"
+SKIN_BOOL_ONLINE = "SkinInfo.Service.Online"
 POLL_INTERVAL = 1.0
 
 
@@ -78,8 +80,13 @@ class Orchestrator:
         threading.Thread(target=_run, daemon=True).start()
 
     def _evaluate(self) -> None:
-        skin_enabled = xbmc.getCondVisibility(f'Skin.HasSetting({SKIN_BOOL})')
-        self._manage_skin_services(skin_enabled)
+        library_enabled = xbmc.getCondVisibility(
+            f'Skin.HasSetting({SKIN_BOOL}) | Skin.HasSetting({SKIN_BOOL_LIBRARY})'
+        )
+        online_enabled = xbmc.getCondVisibility(
+            f'Skin.HasSetting({SKIN_BOOL}) | Skin.HasSetting({SKIN_BOOL_ONLINE})'
+        )
+        self._manage_skin_services(library_enabled, online_enabled)
 
         if self.monitor.settings_dirty:
             self.monitor.settings_dirty = False
@@ -102,16 +109,27 @@ class Orchestrator:
         thread.join(timeout=2)
         setattr(self, attr, None)
 
-    def _manage_skin_services(self, enabled: bool) -> None:
-        if enabled:
+    def _manage_skin_services(self, library_enabled: bool, online_enabled: bool) -> None:
+        """Start/stop the library and online services per their skin bools."""
+        if library_enabled:
             from lib.service.library.main import ServiceMain
-            from lib.service.online import OnlineServiceMain
             self._ensure_started('_library_thread', ServiceMain)
+            set_prop("SkinInfo.Service.Library.Running", "true")
+        else:
+            self._ensure_stopped('_library_thread')
+            clear_prop("SkinInfo.Service.Library.Running")
+
+        if online_enabled:
+            from lib.service.online import OnlineServiceMain
             self._ensure_started('_online_thread', OnlineServiceMain)
-            set_prop("SkinInfo.Service.Running", "true")
+            set_prop("SkinInfo.Service.Online.Running", "true")
         else:
             self._ensure_stopped('_online_thread')
-            self._ensure_stopped('_library_thread')
+            clear_prop("SkinInfo.Service.Online.Running")
+
+        if library_enabled or online_enabled:
+            set_prop("SkinInfo.Service.Running", "true")
+        else:
             clear_prop("SkinInfo.Service.Running")
 
     def _manage_setting_services(self) -> None:

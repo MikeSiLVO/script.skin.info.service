@@ -31,18 +31,35 @@ Skin Info Service provides three integration methods:
 
 Library and Online monitors are skin-opt-in; IMDb and Stinger run if they are enabled in the settings.
 
-To enable the Library and Online monitors, opt in from your skin:
+To enable both monitors, opt in from your skin:
 
 ```xml
 <onload>Skin.SetBool(SkinInfo.Service)</onload>
 ```
 
+### Enabling Library and Online separately
+
+`SkinInfo.Service` enables both monitors together. To run only one, use the
+per-monitor bools instead:
+
+```xml
+<!-- Library properties only, no online API calls -->
+<onload>Skin.SetBool(SkinInfo.Service.Library)</onload>
+
+<!-- Online API properties only -->
+<onload>Skin.SetBool(SkinInfo.Service.Online)</onload>
+```
+
+A skin that does not read any `SkinInfo.Online.*` / `SkinInfo.MusicVideo.Online.*`
+properties should set `SkinInfo.Service.Library` so the online monitor (and its API
+calls) never start. Setting `SkinInfo.Service` is equivalent to setting both bools.
+
 ### Skin-Dependent vs Independent Services
 
 | Service | Controlled By |
 |---------|---------------|
-| Library properties | `Skin.HasSetting(SkinInfo.Service)` (skin-opt-in) |
-| Online API properties | `Skin.HasSetting(SkinInfo.Service)` (skin-opt-in) |
+| Library properties | `Skin.HasSetting(SkinInfo.Service)` or `Skin.HasSetting(SkinInfo.Service.Library)` |
+| Online API properties | `Skin.HasSetting(SkinInfo.Service)` or `Skin.HasSetting(SkinInfo.Service.Online)` |
 | Stinger notifications | "Enable stinger detection" addon setting |
 | IMDb auto-update | "IMDb Ratings > Auto-update" addon setting |
 
@@ -52,7 +69,9 @@ Library and online properties require a skin that reads `SkinInfo.*` properties.
 
 | Property | Description |
 |----------|-------------|
-| `SkinInfo.Service.Running` | Set to `true` while Library and Online services are running, cleared on stop |
+| `SkinInfo.Service.Running` | Set to `true` while either the Library or Online service is running, cleared when both stop |
+| `SkinInfo.Service.Library.Running` | Set to `true` while the Library service is running |
+| `SkinInfo.Service.Online.Running` | Set to `true` while the Online service is running |
 
 ```xml
 <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.Service.Running))</visible>

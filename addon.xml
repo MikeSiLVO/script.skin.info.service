@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta35"
+	   version="2.0.0~beta36"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -31,6 +31,12 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta36
+- Service now exits cleanly on Kodi shutdown, even while fetching online data
+- Skins can enable the library and online services separately; library-only skins make no internet calls
+- Lighter online fetching when scrolling through music videos
+- Translation updates
+
 2.0.0~beta35
 - Metadata editor: NFO export now writes the movie set overview
 - Movie sets: year list is now de-duplicated and sorted, with a new Years.Range property for skins
@@ -39,17 +45,6 @@
 2.0.0~beta34
 - Fix music playlist backgrounds showing blank
 - Add NFO writer for the metadata editor
-
-2.0.0~beta33
-- Fix: Download Artwork failed on movie sets
-- Fix: Pre-Cache + Download only processed episodes, skipping movies, sets, music and other types
-- Fix: missing-artwork scan skipped artists
-- Fix: texture cleanup could wrongly remove cached art for music, sets and other item types
-- Texture cleanup shows per-type scan progress and can be cancelled during the scan
-- Fanart slideshow keeps up with artwork changes and shows a more balanced mix of movies, TV shows and music
-
-2.0.0~beta32
-- Fix: MDBList and OMDb API keys could fail to save, making the connection test fail after reopening settings
 
 2.0.0-Betas
 - Complete rewrite of the service
@@ -63,7 +58,7 @@
 - Plugin widgets: Next Up, Discovery, Recommendations, Cast, Crew, Similar and more
 - Info dialogs: Actor Info, Video Info and Image Viewer
 - Stinger (mid/post-credits) notifications with skin override support
-- Tools: image blur, color picker, fanart slideshow and animated-poster (GIF) scanner
+- Tools: image blur, color picker, fanart slideshow, texture cache cleanup and animated-poster (GIF) scanner
 - Skinner helpers: generic JSON-RPC wrapper (action=json) and skin setting actions (set/toggle/reset)
 - Requires Kodi 21 (Omega) or newer
 - Skins enable the service with Skin.SetBool(SkinInfo.Service)

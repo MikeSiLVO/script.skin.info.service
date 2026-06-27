@@ -1,4 +1,4 @@
-"""Online data service: TMDB enrichment + per-context handlers + background updater."""
+"""Online data service: TMDB data + per-context handlers + background updater."""
 from lib.service.online.main import (
     OnlineServiceMain,
     OnlineScanMonitor,

@@ -11,6 +11,8 @@ Uses requests library with:
 from __future__ import annotations
 
 import xbmc
+import gzip
+import socket
 import time
 import threading
 from typing import Optional, Dict, Any, Tuple, List, Protocol, runtime_checkable
@@ -19,6 +21,8 @@ from collections import deque
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 
 from lib.kodi.client import log, ADDON
 
@@ -121,6 +125,142 @@ class AbortRequested(Exception):
     pass
 
 
+# A blocked read can't check its own abort flag, so a watcher closes the socket from
+# outside. Tracking the connection (not the response) reaches a stall in any phase; the
+# connection carries its request's cancel token, so a superseded focus closes it too.
+_OPEN_CONNS: set = set()
+_CONN_LOCK = threading.Lock()
+_CONN_WATCHER_STARTED = False
+# per-thread cancel token for the in-flight request, read by the connection on connect
+_REQUEST_TOKEN = threading.local()
+
+
+def _close_conn(conn) -> None:
+    """Shut down one connection's socket and untrack it."""
+    sock = getattr(conn, "sock", None)
+    if sock is not None:
+        try:
+            sock.shutdown(socket.SHUT_RDWR)
+        except Exception:
+            pass
+    with _CONN_LOCK:
+        _OPEN_CONNS.discard(conn)
+
+
+def _close_all_conns() -> None:
+    """Shut down every tracked socket, unblocking any stalled read on abort."""
+    with _CONN_LOCK:
+        conns = list(_OPEN_CONNS)
+    if conns:
+        log("API", f"shutdown: closing {len(conns)} open connection(s)", xbmc.LOGDEBUG)
+    for conn in conns:
+        _close_conn(conn)
+
+
+def _conn_watcher() -> None:
+    """Close a connection when its request is cancelled; close all on Kodi abort."""
+    monitor = xbmc.Monitor()
+    while not monitor.abortRequested():
+        with _CONN_LOCK:
+            conns = list(_OPEN_CONNS)
+        for conn in conns:
+            token = getattr(conn, "_cancel_token", None)
+            if token is not None and token.is_requested():
+                _close_conn(conn)
+        if monitor.waitForAbort(0.2):
+            break
+    # repeat briefly to catch a request that connects mid-shutdown
+    for _ in range(4):
+        _close_all_conns()
+        xbmc.sleep(100)
+
+
+def _ensure_conn_watcher() -> None:
+    """Start the connection watcher once."""
+    global _CONN_WATCHER_STARTED
+    with _CONN_LOCK:
+        if _CONN_WATCHER_STARTED:
+            return
+        _CONN_WATCHER_STARTED = True
+    threading.Thread(target=_conn_watcher, daemon=True).start()
+
+
+def _register_conn(conn) -> None:
+    """Track a live connection so the watcher can close its socket on abort."""
+    with _CONN_LOCK:
+        _OPEN_CONNS.add(conn)
+    _ensure_conn_watcher()
+
+
+def _unregister_conn(conn) -> None:
+    """Drop a connection from the tracker when it closes."""
+    with _CONN_LOCK:
+        _OPEN_CONNS.discard(conn)
+
+
+class _TrackedHTTPConnection(HTTPConnection):
+    """HTTP connection that registers its socket for abort-closing."""
+
+    def request(self, *args, **kwargs):
+        """Retag with the current request's token (covers keep-alive reuse), then send."""
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        return super().request(*args, **kwargs)
+
+    def connect(self) -> None:
+        """Register the socket, tagged with this request's cancel token."""
+        super().connect()
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        _register_conn(self)
+
+    def close(self) -> None:
+        """Untrack the connection, then close it."""
+        _unregister_conn(self)
+        super().close()
+
+
+class _TrackedHTTPSConnection(HTTPSConnection):
+    """HTTPS connection that registers its socket for abort-closing."""
+
+    def request(self, *args, **kwargs):
+        """Retag with the current request's token (covers keep-alive reuse), then send."""
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        return super().request(*args, **kwargs)
+
+    def connect(self) -> None:
+        """Register the socket, tagged with this request's cancel token."""
+        super().connect()
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        _register_conn(self)
+
+    def close(self) -> None:
+        """Untrack the connection, then close it."""
+        _unregister_conn(self)
+        super().close()
+
+
+class _TrackedHTTPConnectionPool(HTTPConnectionPool):
+    """Pool that hands out tracked HTTP connections."""
+
+    ConnectionCls = _TrackedHTTPConnection  # type: ignore[assignment]
+
+
+class _TrackedHTTPSConnectionPool(HTTPSConnectionPool):
+    """Pool that hands out tracked HTTPS connections."""
+
+    ConnectionCls = _TrackedHTTPSConnection  # type: ignore[assignment]
+
+
+class _TrackedAdapter(HTTPAdapter):
+    """Adapter whose connections register their socket so the watcher can close them."""
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
+        self.poolmanager.pool_classes_by_scheme = {
+            "http": _TrackedHTTPConnectionPool,
+            "https": _TrackedHTTPSConnectionPool,
+        }
+
+
 class ApiSession:
     """HTTP client with connection pooling, retry, rate limiting, and abort support.
 
@@ -178,7 +318,7 @@ class ApiSession:
             read=read_retries
         )
 
-        adapter = HTTPAdapter(
+        adapter = _TrackedAdapter(
             max_retries=retry_strategy,
             pool_connections=10,
             pool_maxsize=10
@@ -221,6 +361,55 @@ class ApiSession:
         """Check abort flag and raise if requested."""
         if abort_flag and abort_flag.is_requested():
             raise AbortRequested("Request aborted by user")
+
+    def _get_capped(self, url, params, headers, request_timeout, cap, abort_flag):
+        """GET that polls abort while reading the body, so a request in flight at
+        shutdown can be dropped (a blocked read can't otherwise be interrupted).
+
+        raw.read1 returns whatever has arrived, so a big response avoids the
+        byte-by-byte cost of iter_content(1); Accept-Encoding is pinned to gzip so the
+        body decodes with stdlib. The API's read timeout applies; cap backstops a
+        runaway. Falls back to iter_content(1) where read1 is missing.
+        """
+        deadline = time.time() + cap
+        req_headers = dict(headers or {})
+        req_headers["Accept-Encoding"] = "gzip"
+        response = self.session.get(
+            url, params=params, headers=req_headers, timeout=request_timeout, stream=True,
+        )
+        try:
+            raw = response.raw
+            if hasattr(raw, "read1"):
+                chunks, gunzip = iter(lambda: raw.read1(65536), b""), True
+            else:
+                chunks, gunzip = response.iter_content(chunk_size=1), False
+
+            body = bytearray()
+            last_poll = 0.0
+            for chunk in chunks:
+                body.extend(chunk)
+                now = time.time()
+                if now > deadline:
+                    raise RetryableError(self.service_name, "request deadline exceeded")
+                if now - last_poll >= 0.1:
+                    last_poll = now
+                    if abort_flag and abort_flag.is_requested():
+                        raise AbortRequested("Request aborted")
+
+            response._content = self._gunzip(response, bytes(body)) if gunzip else bytes(body)
+            return response
+        finally:
+            response.close()
+
+    @staticmethod
+    def _gunzip(response, body):
+        """Decompress a pinned-gzip body; raw bytes on identity or a bad gzip stream."""
+        if body and response.headers.get("Content-Encoding", "").lower() == "gzip":
+            try:
+                return gzip.decompress(body)
+            except OSError:
+                pass
+        return body
 
     def _handle_response(
         self,
@@ -281,19 +470,23 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
+        _REQUEST_TOKEN.token = abort_flag
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
+        cap = getattr(abort_flag, 'max_request_seconds', None)
 
         try:
             log("API", f"{self.service_name}: GET {url.split('?')[0]}", xbmc.LOGDEBUG)
 
             start = time.time()
-            response = self.session.get(
-                url,
-                params=params,
-                headers=headers,
-                timeout=request_timeout
-            )
+            if cap:
+                response = self._get_capped(
+                    url, params, headers, request_timeout, cap, abort_flag
+                )
+            else:
+                response = self.session.get(
+                    url, params=params, headers=headers, timeout=request_timeout
+                )
 
             elapsed = time.time() - start
 
@@ -349,6 +542,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
+        _REQUEST_TOKEN.token = abort_flag
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 
@@ -406,6 +600,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
+        _REQUEST_TOKEN.token = abort_flag
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 
@@ -454,6 +649,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
+        _REQUEST_TOKEN.token = abort_flag
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 

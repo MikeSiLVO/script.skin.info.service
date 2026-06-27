@@ -85,7 +85,7 @@ class PlayerHandler:
     def _fetch_worker(self, media_type: str, imdb_id: str, tmdb_id: str,
                       cache_key: str) -> None:
         try:
-            abort_flag = self._service.abort_flag
+            abort_flag = self._service.capped_abort_flag
             if abort_flag.is_requested():
                 return
 

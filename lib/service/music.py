@@ -278,34 +278,6 @@ def _fetch_and_cache_artist_metadata(
     return get_best_artist_bio(mbid=mbid, name=name)
 
 
-def try_cached_artist_online_data(artist_name: str) -> Optional[MusicOnlineResult]:
-    """Try to build MusicOnlineResult from cache only, no API calls.
-
-    Returns result if MBID + art are cached, None on cache miss.
-    """
-    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
-    if not primary_name:
-        return None
-
-    cached = get_cached_artist(SOURCE_AUDIODB, name=primary_name)
-    if not cached:
-        return None
-
-    mbid = cached.get('strMusicBrainzID') or cached.get('strMusicBrainzArtistID') or ''
-    if not mbid:
-        return None
-
-    mbids = [mbid]
-    fanart_urls = read_cached_fanart(mbids)
-    artist_art = read_cached_artist_art(mbids)
-
-    if not fanart_urls and not artist_art:
-        return None
-
-    bio = get_best_artist_bio(mbid=mbid, name=primary_name)
-    return MusicOnlineResult(bio=bio, fanart_urls=fanart_urls, artist_art=artist_art)
-
-
 def fetch_artist_online_data(
     artist_name: str,
     *,
@@ -512,8 +484,6 @@ def fetch_album_online_data(
             or None)
 
 
-# -- Property extraction from cached data --
-
 def _extract_wiki(data: Optional[dict]) -> str:
     """Extract wiki/bio text from a Last.fm response, stripping the HTML suffix."""
     if not isinstance(data, dict):
@@ -648,3 +618,50 @@ def extract_album_properties(artist: str, album: str, *, mbid: str = '') -> Dict
             props['Label'] = label
 
     return props
+
+
+def fill_artist_online_props(
+    props: Dict[str, Optional[str]],
+    prefix: str,
+    result: MusicOnlineResult,
+    *,
+    name: Optional[str] = None,
+) -> None:
+    """Fill {prefix}Artist.* from a resolved result; pass name to add .Name."""
+    ap = f"{prefix}Artist."
+    if name is not None:
+        props[f"{ap}Name"] = name
+    props[f"{ap}Bio"] = result.bio or ""
+    props[f"{ap}FanArt.Count"] = str(len(result.fanart_urls))
+    props[f"{ap}FanArt"] = result.fanart_urls[0] if result.fanart_urls else ""
+    for art_type in ('thumb', 'clearlogo', 'banner'):
+        key = art_type[0].upper() + art_type[1:]
+        props[f"{ap}{key}"] = result.artist_art.get(art_type, '')
+
+
+def fill_track_online_props(
+    props: Dict[str, Optional[str]],
+    prefix: str,
+    artist: str,
+    track: str,
+    *,
+    abort_flag=None,
+) -> None:
+    """Fetch track data, fill {prefix}Track.*."""
+    fetch_track_online_data(artist, track, abort_flag=abort_flag)
+    for k, v in extract_track_properties(artist, track).items():
+        props[f"{prefix}Track.{k}"] = v
+
+
+def fill_album_online_props(
+    props: Dict[str, Optional[str]],
+    prefix: str,
+    artist: str,
+    album: str,
+    *,
+    abort_flag=None,
+) -> None:
+    """Fetch album data, fill {prefix}Album.*."""
+    fetch_album_online_data(artist, album, abort_flag=abort_flag)
+    for k, v in extract_album_properties(artist, album).items():
+        props[f"{prefix}Album.{k}"] = v

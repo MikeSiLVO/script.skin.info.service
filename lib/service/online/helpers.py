@@ -64,7 +64,7 @@ def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '
 
 
 def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
-    """Resolve uniqueids for a library item and drop its cached online enrichment."""
+    """Resolve uniqueids for a library item and drop its cached online data."""
     from lib.kodi.client import get_item_uniqueids
     imdb_id, tmdb_id = get_item_uniqueids(media_type, dbid)
     if imdb_id or tmdb_id:

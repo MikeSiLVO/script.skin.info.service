@@ -145,7 +145,7 @@ class MusicPlayerHandler:
                 mbids=mbids or None,
                 album=album,
                 track=track,
-                abort_flag=self._service.abort_flag,
+                abort_flag=self._service.capped_abort_flag,
             )
 
             if artist_name != self._last_audio_key:
@@ -172,7 +172,7 @@ class MusicPlayerHandler:
                 artist_name,
                 album=album,
                 track=track,
-                abort_flag=self._service.abort_flag,
+                abort_flag=self._service.capped_abort_flag,
             )
 
             if artist_name != self._last_video_key:
@@ -188,52 +188,33 @@ class MusicPlayerHandler:
     def _apply(self, artist_name: str, result: 'MusicOnlineResult',
                track: Optional[str], album: Optional[str], prefix: str) -> None:
         from lib.service.music import (
-            fetch_track_online_data,
-            fetch_album_online_data,
-            extract_track_properties,
-            extract_album_properties,
+            fill_artist_online_props,
+            fill_track_online_props,
+            fill_album_online_props,
         )
 
         self._fanart_urls = result.fanart_urls
         self._fanart_index = 0
         self._fanart_last_rotate = time.time()
         self._active_prefix = prefix
-        self._set_artist_props(
-            artist_name, result.bio, result.fanart_urls, result.artist_art, prefix,
-        )
+
+        artist_props: Dict[str, Optional[str]] = {}
+        fill_artist_online_props(artist_props, prefix, result, name=artist_name)
+        batch_set_props(artist_props)
 
         if track:
-            fetch_track_online_data(artist_name, track, abort_flag=self._service.abort_flag)
-            track_props = extract_track_properties(artist_name, track)
+            track_props: Dict[str, Optional[str]] = {}
+            fill_track_online_props(track_props, prefix, artist_name, track,
+                                    abort_flag=self._service.capped_abort_flag)
             if track_props:
-                batch_set_props({
-                    f"{prefix}Track.{k}": v
-                    for k, v in track_props.items()
-                })
+                batch_set_props(track_props)
 
         if album:
-            fetch_album_online_data(artist_name, album, abort_flag=self._service.abort_flag)
-            album_props = extract_album_properties(artist_name, album)
+            album_props: Dict[str, Optional[str]] = {}
+            fill_album_online_props(album_props, prefix, artist_name, album,
+                                    abort_flag=self._service.capped_abort_flag)
             if album_props:
-                batch_set_props({
-                    f"{prefix}Album.{k}": v
-                    for k, v in album_props.items()
-                })
-
-    @staticmethod
-    def _set_artist_props(artist_name: str, bio: str, fanart_urls: List[str],
-                          artist_art: Dict[str, str], prefix: str) -> None:
-        ap = f"{prefix}Artist."
-        props: Dict[str, Optional[str]] = {
-            f"{ap}Name": artist_name,
-            f"{ap}FanArt.Count": str(len(fanart_urls)),
-            f"{ap}FanArt": fanart_urls[0] if fanart_urls else "",
-            f"{ap}Bio": bio or "",
-        }
-        for art_type in ('thumb', 'clearlogo', 'banner'):
-            key = art_type[0].upper() + art_type[1:]
-            props[f"{ap}{key}"] = artist_art.get(art_type, '')
-        batch_set_props(props)
+                batch_set_props(album_props)
 
     def _reset_audio(self) -> None:
         if self._last_audio_key:
