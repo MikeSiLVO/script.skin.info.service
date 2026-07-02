@@ -91,6 +91,8 @@ Settings → Advanced → Context Menu Items
 | Tags | List | Custom tags |
 | User Rating | Rating | Personal rating (0-10) |
 | External Ratings | Ratings | IMDb, TMDB, etc. |
+| Play Count | Integer | Times played (0 = unwatched) |
+| Last Played | Date | Date last played (YYYY-MM-DD) |
 
 ### TV Shows
 
@@ -103,7 +105,6 @@ Settings → Advanced → Context Menu Items
 | Premiered | Date | First air date (YYYY-MM-DD) |
 | Runtime | Integer | Episode duration in minutes |
 | MPAA Rating | Text | Content rating |
-| Status | Select | Returning Series, Ended, Cancelled, etc. |
 | Genre | List | Genre tags |
 | Studio | List | Networks/studios |
 | Tags | List | Custom tags |
@@ -123,6 +124,8 @@ Settings → Advanced → Context Menu Items
 | Writer | List | Writers |
 | User Rating | Rating | Personal rating (0-10) |
 | External Ratings | Ratings | IMDb, TMDB, etc. |
+| Play Count | Integer | Times played (0 = unwatched) |
+| Last Played | Date | Date last played (YYYY-MM-DD) |
 
 ### Seasons
 
@@ -145,6 +148,8 @@ Settings → Advanced → Context Menu Items
 | Director | List | Directors |
 | Tags | List | Custom tags |
 | User Rating | Rating | Personal rating (0-10) |
+| Play Count | Integer | Times played (0 = unwatched) |
+| Last Played | Date | Date last played (YYYY-MM-DD) |
 
 ---
 

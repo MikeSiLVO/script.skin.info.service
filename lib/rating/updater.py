@@ -11,14 +11,12 @@ from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import request, get_library_items, log, ADDON
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api import tracker as usage_tracker
-from lib.data.api.trakt import ApiTrakt
 from lib.data.database import workflow as db
 from lib.infrastructure.dialogs import show_ok, show_notification
 from lib.rating.executor import RetryPoolEntry
 from lib.rating.ids import (
     clear_tvshow_uniqueid_cache,
     prefetch_tvshow_uniqueids,
-    get_tvshow_uniqueid,
 )
 from lib.rating.single import update_single_item
 from lib.rating.imdb import (
@@ -28,52 +26,6 @@ from lib.rating.imdb import (
 )
 from lib.rating.batch import MdblistBatchFetcher, run_multi_source_batch
 from lib.rating.retry import prompt_and_process_retries
-
-
-def _prefetch_trakt_seasons(
-    tvshow_dbid: int, episodes: List[Dict], sources: List
-) -> None:
-    """Prefetch Trakt episode data per-season for a show's episodes."""
-    trakt_source = next((s for s in sources if isinstance(s, ApiTrakt)), None)
-    if not trakt_source:
-        return
-
-    show_uniqueid = get_tvshow_uniqueid(tvshow_dbid)
-    show_imdb = show_uniqueid.get("imdb")
-    if not show_imdb:
-        return
-
-    seasons: Set[int] = set()
-    for ep in episodes:
-        s = ep.get("season")
-        if s is not None:
-            seasons.add(s)
-    for season in sorted(seasons):
-        trakt_source.prefetch_season(show_imdb, season)
-
-
-def _prefetch_trakt_seasons_batch(
-    items: List[Dict], sources: List
-) -> None:
-    """Prefetch Trakt episode data for all show+season combos in a batch."""
-    trakt_source = next((s for s in sources if isinstance(s, ApiTrakt)), None)
-    if not trakt_source:
-        return
-
-    show_seasons: Dict[int, Set[int]] = {}
-    for item in items:
-        tvshow_dbid = item.get("tvshowid")
-        season = item.get("season")
-        if tvshow_dbid and season is not None:
-            show_seasons.setdefault(tvshow_dbid, set()).add(season)
-
-    for tvshow_dbid, seasons in show_seasons.items():
-        show_uniqueid = get_tvshow_uniqueid(tvshow_dbid)
-        show_imdb = show_uniqueid.get("imdb")
-        if not show_imdb:
-            continue
-        for season in sorted(seasons):
-            trakt_source.prefetch_season(show_imdb, season)
 
 
 def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
@@ -91,8 +43,6 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
         return 0
 
     log("Ratings", f"Updating ratings for {len(episodes)} episodes", xbmc.LOGINFO)
-
-    _prefetch_trakt_seasons(tvshow_dbid, episodes, sources)
 
     updated_count = 0
     for episode in episodes:
@@ -189,8 +139,6 @@ def update_library_ratings(
     if media_type == "episode":
         ensure_episode_dataset(progress)
         prefetch_tvshow_uniqueids()
-        if source_mode == "multi_source":
-            _prefetch_trakt_seasons_batch(items, sources)
 
     monitor = xbmc.Monitor()
 

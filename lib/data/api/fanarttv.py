@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any, Optional, List, Dict
 
 from lib.data.api.client import ApiSession
+from lib.data.api.utilities import decode_key
 from lib.kodi.settings import KodiSettings
 
 
@@ -20,7 +21,7 @@ class ApiFanarttv:
 
     BASE_URL = "https://webservice.fanart.tv/v3.2"
 
-    API_KEY = "1fffa11cc0e558efad9c4da6b9cd2cef"
+    API_KEY = decode_key("MWZmZmExMWNjMGU1NThlZmFkOWM0ZGE2YjljZDJjZWY=")
 
     def __init__(self):
         self.session = ApiSession(
@@ -34,6 +35,17 @@ class ApiFanarttv:
                 "Accept": "application/json"
             }
         )
+        self._tv_blob_cache: Dict[int, Optional[dict]] = {}
+
+    def _get_tv_blob(self, tvdb_id: int, abort_flag=None) -> Optional[dict]:
+        """Fetch and memoize the /tv/{tvdb_id} response for this fetcher's lifetime.
+
+        Show and season artwork both derive from the same response, so a season batch reuses one
+        request instead of re-fetching the whole show blob per season.
+        """
+        if tvdb_id not in self._tv_blob_cache:
+            self._tv_blob_cache[tvdb_id] = self._make_request(f"/tv/{tvdb_id}", abort_flag)
+        return self._tv_blob_cache[tvdb_id]
 
     def get_api_key(self) -> str:
         """Get fanart.tv project API key."""
@@ -137,7 +149,7 @@ class ApiFanarttv:
         Season-specific artwork is returned under prefixed keys (season.poster, etc.)
         with the season number in the artwork dict.
         """
-        data = self._make_request(f"/tv/{tvdb_id}", abort_flag)
+        data = self._get_tv_blob(tvdb_id, abort_flag)
 
         if not data:
             return {}
@@ -187,7 +199,7 @@ class ApiFanarttv:
 
     def get_season_artwork(self, tvdb_id: int, season_number: int, abort_flag=None) -> dict:
         """Get artwork for a specific TV season from fanart.tv."""
-        data = self._make_request(f"/tv/{tvdb_id}", abort_flag)
+        data = self._get_tv_blob(tvdb_id, abort_flag)
 
         if not data:
             return {}

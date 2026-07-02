@@ -13,6 +13,7 @@ class FieldType(Enum):
     INTEGER = "integer"
     NUMBER = "number"
     DATE = "date"
+    DATETIME = "datetime"
     LIST = "list"
     USERRATING = "userrating"
     RATINGS = "ratings"
@@ -100,6 +101,8 @@ FIELD_DEFINITIONS: dict[str, FieldDef] = {
     "ratings": field("ratings", "External Ratings", FieldType.RATINGS, CATEGORY_RATINGS),
     # Dates Numbers
     "status": field("status", "Status", FieldType.STATUS, CATEGORY_DATES_NUMBERS),
+    "playcount": field("playcount", "Play Count", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "lastplayed": field("lastplayed", "Last Played", FieldType.DATETIME, CATEGORY_DATES_NUMBERS),
 }
 
 MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
@@ -122,6 +125,8 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "tag",
         "userrating",
         "ratings",
+        "playcount",
+        "lastplayed",
     ],
     "tvshow": [
         "title",
@@ -147,6 +152,8 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "writer",
         "userrating",
         "ratings",
+        "playcount",
+        "lastplayed",
     ],
     "season": [
         "title",
@@ -163,6 +170,8 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "director",
         "tag",
         "userrating",
+        "playcount",
+        "lastplayed",
     ],
     "artist": [
         "artist",
@@ -215,6 +224,8 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "genre",
         "artistlist",
         "userrating",
+        "playcount",
+        "lastplayed",
     ],
 }
 
@@ -228,8 +239,18 @@ TVSHOW_STATUS_VALUES = [
 ]
 
 def get_fields_for_media_type(media_type: str) -> list[str]:
-    """Get list of editable fields for a media type."""
-    return MEDIA_TYPE_FIELDS.get(media_type, [])
+    """Get list of editable fields for a media type.
+
+    tvshow `status` is included only on Kodi builds that can read it back (xbmc/xbmc#28520);
+    older builds reject it on Get, so exposing it would break the field's load/preselect.
+    """
+    fields = list(MEDIA_TYPE_FIELDS.get(media_type, []))
+    if media_type == "tvshow":
+        from lib.kodi.utilities import tvshow_status_gettable
+        if tvshow_status_gettable():
+            idx = fields.index("mpaa") + 1 if "mpaa" in fields else len(fields)
+            fields.insert(idx, "status")
+    return fields
 
 
 def get_field_def(field_name: str) -> FieldDef | None:

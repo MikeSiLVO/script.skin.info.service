@@ -86,7 +86,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
 
         for future in as_completed(futures):
             if abort_flag and abort_flag.is_requested():
-                executor.shutdown(wait=False, cancel_futures=True)
+                executor.shutdown(wait=False)
                 return props
 
             source = futures[future]

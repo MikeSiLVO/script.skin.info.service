@@ -1,7 +1,11 @@
 """Window property manipulation utilities for skin integration."""
 import xbmc
 
+from lib.kodi.client import request
 from lib.kodi.utilities import parse_pipe_list
+
+
+_LABEL_CHUNK = 1000
 
 
 def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
@@ -50,14 +54,18 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
         xbmc.executebuiltin(f'SetProperty({prefix}.{infolabel}s,,{window})')
         return
 
+    labels = [f'Container({container}).ListItem({i}).{infolabel}' for i in range(num_items)]
     values = []
     seen = set()
-
-    for i in range(num_items):
-        value = xbmc.getInfoLabel(f'Container({container}).ListItem({i}).{infolabel}')
-        if value and value not in seen:
-            values.append(value)
-            seen.add(value)
+    for start in range(0, num_items, _LABEL_CHUNK):
+        chunk = labels[start:start + _LABEL_CHUNK]
+        response = request('XBMC.GetInfoLabels', {'labels': chunk})
+        result = response.get('result', {}) if response else {}
+        for label in chunk:
+            value = result.get(label, '')
+            if value and value not in seen:
+                values.append(value)
+                seen.add(value)
 
     aggregated = separator.join(values) if values else ''
     prop_name = f'{prefix}.{infolabel}s'

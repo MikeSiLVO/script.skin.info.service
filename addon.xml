@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta36"
+	   version="2.0.0~beta37"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
-		<import addon="xbmc.json" version="12.0.0" />
+		<import addon="xbmc.json" version="13.5.0" />
 		<import addon="script.module.pil" version="1.1.7" />
 		<import addon="script.module.requests" version="2.31.0" />
 	</requires>
@@ -31,6 +31,13 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta37
+- Metadata editor: play count and last-played are now editable, and date fields accept common formats
+- Letter jump: correct order in every language, with optional dimming or hiding of empty letters
+- Faster Similar and Recommended widgets
+- Online info updates cleanly while scrolling, and works for items with only an IMDb ID
+- Lighter artwork and ratings fetching, plus slideshow and artwork-download fixes
+
 2.0.0~beta36
 - Service now exits cleanly on Kodi shutdown, even while fetching online data
 - Skins can enable the library and online services separately; library-only skins make no internet calls

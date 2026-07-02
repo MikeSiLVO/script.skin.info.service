@@ -296,15 +296,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         'CREATE INDEX IF NOT EXISTS idx_session_art_types_lookup '
         'ON session_art_types(session_id, art_type)'
     )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_cache_lookup '
-        'ON artwork_cache(media_type, media_id, source, art_type)'
-    )
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_expires ON artwork_cache(expires_at)')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_metadata_cache_lookup '
-        'ON metadata_cache(media_type, tmdb_id)'
-    )
     cursor.execute(
         'CREATE INDEX IF NOT EXISTS idx_season_metadata_cache_expires '
         'ON season_metadata_cache(expires_at)'
@@ -357,9 +349,6 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         'ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL'
     )
 
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_provider_cache_lookup ON provider_cache(provider, media_id)'
-    )
     cursor.execute(
         'CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)'
     )
@@ -525,6 +514,12 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             PRIMARY KEY (tvshowid, season)
         )
     ''')
+
+    # These lookup indexes duplicate the table's UNIQUE / PRIMARY KEY auto-index; drop the
+    # redundant copies so existing DBs stop paying the extra write on every cache insert.
+    cursor.execute('DROP INDEX IF EXISTS idx_cache_lookup')
+    cursor.execute('DROP INDEX IF EXISTS idx_metadata_cache_lookup')
+    cursor.execute('DROP INDEX IF EXISTS idx_provider_cache_lookup')
 
 
 def _cleanup_old_databases() -> None:

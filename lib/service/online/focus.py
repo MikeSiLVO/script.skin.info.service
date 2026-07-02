@@ -97,6 +97,13 @@ class FocusHandler:
             batch_set_props(props_to_set)
             return
 
+        # New item with no cached data yet: drop the previous item's props so they don't
+        # linger on screen (showing the last item's data) while the background fetch runs.
+        if self._last_prop_keys:
+            self._clear_properties()
+            with self._keys_lock:
+                self._last_prop_keys = set()
+
         if (self._fetch_thread and self._fetch_thread.is_alive()
                 and self._fetch_for_key == cache_key):
             return

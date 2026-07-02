@@ -4,18 +4,26 @@ from __future__ import annotations
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
 import json
+import threading
 import xbmc
 import xbmcvfs
 
 from lib.data.api.client import ApiSession
 from lib.data.api.source import RatingSource
 from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api.utilities import decode_key
 from lib.data.api import tracker as usage_tracker
 from lib.kodi.client import log
 
 
-TRAKT_CLIENT_ID = "1c5fb1d6d68e895d4b2f735ea76817422fb3334f1e16f314b32385c0e74f7c8d"
-TRAKT_CLIENT_SECRET = "9458673bc095ccad27a5cd5b790581e6fd167b9f6a5d2b4efd17ecd4b2c32a5e"
+TRAKT_CLIENT_ID = decode_key(
+    "MWM1ZmIxZDZkNjhlODk1ZDRiMmY3MzVlYTc2ODE3NDIy"
+    "ZmIzMzM0ZjFlMTZmMzE0YjMyMzg1YzBlNzRmN2M4ZA=="
+)
+TRAKT_CLIENT_SECRET = decode_key(
+    "OTQ1ODY3M2JjMDk1Y2NhZDI3YTVjZDViNzkwNTgxZTZm"
+    "ZDE2N2I5ZjZhNWQyYjRlZmQxN2VjZDRiMmMzMmE1ZQ=="
+)
 
 
 class ApiTrakt(RatingSource):
@@ -40,6 +48,8 @@ class ApiTrakt(RatingSource):
                 "trakt-api-version": "2"
             }
         )
+        self._season_locks_guard = threading.Lock()
+        self._season_locks: Dict[str, threading.Lock] = {}
 
     def _load_tokens(self) -> Optional[Dict]:
         """Load tokens from file."""
@@ -129,8 +139,9 @@ class ApiTrakt(RatingSource):
     ) -> Optional[dict]:
         """Fetch complete Trakt data (extended=full) for a movie/show/episode.
 
-        Use `prefetch_season()` before batch episode work to avoid per-episode API calls.
-        `force_refresh=True` bypasses cache read but still writes back.
+        Episodes fetch their whole season in one call (cached per episode), so a batch of
+        episodes from one season costs a single request. `force_refresh=True` bypasses the
+        cache read but still writes back.
         """
         if usage_tracker.is_provider_skipped("trakt"):
             return None
@@ -150,16 +161,18 @@ class ApiTrakt(RatingSource):
             headers = self._auth_headers(abort_flag)
 
             if trakt_id:
-                if media_type == "movie":
-                    endpoint = f"/movies/{trakt_id}"
-                elif media_type == "tvshow":
-                    endpoint = f"/shows/{trakt_id}"
-                elif media_type == "episode":
+                if media_type == "episode":
                     season = ids.get("season")
                     episode = ids.get("episode")
                     if not season or not episode:
                         return None
-                    endpoint = f"/shows/{trakt_id}/seasons/{season}/episodes/{episode}"
+                    return self._fetch_episode_via_season(
+                        trakt_id, season, cache_key, headers, abort_flag, force_refresh
+                    )
+                if media_type == "movie":
+                    endpoint = f"/movies/{trakt_id}"
+                elif media_type == "tvshow":
+                    endpoint = f"/shows/{trakt_id}"
                 else:
                     return None
 
@@ -170,7 +183,9 @@ class ApiTrakt(RatingSource):
                     abort_flag=abort_flag
                 )
             else:
-                search_type = "show" if media_type in ("tvshow", "episode") else media_type
+                if media_type == "episode":
+                    return None
+                search_type = "show" if media_type == "tvshow" else media_type
                 # Search endpoint returns a JSON array; session.get is typed as Dict
                 raw: Any = self.session.get(
                     f"/search/tmdb/{tmdb_id}",
@@ -195,33 +210,39 @@ class ApiTrakt(RatingSource):
             log("Trakt", f"Fetch error: {str(e)}", xbmc.LOGWARNING)
             return None
 
-    def prefetch_season(
-        self,
-        show_id: str,
-        season: int,
-        abort_flag=None
-    ) -> None:
-        """Fetch all episodes for a season in one call and cache each individually.
+    def _get_season_lock(self, key: str) -> threading.Lock:
+        """Per-(show, season) lock so concurrent episodes of one season fetch it only once."""
+        with self._season_locks_guard:
+            lock = self._season_locks.get(key)
+            if lock is None:
+                lock = threading.Lock()
+                self._season_locks[key] = lock
+            return lock
 
-        Call before batch-processing episodes to avoid per-episode API calls.
-        Uses the same cache keys as fetch_data, so subsequent fetch_data/fetch_ratings
-        calls for these episodes will hit cache.
+    def _fetch_episode_via_season(
+        self, trakt_id: str, season: str, cache_key: str,
+        headers: Dict[str, str], abort_flag=None, force_refresh: bool = False,
+    ) -> Optional[dict]:
+        """Fetch the episode's whole season in one call (caching each episode), return the wanted
+        one. The season response carries every episode's rating, so only the first episode of a
+        season hits the API and the rest read cache. A per-season lock dedups concurrent
+        same-season fetches under the batch executor.
         """
-        if usage_tracker.is_provider_skipped("trakt"):
-            return
-
-        try:
-            headers = self._auth_headers(abort_flag)
+        with self._get_season_lock(f"{trakt_id}_s{season}"):
+            if not force_refresh:
+                cached = self.get_cached_data(cache_key)
+                if cached:
+                    return cached
 
             data = self.session.get(
-                f"/shows/{show_id}/seasons/{season}",
+                f"/shows/{trakt_id}/seasons/{season}",
                 params={"extended": "full"},
                 headers=headers,
                 abort_flag=abort_flag
             )
 
-            if not data or not isinstance(data, list):
-                return
+            if not isinstance(data, list):
+                return None
 
             for ep in data:
                 if not isinstance(ep, dict):
@@ -230,20 +251,15 @@ class ApiTrakt(RatingSource):
                 if ep_num is None:
                     continue
                 ep_key = self._get_cache_key("episode", {
-                    "imdb": show_id,
+                    "imdb": trakt_id,
                     "season": str(season),
                     "episode": str(ep_num),
                 })
                 self.cache_data(ep_key, ep)
 
-            log("Trakt", f"Prefetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
+            log("Trakt", f"Fetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
 
-        except RateLimitHit:
-            raise
-        except RetryableError:
-            raise
-        except Exception as e:
-            log("Trakt", f"Prefetch season {season} failed: {str(e)}", xbmc.LOGWARNING)
+        return self.get_cached_data(cache_key)
 
     def _get_cache_key(self, media_type: str, ids: Dict[str, str]) -> str:
         """Generate cache key for Trakt data."""

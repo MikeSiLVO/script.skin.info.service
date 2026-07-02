@@ -737,22 +737,18 @@ def handle_similar(handle: int, params: dict) -> None:
 
     candidates = []
 
+    # Phase 1: only the fields needed to score, for every genre-matched candidate.
     if target_dbtype == 'movie':
         result = request('VideoLibrary.GetMovies', {
             'filter': genre_filter,
-            'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+            'properties': ['genre', 'year', 'mpaa'],
         })
         candidates = extract_result(result, 'movies', [])
         id_field = 'movieid'
     else:
         result = request('VideoLibrary.GetTVShows', {
             'filter': genre_filter,
-            'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                          'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                          'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                          'imdbnumber', 'originaltitle'],
+            'properties': ['genre', 'year', 'mpaa'],
         })
         candidates = extract_result(result, 'tvshows', [])
         id_field = 'tvshowid'
@@ -794,15 +790,36 @@ def handle_similar(handle: int, params: dict) -> None:
     scored_items.sort(key=lambda x: (x[0], random.random()), reverse=True)
     scored_items = scored_items[:limit]
 
+    # Phase 2: full display properties only for the items that survived scoring.
+    movie_props = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
+                   'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                   'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
+    tvshow_props = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
+                    'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
+                    'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
+                    'imdbnumber', 'originaltitle']
+
     all_items = []
     for score, item_data in scored_items:
+        item_id = item_data[id_field]
         if target_dbtype == 'movie':
-            listitem = _create_movie_listitem(item_data)
-            all_items.append((item_data['file'], listitem, False))
+            detail = request('VideoLibrary.GetMovieDetails',
+                             {'movieid': item_id, 'properties': movie_props})
+            full = extract_result(detail, 'moviedetails', {})
+            if not full:
+                continue
+            full['movieid'] = item_id
+            listitem = _create_movie_listitem(full)
+            all_items.append((full.get('file', ''), listitem, False))
         else:
-            listitem = _create_tvshow_listitem(item_data)
-            show_url = f"videodb://tvshows/titles/{item_data['tvshowid']}/"
-            all_items.append((show_url, listitem, True))
+            detail = request('VideoLibrary.GetTVShowDetails',
+                             {'tvshowid': item_id, 'properties': tvshow_props})
+            full = extract_result(detail, 'tvshowdetails', {})
+            if not full:
+                continue
+            full['tvshowid'] = item_id
+            listitem = _create_tvshow_listitem(full)
+            all_items.append((f"videodb://tvshows/titles/{item_id}/", listitem, True))
 
     for url, listitem, isfolder in all_items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
@@ -910,11 +927,11 @@ def handle_recommended(handle: int, params: dict) -> None:
         }
         result = request('VideoLibrary.GetMovies', {
             'filter': movie_filter,
-            'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
+            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast', 'director'],
         })
-        candidates.extend(extract_result(result, 'movies', []))
+        for movie in extract_result(result, 'movies', []):
+            movie['_mtype'] = 'movie'
+            candidates.append(movie)
 
     if dbtype in ('tvshow', 'both'):
         tvshow_filter = {
@@ -925,12 +942,11 @@ def handle_recommended(handle: int, params: dict) -> None:
         }
         result = request('VideoLibrary.GetTVShows', {
             'filter': tvshow_filter,
-            'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                          'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                          'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                          'imdbnumber', 'originaltitle', 'season'],
+            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast'],
         })
-        candidates.extend(extract_result(result, 'tvshows', []))
+        for show in extract_result(result, 'tvshows', []):
+            show['_mtype'] = 'tvshow'
+            candidates.append(show)
 
     scored_items = []
     for candidate in candidates:
@@ -980,17 +996,39 @@ def handle_recommended(handle: int, params: dict) -> None:
     scored_items.sort(key=lambda x: (x[0], random.random()), reverse=True)
     scored_items = scored_items[:limit]
 
+    # Phase 2: full display properties only for the items that survived scoring.
+    movie_props = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
+                   'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                   'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast']
+    tvshow_props = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
+                    'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
+                    'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
+                    'imdbnumber', 'originaltitle', 'season']
+
     all_items = []
     for score, item_data in scored_items:
-        if 'file' in item_data:
-            listitem = _create_movie_listitem(item_data)
-            all_items.append((item_data['file'], listitem, False))
+        if item_data['_mtype'] == 'movie':
+            item_id = item_data['movieid']
+            detail = request('VideoLibrary.GetMovieDetails',
+                             {'movieid': item_id, 'properties': movie_props})
+            full = extract_result(detail, 'moviedetails', {})
+            if not full:
+                continue
+            full['movieid'] = item_id
+            listitem = _create_movie_listitem(full)
+            all_items.append((full.get('file', ''), listitem, False))
         else:
-            listitem = _create_tvshow_listitem(item_data)
-            if item_data.get('season'):
-                listitem.setProperty('TotalSeasons', str(item_data['season']))
-            show_url = f"videodb://tvshows/titles/{item_data['tvshowid']}/"
-            all_items.append((show_url, listitem, True))
+            item_id = item_data['tvshowid']
+            detail = request('VideoLibrary.GetTVShowDetails',
+                             {'tvshowid': item_id, 'properties': tvshow_props})
+            full = extract_result(detail, 'tvshowdetails', {})
+            if not full:
+                continue
+            full['tvshowid'] = item_id
+            listitem = _create_tvshow_listitem(full)
+            if full.get('season'):
+                listitem.setProperty('TotalSeasons', str(full['season']))
+            all_items.append((f"videodb://tvshows/titles/{item_id}/", listitem, True))
 
     for url, listitem, isfolder in all_items:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)

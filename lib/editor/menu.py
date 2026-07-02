@@ -19,6 +19,7 @@ from lib.editor.handlers import (
     handle_date,
     handle_duration,
     handle_integer,
+    handle_lastplayed,
     handle_list,
     handle_ratings,
     handle_runtime,
@@ -102,6 +103,8 @@ def _show_main_menu(
                 value_display = format_runtime_display(current or 0)
             elif field == "duration":
                 value_display = format_duration_for_edit(current or 0)
+            elif field == "lastplayed":
+                value_display = (current or "").split(" ")[0]
             else:
                 value_display = format_value_for_display(current, field_type)
 
@@ -146,6 +149,7 @@ _FIELD_TYPE_HANDLERS = {
     FieldType.INTEGER:    _dispatch_integer,
     FieldType.NUMBER:     lambda dn, cur, _mt, _f: handle_integer(dn, cur),
     FieldType.DATE:       lambda dn, cur, _mt, _f: handle_date(dn, cur),
+    FieldType.DATETIME:   lambda dn, cur, _mt, _f: handle_lastplayed(dn, cur),
     FieldType.LIST:       lambda dn, cur, mt, f: handle_list(dn, cur, mt, f),
     FieldType.USERRATING: lambda dn, cur, _mt, _f: handle_userrating(dn, cur),
     FieldType.RATINGS:    lambda dn, cur, _mt, _f: handle_ratings(dn, cur),

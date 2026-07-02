@@ -259,18 +259,25 @@ def is_pool_populated() -> bool:
     return db_slideshow.is_pool_populated()
 
 
+_CATEGORY_PROPS = {
+    'Movie': ('Title', 'FanArt', 'Plot', 'Year'),
+    'TV': ('Title', 'FanArt', 'Plot', 'Year'),
+    'Video': ('Title', 'FanArt', 'Plot', 'Year'),
+    'Music': ('Artist', 'FanArt', 'Description'),
+    'Global': ('Title', 'FanArt', 'Description'),
+}
+
+
+def _clear_category_properties(category: str) -> None:
+    """Clear one category's `SkinInfo.Slideshow.<category>.*` window props."""
+    for prop in _CATEGORY_PROPS.get(category, ()):
+        clear_prop(f'SkinInfo.Slideshow.{category}.{prop}')
+
+
 def clear_slideshow_properties() -> None:
     """Clear all `SkinInfo.Slideshow.*` window properties (called on service stop)."""
-    categories = {
-        'Movie': ('Title', 'FanArt', 'Plot', 'Year'),
-        'TV': ('Title', 'FanArt', 'Plot', 'Year'),
-        'Video': ('Title', 'FanArt', 'Plot', 'Year'),
-        'Music': ('Artist', 'FanArt', 'Description'),
-        'Global': ('Title', 'FanArt', 'Description'),
-    }
-    for category, props in categories.items():
-        for prop in props:
-            clear_prop(f'SkinInfo.Slideshow.{category}.{prop}')
+    for category in _CATEGORY_PROPS:
+        _clear_category_properties(category)
 
 
 _PLAYLIST_PREFIX = 'SkinInfo.Slideshow.Playlist.'
@@ -597,6 +604,7 @@ class LibrarySlideshow:
         for row in db_slideshow.get_all_pool_rows():
             pool.setdefault(row['media_type'], []).append(dict(row))
 
+        previous = set(self._categories)
         self._categories = {}
         self._weights = {}
         for category, spec in _LIBRARY_CATEGORIES.items():
@@ -606,6 +614,9 @@ class LibrarySlideshow:
             if cursors:
                 self._categories[category] = cursors
                 self._weights[category] = {t: len(pool[t]) ** _WEIGHT_ALPHA for t in cursors}
+
+        for category in previous - set(self._categories):
+            _clear_category_properties(category)
 
     def _pick_type(self, category: str, cursors: Dict[str, _RotationCursor]) -> Optional[str]:
         ready = [t for t in cursors if cursors[t].has_ready()]

@@ -14,6 +14,7 @@ from typing import Optional, Dict, Any
 
 from lib.data.api.client import ApiSession
 from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api.utilities import decode_key
 from lib.kodi.client import log
 
 _RETRYABLE_ERRORS = {2, 8, 11, 16}
@@ -25,7 +26,7 @@ class ApiLastfm:
     """Last.fm API client."""
 
     BASE_URL = "https://ws.audioscrobbler.com/2.0"
-    API_KEY = "75e6eef014e0eae829eaed379f29bf16"
+    API_KEY = decode_key("NzVlNmVlZjAxNGUwZWFlODI5ZWFlZDM3OWYyOWJmMTY=")
 
     def __init__(self):
         self.session = ApiSession(

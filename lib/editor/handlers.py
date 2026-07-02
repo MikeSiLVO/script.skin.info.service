@@ -15,6 +15,7 @@ from lib.editor.utilities import (
     format_runtime_for_edit,
     parse_duration_from_edit,
     parse_runtime_from_edit,
+    normalize_date,
     validate_date,
     validate_rating,
     validate_runtime,
@@ -141,21 +142,39 @@ def handle_duration(
 def handle_date(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
-    """Handle date input (YYYY-MM-DD)."""
+    """Handle date input (YYYY-MM-DD); reopens with the entry kept on a bad value."""
     heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
-    default = current_value or ""
+    value = current_value or ""
 
-    result = xbmcgui.Dialog().input(heading, default)
-
-    if not result:
-        return None, True
-
-    valid, error = validate_date(result)
-    if not valid:
+    while True:
+        result = xbmcgui.Dialog().input(heading, value)
+        if not result:
+            return None, True
+        normalized = normalize_date(result)
+        valid, error = validate_date(normalized)
+        if valid:
+            return normalized, False
         xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
-        return None, True
+        value = result
 
-    return result, False
+
+def handle_lastplayed(
+    field_name: str, current_value: str | None
+) -> tuple[str | None, bool]:
+    """Edit last-played as a date; store midnight since Kodi renders LastPlayed date-only."""
+    heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
+    value = (current_value or "").split(" ")[0]
+
+    while True:
+        result = xbmcgui.Dialog().input(heading, value)
+        if not result:
+            return None, True
+        normalized = normalize_date(result)
+        valid, error = validate_date(normalized)
+        if valid:
+            return f"{normalized} 00:00:00", False
+        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
+        value = result
 
 
 def handle_userrating(

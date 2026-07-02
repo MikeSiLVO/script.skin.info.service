@@ -17,7 +17,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
-from lib.kodi.client import log
+from lib.kodi.client import log, request
 HOME = xbmcgui.Window(10000)
 
 MEDIA_TYPE_LABELS = {
@@ -269,15 +269,48 @@ def format_date(date_str: str, include_time: bool = False) -> str:
         return date_str
 
 
+_build_version: Optional[str] = None
+_piers_or_later: Optional[bool] = None
+_tvshow_status_gettable: Optional[bool] = None
+
+
+def kodi_build_version() -> str:
+    """Kodi build version string (e.g. '22.0.0'), cached; re-reads until Kodi reports one."""
+    global _build_version
+    if not _build_version:
+        _build_version = xbmc.getInfoLabel("System.BuildVersionCode") or ""
+    return _build_version
+
+
 def is_kodi_piers_or_later() -> bool:
-    """True if running on Kodi v22 (Piers, build 21.90+) or newer."""
-    raw = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
-    parts = raw.split(".")
-    try:
-        version = tuple(int(p) for p in parts[:3])
-    except ValueError:
-        return False
-    return version >= (21, 90, 0)
+    """True on Kodi v22 (Piers, build 21.90+) or newer. Cached; build can't change mid-session."""
+    global _piers_or_later
+    if _piers_or_later is None:
+        raw = kodi_build_version()
+        if not raw:
+            return False
+        try:
+            _piers_or_later = tuple(int(p) for p in raw.split(".")[:3]) >= (21, 90, 0)
+        except ValueError:
+            _piers_or_later = False
+    return _piers_or_later
+
+
+def tvshow_status_gettable() -> bool:
+    """True if this Kodi build exposes tvshow `status` as a readable JSON-RPC field.
+
+    `status` is settable but was missing from Video.Fields.TVShow until xbmc/xbmc#28520,
+    so a Get on older builds returns Invalid params. Probed once, then cached; the probe
+    validates the property enum before touching the library, so an empty library still answers.
+    """
+    global _tvshow_status_gettable
+    if _tvshow_status_gettable is None:
+        resp = request(
+            "VideoLibrary.GetTVShows",
+            {"properties": ["status"], "limits": {"start": 0, "end": 1}},
+        )
+        _tvshow_status_gettable = resp is not None
+    return _tvshow_status_gettable
 
 
 def wait_for_kodi_ready(monitor: xbmc.Monitor, initial_wait: float = 0.5,

@@ -156,13 +156,19 @@ class DownloadArtwork:
                 full_path, response, abort_flag, progress_callback
             )
 
-            if existing_file_mode == 'overwrite' and alternate_path:
-                for ext_type in self.CONTENT_TYPE_MAP.values():
-                    alt_file = xbmcvfs.validatePath(alternate_path + '.' + ext_type)
-                    if xbmcvfs.exists(alt_file):
-                        if not xbmcvfs.delete(alt_file):
-                            log("Download", f"Failed to delete old pattern file: {alt_file}",
-                                xbmc.LOGWARNING)
+            if existing_file_mode == 'overwrite':
+                stale_bases = [local_path]
+                if alternate_path:
+                    stale_bases.append(alternate_path)
+                for base in stale_bases:
+                    for ext_type in self.CONTENT_TYPE_MAP.values():
+                        stale_file = xbmcvfs.validatePath(base + '.' + ext_type)
+                        if stale_file == full_path:
+                            continue
+                        if xbmcvfs.exists(stale_file):
+                            if not xbmcvfs.delete(stale_file):
+                                log("Download", f"Failed to delete old pattern file: {stale_file}",
+                                    xbmc.LOGWARNING)
 
             self.provider_errors[hostname] = 0
             self.provider_blocked_until.pop(hostname, None)

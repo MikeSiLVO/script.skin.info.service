@@ -295,7 +295,7 @@ def _run_scan_operation(
         if scanner.cancelled:
             return True
 
-    if not scanner.cancelled:
+    if not scanner.cancelled and scope == "all":
         stale_removed = scanner.cleanup_stale_cache()
         log("Artwork", f"Cleaned {stale_removed} stale GIF cache entries", xbmc.LOGDEBUG)
 

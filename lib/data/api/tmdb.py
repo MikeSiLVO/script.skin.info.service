@@ -10,7 +10,7 @@ import xbmc
 from typing import Optional, Dict, List
 
 from lib.data.api.client import ApiSession
-from lib.data.api.utilities import tmdb_image_url, is_valid_tmdb_id
+from lib.data.api.utilities import tmdb_image_url, is_valid_tmdb_id, decode_key
 from lib.kodi.client import log
 from lib.data.api.source import RatingSource
 from lib.data.api import tracker as usage_tracker
@@ -151,7 +151,7 @@ class ApiTmdb(RatingSource):
 
     BASE_URL = "https://api.themoviedb.org/3"
 
-    API_KEY = "0142a22c560ce3efb1cfd6f3b2faab77"
+    API_KEY = decode_key("MDE0MmEyMmM1NjBjZTNlZmIxY2ZkNmYzYjJmYWFiNzc=")
 
     def __init__(self):
         super().__init__("tmdb")

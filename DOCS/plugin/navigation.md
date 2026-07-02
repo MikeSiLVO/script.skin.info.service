@@ -14,7 +14,7 @@ Container navigation tools for alphabetical jumping.
 
 ## Letter Jump
 
-Returns an A-Z letter list for alphabetical container navigation. Clicking a letter jumps to items starting with that letter using Kodi's native SMS jump actions.
+Returns an A-Z letter list for alphabetical container navigation. Clicking a letter jumps to items starting with that letter using Kodi's native SMS jump actions. Letters with no matching item in the target container are flagged so skins can dim them, or dropped entirely with `showall=false`.
 
 ### Usage
 
@@ -27,6 +27,7 @@ Returns an A-Z letter list for alphabetical container navigation. Clicking a let
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `target` | Yes | 50 | Container ID to jump in |
+| `showall` | No | true | `false` drops letters with no matching items (compact bar) instead of showing them all |
 | `reload` | No | - | Cache buster - use `$INFO[Container(ID).SortOrder]` to auto-update when sort changes |
 
 ### Visibility
@@ -91,6 +92,27 @@ Show the letter bar when the target container is sorted alphabetically:
 - Returns: Z Y X W V U T S R Q P O N M L K J I H G F E D C B A #
 
 The `#` symbol jumps to items starting with numbers.
+
+### Item Properties
+
+Each letter in the bar carries:
+
+| Property | Description |
+|----------|-------------|
+| `IsCurrentLetter` | Set on the letter matching the container's current position |
+| `IsAvailable` | Set on letters that have at least one item; empty on letters with none |
+
+Dim letters with no matching items (`showall` left at its default):
+
+```xml
+<control type="label">
+    <label>$INFO[ListItem.Label]</label>
+    <visible>String.IsEmpty(ListItem.Property(IsAvailable))</visible>
+    <textcolor>grey</textcolor>
+</control>
+```
+
+Or drop them entirely with `showall=false` so the bar only shows letters that have items.
 
 ### How It Works
 

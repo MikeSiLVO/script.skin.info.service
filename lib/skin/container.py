@@ -155,7 +155,12 @@ def move_to_position(
 
 def _move_main_containers(main_focus: str, main_position: Optional[str],
                           main_action: Optional[str]) -> None:
-    """Move every visible container in `main_focus` (pipe-separated IDs) to its target position."""
+    """Reset each visible control in `main_focus` to its target, skipping any already there.
+
+    List containers reset to their target item (guarded by `CurrentItem`); non-list controls
+    (buttons) get focus (guarded by `HasFocus`). Applying the position guard to a button was the
+    bug: it has no item position, so `CurrentItem` is always empty and it re-focused every call.
+    """
     main_ids = [cid.strip() for cid in main_focus.split('|')]
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
     has_pipe_main_action = main_action and '|' in main_action
@@ -187,8 +192,19 @@ def _move_main_containers(main_focus: str, main_position: Optional[str],
             except (ValueError, TypeError):
                 continue
 
-        current_item = xbmc.getInfoLabel(f'Container({cid}).CurrentItem')
-        if current_item != target_1indexed:
+        try:
+            item_count = int(xbmc.getInfoLabel(f'Container({cid}).NumItems') or 0)
+        except ValueError:
+            item_count = 0
+
+        if item_count > 0:
+            should_move = (
+                xbmc.getInfoLabel(f'Container({cid}).CurrentItem') != target_1indexed
+            )
+        else:
+            should_move = not xbmc.getCondVisibility(f'Control.HasFocus({cid})')
+
+        if should_move:
             xbmc.executebuiltin(f'Control.SetFocus({cid}, {position}, absolute)', True)
 
         if has_pipe_main_action and idx < len(main_action_list) and main_action_list[idx]:
@@ -279,8 +295,8 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
     letter_upper = letter.upper()
 
     if letter_upper == '#':
-        sort_order = xbmc.getInfoLabel('Container.SortOrder')
-        action = 'lastpage' if 'descending' in sort_order.lower() else 'firstpage'
+        is_descending = xbmc.getCondVisibility('Container.SortDirection(descending)')
+        action = 'lastpage' if is_descending else 'firstpage'
         request('Input.ExecuteAction', {'action': action})
         return
 
@@ -296,18 +312,61 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
             break
 
 
-def handle_letter_jump_list(handle: int, params: dict) -> None:
-    """Return A-Z ListItems for container letter-jump (reversed to Z-A when sorted descending)."""
-    target = params.get('target', ['50'])[0]
+_SCAN_CHUNK = 1000
 
-    sort_order = xbmc.getInfoLabel(f'Container({target}).SortOrder')
-    is_descending = 'descending' in sort_order.lower()
+
+def _available_sort_letters(target: str) -> set[str]:
+    """Jump letters (A-Z plus '#') that have at least one item in the target container.
+
+    Reads the items' SortLetter in batched `GetInfoLabels` calls (a chunk per request) rather
+    than one round-trip per item, so a big container costs a handful of calls, not thousands.
+    Reads the live container, so active filters and the current sort are honoured. Non-alphabetic
+    sort letters (digits, symbols) collapse to '#'.
+    """
+    try:
+        count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
+    except ValueError:
+        count = 0
+
+    found: set[str] = set()
+    for start in range(0, count, _SCAN_CHUNK):
+        labels = [
+            f'Container({target}).ListItemAbsolute({i}).SortLetter'
+            for i in range(start, min(start + _SCAN_CHUNK, count))
+        ]
+        response = request('XBMC.GetInfoLabels', {'labels': labels})
+        for value in (response.get('result', {}) if response else {}).values():
+            if not value:
+                continue
+            first = value[0].upper()
+            found.add(first if 'A' <= first <= 'Z' else '#')
+        if len(found) >= 27:
+            break
+    return found
+
+
+def handle_letter_jump_list(handle: int, params: dict) -> None:
+    """Return A-Z ListItems for container letter-jump (reversed to Z-A when sorted descending).
+
+    Letters that have an item in the target container get `IsAvailable` set so skins can dim the
+    empty ones. Pass `showall=false` to drop the empty letters entirely (compact bar) instead.
+    """
+    target = params.get('target', ['50'])[0]
+    showall = params.get('showall', ['true'])[0].lower() != 'false'
+
+    is_descending = xbmc.getCondVisibility(f'Container({target}).SortDirection(descending)')
 
     letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA#' if is_descending else 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
+
+    available = _available_sort_letters(target)
 
     current_sort_letter = xbmc.getInfoLabel(f'Container({target}).ListItem.SortLetter').upper()
 
     for letter in letters:
+        is_available = letter in available
+        if not showall and not is_available:
+            continue
+
         listitem = xbmcgui.ListItem(letter, offscreen=True)
 
         if letter == current_sort_letter:
@@ -315,6 +374,9 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
             listitem.setProperty('IsCurrentLetter', 'true')
         else:
             url = f'plugin://script.skin.info.service/?action=jump_letter_exec&letter={letter}&target={target}'
+
+        if is_available:
+            listitem.setProperty('IsAvailable', 'true')
 
         xbmcplugin.addDirectoryItem(handle, url, listitem, False)
 

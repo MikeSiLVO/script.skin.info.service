@@ -627,12 +627,12 @@ def _handle_online_fetch(args: dict) -> None:
         tmdb_api = ApiTmdb()
         if imdb_id:
             resolved_id = tmdb_api.find_by_external_id(imdb_id, "imdb_id", media_type)
-            if resolved_id:
-                tmdb_id = str(resolved_id)
+            if resolved_id and resolved_id.get("id"):
+                tmdb_id = str(resolved_id["id"])
         elif tvdb_id and media_type == "tvshow":
             resolved_id = tmdb_api.find_by_external_id(tvdb_id, "tvdb_id", media_type)
-            if resolved_id:
-                tmdb_id = str(resolved_id)
+            if resolved_id and resolved_id.get("id"):
+                tmdb_id = str(resolved_id["id"])
 
     is_library_item = bool(dbid)
     fetch_all_online_data(media_type, imdb_id, tmdb_id, is_library_item=is_library_item)

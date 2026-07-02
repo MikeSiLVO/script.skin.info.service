@@ -7,6 +7,7 @@ import xbmc
 
 from lib.kodi.client import ADDON, log
 from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready
+from lib.kodi.utilities import kodi_build_version
 
 SKIN_BOOL = "SkinInfo.Service"
 SKIN_BOOL_LIBRARY = "SkinInfo.Service.Library"
@@ -53,7 +54,7 @@ class Orchestrator:
         slideshow_monitor = SlideshowMonitor()
 
         version = ADDON.getAddonInfo("version")
-        kodi_ver = xbmc.getInfoLabel("System.BuildVersionCode") or "0.0.0"
+        kodi_ver = kodi_build_version() or "0.0.0"
         log("Service", f"Orchestrator started (version={version}, kodi={kodi_ver})", xbmc.LOGINFO)
 
         try:

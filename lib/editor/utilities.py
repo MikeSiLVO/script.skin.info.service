@@ -36,6 +36,21 @@ def validate_date(value: str) -> tuple[bool, str]:
     return True, ""
 
 
+def normalize_date(value: str) -> str:
+    """Normalize unambiguous YYYY-first date input to YYYY-MM-DD.
+
+    Accepts `/`, `.` or space separators and single-digit month/day. Ambiguous or
+    unrecognized input (DD/MM/YYYY, bare year, month names) is returned unchanged so
+    validate_date rejects it rather than guessing.
+    """
+    value = value.strip()
+    match = re.match(r"^(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})$", value)
+    if not match:
+        return value
+    year, month, day = match.groups()
+    return f"{year}-{int(month):02d}-{int(day):02d}"
+
+
 def validate_year(value: int) -> tuple[bool, str]:
     """Validate year value (0 means unset and is allowed)."""
     if value == 0:
