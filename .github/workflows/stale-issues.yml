@@ -1,0 +1,14 @@
+name: Close Stale Issues
+
+on:
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  stale:
+    if: github.repository == 'MikeSiLVO/script.skin.info.service'
+    permissions:
+      issues: write
+    uses: MikeSiLVO/workflows/.github/workflows/stale-issues.yml@v1
+    secrets: inherit

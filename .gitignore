@@ -35,8 +35,9 @@ htmlcov/
 # Docs build
 docs/_build/
 
-# Type stubs (regenerated from Kodistubs package)
-typings/
+# typings/ is committed so CI pyright matches local (releases strip it)
+!typings/
+# xbmcgui/ is a stray pyright install, not a stub - keep it out
 xbmcgui/
 
 # Type checkers / linters
