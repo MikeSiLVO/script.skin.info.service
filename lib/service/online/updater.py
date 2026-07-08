@@ -193,7 +193,7 @@ class UpdaterHandler:
         from lib.data.database.rollcall import get_valid_dbids
         valid_dbids = get_valid_dbids("tvshow")
         if not valid_dbids and schedule:
-            # Library appears empty — could be transient (DB rebuild, etc); skip pruning to be safe.
+            # Library appears empty, could be transient (DB rebuild, etc); skip pruning to be safe.
             return
         valid_set = set(valid_dbids)
         stale = [s["tmdb_id"] for s in schedule if s.get("tvshowid") not in valid_set]

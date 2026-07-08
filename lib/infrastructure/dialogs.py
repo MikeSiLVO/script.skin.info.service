@@ -7,12 +7,8 @@ import xbmcgui
 
 
 class ProgressDialog:
-    """Context-managed progress dialog wrapper that picks `DialogProgress` or
-    `DialogProgressBG` and clamps percent.
-
-    `fg_message_prefix` is prepended (with a `[CR]`) only in foreground mode — useful for
-    cancel-hint banners that don't apply to background dialogs.
-    """
+    """Context-managed progress dialog that picks `DialogProgress` or `DialogProgressBG` and
+    clamps percent."""
 
     def __init__(self, use_background: bool = False, heading: str = "Processing",
                  fg_message_prefix: str = ""):
@@ -105,7 +101,7 @@ class ProgressDialog:
 def show_notification(
     heading: str,
     message: str,
-    icon: int = xbmcgui.NOTIFICATION_INFO,
+    icon: str = xbmcgui.NOTIFICATION_INFO,
     duration: int = 3000
 ) -> None:
     """Show notification dialog."""
@@ -155,6 +151,6 @@ def show_select(
     preselect: int = -1
 ) -> int:
     """Show select dialog."""
-    return xbmcgui.Dialog().select(heading, options, preselect=preselect)
+    return xbmcgui.Dialog().select(heading, options, preselect=preselect)  # type: ignore[arg-type]
 
 

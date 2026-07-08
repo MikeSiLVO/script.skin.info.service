@@ -17,8 +17,8 @@ from lib.kodi.formatters import (
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
-def fetch_omdb_data(imdb_id: str, abort_flag=None) -> Dict[str, str]:
-    """Fetch OMDb awards data."""
+def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str, str]:
+    """Fetch OMDb awards plus ratings (imdb/metacritic/rotten tomatoes) from the same response."""
     from lib.data.api.omdb import ApiOmdb
 
     props: Dict[str, str] = {}
@@ -40,6 +40,11 @@ def fetch_omdb_data(imdb_id: str, abort_flag=None) -> Dict[str, str]:
             props["Awards.Other.Wins"] = str(awards_data.get("other_wins", 0))
             props["Awards.Other.Nominations"] = str(awards_data.get("other_nominations", 0))
             props["Awards"] = awards_data.get("awards_text", "")
+
+        ratings = omdb.fetch_ratings(media_type, {"imdb": imdb_id}, abort_flag=abort_flag)
+        if ratings:
+            for source, info in ratings.items():
+                props.update(format_rating_props(source, info["rating"], int(info["votes"])))
     except Exception as e:
         log("Plugin", f"OMDb fetch error: {e}", xbmc.LOGWARNING)
 
@@ -181,10 +186,8 @@ def fetch_trakt_data(
 
 
 def handle_online(handle: int, params: dict) -> None:
-    """Plugin entry for the online-data ListItem.
-
-    Library mode needs `dbid + dbtype`; direct mode needs `tmdb_id` or `imdb_id`.
-    """
+    """Plugin entry for the online-data ListItem; library mode needs `dbid`+`dbtype`, direct mode
+    needs `tmdb_id` or `imdb_id`."""
     from lib.service.online import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
@@ -308,7 +311,7 @@ def handle_online(handle: int, params: dict) -> None:
             list_item.setProperty(prop_key, str(prop_value))
 
     xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def _handle_online_musicvideo(handle: int, params: dict) -> None:
@@ -390,7 +393,7 @@ def _handle_online_musicvideo(handle: int, params: dict) -> None:
             list_item.setProperty(prop_key, str(prop_value))
 
     xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def handle_musicvideo_node(handle: int, params: dict, media_type: str) -> None:
@@ -420,4 +423,4 @@ def handle_musicvideo_node(handle: int, params: dict, media_type: str) -> None:
             list_item.setProperty(prop_key, str(prop_value))
 
     xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)

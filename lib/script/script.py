@@ -32,11 +32,8 @@ def _clear_blur_properties(blur_key: str, orig_key: str, window: str) -> None:
 def _blur_image_and_set_property(source: str, prefix: str = "",
                                  radius: Optional[int] = None,
                                  window: str = "home") -> None:
-    """Blur `source` and set `SkinInfo.[prefix.]BlurredImage` + `.Original` on `window`.
-
-    Empty `source` clears the properties. `radius` defaults to
-    `Skin.String(SkinInfo.BlurRadius)` or 40.
-    """
+    """Blur `source` and set `SkinInfo.[prefix.]BlurredImage`/`.Original` on `window`;
+    empty `source` clears them."""
     prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
     blur_key = f"{prop_base}BlurredImage"
     orig_key = f"{prop_base}BlurredImage.Original"
@@ -72,10 +69,7 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
 
 
 def _parse_args(start_index: int) -> dict:
-    """Parse `sys.argv[start_index:]` with both positional and `key=value` support.
-
-    Positional args are keyed by integer index; `key=value` uses the string key.
-    """
+    """Parse `sys.argv[start_index:]` with both positional and `key=value` support."""
     args = {}
     positional_index = 0
 
@@ -647,12 +641,31 @@ def _handle_online_fetch(args: dict) -> None:
     xbmc.executebuiltin(f"SetProperty({property_name},{plugin_url},{window})")
 
 
+def _restore_focus(args: dict, dialog_xml: str) -> None:
+    """Focus the `focus` control once its dialog has left the screen.
+
+    A closing dialog lingers a beat, so focusing before it's gone lands on the
+    dialog, not the control underneath.
+    """
+    control_id = args.get('focus', '')
+    if not (control_id.isdigit() and int(control_id) > 0):
+        return
+    monitor = xbmc.Monitor()
+    for _ in range(60):
+        if not xbmc.getCondVisibility(f'Window.IsVisible({dialog_xml})'):
+            break
+        if monitor.waitForAbort(0.05):
+            return
+    xbmc.executebuiltin(f'SetFocus({control_id})')
+
+
 def _handle_dialog_actor_info(args: dict) -> None:
     xbmc.executebuiltin('ActivateWindow(busydialog)')
     try:
         _handle_dialog_actor_info_inner(args)
     finally:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        _restore_focus(args, 'script-skin-info-service-DialogActorInfo.xml')
 
 
 def _handle_dialog_actor_info_inner(args: dict) -> None:
@@ -670,7 +683,6 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
     separator = args.get('separator', ' / ')
     auto_search = args.get('auto_search', 'true').lower() == 'true'
     online = args.get('online', 'false').lower() == 'true'
-    set_home_props = args.get('set_home_props', 'false').lower() == 'true'
 
     person_id = None
     if person_id_str:
@@ -700,7 +712,6 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
     open_actor_info(
         person_id=person_id,
         person_name=name,
-        set_home_props=set_home_props,
     )
 
 
@@ -710,6 +721,7 @@ def _handle_dialog_image_viewer(args: dict) -> None:
         _handle_dialog_image_viewer_inner(args)
     finally:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        _restore_focus(args, 'script-skin-info-service-DialogImageViewer.xml')
 
 
 def _handle_dialog_image_viewer_inner(args: dict) -> None:
@@ -734,6 +746,7 @@ def _handle_dialog_video_info(args: dict) -> None:
         _handle_dialog_video_info_inner(args)
     finally:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        _restore_focus(args, 'script-skin-info-service-DialogVideoInfo.xml')
 
 
 def _handle_dialog_video_info_inner(args: dict) -> None:
@@ -747,7 +760,6 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
     dbid = args.get('dbid', '')
     tmdb_id = args.get('tmdb_id', '')
     imdb_id = args.get('imdb_id', '')
-    set_home_props = args.get('set_home_props', 'false').lower() == 'true'
 
     if not tmdb_id and not imdb_id:
         if not dbid or not media_type:
@@ -783,7 +795,6 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
         imdb_id=imdb_id,
         media_type=media_type,
         dbid=dbid,
-        set_home_props=set_home_props,
     )
 
 

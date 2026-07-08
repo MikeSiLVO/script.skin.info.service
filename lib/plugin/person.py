@@ -1,10 +1,4 @@
-"""Plugin handlers for person info, person library, crew lists, and TMDB details.
-
-Person info: details, images, filmography, crew tabs for a TMDB person.
-Person library: search Kodi library by actor/director/writer name.
-Crew list: directors/writers/creators of a movie or TV show.
-TMDB details: deep details for movie/tv/person by TMDB id (used by tmdb_search results).
-"""
+"""Plugin handlers for person info, person library, crew lists, and TMDB details."""
 from __future__ import annotations
 
 import xbmc
@@ -16,10 +10,7 @@ from lib.data.api.utilities import tmdb_image_url
 
 
 def handle_person_info(handle: int, params: dict) -> None:
-    """Plugin entry for person info. `info_type` routes to details/images/filmography/crew.
-
-    Filmography/crew accept `sort`, `dbtype`, `min_votes`, `exclude_unreleased`, `limit` filters.
-    """
+    """Plugin entry for person info. `info_type` routes to details/images/filmography/crew."""
     from lib.data.api import person as person_api
 
     try:
@@ -78,7 +69,7 @@ def _handle_person_details(handle: int, person_data: dict) -> None:
         item.setProperty(key, value)
 
     xbmcplugin.addDirectoryItem(handle, '', item, False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def _handle_person_images(handle: int, person_data: dict) -> None:
@@ -123,7 +114,7 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
     xbmcplugin.setContent(handle, 'images')
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def _handle_person_filmography(handle: int, person_data: dict, params: dict) -> None:
@@ -146,17 +137,12 @@ def _handle_person_filmography(handle: int, person_data: dict, params: dict) -> 
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
     xbmcplugin.setContent(handle, 'movies')
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
-    """Return crew credits as ListItems.
-
-    By default, dedupes by item: when a person held multiple jobs on the same item
-    (e.g. directed and produced), the entries collapse into one with all jobs joined
-    as 'Director, Producer'. With `job=Director` (case-insensitive), shows only that
-    job — no dedupe needed since each item has at most one entry per job.
-    """
+    """Return crew credits as ListItems; without `job=`, dedupes multiple jobs per item into one
+    joined entry (e.g. "Director, Producer")."""
     credits = person_data.get('combined_credits', {}).get('crew', [])
 
     job_filter = params.get('job', [''])[0]
@@ -188,7 +174,7 @@ def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
     xbmcplugin.setContent(handle, 'movies')
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def _dedupe_crew_credits(credits: list) -> list:
@@ -342,7 +328,7 @@ def handle_person_library(handle: int, params: dict) -> None:
             xbmcplugin.addDirectoryItem(handle, '', listitem, False)
 
         xbmcplugin.setContent(handle, 'movies' if info_type == 'movies' else 'tvshows')
-        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     except Exception as e:
         log("Plugin", f"Person Library: Error - {e}", xbmc.LOGERROR)
@@ -400,10 +386,8 @@ def _create_credit_listitem(credit: dict) -> xbmcgui.ListItem:
 
 
 def handle_crew_list(handle: int, params: dict) -> None:
-    """Plugin entry for crew listings (director/writer/creator) for a movie or TV show.
-
-    Accepts `tmdb_id` directly for TMDB-only items (no library entry).
-    """
+    """Plugin entry for crew listings (director/writer/creator); accepts `tmdb_id` directly for
+    TMDB-only items with no library entry."""
     from lib.data.api import person as person_api
     from lib.data.api.person import resolve_tmdb_id
 
@@ -492,7 +476,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
     xbmcplugin.setContent(handle, 'actors')
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     log(
         "Plugin",

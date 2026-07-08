@@ -1,21 +1,10 @@
-"""Skinner helper tools for testing dialogs.
-
-This module provides utilities for skin developers to:
-- Preview dialogs with mock data
-- Test dialog layouts and functionality
-
-Usage:
-    RunScript(script.skin.info.service,arttest)              # Shows menu to select art type
-    RunScript(script.skin.info.service,arttest,poster)       # Directly opens poster dialog
-    RunScript(script.skin.info.service,multiarttest)         # Shows menu to select art type
-    RunScript(script.skin.info.service,multiarttest,fanart)  # Directly opens fanart dialog
-"""
+"""Skinner tools to preview the artwork-selection and multi-art dialogs with mock data via
+RunScript."""
 from __future__ import annotations
 
 from typing import List, Dict, Any, Optional
 import xbmcgui
 
-# Art types available for testing
 _ART_TYPES = [
     'poster',
     'fanart',
@@ -37,7 +26,7 @@ def _select_art_type_menu(dialog_type: str, preselect: int = 0) -> tuple[Optiona
 
     selected = dialog.select(
         f'Select Art Type for {dialog_type.capitalize()} Dialog Test',
-        art_labels,
+        art_labels,  # type: ignore[arg-type]
         preselect=preselect
     )
 
@@ -48,12 +37,8 @@ def _select_art_type_menu(dialog_type: str, preselect: int = 0) -> tuple[Optiona
 
 
 def _loop_with_art_menu(dialog_label: str, art_type: Optional[str], runner) -> None:
-    """Show art-type picker (when `art_type` is None) and call `runner(art_type)`.
-
-    Loops if menu mode.
-
-    `runner` takes a single `art_type` arg and runs whatever dialog is being tested.
-    """
+    """Show the art-type picker when `art_type` is None and call `runner(art_type)`; loops
+    in menu mode."""
     show_menu = art_type is None
     last_selected_index = 0
 
@@ -118,7 +103,6 @@ def _generate_mock_art_items(art_type: str, count: int = 12) -> List[Dict[str, A
     """Produce `count` mock art-item dicts for dialog testing (uses bundled test images)."""
     import xbmcvfs
 
-    # Map art types to test images and dimensions
     art_type_map = {
         'poster': ('artwork_test_poster.png', (1000, 1500)),
         'keyart': ('artwork_test_poster.png', (1000, 1500)),

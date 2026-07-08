@@ -12,8 +12,8 @@ from lib.kodi.client import log, extract_result
 def handle_wrap(handle: int, params: dict) -> None:
     """Wrap XSP-filtered library paths in `plugin://` so Kodi refreshes them on updates.
 
-    Intended for inline XSP filters, `.xsp` playlist files, and smart playlists with
-    InfoLabel filters. Not for regular library browsing (that never needs a wrapper).
+    For inline XSP filters, `.xsp` files, and smart playlists with InfoLabel filters;
+    not needed for regular library browsing.
     """
     from lib.kodi.settings import KodiSettings
 
@@ -225,7 +225,7 @@ def handle_wrap(handle: int, params: dict) -> None:
         items.append((file_path, li, is_folder))
 
     xbmcplugin.addDirectoryItems(handle, items, len(items))
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     if enable_debug:
         log("Plugin", f"Path Wrapper: Successfully wrapped {len(items)} items", xbmc.LOGDEBUG)

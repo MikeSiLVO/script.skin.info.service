@@ -20,22 +20,36 @@ class DialogVideoInfo(InfoDialogBase):
         self._imdb_id: str = kwargs.pop('imdb_id', '')
         self._online_props: Dict[str, str] = kwargs.pop('online_props', {})
         super().__init__(*args, **kwargs)
+        self._set_load_properties()
 
     def onInit(self) -> None:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        self.mark_topmost()
         self._set_video_properties()
         self._bind_containers()
+        self._start_blur([
+            ('BlurredPoster', self._online_props.get('Poster', '')),
+            ('BlurredFanart', self._online_props.get('Fanart', '')),
+        ])
+
+    def _set_load_properties(self) -> None:
+        """Set only what the skin reads at load; heavier props wait for onInit to land after the
+        tree is built."""
+        props = {'mediatype': self._media_type}
+        if self._dbid:
+            props['dbid'] = self._dbid
+        self.set_properties(props)
 
     def _set_video_properties(self) -> None:
         props = dict(self._online_props)
-        props['MediaType'] = self._media_type
+        props['mediatype'] = self._media_type
         if self._dbid:
-            props['DBID'] = self._dbid
+            props['dbid'] = self._dbid
         if self._tmdb_id:
             props['tmdb_id'] = self._tmdb_id
         if self._imdb_id:
             props['imdb_id'] = self._imdb_id
-        self._set_window_properties(props)
+        self.set_properties(props)
 
     def _bind_containers(self) -> None:
         base_url = 'plugin://script.skin.info.service/'
@@ -44,7 +58,7 @@ class DialogVideoInfo(InfoDialogBase):
         if not self._media_type:
             return
 
-        # tmdb_id takes precedence for online lookups; library dbid is the fallback when present.
+        # tmdb_id takes precedence; dbid is the fallback when present.
         id_args = []
         if self._tmdb_id:
             id_args.append(f"tmdb_id={self._tmdb_id}")
@@ -68,6 +82,9 @@ class DialogVideoInfo(InfoDialogBase):
                 f"{base_url}?action=similar&dbtype={self._media_type}&{id_query}"
             )
 
+        if self._dbid:
+            containers['library'] = f"{base_url}?dbid={self._dbid}&dbtype={self._media_type}"
+
         for name, path in containers.items():
             self.setProperty(f"container.{name}.path", path)
 
@@ -82,7 +99,6 @@ def open_video_info(
     media_type: str = '',
     dbid: str = '',
     online_props: Optional[Dict[str, str]] = None,
-    set_home_props: bool = False,
 ) -> None:
     if not online_props:
         if not tmdb_id and not imdb_id:
@@ -110,7 +126,6 @@ def open_video_info(
         tmdb_id=tmdb_id,
         imdb_id=imdb_id,
         online_props=online_props,
-        set_home_props=set_home_props,
     )
     dialog.doModal()
     del dialog

@@ -1671,6 +1671,171 @@ msgctxt "#32611"
 msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
 msgstr ""
 
+msgctxt "#32612"
+msgid "Trakt Not Signed In"
+msgstr ""
+
+msgctxt "#32613"
+msgid "Sign in to Trakt or remove this widget"
+msgstr ""
+
+msgctxt "#32614"
+msgid "Search"
+msgstr ""
+
+msgctxt "#32615"
+msgid "Widgets"
+msgstr ""
+
+msgctxt "#32616"
+msgid "Search Movies"
+msgstr ""
+
+msgctxt "#32617"
+msgid "Search TV Shows"
+msgstr ""
+
+msgctxt "#32618"
+msgid "Search People"
+msgstr ""
+
+msgctxt "#32619"
+msgid "Discover"
+msgstr ""
+
+msgctxt "#32620"
+msgid "Next Up"
+msgstr ""
+
+msgctxt "#32621"
+msgid "Recent Episodes"
+msgstr ""
+
+msgctxt "#32622"
+msgid "Seasonal"
+msgstr ""
+
+msgctxt "#32623"
+msgid "Recommended Movies"
+msgstr ""
+
+msgctxt "#32624"
+msgid "Recommended TV Shows"
+msgstr ""
+
+msgctxt "#32625"
+msgid "Movies"
+msgstr ""
+
+msgctxt "#32626"
+msgid "TV Shows"
+msgstr ""
+
+msgctxt "#32627"
+msgid "TMDB Trending"
+msgstr ""
+
+msgctxt "#32628"
+msgid "TMDB Popular"
+msgstr ""
+
+msgctxt "#32629"
+msgid "TMDB Top Rated"
+msgstr ""
+
+msgctxt "#32630"
+msgid "TMDB Now Playing"
+msgstr ""
+
+msgctxt "#32631"
+msgid "TMDB Upcoming"
+msgstr ""
+
+msgctxt "#32632"
+msgid "TMDB Airing Today"
+msgstr ""
+
+msgctxt "#32633"
+msgid "TMDB On The Air"
+msgstr ""
+
+msgctxt "#32634"
+msgid "Trakt Trending"
+msgstr ""
+
+msgctxt "#32635"
+msgid "Trakt Popular"
+msgstr ""
+
+msgctxt "#32636"
+msgid "Trakt Anticipated"
+msgstr ""
+
+msgctxt "#32637"
+msgid "Trakt Most Watched"
+msgstr ""
+
+msgctxt "#32638"
+msgid "Trakt Most Collected"
+msgstr ""
+
+msgctxt "#32639"
+msgid "Trakt Box Office"
+msgstr ""
+
+msgctxt "#32640"
+msgid "Trakt Recommendations"
+msgstr ""
+
+msgctxt "#32641"
+msgid "(OAuth)"
+msgstr ""
+
+msgctxt "#32642"
+msgid "Christmas"
+msgstr ""
+
+msgctxt "#32643"
+msgid "Halloween"
+msgstr ""
+
+msgctxt "#32644"
+msgid "Valentine's Day"
+msgstr ""
+
+msgctxt "#32645"
+msgid "Thanksgiving"
+msgstr ""
+
+msgctxt "#32646"
+msgid "Star Wars Day"
+msgstr ""
+
+msgctxt "#32647"
+msgid "Star Trek"
+msgstr ""
+
+msgctxt "#32648"
+msgid "New Year"
+msgstr ""
+
+msgctxt "#32649"
+msgid "Easter"
+msgstr ""
+
+msgctxt "#32650"
+msgid "Independence Day"
+msgstr ""
+
+# Recommended widget label, single-seed mode. {0} = seed title -> "Recommended based on Avatar"
+msgctxt "#32651"
+msgid "Recommended based on {0}"
+msgstr ""
+
+msgctxt "#32652"
+msgid "Recommended based on recent watches"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

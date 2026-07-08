@@ -10,11 +10,8 @@ from lib.kodi.client import log, request
 
 
 def _process_items(stats: Dict[str, Any], items: List[dict]) -> None:
-    """Count watched/unwatched/in-progress per item.
-
-    TV show items use episode counts (no show-level resume). Movies and episodes
-    use playcount/resume.
-    """
+    """Count watched/unwatched/in-progress per item; TV shows use episode counts since there's no
+    show-level resume."""
     for item in items:
         if item.get('type') == 'tvshow':
             episode_count = item.get('episode', 0)
@@ -48,11 +45,7 @@ def _process_items(stats: Dict[str, Any], items: List[dict]) -> None:
 
 
 def get_path_statistics(path: str) -> Dict[str, Any]:
-    """Count watched/unwatched/in-progress items and episodes for a video library path.
-
-    Returns a dict with `count, watched, unwatched, in_progress, tvshow_count,
-    episodes, watched_episodes, unwatched_episodes`.
-    """
+    """Count watched/unwatched/in-progress items and episodes for a video library path."""
     stats = {
         'count': 0,
         'watched': 0,
@@ -88,13 +81,8 @@ def get_path_statistics(path: str) -> Dict[str, Any]:
 
 
 def handle_path_stats(handle: int, params: dict) -> None:
-    """Plugin entry for path stats.
-
-    Returns an invisible ListItem with `SkinInfo.PathStats.*` properties.
-
-    Sets: `Count, Watched, Unwatched, InProgress, TVShowCount, Episodes,
-    WatchedEpisodes, UnWatchedEpisodes`.
-    """
+    """Plugin entry for path stats; returns an invisible ListItem with `SkinInfo.PathStats.*`
+    properties."""
     path = params.get('path', [''])[0]
 
     if not path:
@@ -126,4 +114,4 @@ def handle_path_stats(handle: int, params: dict) -> None:
         item.setProperty(f'SkinInfo.PathStats.{prop_name}', str(value))
 
     xbmcplugin.addDirectoryItem(handle, '', item, isFolder=False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)

@@ -35,9 +35,9 @@ htmlcov/
 # Docs build
 docs/_build/
 
-# typings/ is committed so CI pyright matches local (releases strip it)
-!typings/
-# xbmcgui/ is a stray pyright install, not a stub - keep it out
+# typings/
+typings/
+# xbmcgui/
 xbmcgui/
 
 # Type checkers / linters
@@ -45,8 +45,6 @@ xbmcgui/
 .pytype/
 .ruff_cache/
 .pyright/
-pyrightconfig.json
-ruff.toml
 
 # Test output
 .pytest_cache/

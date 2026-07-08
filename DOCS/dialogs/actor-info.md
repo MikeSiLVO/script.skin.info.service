@@ -41,7 +41,6 @@ A full-screen actor info dialog with profile image, biography, top credits, and 
 | `separator` | No | Default ` / `. Separator for multi-name `name` values (e.g., `"John Doe / Jane Smith"`). |
 | `auto_search` | No | Default `true`. If `false`, the dialog will not run a TMDB name search when the person isn't found in the parent video's cast. |
 | `online` | No | Default `false`. Forces the cast lookup to fetch fresh data from TMDB rather than relying on Kodi's library cast. |
-| `set_home_props` | No | Default `false`. If `true`, mirrors the dialog's Window properties to the Home window. |
 
 ## Window Properties
 

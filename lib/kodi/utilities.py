@@ -1,18 +1,15 @@
 """Utility functions for properties, date formatting, and language handling.
 
-The cached property helpers (`set_prop`, `batch_set_props`, `clear_prop`, `clear_group`)
-target the home window (`xbmcgui.Window(10000)`) only; they back the service-layer's
-high-frequency writes. Skin-action handlers that need to target arbitrary window IDs
-should use `xbmc.executebuiltin('SetProperty/ClearProperty')` directly, except where a
-property name is also written by the service (route home writes through these helpers
-in that case to avoid cache desync).
+`set_prop`/`batch_set_props`/`clear_prop`/`clear_group` cache-diff writes to the home window
+only. Route any property also written by the service through these to avoid cache desync.
 """
 from __future__ import annotations
 
 import threading
+import time
 import xbmc
 import xbmcgui
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
 from datetime import datetime
 from collections import OrderedDict
 
@@ -54,6 +51,38 @@ def resolve_infolabel(value: str) -> str:
     return value
 
 
+class _TransitionGate:
+    """Holds back ListItem/Container reads from other threads until a window or dialog change
+    finishes; reading them while Kodi is still building the window can crash.
+    """
+
+    _SETTLE_SECONDS = 0.2
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._last_ids: Optional[Tuple[int, int]] = None
+        self._settle_until = 0.0
+
+    def settled(self) -> bool:
+        """False while a window/dialog transition is within the settle window."""
+        ids = (xbmcgui.getCurrentWindowId(), xbmcgui.getCurrentWindowDialogId())
+        now = time.monotonic()
+        with self._lock:
+            if ids != self._last_ids:
+                self._last_ids = ids
+                self._settle_until = now + self._SETTLE_SECONDS
+                return False
+            return now >= self._settle_until
+
+
+_transition_gate = _TransitionGate()
+
+
+def gui_transition_settled() -> bool:
+    """False while a window/dialog transition is in flight; gates off-thread ListItem reads."""
+    return _transition_gate.settled()
+
+
 def parse_pipe_list(value: str, separator: str = '|') -> list:
     """Split a separator-delimited string into a stripped, non-empty list."""
     if not value:
@@ -61,10 +90,8 @@ def parse_pipe_list(value: str, separator: str = '|') -> list:
     return [item.strip() for item in value.split(separator) if item.strip()]
 
 
-# Thread safety: Use RLock for reentrant locking (allows same thread to acquire multiple times)
 _CACHE_LOCK = threading.RLock()
 
-# LRU cache for property values to avoid redundant setProperty calls
 _PREV_PROPS: OrderedDict[str, str] = OrderedDict()
 _PREV_PROPS_MAX_SIZE = 500
 
@@ -89,16 +116,13 @@ LANGUAGE_OPTIONS: List[str] = [
 ]
 DEFAULT_LANGUAGE = 'en'
 
-# Kodi convention for joining multi-value strings (genres, directors, cast, etc.).
+# Kodi's join separator for multi-value strings (genres, directors, cast).
 MULTI_VALUE_SEP = " / "
 
 
 def normalize_language_tag(value: Optional[str]) -> str:
-    """Normalize language code to lowercase ISO 639-1.
-
-    Placeholder codes (`00`, `null`, `xx`, etc.) become empty. Country codes that
-    match a language are remapped (`cz` -> `cs`).
-    """
+    """Normalize to lowercase ISO 639-1; placeholder codes (`00`, `null`, `xx`) become empty and
+    country codes get remapped (`cz` -> `cs`)."""
     normalized = (value or '').strip().lower()
 
     if normalized in ('00', 'null', 'none', 'xx', 'n/a'):
@@ -133,10 +157,7 @@ def get_preferred_language_code() -> str:
 
 
 def _enforce_props_size_limit() -> None:
-    """Remove oldest entries from _PREV_PROPS when exceeding max size (LRU eviction).
-
-    Note: This should be called while holding _CACHE_LOCK.
-    """
+    """Evict oldest entries from `_PREV_PROPS` once it exceeds the size cap."""
     while len(_PREV_PROPS) > _PREV_PROPS_MAX_SIZE:
         _PREV_PROPS.popitem(last=False)
 
@@ -218,9 +239,7 @@ def extract_cast_names(cast_list) -> List[str]:
 def extract_media_ids(item: dict) -> Dict[str, Optional[str]]:
     """Return `{tmdb, imdb, tvdb, trakt}` IDs from a Kodi item, normalizing to string or None.
 
-    Kodi's TMDB scraper writes the TMDB id into `imdbnumber`, so only the
-    `uniqueid` dict is trusted. Callers that need an IMDb id when one isn't present
-    should fall back to `lib.rating.ids.get_imdb_id_from_tmdb`.
+    Kodi's TMDB scraper writes the TMDB id into `imdbnumber`; only `uniqueid` is trusted here.
     """
     uniqueid = item.get("uniqueid", {})
 
@@ -299,9 +318,7 @@ def is_kodi_piers_or_later() -> bool:
 def tvshow_status_gettable() -> bool:
     """True if this Kodi build exposes tvshow `status` as a readable JSON-RPC field.
 
-    `status` is settable but was missing from Video.Fields.TVShow until xbmc/xbmc#28520,
-    so a Get on older builds returns Invalid params. Probed once, then cached; the probe
-    validates the property enum before touching the library, so an empty library still answers.
+    `status` was write-only until xbmc/xbmc#28520; older builds return Invalid params on Get.
     """
     global _tvshow_status_gettable
     if _tvshow_status_gettable is None:

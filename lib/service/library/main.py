@@ -158,5 +158,5 @@ class ServiceMain(threading.Thread):
         self.focus.process()
 
     def _clear_media_type(self, media_type: str) -> None:
-        """Compatibility shim — delegates to the focus dispatcher."""
+        """Compatibility shim that delegates to the focus dispatcher."""
         self.focus.clear_media_type(media_type)

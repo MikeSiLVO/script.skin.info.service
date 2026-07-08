@@ -11,7 +11,7 @@ from lib.kodi.client import (
     request, get_cache_only, extract_result, get_item_details,
     KODI_MOVIE_PROPERTIES,
 )
-from lib.kodi.utilities import clear_group, is_kodi_piers_or_later
+from lib.kodi.utilities import clear_group, gui_transition_settled, is_kodi_piers_or_later
 from lib.service.properties import (
     set_artist_properties,
     set_album_properties,
@@ -34,11 +34,11 @@ _ASSET_VIEW_PATH_RE = re.compile(r"^videodb://.*?/(\d+)/-?\d+/?(?:\?|$)")
 
 
 def _fetch_extras_aggregates(parent_dbid: str) -> Tuple[int, int, int, int]:
-    """Return (count, total_runtime_seconds, unwatched, unwatched_runtime_seconds) for
-    a movie's extras folder. Uncached: invalidate_asset_view() forces refetch when an
-    extra is watched, and the dedup at _last_asset_parent already prevents per-tick
-    churn while idle. `runtime` inherits parent movie duration for extras, so per-file
-    length comes from `streamdetails.video[0].duration`.
+    """Return (count, total_runtime, unwatched, unwatched_runtime) for a movie's extras folder.
+
+    Uncached: invalidate_asset_view() plus the _last_asset_parent dedup already limit
+    refetches; per-file length reads streamdetails since `runtime` here is the parent
+    movie's duration.
     """
     resp = request(
         "Files.GetDirectory",
@@ -144,12 +144,11 @@ class FocusDispatcher:
         self._last_asset_parent = None
 
     def _handle_asset_view(self) -> bool:
-        """Inside a videoversions/videoextras container, treat the parent movie as the
-        focus context: keep `SkinInfo.Movie.*` populated from parent and expose
-        `SkinInfo.Movie.Extras.*` aggregates. Driven by `Container.FolderPath` because
-        focused items often lack a DBID (Extras folder, extras files). Piers+ only.
-        Returns True while the asset view is active so `process()` can preserve
-        `SkinInfo.Movie.*` on empty-DBID focus.
+        """Treat the parent movie as focus context inside a videoversions/videoextras
+        container (Piers+ only).
+
+        Driven by `Container.FolderPath` since focused items there often lack a DBID;
+        returns True while active so `process()` keeps `SkinInfo.Movie.*` on empty-DBID focus.
         """
         if not is_kodi_piers_or_later():
             return False
@@ -179,6 +178,8 @@ class FocusDispatcher:
 
     def process(self) -> None:
         """Read ListItem.DBID/DBType and dispatch to the matching detail setter."""
+        if not gui_transition_settled():
+            return
         in_asset_view = self._handle_asset_view()
 
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""

@@ -1,7 +1,5 @@
-"""Get media details by DBID for plugin calls.
-
-Queries Kodi library and returns formatted dictionaries for ListItem properties.
-"""
+"""Get media details by DBID for plugin calls; queries the Kodi library and returns formatted
+ListItem property dicts."""
 from __future__ import annotations
 
 import xbmc
@@ -645,4 +643,4 @@ def handle_dbid_query(handle: int, params: dict) -> None:
             list_item.setProperty(prop_key, prop_value)
 
     xbmcplugin.addDirectoryItem(handle, "", list_item, isFolder=False)
-    xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    xbmcplugin.endOfDirectory(handle, succeeded=True)

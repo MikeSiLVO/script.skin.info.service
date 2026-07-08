@@ -22,15 +22,17 @@ class DialogActorInfo(InfoDialogBase):
 
     def onInit(self) -> None:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        self.mark_topmost()
         self._set_person_properties()
         self._bind_containers()
+        self._start_blur([('BlurredThumb', self.getProperty('ProfileImage'))])
 
     def _set_person_properties(self) -> None:
         from lib.data.api.person import build_person_props
 
         props = build_person_props(self._person_data)
         props['person_id'] = str(self._person_id)
-        self._set_window_properties(props)
+        self.set_properties(props)
 
     def _bind_containers(self) -> None:
         base_url = 'plugin://script.skin.info.service/'
@@ -67,7 +69,6 @@ def open_actor_info(
     person_id: int,
     person_name: str,
     person_data: Optional[Dict] = None,
-    set_home_props: bool = False,
 ) -> None:
     if not person_data:
         from lib.data.api.person import get_person_data
@@ -84,7 +85,6 @@ def open_actor_info(
         person_data=person_data,
         person_id=person_id,
         person_name=person_name,
-        set_home_props=set_home_props,
     )
     dialog.doModal()
     del dialog

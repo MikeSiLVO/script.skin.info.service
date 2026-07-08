@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta37"
+	   version="2.0.0~beta38"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -26,49 +26,32 @@
 		<platform>all</platform>
 		<license>GPL-3.0-only</license>
 		<source>https://github.com/MikeSiLVO/script.skin.info.service</source>
+		<forum>https://forum.kodi.tv/showthread.php?tid=384016</forum>
 		<assets>
 			<icon>icon.png</icon>
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.0~beta37
-- Metadata editor: play count and last-played are now editable, and date fields accept common formats
-- Letter jump: correct order in every language, with optional dimming or hiding of empty letters
-- Faster Similar and Recommended widgets
-- Online info updates cleanly while scrolling, and works for items with only an IMDb ID
-- Lighter artwork and ratings fetching, plus slideshow and artwork-download fixes
-
-2.0.0~beta36
-- Service now exits cleanly on Kodi shutdown, even while fetching online data
-- Skins can enable the library and online services separately; library-only skins make no internet calls
-- Lighter online fetching when scrolling through music videos
-- Translation updates
-
-2.0.0~beta35
-- Metadata editor: NFO export now writes the movie set overview
-- Movie sets: year list is now de-duplicated and sorted, with a new Years.Range property for skins
-- Translation updates
-
-2.0.0~beta34
-- Fix music playlist backgrounds showing blank
-- Add NFO writer for the metadata editor
+2.0.0~beta38
+- Recommended widget now leads with picks like your most recent watch and shows what each is based on; add multi=true for a blend of your recent history
+- Cast now works for add-on items with no library entry, using their IMDb or TMDB id
+- Widgets that need a Trakt login now warn when you are not signed in
+- Fixes: seasonal widgets sorting the wrong way, and Similar empty when opened from an episode
 
 2.0.0-Betas
 - Complete rewrite of the service
-- Online metadata and multi-source ratings from TMDb, OMDb, MDBList and Trakt (IMDb, Rotten Tomatoes, Metacritic, TMDb, Trakt and more)
-- Incremental IMDb rating updates from the official dataset, plus IMDb Top 250 rankings from Trakt
-- Smart caching that adapts to content age and TV show status, with no manual cache settings
-- Music and music video online data: artist, album and track info and artwork from TheAudioDB, Last.fm, Wikipedia and Fanart.tv
-- Artwork review tool to find and fill missing artwork across the library
-- Download Artwork for single items or in bulk (movies, TV shows, seasons, episodes, music sets and actors)
+- Online metadata and multi-source ratings (TMDb, OMDb, MDBList, Trakt, IMDb, Rotten Tomatoes, Metacritic and more)
+- Incremental IMDb rating updates and IMDb Top 250 rankings
+- Smart caching that adapts to content age and TV show status, no manual settings
+- Music and music video online data and artwork (TheAudioDB, Last.fm, Wikipedia, Fanart.tv)
+- Artwork review tool plus single and bulk artwork download
 - Metadata editor for movies, TV shows, episodes, music videos, artists, albums and songs
-- Plugin widgets: Next Up, Discovery, Recommendations, Cast, Crew, Similar and more
+- Plugin widgets: Next Up, Discovery, Recommendations, Cast, Crew, Similar, letter jump and more
 - Info dialogs: Actor Info, Video Info and Image Viewer
 - Stinger (mid/post-credits) notifications with skin override support
-- Tools: image blur, color picker, fanart slideshow, texture cache cleanup and animated-poster (GIF) scanner
-- Skinner helpers: generic JSON-RPC wrapper (action=json) and skin setting actions (set/toggle/reset)
-- Requires Kodi 21 (Omega) or newer
-- Skins enable the service with Skin.SetBool(SkinInfo.Service)
+- Tools: image blur, color picker, fanart slideshow, texture cache cleanup and GIF poster scanner
+- Skinner helpers: JSON-RPC wrapper (action=json) and skin setting actions
+- Requires Kodi 21 (Omega) or newer; skins enable it with Skin.SetBool(SkinInfo.Service)
 		</news>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
 		<summary lang="fr_FR">Fournit aux habillages des informations enrichies sur les médias ainsi que leurs visuels.</summary>

@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple, TYPE_CHECKING
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import batch_set_props, clear_group
+from lib.kodi.utilities import batch_set_props, clear_group, gui_transition_settled
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain, CancelToken
@@ -34,6 +34,8 @@ class MusicVideoFocusHandler:
 
     def process(self) -> None:
         """Read the focused music video and kick off a background online fetch."""
+        if not gui_transition_settled():
+            return
         artist, album, title = self._read_focus()
         if not artist:
             if self._last_key is not None:
@@ -66,10 +68,8 @@ class MusicVideoFocusHandler:
 
     @staticmethod
     def _read_focus() -> Tuple[str, str, str]:
-        """(artist, album, title) for the focused item, or empties.
-
-        Handles the DBID-less artist node; album nodes return empties (no online data).
-        """
+        """(artist, album, title) for the focused item, or empties; handles the DBID-less
+        artist node (album nodes return empties, no online data)."""
         dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
         if dbtype == "musicvideo":
             if not (xbmc.getInfoLabel("ListItem.DBID") or ""):

@@ -134,7 +134,7 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
     if len(names) == 1:
         selected_name = names[0]
     else:
-        selected = xbmcgui.Dialog().select(f"Select {crew.title()}", names)
+        selected = xbmcgui.Dialog().select(f"Select {crew.title()}", names)  # type: ignore[arg-type]
         if selected < 0:
             log("General", f"person_info: User cancelled {crew} selection", xbmc.LOGDEBUG)
             return None
@@ -153,11 +153,8 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
 def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbtype: str,
                       auto_search: bool, online: bool, sourceid: Optional[str],
                       open_window: str, set_search_query: bool = True) -> Optional[int]:
-    """Resolve a person_id via actor name+role match.
-
-    `set_search_query` controls the SearchQuery-property fallback on auto-match miss;
-    the actor dialog flow opts out because its consumer is a dialog, not window props.
-    """
+    """Resolve a person_id via actor name+role match; `set_search_query=False` skips the
+    SearchQuery fallback for callers that don't read window props."""
     if not name or not dbid:
         log("General", "person_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
         return None

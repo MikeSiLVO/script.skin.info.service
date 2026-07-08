@@ -90,7 +90,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
         """Update preview and sliders when palette color is selected."""
         try:
             palette_list = self.getControl(300)
-            selected_item = palette_list.getSelectedItem()
+            selected_item = palette_list.getSelectedItem()  # type: ignore[attr-defined]
             if selected_item:
                 color_value = selected_item.getProperty('color')
                 if color_value and len(color_value) == 8:
@@ -236,11 +236,8 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
 
 def colorpicker(setting: str = '', default: str = '', colors: str = '',
                 onback: str = '', **kwargs) -> None:
-    """Open the RGBA color picker and save the result into `Skin.String(setting)`.
-
-    `default` is AARRGGBB format. `colors` points at a `colors.xml` file.
-    `onback` runs `condition::action` blocks separated by `||` when the user backs out.
-    """
+    """Open the RGBA color picker; onback runs condition::action blocks (separated by ||)
+    when the user backs out."""
     setting = _resolve_infolabel(setting)
     default = _resolve_infolabel(default) or 'FFFFFFFF'
     colors = _resolve_infolabel(colors)

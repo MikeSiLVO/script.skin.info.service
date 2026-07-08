@@ -40,12 +40,9 @@ _SOURCE_MODE_LABELS = {
 }
 
 
-def _notify(message_id: int, level: int = xbmcgui.NOTIFICATION_INFO,
+def _notify(message_id: int, level: str = xbmcgui.NOTIFICATION_INFO,
             duration: int = 3000, *args) -> None:
-    """Show a notification under the standard ratings heading.
-
-    `args` are interpolated into the localized message via `.format(*args)`.
-    """
+    """Show a notification under the standard ratings heading."""
     message = ADDON.getLocalizedString(message_id)
     if args:
         message = message.format(*args)
@@ -53,11 +50,8 @@ def _notify(message_id: int, level: int = xbmcgui.NOTIFICATION_INFO,
 
 
 def initialize_sources() -> List:
-    """Initialize all available rating sources.
-
-    Order is significant; sources are consulted in the listed order during
-    multi_source updates (TMDB first, MDBList/OMDb if keyed, Trakt last).
-    """
+    """Initialize available rating sources, in priority order (TMDB, then MDBList/OMDb if keyed,
+    then Trakt) for multi_source updates."""
     sources = []
     sources.append(TMDBRatingsSource())
     if get_api_key("mdblist_api_key"):
@@ -131,10 +125,8 @@ def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str
 
 def _resolve_single_item_target(
         dbid: Optional[str], dbtype: Optional[str]) -> Optional[Tuple[str, str]]:
-    """Validate and resolve `(dbid, media_type)` for a single-item update; notify on failure.
-
-    Returns `(dbid, media_type)` on success, None when the user is shown a warning.
-    """
+    """Validate and resolve `(dbid, media_type)` for a single-item update; notifies and returns
+    None on failure."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
     if not dbtype:

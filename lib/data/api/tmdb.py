@@ -49,13 +49,8 @@ def format_tmdb_image(image: dict, preview_size: str) -> Optional[dict]:
 
 
 def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
-    """Transform a TMDB images response to common format.
-
-    All backdrops go to landscape, sorted by language preference:
-    user's language > English > no language > other languages.
-
-    Only no-language backdrops go to fanart (text-free backgrounds).
-    """
+    """Transform a TMDB images response to common format; backdrops sort by language
+    preference and text-free ones also go to fanart."""
     result: Dict[str, List[dict]] = {}
 
     logos = data.get('logos') or []
@@ -194,6 +189,20 @@ class ApiTmdb(RatingSource):
         """Get all available images for a movie collection from TMDB."""
         return self._fetch_images('collection', collection_id)
 
+    def get_collection(self, collection_id: int, abort_flag=None) -> list:
+        """Member movies of a TMDB collection (franchise parts); cached ~30 days."""
+        from lib.data import database as db
+        key = str(collection_id)
+        cached = db.get_cached_metadata('collection', key)
+        if cached:
+            return cached.get('parts', [])
+        data = self._make_request(f"/collection/{collection_id}", abort_flag)
+        if not data:
+            return []
+        parts = data.get('parts', [])
+        db.cache_metadata('collection', key, {'parts': parts}, None, ttl_hours=720)
+        return parts
+
     def get_season_images(self, tmdb_id: int, season_number: int, abort_flag=None) -> dict:
         """Get all available images for a TV season from TMDB."""
         data = self._make_request(
@@ -249,10 +258,8 @@ class ApiTmdb(RatingSource):
         force_refresh: bool = False,
         pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """Fetch ratings from TMDB via get_complete_data (one API call gets everything).
-
-        Returns {"themoviedb": {"rating": 8.3, "votes": 12500}}.
-        """
+        """Fetch ratings from TMDB via get_complete_data; one API call returns everything
+        needed."""
         if abort_flag and abort_flag.is_requested():
             return None
 
@@ -312,12 +319,8 @@ class ApiTmdb(RatingSource):
 
     def _find(self, external_id: str, source: str, media_type: str,
               abort_flag=None) -> Optional[dict]:
-        """Hit TMDB `/find/{external_id}` and return the first matching result dict, or None.
-
-        For movie/tvshow lookups by `imdb_id` or `tvdb_id`, checks `id_mappings` first to
-        avoid the network call when the mapping is already known. Episode lookups bypass
-        the cache (episode-level mappings aren't tracked).
-        """
+        """Hit TMDB /find/{external_id}; checks the id_mappings cache first for movie/tvshow,
+        episodes always hit the API."""
         if media_type in ("movie", "tvshow") and source in ("imdb_id", "tvdb_id"):
             from lib.data.database.mapping import (
                 get_tmdb_id_by_imdb, get_tmdb_id_by_tvdb,
@@ -371,12 +374,8 @@ class ApiTmdb(RatingSource):
         force_refresh: bool = False,
         is_library_item: bool = True
     ) -> Optional[dict]:
-        """Get complete TMDb data. Checks cache first, fetches if needed.
-
-        Single entry point for all TMDb data - artwork reviewer, ratings updater, etc.
-        is_library_item=True uses smart TTL and fetches season data;
-        False uses 24h TTL and skips season fetch.
-        """
+        """Get complete TMDb data, from cache or a fresh fetch; is_library_item toggles smart
+        TTL + season fetch vs a flat 24h TTL."""
         if abort_flag and abort_flag.is_requested():
             return None
 
@@ -526,11 +525,8 @@ class ApiTmdb(RatingSource):
         return self.session.get(endpoint, params=params, abort_flag=abort_flag)
 
     def get_movie_details_extended(self, tmdb_id: int, abort_flag=None) -> Optional[dict]:
-        """Fetch complete movie data in one API call via append_to_response.
-
-        Returns base movie details plus: credits, videos, keywords,
-        release_dates, images, external_ids, recommendations.
-        """
+        """Fetch complete movie data in one API call via append_to_response. Returns base
+        details plus appended data."""
         return self._fetch_details_extended(
             f"/movie/{tmdb_id}",
             "credits,videos,keywords,release_dates,images,external_ids,recommendations",
@@ -601,10 +597,7 @@ class ApiTmdb(RatingSource):
         media_type: str = "movie",
         abort_flag=None
     ) -> Optional[dict]:
-        """Look up TMDB entry by external ID.
-
-        `source` is "imdb_id" or "tvdb_id"; `media_type` selects movie/tvshow/episode.
-        """
+        """Look up TMDB entry by external ID (imdb_id or tvdb_id)."""
         return self._find(external_id, source, media_type, abort_flag)
 
     def search(

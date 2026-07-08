@@ -7,17 +7,17 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import log
+from lib.kodi.client import ADDON, log
 
 
 def _handle_root_menu(handle: int) -> None:
     """Show root menu with Tools, Search, and Widgets folders."""
     items = [
-        ("Tools", "plugin://script.skin.info.service/?action=exec_tools",
+        (ADDON.getLocalizedString(32530), "plugin://script.skin.info.service/?action=exec_tools",
          "DefaultAddonProgram.png", False),
-        ("Search", "plugin://script.skin.info.service/?action=menu_search",
+        (ADDON.getLocalizedString(32614), "plugin://script.skin.info.service/?action=menu_search",
          "DefaultAddonsSearch.png", True),
-        ("Widgets", "plugin://script.skin.info.service/?action=menu_widgets",
+        (ADDON.getLocalizedString(32615), "plugin://script.skin.info.service/?action=menu_widgets",
          "DefaultAddonVideo.png", True),
     ]
 
@@ -32,11 +32,14 @@ def _handle_root_menu(handle: int) -> None:
 def _handle_search_menu(handle: int) -> None:
     """Show search submenu."""
     items = [
-        ("Search Movies", "plugin://script.skin.info.service/?action=exec_search&dbtype=movie",
+        (ADDON.getLocalizedString(32616),
+         "plugin://script.skin.info.service/?action=exec_search&dbtype=movie",
          "DefaultMovies.png"),
-        ("Search TV Shows", "plugin://script.skin.info.service/?action=exec_search&dbtype=tv",
+        (ADDON.getLocalizedString(32617),
+         "plugin://script.skin.info.service/?action=exec_search&dbtype=tv",
          "DefaultTVShows.png"),
-        ("Search People", "plugin://script.skin.info.service/?action=exec_search&dbtype=person",
+        (ADDON.getLocalizedString(32618),
+         "plugin://script.skin.info.service/?action=exec_search&dbtype=person",
          "DefaultActor.png"),
     ]
 
@@ -51,17 +54,19 @@ def _handle_search_menu(handle: int) -> None:
 def _handle_widgets_menu(handle: int) -> None:
     """Show widgets submenu."""
     items = [
-        ("Discover", "plugin://script.skin.info.service/?action=discover_menu",
+        (ADDON.getLocalizedString(32619), "plugin://script.skin.info.service/?action=discover_menu",
          "DefaultAddonVideo.png", True),
-        ("Next Up", "plugin://script.skin.info.service/?action=next_up",
+        (ADDON.getLocalizedString(32620), "plugin://script.skin.info.service/?action=next_up",
          "DefaultInProgressShows.png", True),
-        ("Recent Episodes", "plugin://script.skin.info.service/?action=recent_episodes_grouped",
+        (ADDON.getLocalizedString(32621),
+         "plugin://script.skin.info.service/?action=recent_episodes_grouped",
          "DefaultRecentlyAddedEpisodes.png", True),
-        ("Seasonal", "plugin://script.skin.info.service/?action=menu_seasonal",
+        (ADDON.getLocalizedString(32622), "plugin://script.skin.info.service/?action=menu_seasonal",
          "DefaultYear.png", True),
-        ("Recommended Movies", "plugin://script.skin.info.service/?action=recommended&dbtype=movie",
+        (ADDON.getLocalizedString(32623),
+         "plugin://script.skin.info.service/?action=recommended&dbtype=movie",
          "DefaultMovies.png", True),
-        ("Recommended TV Shows",
+        (ADDON.getLocalizedString(32624),
          "plugin://script.skin.info.service/?action=recommended&dbtype=tvshow",
          "DefaultTVShows.png", True),
     ]
@@ -74,25 +79,21 @@ def _handle_widgets_menu(handle: int) -> None:
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
-def _handle_seasonal_menu(handle: int) -> None:
-    """Show seasonal submenu."""
-    items = [
-        ("Christmas", "plugin://script.skin.info.service/?action=seasonal&season=christmas",
-         "DefaultYear.png"),
-        ("Halloween", "plugin://script.skin.info.service/?action=seasonal&season=halloween",
-         "DefaultYear.png"),
-        ("Valentine's Day", "plugin://script.skin.info.service/?action=seasonal&season=valentines",
-         "DefaultYear.png"),
-        ("Thanksgiving", "plugin://script.skin.info.service/?action=seasonal&season=thanksgiving",
-         "DefaultYear.png"),
-        ("Star Wars Day", "plugin://script.skin.info.service/?action=seasonal&season=starwars",
-         "DefaultYear.png"),
-    ]
+_SEASONAL_MENU = [
+    (32642, "christmas"), (32643, "halloween"), (32644, "valentines"),
+    (32645, "thanksgiving"), (32646, "starwars"), (32647, "startrek"),
+    (32648, "newyear"), (32649, "easter"), (32650, "independence"),
+]
 
-    for label, path, icon in items:
-        li = xbmcgui.ListItem(label, offscreen=True)
-        li.setArt({'icon': icon, 'thumb': icon})
-        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=True)
+
+def _handle_seasonal_menu(handle: int) -> None:
+    """Show seasonal submenu (one entry per SEASONAL_TAGS key)."""
+    for string_id, key in _SEASONAL_MENU:
+        li = xbmcgui.ListItem(ADDON.getLocalizedString(string_id), offscreen=True)
+        li.setArt({'icon': "DefaultYear.png", 'thumb': "DefaultYear.png"})
+        xbmcplugin.addDirectoryItem(
+            handle, f"plugin://script.skin.info.service/?action=seasonal&season={key}",
+            li, isFolder=True)
 
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 

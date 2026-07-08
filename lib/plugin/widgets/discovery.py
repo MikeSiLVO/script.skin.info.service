@@ -8,7 +8,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import log, request, extract_result
+from lib.kodi.client import ADDON, log, request, extract_result
 from lib.data.api.utilities import tmdb_image_url
 
 # Trakt wrapped responses nest the media object under "movie" or "show"
@@ -17,25 +17,21 @@ _TRAKT_WRAPPED = {
 }
 
 WIDGET_REGISTRY: Dict[str, dict] = {
-    "tmdb_trending":     {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Trending"},
-    "tmdb_popular":      {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Popular"},
-    "tmdb_top_rated":    {"provider": "tmdb", "types": ("movie", "tv"), "label": "TMDB Top Rated"},
-    "tmdb_now_playing":  {"provider": "tmdb", "types": ("movie",), "label": "TMDB Now Playing"},
-    "tmdb_upcoming":     {"provider": "tmdb", "types": ("movie",), "label": "TMDB Upcoming"},
-    "tmdb_airing_today": {"provider": "tmdb", "types": ("tv",), "label": "TMDB Airing Today"},
-    "tmdb_on_the_air":   {"provider": "tmdb", "types": ("tv",), "label": "TMDB On The Air"},
-    "trakt_trending":    {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Trending"},
-    "trakt_popular":     {"provider": "trakt", "types": ("movie", "tv"), "label": "Trakt Popular"},
-    "trakt_anticipated": {"provider": "trakt", "types": ("movie", "tv"),
-                          "label": "Trakt Anticipated"},
-    "trakt_watched":     {"provider": "trakt", "types": ("movie", "tv"),
-                          "label": "Trakt Most Watched"},
-    "trakt_collected":   {"provider": "trakt", "types": ("movie", "tv"),
-                          "label": "Trakt Most Collected"},
-    "trakt_boxoffice":   {"provider": "trakt", "types": ("movie",), "label": "Trakt Box Office"},
+    "tmdb_trending":     {"provider": "tmdb", "types": ("movie", "tv"), "label": 32627},
+    "tmdb_popular":      {"provider": "tmdb", "types": ("movie", "tv"), "label": 32628},
+    "tmdb_top_rated":    {"provider": "tmdb", "types": ("movie", "tv"), "label": 32629},
+    "tmdb_now_playing":  {"provider": "tmdb", "types": ("movie",), "label": 32630},
+    "tmdb_upcoming":     {"provider": "tmdb", "types": ("movie",), "label": 32631},
+    "tmdb_airing_today": {"provider": "tmdb", "types": ("tv",), "label": 32632},
+    "tmdb_on_the_air":   {"provider": "tmdb", "types": ("tv",), "label": 32633},
+    "trakt_trending":    {"provider": "trakt", "types": ("movie", "tv"), "label": 32634},
+    "trakt_popular":     {"provider": "trakt", "types": ("movie", "tv"), "label": 32635},
+    "trakt_anticipated": {"provider": "trakt", "types": ("movie", "tv"), "label": 32636},
+    "trakt_watched":     {"provider": "trakt", "types": ("movie", "tv"), "label": 32637},
+    "trakt_collected":   {"provider": "trakt", "types": ("movie", "tv"), "label": 32638},
+    "trakt_boxoffice":   {"provider": "trakt", "types": ("movie",), "label": 32639},
     "trakt_recommendations": {
-        "provider": "trakt", "types": ("movie", "tv"),
-        "label": "Trakt Recommendations", "auth": "oauth",
+        "provider": "trakt", "types": ("movie", "tv"), "label": 32640, "auth": "oauth",
     },
 }
 
@@ -106,6 +102,7 @@ def _normalize_tmdb_item(item: dict, media_type: str, genre_map: Dict[int, str])
 
 
 def _extract_trakt_media(item: dict, action: str, media_type: str) -> Optional[dict]:
+    """Unwrap a Trakt item to its movie/show payload when the action wraps it, else return as-is."""
     if action in _TRAKT_WRAPPED:
         key = "movie" if media_type == "movie" else "show"
         return item.get(key)
@@ -218,6 +215,7 @@ def _create_listitem(normalized: dict,
 
 
 def _fetch_tmdb(action: str, media_type: str, page: int, window: str) -> list:
+    """Dispatch a TMDB discovery action to its matching ApiTmdb call."""
     from lib.data.api.tmdb import ApiTmdb
     api = ApiTmdb()
     tmdb_type = "movie" if media_type == "movie" else "tv"
@@ -235,6 +233,7 @@ def _fetch_tmdb(action: str, media_type: str, page: int, window: str) -> list:
 
 
 def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: str) -> list:
+    """Dispatch a Trakt discovery action to its matching ApiTrakt call."""
     from lib.data.api.trakt import ApiTrakt
     api = ApiTrakt()
     trakt_type = "movie" if media_type == "movie" else "show"
@@ -254,6 +253,31 @@ def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: st
     return dispatch[action]()
 
 
+_AUTH_WARN_PROP = "SkinInfo.Trakt.AuthWarned"
+_AUTH_WARN_COOLDOWN = 10.0
+
+
+def _warn_trakt_auth() -> None:
+    """Notify that a Trakt-auth widget can't load; a short cooldown stops duplicate
+    notifications from stacked widgets."""
+    import time
+    from lib.kodi.utilities import get_prop, set_prop
+    last = get_prop(_AUTH_WARN_PROP)
+    now = time.time()
+    if last:
+        try:
+            if now - float(last) < _AUTH_WARN_COOLDOWN:
+                return
+        except ValueError:
+            pass
+    set_prop(_AUTH_WARN_PROP, str(now))
+    from lib.infrastructure.dialogs import show_notification
+    show_notification(
+        ADDON.getLocalizedString(32612), ADDON.getLocalizedString(32613),
+        xbmcgui.NOTIFICATION_WARNING, 4000,
+    )
+
+
 def handle_discover(handle: int, action: str, params: dict) -> None:
     """Plugin entry for a discovery widget: fetch, normalize, create ListItems, render directory."""
     try:
@@ -262,6 +286,13 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
             log("Plugin", f"Discover: Unknown widget '{action}'", xbmc.LOGWARNING)
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
+
+        if config.get("auth") == "oauth":
+            from lib.data.api.trakt import ApiTrakt
+            if not ApiTrakt().is_authorized():
+                _warn_trakt_auth()
+                xbmcplugin.endOfDirectory(handle, succeeded=True)
+                return
 
         media_type = params.get("type", ["movie"])[0]
         valid_types = config["types"]
@@ -313,7 +344,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
 
         content = "movies" if media_type == "movie" else "tvshows"
         xbmcplugin.setContent(handle, content)
-        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
 
         log("Plugin", f"Discover: {action} ({media_type}) returned {len(items)} items",
             xbmc.LOGINFO)
@@ -325,12 +356,8 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
 
 
 def handle_tmdb_recommendations(handle: int, params: dict) -> None:
-    """TMDB recommendations for a specific item (movie/tv).
-
-    Reads the `recommendations` block from cached extended details — no extra API call
-    when online data is already loaded. Accepts `tmdb_id` directly or resolves it from
-    `dbid`+`dbtype`. `source=library` filters to library matches only.
-    """
+    """TMDB recommendations for a specific item; reads the cached `recommendations` block (no
+    extra API call), resolving `tmdb_id` from `dbid`+`dbtype` if needed."""
     try:
         dbtype = params.get('dbtype', [''])[0]
         tmdb_id_str = params.get('tmdb_id', [''])[0]
@@ -399,7 +426,7 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
             xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
 
         xbmcplugin.setContent(handle, "movies" if media_type == "movie" else "tvshows")
-        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=True)
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
 
         log("Plugin",
             f"TMDB Recommendations: Returned {len(items)} items for {dbtype} tmdb={tmdb_id}",
@@ -412,16 +439,17 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
 
 
 def _discover_url(action: str, media_type: str) -> str:
+    """Build the discovery widget plugin:// URL for an action and media type."""
     return f"plugin://script.skin.info.service/?action={action}&type={media_type}"
 
 
 def handle_discover_menu(handle: int, params: dict) -> None:
     """Render the top-level Discover menu (Movies / TV Shows)."""
     items = [
-        ("Movies", "plugin://script.skin.info.service/?action=discover_movies_menu",
-         "DefaultMovies.png"),
-        ("TV Shows", "plugin://script.skin.info.service/?action=discover_tvshows_menu",
-         "DefaultTVShows.png"),
+        (ADDON.getLocalizedString(32625),
+         "plugin://script.skin.info.service/?action=discover_movies_menu", "DefaultMovies.png"),
+        (ADDON.getLocalizedString(32626),
+         "plugin://script.skin.info.service/?action=discover_tvshows_menu", "DefaultTVShows.png"),
     ]
 
     for label, path, icon in items:
@@ -437,9 +465,9 @@ def handle_discover_movies_menu(handle: int, params: dict) -> None:
     for action, config in WIDGET_REGISTRY.items():
         if "movie" not in config["types"]:
             continue
-        label = config["label"]
+        label = ADDON.getLocalizedString(config["label"])
         if config.get("auth") == "oauth":
-            label += " (OAuth)"
+            label += " " + ADDON.getLocalizedString(32641)
         li = xbmcgui.ListItem(label, offscreen=True)
         li.setArt({"icon": "DefaultMovies.png", "thumb": "DefaultMovies.png"})
         xbmcplugin.addDirectoryItem(handle, _discover_url(action, "movie"), li, isFolder=True)
@@ -452,9 +480,9 @@ def handle_discover_tvshows_menu(handle: int, params: dict) -> None:
     for action, config in WIDGET_REGISTRY.items():
         if "tv" not in config["types"]:
             continue
-        label = config["label"]
+        label = ADDON.getLocalizedString(config["label"])
         if config.get("auth") == "oauth":
-            label += " (OAuth)"
+            label += " " + ADDON.getLocalizedString(32641)
         li = xbmcgui.ListItem(label, offscreen=True)
         li.setArt({"icon": "DefaultTVShows.png", "thumb": "DefaultTVShows.png"})
         xbmcplugin.addDirectoryItem(handle, _discover_url(action, "tv"), li, isFolder=True)

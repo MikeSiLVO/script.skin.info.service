@@ -16,11 +16,12 @@ class DialogImageViewer(InfoDialogBase):
         self._images_path: str = kwargs.pop('images_path', '')
         self._selected_index: int = kwargs.pop('selected_index', 0)
         super().__init__(*args, **kwargs)
+        if self._images_path:
+            self.setProperty('container.viewer.path', self._images_path)
 
     def onInit(self) -> None:
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
-        if self._images_path:
-            self.setProperty('container.viewer.path', self._images_path)
+        self.mark_topmost()
         try:
             control: xbmcgui.ControlList = self.getControl(_IMAGES_CONTROL_ID)  # type: ignore[assignment]
             control.selectItem(self._selected_index)
@@ -35,7 +36,6 @@ class DialogImageViewer(InfoDialogBase):
 def open_image_viewer(
     images_path: str,
     selected_index: int = 0,
-    set_home_props: bool = False,
 ) -> None:
     if not images_path:
         return
@@ -47,7 +47,6 @@ def open_image_viewer(
         '1080i',
         images_path=images_path,
         selected_index=selected_index,
-        set_home_props=set_home_props,
     )
     dialog.doModal()
     del dialog

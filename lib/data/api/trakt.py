@@ -51,6 +51,10 @@ class ApiTrakt(RatingSource):
         self._season_locks_guard = threading.Lock()
         self._season_locks: Dict[str, threading.Lock] = {}
 
+    def is_authorized(self) -> bool:
+        """True when a stored OAuth token exists; auth-gated widgets check this before fetching."""
+        return self._load_tokens() is not None
+
     def _load_tokens(self) -> Optional[Dict]:
         """Load tokens from file."""
         if not xbmcvfs.exists(self.token_path):
@@ -137,12 +141,8 @@ class ApiTrakt(RatingSource):
         abort_flag=None,
         force_refresh: bool = False
     ) -> Optional[dict]:
-        """Fetch complete Trakt data (extended=full) for a movie/show/episode.
-
-        Episodes fetch their whole season in one call (cached per episode), so a batch of
-        episodes from one season costs a single request. `force_refresh=True` bypasses the
-        cache read but still writes back.
-        """
+        """Fetch complete Trakt data (extended=full); episodes fetch their whole season in one
+        call, so a season's episodes cost a single request."""
         if usage_tracker.is_provider_skipped("trakt"):
             return None
 
@@ -186,7 +186,7 @@ class ApiTrakt(RatingSource):
                 if media_type == "episode":
                     return None
                 search_type = "show" if media_type == "tvshow" else media_type
-                # Search endpoint returns a JSON array; session.get is typed as Dict
+                # session.get is typed Dict, but this endpoint returns a JSON array
                 raw: Any = self.session.get(
                     f"/search/tmdb/{tmdb_id}",
                     params={"type": search_type, "extended": "full"},
@@ -223,11 +223,8 @@ class ApiTrakt(RatingSource):
         self, trakt_id: str, season: str, cache_key: str,
         headers: Dict[str, str], abort_flag=None, force_refresh: bool = False,
     ) -> Optional[dict]:
-        """Fetch the episode's whole season in one call (caching each episode), return the wanted
-        one. The season response carries every episode's rating, so only the first episode of a
-        season hits the API and the rest read cache. A per-season lock dedups concurrent
-        same-season fetches under the batch executor.
-        """
+        """Fetch the episode's whole season in one call, caching every episode so only the
+        first hits the API."""
         with self._get_season_lock(f"{trakt_id}_s{season}"):
             if not force_refresh:
                 cached = self.get_cached_data(cache_key)
@@ -317,11 +314,8 @@ class ApiTrakt(RatingSource):
         media_type: str = "movie",
         abort_flag=None
     ) -> Optional[list]:
-        """Get curated subgenres for a movie/show.
-
-        Reuses the cache shared with fetch_data/fetch_ratings - no extra API call if
-        ratings were already fetched. `trakt_id` may be a slug, IMDb ID, or TMDB ID.
-        """
+        """Get curated subgenres for a movie/show; reuses the fetch_data/fetch_ratings cache,
+        no extra API call if ratings were already fetched."""
         ids = {"imdb": trakt_id} if trakt_id.startswith("tt") else {"tmdb": trakt_id}
 
         data = self.get_trakt_data(media_type, ids)
@@ -465,13 +459,9 @@ def _get_top250_session() -> ApiSession:
 
 
 def fetch_top250_list(abort_flag=None) -> Optional[list[dict]]:
-    """Fetch IMDb Top 250 from Trakt's official curated list.
-
-    Uses the daily-updated list maintained by Trakt founder Justin Nemeth. No OAuth.
-    Returns list of `{rank, movie}` dicts, each movie carrying `ids.imdb` and `ids.tmdb`.
-    """
-    # Trakt paginates list endpoints (default 100/page); pass limit=250 so the full list
-    # comes back in one request.
+    """Fetch IMDb Top 250 from Trakt's daily-updated list, maintained by Trakt founder Justin
+    Nemeth; no OAuth needed."""
+    # Trakt paginates at 100/page by default; limit=250 gets the full list in one request
     session = _get_top250_session()
 
     try:

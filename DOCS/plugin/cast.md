@@ -27,10 +27,15 @@ Returns deduplicated cast list for movies, TV shows, seasons, movie sets, or epi
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `dbid` | Conditional | Library ID of the item (required if `online=false`; either `dbid` or `tmdb_id` if `online=true`) |
-| `tmdb_id` | Conditional | TMDB ID. Only used when `online=true`; takes precedence over `dbid` for the TMDB lookup |
+| `dbid` | Conditional | Library ID of the item. Required when `online=false`. Omit for non-library (add-on) items. |
+| `tmdb_id` | Conditional | TMDB ID. With `online=true`, used directly and takes precedence over `dbid`/`imdb_id`. |
+| `imdb_id` | Conditional | IMDb ID (`tt…`). With `online=true`, resolved to a TMDB ID when `tmdb_id` is absent. |
 | `dbtype` | Yes | Media type: `movie`, `tvshow`, `season`, `set`, `episode` |
-| `online` | No | Use fresh TMDB data instead of Kodi database (`true` to enable). Required if only `tmdb_id` is provided. |
+| `season` | Conditional | Season number. Needed for `episode`/`season` in `online` mode when there is no `dbid`. |
+| `episode` | Conditional | Episode number. Needed for `episode` in `online` mode when there is no `dbid`. |
+| `online` | No | Use fresh TMDB data instead of the Kodi database (`true` to enable). Required when identifying by `tmdb_id`/`imdb_id` instead of `dbid`. |
+
+For `online=true`, provide at least one of `tmdb_id`, `imdb_id`, or `dbid`. For an online `episode` (or `season`) without a `dbid`, the show's `tmdb_id`/`imdb_id` plus `season`/`episode` are required.
 
 ### Supported Types
 
@@ -87,6 +92,22 @@ Returns deduplicated cast list for movies, TV shows, seasons, movie sets, or epi
 ```xml
 <content>plugin://script.skin.info.service/?action=get_cast&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=episode&amp;online=true</content>
 ```
+
+**Non-library items (add-on items with no library ID):**
+
+Items from video add-ons have no `dbid` but carry TMDB/IMDb ids. Route them to online mode when `ListItem.DBID` is empty, passing the ids from the item:
+
+```xml
+<content>plugin://script.skin.info.service/?action=get_cast&amp;online=true&amp;dbtype=$INFO[ListItem.DBType]&amp;tmdb_id=$INFO[ListItem.UniqueID(tmdb)]&amp;imdb_id=$INFO[ListItem.IMDBNumber]</content>
+```
+
+For episodes, also pass the season and episode numbers (the ids are the show's):
+
+```xml
+<content>plugin://script.skin.info.service/?action=get_cast&amp;online=true&amp;dbtype=episode&amp;tmdb_id=$INFO[ListItem.UniqueID(tmdb)]&amp;imdb_id=$INFO[ListItem.IMDBNumber]&amp;season=$INFO[ListItem.Season]&amp;episode=$INFO[ListItem.Episode]</content>
+```
+
+Pass both `tmdb_id` and `imdb_id` when available; `tmdb_id` is used directly and `imdb_id` is the fallback. A skin can pick library vs online with a `String.IsEmpty(ListItem.DBID)` condition.
 
 ### Online Mode
 

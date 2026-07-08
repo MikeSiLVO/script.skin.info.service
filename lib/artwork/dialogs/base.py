@@ -16,7 +16,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
     `_resort_artwork()`.
     """
 
-    # Placeholders for subclass-supplied values (declared here so the helpers below typecheck).
+    # Placeholders so subclass-supplied attrs typecheck for the helpers below
     BUTTON_SORT: int = 0
     BUTTON_SOURCE_PREF: int = 0
     full_artwork_list: list = []
@@ -60,7 +60,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
     def _update_sort_button_label(self) -> None:
         """Update sort button label to show current mode."""
         try:
-            button = self.getControl(self.BUTTON_SORT)
+            button: xbmcgui.ControlButton = self.getControl(self.BUTTON_SORT)  # type: ignore[assignment]
             if self.sort_mode == 'popularity':
                 button.setLabel('Sort: Popularity')
             else:
@@ -82,7 +82,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
     def _update_source_pref_button_label(self) -> None:
         """Update source filter button label to show current filter."""
         try:
-            button = self.getControl(self.BUTTON_SOURCE_PREF)
+            button: xbmcgui.ControlButton = self.getControl(self.BUTTON_SOURCE_PREF)  # type: ignore[assignment]
             if self.source_pref == 'all':
                 button.setLabel(ADDON.getLocalizedString(32132))
             elif self.source_pref == 'tmdb':
@@ -101,18 +101,8 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         art_info: dict,
         index: int
     ) -> xbmcgui.ListItem:
-        """Create ListItem from artwork info dict.
-
-        Properties (accessible in dialog skin XML via ListItem.Property):
-        - dimensions: Width x Height (e.g., "1920x1080")
-        - width: Image width in pixels
-        - height: Image height in pixels
-        - source: Source name (e.g., "TMDB", "fanart.tv")
-        - language: Display name (e.g., "English")
-        - language_short: Language code (e.g., "en")
-        - season: Season number (when available)
-        - fullurl: Full resolution image URL
-        """
+        """Create a ListItem from an artwork info dict, with properties for display in the dialog
+        skin XML."""
         url = art_info.get('url', '')
         preview = art_info.get('previewurl', url)
         width = art_info.get('width', 0)
@@ -145,7 +135,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         return item
 
     def populate_list_batch(self, control, items: List[xbmcgui.ListItem]) -> None:
-        """Add items to list control via addItems() - much faster than addItem() in a loop."""
+        """Batch-add items via addItems(), faster than looping addItem()."""
         control.reset()
         if items:
             control.addItems(items)

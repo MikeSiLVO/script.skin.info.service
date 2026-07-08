@@ -1,0 +1,4 @@
+{
+  "reportFunctionMemberAccess": "none",
+  "reportAttributeAccessIssue": "warning"
+}

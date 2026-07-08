@@ -11,14 +11,10 @@ import xbmc
 import xbmcaddon
 from lib.kodi.settings import KodiSettings
 
-# Shared addon instance - import this instead of creating new xbmcaddon.Addon()
+# Shared instance; don't instantiate a new xbmcaddon.Addon().
 ADDON = xbmcaddon.Addon()
 
-# In-memory JSON-RPC cache tuning. Cleanup fires when ANY of these triggers:
-#   - 60s wall clock since last cleanup (ambient periodic)
-#   - 50 requests since last cleanup (busy traffic forces eviction sooner)
-#   - cache exceeds 200 entries (hard size cap)
-# Default TTL is 30s, short because Kodi state changes are user-driven (focus/playback).
+# Default TTL is short since Kodi state changes are user-driven (focus/playback).
 CACHE_DEFAULT_TTL = 30
 CACHE_CLEANUP_INTERVAL = 60
 CACHE_CLEANUP_REQUEST_INTERVAL = 50
@@ -29,10 +25,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class MediaTypeSpec:
-    """Per-media-type Kodi JSON-RPC bindings.
-
-    Source of truth for the four parallel `KODI_*_METHODS` / `KODI_ID_KEYS` dicts.
-    """
+    """Per-media-type Kodi JSON-RPC bindings; source of truth for the `KODI_*_METHODS`/
+    `KODI_ID_KEYS` dicts."""
     get_method: str
     set_method: str
     id_key: str
@@ -42,11 +36,7 @@ class MediaTypeSpec:
 
 
 def _spec(noun: str, plural_noun: str, library: str = 'VideoLibrary') -> MediaTypeSpec:
-    """Build a MediaTypeSpec from the conventional Kodi JSON-RPC naming pattern.
-
-    `noun` is the singular CamelCase form ('Movie', 'TVShow', 'MovieSet').
-    `plural_noun` is the plural CamelCase form used in `Get{plural_noun}` ('Movies', 'TVShows').
-    """
+    """Build a MediaTypeSpec from Kodi's conventional Get/Set method naming pattern."""
     return MediaTypeSpec(
         get_method=f'{library}.Get{noun}Details',
         set_method=f'{library}.Set{noun}Details',
@@ -178,8 +168,7 @@ def extract_result(resp: Optional[dict], result_key: str, default=None):
 def _call_jsonrpc(payload: Any, error_context: str) -> Any:
     """Execute a JSON-RPC payload (single dict or batch list) and return the parsed body.
 
-    Returns None on transport, JSON, or shape errors. `error_context` is used in log lines
-    so single-call and batch-call failures can be distinguished.
+    Returns None on transport, JSON, or shape errors.
     """
     try:
         raw = xbmc.executeJSONRPC(json.dumps(payload, separators=(",", ":")))
@@ -341,11 +330,7 @@ def batch_request(calls: List[Dict[str, Any]],
 
 def get_item_details(media_type: str, dbid: int, properties: List[str], cache_key: str = "",
                      ttl_seconds: Optional[int] = None, **extra_params: Any) -> Any:
-    """Fetch item details for `media_type`, looking up the right `GetXDetails` method and
-    result key.
-
-    `extra_params` is merged into the request payload (e.g. movie-sets pass nested 'movies' dict).
-    """
+    """Fetch item details for `media_type` via the right `GetXDetails` method and result key."""
     method_info = KODI_GET_DETAILS_METHODS.get(media_type)
     if not method_info:
         log("API", f"Unknown media type: {media_type}", xbmc.LOGERROR)
@@ -427,12 +412,7 @@ def get_library_items(media_types: List[str], properties: List[str], *,
                       progress_callback: Optional[Callable[[str, int, int], None]] = None,
                       abort_check: Optional[Callable[[], bool]] = None,
                       page_size: int = 2000) -> List[Dict[str, Any]]:
-    """Fetch library items across `media_types`, optionally decoding art and folding in seasons.
-
-    Each item gets `media_type` and `dbid` injected. `filter_func(item) -> bool` filters per-item.
-    Items are fetched in pages of `page_size`; `progress_callback(media_type, done, total)` fires
-    after each page and `abort_check()` is polled per page, raising `LibraryScanAborted` if True.
-    """
+    """Fetch library items across `media_types`, optionally decoding art and folding in seasons."""
     all_items: List[Dict[str, Any]] = []
 
     for media_type in media_types:
@@ -599,10 +579,11 @@ def _is_debug_enabled() -> bool:
 
 
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
-    """Log `[category] message` at `level`. DEBUG messages gated by the addon's debug setting.
+    """Log `[category] message` at `level`, prefixed with the addon id.
 
-    Categories: Artwork, Database, API, Service, Cache, General, Texture, Download,
-    Ratings, Blur, Plugin, SkinUtils, JSON.
+    With the debug setting on, DEBUG escalates to INFO so skinners see diagnostics without
+    Kodi debug mode.
     """
-    if level >= xbmc.LOGINFO or _is_debug_enabled():
-        xbmc.log(f"script.skin.info.service: [{category}] {message}", level)
+    if level == xbmc.LOGDEBUG and _is_debug_enabled():
+        level = xbmc.LOGINFO
+    xbmc.log(f"script.skin.info.service: [{category}] {message}", level)

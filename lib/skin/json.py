@@ -2,8 +2,8 @@
 
 Exposes one entry point (`execute`) called from the `action=json` RunScript
 handler. Two modes:
-- `textviewer` — render full response (success or error) for discovery
-- `property` — bind result keys to `SkinInfo.{prop_prefix}.{key}[.{subkey}]`
+- `textviewer`: render full response (success or error) for discovery
+- `property`: bind result keys to `SkinInfo.{prop_prefix}.{key}[.{subkey}]`
 
 Param format for the URL-passed `params` arg:
 - `key:value|key:value` pairs

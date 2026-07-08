@@ -59,6 +59,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
         if imdb_id:
             futures[executor.submit(
                 fetch_omdb_data,
+                media_type,
                 imdb_id,
                 abort_flag
             )] = "omdb"
@@ -84,6 +85,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                 abort_flag
             )] = "trakt"
 
+        results: Dict[str, Dict[str, str]] = {}
         for future in as_completed(futures):
             if abort_flag and abort_flag.is_requested():
                 executor.shutdown(wait=False)
@@ -93,9 +95,15 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
             try:
                 result = future.result()
                 if result:
-                    props.update(result)
+                    results[source] = result
             except Exception as e:
                 log("Service", f"Online fetch error ({source}): {e}", xbmc.LOGWARNING)
+
+    # Merge in priority order: MDBList (richer aggregator) wins shared rating keys, OMDb
+    # only backfills.
+    for source in ("tmdb", "omdb", "mdblist", "trakt"):
+        if source in results:
+            props.update(results[source])
 
     return props
 

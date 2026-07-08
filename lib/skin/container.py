@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from typing import Optional
+import unicodedata
+from urllib.parse import quote
 import xbmc
 import xbmcgui
 import xbmcplugin
@@ -19,6 +21,33 @@ _SMS_MAP = {
     'T': 'jumpsms8', 'U': 'jumpsms8', 'V': 'jumpsms8',
     'W': 'jumpsms9', 'X': 'jumpsms9', 'Y': 'jumpsms9', 'Z': 'jumpsms9',
 }
+
+# Latin letters that don't NFKD-decompose; folded to the base letter Kodi sorts them under.
+_LETTER_FOLD = {
+    'Ø': 'O', 'ø': 'O', 'Æ': 'A', 'æ': 'A', 'Œ': 'O', 'œ': 'O',
+    'ß': 'S', 'ẞ': 'S', 'Ð': 'D', 'ð': 'D', 'Đ': 'D', 'đ': 'D',
+    'Þ': 'T', 'þ': 'T', 'Ł': 'L', 'ł': 'L', 'Ħ': 'H', 'ħ': 'H',
+    'Ŧ': 'T', 'ŧ': 'T',
+}
+
+
+def _fold_letter(value: str) -> str:
+    """Bucket a SortLetter into A-Z or '#', folding accents to their base letter.
+
+    Matches Kodi's collation so the availability flag lines up with where the SMS jump lands.
+    """
+    if not value:
+        return ''
+    ch = value[0]
+    if ch.isascii() and ch.isalpha():
+        return ch.upper()
+    mapped = _LETTER_FOLD.get(ch)
+    if mapped:
+        return mapped
+    for base in unicodedata.normalize('NFKD', ch):
+        if base.isascii() and base.isalpha():
+            return base.upper()
+    return '#'
 
 
 def _evaluate_conditional_focus(blocks: list[str]) -> None:
@@ -52,103 +81,8 @@ def move_to_position(
     next_position: Optional[str] = None,
     next_action: Optional[str] = None
 ) -> None:
-    """
-    Move container to specific position.
-
-    Uses Control.SetFocus with absolute positioning to jump to specific items.
-    Works uniformly across all container types (list, panel, wrap, fixed).
-
-    Args:
-        main_focus: Container control ID or pipe-separated list (e.g., "90011|90012|90013")
-        main_position: Target position for main containers (1-indexed, same as
-                      Container.CurrentItem)
-                      If None or "0", resets to first item (position 1)
-                      Supports pipe-separated values for different positions per container
-        main_action: Optional builtin(s) to execute after moving each main container
-                     (pipe-separated)
-        next_focus: Optional container ID(s) to focus after main containers
-                   Unconditional: "90003" or "50|60" (pipe-separated, focus all)
-                   Conditional: "condition::focus_id||condition::focus_id||focus_id"
-                   (evaluate in order, focus first match)
-        next_position: Target position for next containers (1-indexed)
-                      If None, just focuses without moving
-                      Supports pipe-separated values for different positions per container
-                      Only works with unconditional next_focus
-        next_action: Optional builtin(s) to execute after focusing/moving each next
-                    container (pipe-separated)
-                    Only works with unconditional next_focus
-
-    Action behavior:
-        - If action contains "|", each part applies to corresponding container by index
-        - If action has no "|", same action applies to all containers
-        - If fewer actions than containers, remaining containers get no action
-
-    Conditional next_focus (parameter):
-        - Format: "condition1::focus_id1||condition2::focus_id2||focus_id3"
-        - Blocks separated by "||" are evaluated in order until one succeeds
-        - "::" separates condition from focus ID
-        - No "::" means unconditional (always focus)
-        - First matching condition focuses its control and stops
-        - next_position and next_action are ignored in conditional mode
-
-    Conditional focus (properties):
-        - Use SkinInfo.CM_Focus.1, SkinInfo.CM_Focus.2, etc. properties on home window
-          for better readability
-        - Set properties before RunScript, they auto-clear after use
-        - Properties are checked only if next_focus parameter not provided
-        - Format same as parameter: "condition::focus_id" or just "focus_id"
-        - WARNING: Using both next_focus parameter and SkinInfo.CM_Focus properties logs
-          warning and uses parameter
-
-    Usage:
-        # Reset to first item
-        move_to_position("90011")
-
-        # Reset multiple containers
-        move_to_position("90011|90012|90013")
-
-        # Reset with action on each
-        move_to_position("90011|90012", main_action="Action(select)")
-        # Result: Reset 90011→select, Reset 90012→select
-
-        # Different actions per container
-        move_to_position("90011|90012", main_action="Action(select)|Action(info)")
-        # Result: Reset 90011→select, Reset 90012→info
-
-        # Move main, then focus next containers
-        move_to_position("90011", main_action="Action(select)", next_focus="50")
-        # Result: Reset 90011→select, then Focus(50)
-
-        # Move main to position, focus and move next containers
-        move_to_position(
-            main_focus="90011",
-            main_position="5",
-            next_focus="50|60",
-            next_position="10|20",
-            next_action="Action(select)"
-        )
-        # Result: Move 90011→5, Move 50→10→select, Move 60→20→select
-
-        # Move to last item (from skin)
-        move_to_position("90011", "$INFO[Container(90011).NumItems]")
-
-        move_to_position(
-            main_focus="90011|90012",
-            next_focus="String.IsEqual(ListItem.Property(item.type),person)::9876||Window.IsActive(Home)::808||90003"
-        )
-
-        move_to_position(
-            main_focus="90017|90016|90015",
-            next_focus="![Window.IsActive(Home) + String.IsEqual(ListItem.DBTYPE,tvshow)]::8||909"
-        )
-
-        # Using SkinInfo.CM_Focus properties (more readable for complex conditions)
-        <onload>SetProperty(SkinInfo.CM_Focus.1,String.IsEqual(ListItem.Property(item.type),person)::9876,home)</onload>
-        <onload>SetProperty(SkinInfo.CM_Focus.2,Window.IsActive(Home) +
-                 String.IsEqual(ListItem.DBTYPE,tvshow)::808,home)</onload>
-        <onload>SetProperty(SkinInfo.CM_Focus.3,90003,home)</onload>
-        <onload>RunScript(script.skin.info.service,action=container_move,main_focus=90017|90016|90015)</onload>
-    """
+    """Move or focus containers to a target position; see DOCS/skin-utilities.md for the
+    `container_move` RunScript API."""
     _move_main_containers(main_focus, main_position, main_action)
     _handle_next_focus(next_focus, next_position, next_action)
 
@@ -157,9 +91,8 @@ def _move_main_containers(main_focus: str, main_position: Optional[str],
                           main_action: Optional[str]) -> None:
     """Reset each visible control in `main_focus` to its target, skipping any already there.
 
-    List containers reset to their target item (guarded by `CurrentItem`); non-list controls
-    (buttons) get focus (guarded by `HasFocus`). Applying the position guard to a button was the
-    bug: it has no item position, so `CurrentItem` is always empty and it re-focused every call.
+    List containers guard on `CurrentItem`; buttons have no item position, so they guard on
+    `HasFocus` instead.
     """
     main_ids = [cid.strip() for cid in main_focus.split('|')]
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
@@ -308,59 +241,75 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
         request('Input.ExecuteAction', {'action': action})
         xbmc.sleep(30)
 
-        if xbmc.getInfoLabel('ListItem.SortLetter').upper() == letter_upper:
+        if _fold_letter(xbmc.getInfoLabel('ListItem.SortLetter')) == letter_upper:
             break
 
 
 _SCAN_CHUNK = 1000
 
+# Skip the scan above this count; each item permanently registers a GUIInfo entry against
+# Kodi's ~60k global cap.
+_MAX_AVAILABILITY_ITEMS = 10000
 
-def _available_sort_letters(target: str) -> set[str]:
-    """Jump letters (A-Z plus '#') that have at least one item in the target container.
 
-    Reads the items' SortLetter in batched `GetInfoLabels` calls (a chunk per request) rather
-    than one round-trip per item, so a big container costs a handful of calls, not thousands.
-    Reads the live container, so active filters and the current sort are honoured. Non-alphabetic
-    sort letters (digits, symbols) collapse to '#'.
-    """
+def _container_too_large(target: str) -> bool:
+    """True when the target has too many items to scan for availability safely."""
     try:
         count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
     except ValueError:
-        count = 0
+        return False
+    if count > _MAX_AVAILABILITY_ITEMS:
+        log('SkinUtils', f'letter_jump: {count} items exceed availability cap; plain bar',
+            xbmc.LOGINFO)
+        return True
+    return False
+
+
+def _available_sort_letters(target: str) -> set[str]:
+    """Folded jump letters (A-Z plus '#') present in the target container.
+
+    Reads the live container, so active filters and the current sort are honoured.
+    """
+    try:
+        all_count = int(xbmc.getInfoLabel(f'Container({target}).NumAllItems') or 0)
+        count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
+    except ValueError:
+        return set()
+
+    start_index = max(0, all_count - count)  # 1 when a ".." parent item leads the list
 
     found: set[str] = set()
-    for start in range(0, count, _SCAN_CHUNK):
+    for start in range(start_index, all_count, _SCAN_CHUNK):
         labels = [
             f'Container({target}).ListItemAbsolute({i}).SortLetter'
-            for i in range(start, min(start + _SCAN_CHUNK, count))
+            for i in range(start, min(start + _SCAN_CHUNK, all_count))
         ]
         response = request('XBMC.GetInfoLabels', {'labels': labels})
         for value in (response.get('result', {}) if response else {}).values():
-            if not value:
-                continue
-            first = value[0].upper()
-            found.add(first if 'A' <= first <= 'Z' else '#')
+            letter = _fold_letter(value)
+            if letter:
+                found.add(letter)
         if len(found) >= 27:
             break
     return found
 
 
 def handle_letter_jump_list(handle: int, params: dict) -> None:
-    """Return A-Z ListItems for container letter-jump (reversed to Z-A when sorted descending).
-
-    Letters that have an item in the target container get `IsAvailable` set so skins can dim the
-    empty ones. Pass `showall=false` to drop the empty letters entirely (compact bar) instead.
-    """
+    """Return A-Z (plus '#') ListItems for container letter-jump; see DOCS/plugin/navigation.md
+    for the full API."""
     target = params.get('target', ['50'])[0]
     showall = params.get('showall', ['true'])[0].lower() != 'false'
+    want_available = params.get('available', ['false'])[0].lower() == 'true' or not showall
+
+    if want_available and _container_too_large(target):
+        want_available = False
+        showall = True  # can't compact or dim without the scan; fall back to the full bar
 
     is_descending = xbmc.getCondVisibility(f'Container({target}).SortDirection(descending)')
 
     letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA#' if is_descending else 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
 
-    available = _available_sort_letters(target)
-
-    current_sort_letter = xbmc.getInfoLabel(f'Container({target}).ListItem.SortLetter').upper()
+    available = _available_sort_letters(target) if want_available else set()
 
     for letter in letters:
         is_available = letter in available
@@ -369,14 +318,12 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
 
         listitem = xbmcgui.ListItem(letter, offscreen=True)
 
-        if letter == current_sort_letter:
-            url = ''
-            listitem.setProperty('IsCurrentLetter', 'true')
+        if want_available and not is_available:
+            url = ''  # no jump target, so the cell is inert
+            listitem.setProperty('IsNotAvailable', 'true')
         else:
-            url = f'plugin://script.skin.info.service/?action=jump_letter_exec&letter={letter}&target={target}'
-
-        if is_available:
-            listitem.setProperty('IsAvailable', 'true')
+            url = (f'plugin://script.skin.info.service/?action=jump_letter_exec'
+                   f'&letter={quote(letter, safe="")}&target={target}')
 
         xbmcplugin.addDirectoryItem(handle, url, listitem, False)
 
@@ -397,8 +344,8 @@ def handle_letter_jump_exec(handle: int, params: dict) -> None:
     if not letter:
         return
 
-    current_sort_letter = xbmc.getInfoLabel(f'Container({target}).ListItem.SortLetter').upper()
-    if letter.upper() == current_sort_letter:
+    current = xbmc.getInfoLabel(f'Container({target}).ListItem.SortLetter')
+    if letter.upper() == _fold_letter(current):
         return
 
     jump_letter(letter, target)

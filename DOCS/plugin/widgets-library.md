@@ -259,7 +259,9 @@ Source: "The Dark Knight" (Action, Crime, Drama | 2008 | PG-13)
 
 ## Recommended For You
 
-Personalized recommendations based on watch history.
+Personalized recommendations from your watch history.
+
+By default this is single-seed: it picks titles most like your single most recent watch, matching on genre, MPAA tone, shared director, shared cast, and release era. Every item is tagged with that seed, so the widget can show a "Recommended based on <title>" header. Add `multi=true` for a blend across several recent watches instead, weighted toward the most recent.
 
 ### Usage
 
@@ -273,16 +275,27 @@ Personalized recommendations based on watch history.
 |-----------|----------|---------|-------------|
 | `dbtype` | No | movie | Content type (movie/tvshow/both) |
 | `limit` | No | 25 | Maximum items |
-| `strict_rating` | No | false | Only match MPAA ratings from history |
+| `multi` | No | false | Blend across recent history instead of a single seed |
+| `strict_rating` | No | false | Only match the seed's MPAA tone |
 | `min_rating` | No | 6.0 | Minimum rating threshold |
+| `recency` | No | 0.75 | Multi only: 0-1, how strongly recent watches dominate |
+| `history_size` | No | 10 | Multi only: number of recent watches blended |
 
-**Note:** Also accepts `both` for mixed results.
+### Item properties
+
+| Property | Description |
+|----------|-------------|
+| `ListItem.Property(BasedOn)` | Seed title a pick came from (single: the one seed; multi: that pick's own seed watch) |
+| `ListItem.Property(BasedOnLabel)` | Ready-made header label: "Recommended based on <title>" (single) or "Recommended based on recent watches" (multi) |
 
 ### Examples
 
 ```xml
-<!-- Movies -->
+<!-- Single-seed (default): more like your last watch -->
 <content>plugin://script.skin.info.service/?action=recommended&amp;dbtype=movie</content>
+
+<!-- Blend across recent history -->
+<content>plugin://script.skin.info.service/?action=recommended&amp;dbtype=movie&amp;multi=true</content>
 
 <!-- TV shows -->
 <content>plugin://script.skin.info.service/?action=recommended&amp;dbtype=tvshow</content>
@@ -294,27 +307,11 @@ Personalized recommendations based on watch history.
 <content>plugin://script.skin.info.service/?action=recommended&amp;dbtype=movie&amp;strict_rating=true&amp;min_rating=7.0</content>
 ```
 
-### Scoring
-
-Analyzes last 20 watched items:
-
-- **Genre overlap**: +10 points per matching genre
-- **MPAA match**: +5 points if in history
-- **Year range**: +3 points if within watched range
-- **Favorite actor**: +2 points (appearing 2+ times)
-- **Favorite director**: +3 points (appearing 2+ times)
-
-**Widget Type:**
-
-- **dbtype=movie**: Movie widget
-- **dbtype=tvshow**: TV Show widget
-- **dbtype=both**: Mixed widget
-
 ### Notes
 
-- Requires watch history
-- Only returns unwatched items
-- Genre overlap required
+- Requires watch history; only returns unwatched items.
+- Single-seed fills to `limit` with same-tone titles when there are few genuine matches, so the widget isn't sparse.
+- `dbtype=both` mixes movies and TV shows in one widget.
 
 ---
 
@@ -341,15 +338,14 @@ Seasonal movie collections filtered by TMDB tags.
 | Season ID | Description |
 |-----------|-------------|
 | `christmas` | Christmas movies |
-| `halloween` | Halloween movies |
-| `valentines` | Valentine's Day movies |
+| `halloween` | Halloween movies, mixed with horror for variety |
+| `valentines` | Valentine's Day / romance movies |
 | `thanksgiving` | Thanksgiving movies |
 | `newyear` | New Year's movies |
 | `easter` | Easter movies |
 | `independence` | Independence Day movies |
 | `starwars` | Star Wars franchise |
 | `startrek` | Star Trek franchise |
-| `horror` | Horror movies |
 
 ### Sort Methods
 
@@ -364,15 +360,15 @@ Seasonal movie collections filtered by TMDB tags.
 <!-- Halloween by rating -->
 <content>plugin://script.skin.info.service/?action=seasonal&amp;season=halloween&amp;sort=rating</content>
 
-<!-- Horror marathon -->
-<content>plugin://script.skin.info.service/?action=seasonal&amp;season=horror&amp;limit=100</content>
+<!-- Star Wars marathon, chronological -->
+<content>plugin://script.skin.info.service/?action=seasonal&amp;season=starwars&amp;sort=year</content>
 ```
 
 ### Notes
 
-- Requires TMDB tags (enable in scraper settings)
-- Returns empty if tag scraping disabled
-- Uses OR logic (matches ANY season tag)
+- Holiday seasons (christmas, halloween, thanksgiving, newyear, easter, independence) need TMDB keyword tags imported in your scraper; without them they return empty
+- `starwars`, `startrek` and `valentines` do not use tags, so they work regardless of scraper tag settings
+- `halloween` mixes holiday titles with horror for variety
 
 **Widget Type:** Movie
 

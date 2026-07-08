@@ -8,7 +8,7 @@ from typing import Optional, Set, TYPE_CHECKING
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import clear_group, batch_set_props
+from lib.kodi.utilities import clear_group, batch_set_props, gui_transition_settled
 from lib.data.database.cache import (
     get_cached_online_properties,
     cache_online_properties,
@@ -45,6 +45,8 @@ class FocusHandler:
 
     def process(self) -> None:
         """Read focused ListItem; set cached props or kick off a background fetch."""
+        if not gui_transition_settled():
+            return
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
         dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
 
@@ -97,8 +99,8 @@ class FocusHandler:
             batch_set_props(props_to_set)
             return
 
-        # New item with no cached data yet: drop the previous item's props so they don't
-        # linger on screen (showing the last item's data) while the background fetch runs.
+        # New item with no cache yet: clear the previous item's props so stale data doesn't
+        # linger while the fetch runs.
         if self._last_prop_keys:
             self._clear_properties()
             with self._keys_lock:
