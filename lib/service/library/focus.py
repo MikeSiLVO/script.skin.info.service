@@ -22,6 +22,7 @@ from lib.service.properties import (
     set_episode_properties,
     set_ratings_properties,
     set_movie_extras_aggregates,
+    clear_listitem_unified_properties,
 )
 
 if TYPE_CHECKING:
@@ -189,6 +190,7 @@ class FocusDispatcher:
                 return
             if self._last_type:
                 self.clear_media_type(self._last_type)
+                clear_listitem_unified_properties()
                 self._last_type = ""
                 self._last_id = None
             self._service.blur.handle_focus()
@@ -295,6 +297,7 @@ class FocusDispatcher:
                 "musicvideo", "musicvideo_artist", "musicvideo_album",
             ):
                 self.clear_media_type(self._last_type)
+                clear_listitem_unified_properties()
             self._last_id = dbid
             self._last_type = ""
 

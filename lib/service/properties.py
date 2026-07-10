@@ -10,7 +10,7 @@ import urllib.request
 import xbmc
 
 from lib.kodi.utilities import (
-    clear_prop, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
+    clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
 )
 from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
 
@@ -312,6 +312,13 @@ def set_listitem_unified_properties(data: dict) -> None:
 
     batch_set_props(props)
     _LISTITEM_RATING_STATE = current_sources
+
+
+def clear_listitem_unified_properties() -> None:
+    """Clear the shared `SkinInfo.ListItem.*` block; no library item owns it anymore."""
+    global _LISTITEM_RATING_STATE
+    clear_group("SkinInfo.ListItem.")
+    _LISTITEM_RATING_STATE = set()
 
 
 def _extract_filename(file_path: Optional[str]) -> str:
@@ -1035,7 +1042,8 @@ def build_tvshow_data(details: dict) -> dict:
     data["StudioPrimary"] = primary_studio or ""
 
     if episode and episode > 0 and watchedepisodes is not None:
-        watched_percent = round((watchedepisodes / episode) * 100)
+        # integer math, not round(), to match Kodi's own WatchedEpisodePercent
+        watched_percent = (watchedepisodes * 100) // episode
     else:
         watched_percent = 0
     data["WatchedEpisodePercent"] = str(watched_percent)

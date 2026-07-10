@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta38"
+	   version="2.0.0~beta39"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,11 +32,9 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.0~beta38
-- Recommended widget now leads with picks like your most recent watch and shows what each is based on; add multi=true for a blend of your recent history
-- Cast now works for add-on items with no library entry, using their IMDb or TMDB id
-- Widgets that need a Trakt login now warn when you are not signed in
-- Fixes: seasonal widgets sorting the wrong way, and Similar empty when opened from an episode
+2.0.0~beta39
+- Watched episode percentage on TV show widgets now matches Kodi's own value
+- Fixed stale library info lingering after moving onto an add-on item with no library entry
 
 2.0.0-Betas
 - Complete rewrite of the service

@@ -340,7 +340,8 @@ def _create_tvshow_listitem(show: dict) -> xbmcgui.ListItem:
     episode_count = show.get('episode', 0)
     watched_episodes = show.get('watchedepisodes', 0)
     unwatched_episodes = episode_count - watched_episodes
-    watched_percent = round((watched_episodes / episode_count) * 100) if episode_count > 0 else 0
+    # integer math, not round(), to match Kodi's own WatchedEpisodePercent
+    watched_percent = (watched_episodes * 100) // episode_count if episode_count > 0 else 0
     listitem.setProperty('TotalEpisodes', str(episode_count))
     listitem.setProperty('WatchedEpisodes', str(watched_episodes))
     listitem.setProperty('UnWatchedEpisodes', str(unwatched_episodes))
