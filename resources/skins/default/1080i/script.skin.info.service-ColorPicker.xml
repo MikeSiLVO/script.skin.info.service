@@ -40,7 +40,7 @@
 				<width>1800</width>
 				<height>60</height>
 				<font>font13</font>
-				<label>Color Manager</label>
+				<label>$ADDON[script.skin.info.service 32659]</label>
 				<align>center</align>
 				<aligny>center</aligny>
 				<textcolor>FFFFFFFF</textcolor>
@@ -123,7 +123,7 @@
 						<width>100</width>
 						<height>28</height>
 						<font>font13</font>
-						<label>Red</label>
+						<label>$LOCALIZE[13343]</label>
 					</control>
 					<control type="slider" id="100">
 						<description>Red Slider</description>
@@ -154,7 +154,7 @@
 						<height>28</height>
 						<font>font13</font>
 						<align>left</align>
-						<label>Green</label>
+						<label>$LOCALIZE[13341]</label>
 					</control>
 					<control type="slider" id="101">
 						<description>Green Slider</description>
@@ -185,7 +185,7 @@
 						<width>100</width>
 						<height>28</height>
 						<font>font13</font>
-						<label>Blue</label>
+						<label>$LOCALIZE[762]</label>
 					</control>
 					<control type="slider" id="102">
 						<description>Blue Slider</description>
@@ -216,7 +216,7 @@
 						<width>100</width>
 						<height>28</height>
 						<font>font13</font>
-						<label>Alpha</label>
+						<label>$ADDON[script.skin.info.service 32660]</label>
 					</control>
 					<control type="slider" id="103">
 						<description>Alpha Slider</description>
@@ -257,7 +257,7 @@
 					<align>center</align>
 					<textcolor>FFFFFFFF</textcolor>
 					<focusedcolor>FFFFFFFF</focusedcolor>
-					<label>Enter Hex</label>
+					<label>$ADDON[script.skin.info.service 32661]</label>
 					<texturefocus colordiffuse="FFAA00FF" border="4">white.png</texturefocus>
 					<texturenofocus colordiffuse="FF333333" border="2">white.png</texturenofocus>
 				</control>
@@ -269,7 +269,7 @@
 					<align>center</align>
 					<textcolor>FFFFFFFF</textcolor>
 					<focusedcolor>FFFFFFFF</focusedcolor>
-					<label>409</label>
+					<label>$LOCALIZE[409]</label>
 					<texturefocus colordiffuse="FFFF8800" border="4">white.png</texturefocus>
 					<texturenofocus colordiffuse="FF333333" border="2">white.png</texturenofocus>
 				</control>
@@ -281,7 +281,7 @@
 					<align>center</align>
 					<textcolor>FFFFFFFF</textcolor>
 					<focusedcolor>FFFFFFFF</focusedcolor>
-					<label>186</label>
+					<label>$LOCALIZE[186]</label>
 					<texturefocus colordiffuse="FF00AA00" border="4">white.png</texturefocus>
 					<texturenofocus colordiffuse="FF333333" border="2">white.png</texturenofocus>
 				</control>
@@ -293,7 +293,7 @@
 					<align>center</align>
 					<textcolor>FFFFFFFF</textcolor>
 					<focusedcolor>FFFFFFFF</focusedcolor>
-					<label>222</label>
+					<label>$LOCALIZE[222]</label>
 					<texturefocus colordiffuse="FFFF4444" border="4">white.png</texturefocus>
 					<texturenofocus colordiffuse="FF333333" border="2">white.png</texturenofocus>
 				</control>

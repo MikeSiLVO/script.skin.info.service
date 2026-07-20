@@ -80,20 +80,8 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         available_resolutions = self._get_available_resolutions()
         self.setProperty('show_sort_button', 'true' if len(available_resolutions) > 1 else 'false')
 
-        try:
-            button = self.getControl(self.BUTTON_SOURCE_PREF)
-            button.setVisible(len(available_sources) > 1)
-        except Exception:
-            pass
-
-        try:
-            button = self.getControl(self.BUTTON_SORT)
-            button.setVisible(len(available_resolutions) > 1)
-        except Exception:
-            pass
-
-        self._update_sort_button_label()
-        self._update_source_pref_button_label()
+        self._publish_sort_state()
+        self._publish_source_pref_state()
 
     def _load_current_extra_art(self) -> None:
         """Load current extra art URLs from library (numbered slots only) and main art."""
@@ -205,6 +193,11 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         except Exception:
             return
 
+        art_by_url = {
+            self._normalize_url(art.get('url', '')): art
+            for art in self.full_artwork_list if art.get('url')
+        }
+
         items = []
         for idx, url in enumerate(self.working_art):
             if not url:
@@ -216,8 +209,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             item.setProperty('url', url)
             item.setProperty('index', str(idx))
 
-            # Find artwork info to get preview URL and dimensions
-            art_info = next((art for art in self.full_artwork_list if art.get('url') == url), None)
+            art_info = art_by_url.get(self._normalize_url(url))
             if art_info:
                 preview = art_info.get('previewurl', url)
                 item.setArt({'thumb': preview})

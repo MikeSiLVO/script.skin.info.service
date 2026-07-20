@@ -43,7 +43,7 @@
 							<font>font13</font>
 							<textcolor>silver</textcolor>
 							<textoffsetx>10</textoffsetx>
-							<label>$INFO[Window.Property(KnownFor)]$INFO[Window.Property(Gender), · ]$INFO[Window.Property(Age), · , years]</label>
+							<label>$INFO[Window.Property(KnownFor)]$INFO[Window.Property(Gender), · ]$INFO[Window.Property(Age), · , $LOCALIZE[652]]</label>
 						</control>
 						<control type="label">
 							<top>80</top>
@@ -63,7 +63,7 @@
 							<textcolor>silver</textcolor>
 							<textoffsetx>10</textoffsetx>
 							<visible>!String.IsEmpty(Window.Property(BirthdayFormatted))</visible>
-							<label>Born: $INFO[Window.Property(BirthdayFormatted)]$INFO[Window.Property(DeathdayFormatted), · Died: ]</label>
+							<label>$LOCALIZE[21893]: $INFO[Window.Property(BirthdayFormatted)]$INFO[Window.Property(DeathdayFormatted), · $LOCALIZE[21897]: ]</label>
 						</control>
 						<!-- Biography -->
 						<control type="group">
@@ -98,7 +98,7 @@
 							<font>font13</font>
 							<textcolor>silver</textcolor>
 							<visible>!String.IsEmpty(Window.Property(TopMovies))</visible>
-							<label>[B]Top Movies:[/B] $INFO[Window.Property(TopMovies)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32675]:[/B] $INFO[Window.Property(TopMovies)]</label>
 						</control>
 						<control type="label">
 							<top>490</top>
@@ -107,7 +107,7 @@
 							<font>font13</font>
 							<textcolor>silver</textcolor>
 							<visible>!String.IsEmpty(Window.Property(TopTVShows))</visible>
-							<label>[B]Top TV:[/B] $INFO[Window.Property(TopTVShows)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32676]:[/B] $INFO[Window.Property(TopTVShows)]</label>
 						</control>
 					</control>
 				</control>
@@ -130,7 +130,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]In Your Library - Movies[/B]$INFO[Container(1500).CurrentItem, (,/]$INFO[Container(1500).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32677][/B]$INFO[Container(1500).CurrentItem, (,/]$INFO[Container(1500).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1500">
@@ -211,7 +211,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]In Your Library - TV Shows[/B]$INFO[Container(1501).CurrentItem, (,/]$INFO[Container(1501).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32678][/B]$INFO[Container(1501).CurrentItem, (,/]$INFO[Container(1501).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1501">
@@ -292,7 +292,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]Movies[/B]$INFO[Container(1502).CurrentItem, (,/]$INFO[Container(1502).NumItems,,)]</label>
+							<label>[B]$LOCALIZE[342][/B]$INFO[Container(1502).CurrentItem, (,/]$INFO[Container(1502).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1502">
@@ -373,7 +373,7 @@
 							<font>font13</font>
 							<textcolor>white</textcolor>
 							<visible>Control.IsVisible(1503)</visible>
-							<label>[B]TV Shows[/B]$INFO[Container(1503).CurrentItem, (,/]$INFO[Container(1503).NumItems,,)]</label>
+							<label>[B]$LOCALIZE[20343][/B]$INFO[Container(1503).CurrentItem, (,/]$INFO[Container(1503).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1503">
@@ -454,7 +454,7 @@
 							<font>font13</font>
 							<textcolor>white</textcolor>
 							<visible>Control.IsVisible(1504)</visible>
-							<label>[B]All Credits[/B]$INFO[Container(1504).CurrentItem, (,/]$INFO[Container(1504).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32679][/B]$INFO[Container(1504).CurrentItem, (,/]$INFO[Container(1504).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1504">
@@ -535,7 +535,7 @@
 							<font>font13</font>
 							<textcolor>white</textcolor>
 							<visible>Control.IsVisible(1505)</visible>
-							<label>[B]Crew Credits[/B]$INFO[Container(1505).CurrentItem, (,/]$INFO[Container(1505).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32680][/B]$INFO[Container(1505).CurrentItem, (,/]$INFO[Container(1505).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1505">
@@ -616,7 +616,7 @@
 							<font>font13</font>
 							<textcolor>white</textcolor>
 							<visible>Control.IsVisible(1506)</visible>
-							<label>[B]Images[/B]$INFO[Container(1506).CurrentItem, (,/]$INFO[Container(1506).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32681][/B]$INFO[Container(1506).CurrentItem, (,/]$INFO[Container(1506).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1506">

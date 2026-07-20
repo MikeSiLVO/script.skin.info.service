@@ -149,6 +149,14 @@ def format_userrating_display(value: int) -> str:
     return f"{value}/10"
 
 
+def format_uniqueids_display(uniqueids: dict[str, Any] | None) -> str:
+    """Format unique IDs as 'type value' pairs."""
+    if not uniqueids:
+        return "(not set)"
+    parts = [f"{id_type} {value}" for id_type, value in uniqueids.items() if value]
+    return ", ".join(parts) if parts else "(not set)"
+
+
 def format_ratings_display(ratings: dict[str, Any] | None) -> str:
     """Format external ratings dict for display."""
     if not ratings:
@@ -202,5 +210,8 @@ def format_value_for_display(value: Any, field_type: FieldType) -> str:
 
     if field_type == FieldType.STATUS:
         return str(value).title()
+
+    if field_type == FieldType.UNIQUEIDS:
+        return format_uniqueids_display(value)
 
     return str(value)

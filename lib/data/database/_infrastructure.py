@@ -28,13 +28,20 @@ def decompress_data(blob: bytes) -> Any:
     return json.loads(zlib.decompress(blob).decode('utf-8'))
 
 
-# SQLite's default parameter limit is 999; 900 leaves headroom for fixed params
-# alongside the IN list.
+# Kodi bundled SQLite has a parameter limit of 999; 900 leaves headroom
 SQL_PARAM_CHUNK_SIZE = 900
 
 
 def sql_placeholders(count: int) -> str:
-    """Build a comma-separated placeholder string for SQL IN-lists, e.g. `'?,?,?'`."""
+    """Build a comma-separated placeholder string for SQL IN-lists, e.g. `'?,?,?'`.
+
+    Raises for lists too long to bind in one statement, rather than leaving it to fail on a
+    user's library; feed caller-sized lists through `chunked_in_query`/`chunked_in_modify`.
+    """
+    if count > SQL_PARAM_CHUNK_SIZE:
+        raise ValueError(
+            f"{count} placeholders exceeds the {SQL_PARAM_CHUNK_SIZE} parameter budget - "
+            "use chunked_in_query/chunked_in_modify for lists sized by the caller")
     return ','.join('?' * count)
 
 

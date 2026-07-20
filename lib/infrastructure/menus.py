@@ -49,7 +49,8 @@ class Menu:
             options: list[tuple[str, Optional[str]]] = [
                 (item.label, str(idx)) for idx, item in enumerate(self.items)
             ]
-            options.append(("Cancel", '__cancel__'))
+            if not self.is_main_menu:
+                options.append((xbmc.getLocalizedString(222), '__cancel__'))
 
             choice_str, cancelled = show_menu_with_cancel(self.title, options,
                                                           preselect=selected_idx)

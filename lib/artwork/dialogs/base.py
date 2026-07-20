@@ -55,18 +55,14 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         """Toggle between popularity and resolution sort modes."""
         self.sort_mode = 'resolution' if self.sort_mode == 'popularity' else 'popularity'
         self._resort_artwork()
-        self._update_sort_button_label()
+        self._publish_sort_state()
 
-    def _update_sort_button_label(self) -> None:
-        """Update sort button label to show current mode."""
-        try:
-            button: xbmcgui.ControlButton = self.getControl(self.BUTTON_SORT)  # type: ignore[assignment]
-            if self.sort_mode == 'popularity':
-                button.setLabel('Sort: Popularity')
-            else:
-                button.setLabel('Sort: Resolution')
-        except Exception:
-            pass
+    def _publish_sort_state(self) -> None:
+        """Publish sort state for the XML to label itself; skins own presentation."""
+        self.setProperty(
+            'sort_label',
+            ADDON.getLocalizedString(32657 if self.sort_mode == 'popularity' else 32658))
+        self.setProperty('sort_mode', self.sort_mode)
 
     def _toggle_source_pref(self) -> None:
         """Toggle between source filters: all -> tmdb -> fanart -> all."""
@@ -77,20 +73,15 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         else:
             self.source_pref = 'all'
         self._resort_artwork()
-        self._update_source_pref_button_label()
+        self._publish_source_pref_state()
 
-    def _update_source_pref_button_label(self) -> None:
-        """Update source filter button label to show current filter."""
-        try:
-            button: xbmcgui.ControlButton = self.getControl(self.BUTTON_SOURCE_PREF)  # type: ignore[assignment]
-            if self.source_pref == 'all':
-                button.setLabel(ADDON.getLocalizedString(32132))
-            elif self.source_pref == 'tmdb':
-                button.setLabel(ADDON.getLocalizedString(32133))
-            else:
-                button.setLabel(ADDON.getLocalizedString(32134))
-        except Exception:
-            pass
+    _SOURCE_PREF_LABELS = {'all': 32132, 'tmdb': 32133, 'fanart': 32134}
+
+    def _publish_source_pref_state(self) -> None:
+        """Publish source filter state for the XML to label itself; skins own presentation."""
+        string_id = self._SOURCE_PREF_LABELS.get(self.source_pref, 32134)
+        self.setProperty('source_label', ADDON.getLocalizedString(string_id))
+        self.setProperty('source_pref', self.source_pref)
 
     def _resort_artwork(self) -> None:
         """Subclasses re-sort `full_artwork_list` by sort_mode/source_pref/language."""

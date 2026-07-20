@@ -376,6 +376,96 @@ def handle_ratings(
     return None, True
 
 
+def handle_uniqueids(
+    field_name: str, current: dict[str, Any] | None, default_value: str | None = None
+) -> tuple[dict[str, Any] | None, bool]:
+    """Handle unique ID editing. Returns the full map, cleared entries as None."""
+    original: dict[str, str] = {k: str(v) for k, v in (current or {}).items()}
+    ids: dict[str, Any] = dict(original)
+    # Kodi default id is imdbnumber
+    default_key = next(
+        (k for k, v in ids.items() if default_value and v == default_value), None)
+    modified = False
+    monitor = xbmc.Monitor()
+
+    while not monitor.abortRequested():
+        keys = list(ids.keys())
+        options = []
+        for key in keys:
+            mark = f" [{xbmc.getLocalizedString(571)}]" if key == default_key else ""
+            options.append(f"{key}: {ids[key]}{mark}")
+        options.append(f"[+] {ADDON.getLocalizedString(32663)}")
+
+        choice = show_select(ADDON.getLocalizedString(32557).format(field_name), options)
+
+        if choice < 0:
+            if not modified:
+                return None, True
+            payload: dict[str, Any] = dict(ids)
+            for key in original:
+                if key not in ids:
+                    payload[key] = None
+            return payload, False
+
+        if choice == len(keys):
+            modified = _add_uniqueid(ids) or modified
+        elif choice < len(keys):
+            modified = _edit_single_uniqueid(ids, keys[choice],
+                                             keys[choice] == default_key) or modified
+
+    return None, True
+
+
+def _add_uniqueid(ids: dict[str, Any]) -> bool:
+    """Add a new unique ID. Returns True if added."""
+    id_type = xbmcgui.Dialog().input(ADDON.getLocalizedString(32664))
+    if not id_type or not id_type.strip():
+        return False
+
+    id_type = id_type.strip().lower()
+    if id_type in ids:
+        xbmcgui.Dialog().ok(
+            ADDON.getLocalizedString(32257), ADDON.getLocalizedString(32564).format(id_type)
+        )
+        return False
+
+    value = xbmcgui.Dialog().input(ADDON.getLocalizedString(32665).format(id_type))
+    if not value or not value.strip():
+        return False
+
+    ids[id_type] = value.strip()
+    return True
+
+
+def _edit_single_uniqueid(ids: dict[str, Any], id_type: str, is_default: bool) -> bool:
+    """Edit or clear one unique ID. Returns True if modified."""
+    value = xbmcgui.Dialog().input(
+        ADDON.getLocalizedString(32665).format(id_type), ids[id_type]
+    )
+    if value is None:
+        return False
+
+    value = value.strip()
+    if value == ids[id_type]:
+        return False
+
+    if value:
+        ids[id_type] = value
+        return True
+
+    # Kodi won't remove the default id
+    if is_default:
+        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32257), ADDON.getLocalizedString(32666))
+        return False
+
+    if not show_yesno(ADDON.getLocalizedString(32257),
+                      ADDON.getLocalizedString(32667).format(id_type)):
+        return False
+
+    del ids[id_type]
+    return True
+
+
 def _add_rating_source(ratings: dict[str, Any]) -> bool:
     """Add a new rating source. Returns True if added."""
     source = xbmcgui.Dialog().input(ADDON.getLocalizedString(32252))

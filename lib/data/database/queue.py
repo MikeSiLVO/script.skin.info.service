@@ -11,7 +11,8 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Sequence, Dict, List
 
 from lib.data.database._infrastructure import (
-    get_db, DB_PATH, generate_guid, sql_placeholders as _build_placeholders)
+    get_db, DB_PATH, generate_guid, chunked_in_query,
+    sql_placeholders as _build_placeholders)
 from lib.kodi.utilities import validate_media_type, validate_dbid
 from lib.kodi.client import log
 
@@ -142,28 +143,20 @@ def add_art_item(
     requires_manual: bool = False,
     scan_session_id: Optional[int] = None,
 ) -> None:
-    """Add art item to queue or update if exists (UPSERT operation)."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            INSERT INTO art_items (queue_id, art_type, review_mode, requires_manual, status, scan_session_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(queue_id, art_type) DO UPDATE SET
-                review_mode = excluded.review_mode,
-                requires_manual = excluded.requires_manual,
-                status = excluded.status,
-                scan_session_id = excluded.scan_session_id
-        ''', (  # noqa: E501
-            queue_id,
-            art_type,
-            ARTITEM_REVIEW_MISSING,
-            int(requires_manual),
-            STATUS_PENDING,
-            scan_session_id,
-        ))
+    """Add art item to queue or update if exists (UPSERT operation).
+
+    Thin wrapper over `add_art_items_batch`.
+    """
+    add_art_items_batch([{
+        'queue_id': queue_id,
+        'art_type': art_type,
+        'requires_manual': requires_manual,
+        'scan_session_id': scan_session_id,
+    }])
 
 
 def add_to_queue_batch(items: List[dict]) -> List[int]:
-    """Upsert multiple items in 3 queries. Returns queue IDs in input order.
+    """Upsert multiple items. Returns queue IDs in input order.
 
     Each item: `{media_type, dbid, title, year?, priority?, scope?, scan_session_id?, guid?}`.
     """
@@ -198,16 +191,19 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
                 guid = COALESCE(NULLIF(art_queue.guid, ''), excluded.guid)
         ''', prepared_items)  # noqa: E501
 
-        media_dbid_pairs = [(item['media_type'], item['dbid']) for item in items]
+        dbids_by_media_type: Dict[str, List[int]] = {}
+        for item in items:
+            dbids_by_media_type.setdefault(item['media_type'], []).append(item['dbid'])
 
-        cursor.execute(f'''
-            SELECT id, media_type, dbid
-            FROM art_queue
-            WHERE (media_type, dbid) IN (VALUES {','.join('(?, ?)' for _ in items)})
-        ''', [val for pair in media_dbid_pairs for val in pair])
-
-        rows = cursor.fetchall()
-        id_map = {(row['media_type'], row['dbid']): row['id'] for row in rows}
+        id_map = {}
+        for media_type, dbids in dbids_by_media_type.items():
+            rows = chunked_in_query(cursor, '''
+                SELECT id, media_type, dbid
+                FROM art_queue
+                WHERE media_type = ? AND dbid IN ({placeholders})
+            ''', [media_type], dbids)
+            for row in rows:
+                id_map[(row['media_type'], row['dbid'])] = row['id']
 
         result = []
         for item in items:
@@ -229,53 +225,22 @@ def add_art_items_batch(art_items: List[dict]) -> None:
         return
 
     with get_db(DB_PATH) as cursor:
-        queue_ids = list(set(item['queue_id'] for item in art_items))
-        placeholders = _build_placeholders(len(queue_ids))
-        cursor.execute(f'''
-            SELECT id, queue_id, art_type FROM art_items
-            WHERE queue_id IN ({placeholders})
-        ''', queue_ids)
-
-        existing_rows = cursor.fetchall()
-        existing = {(row['queue_id'], row['art_type']): row['id'] for row in existing_rows}
-
-        to_insert = []
-        to_update = []
-
-        for item in art_items:
-            queue_id = item['queue_id']
-            art_type = item['art_type']
-            requires_manual = 1 if item.get('requires_manual') else 0
-            scan_session_id = item.get('scan_session_id')
-
-            if (queue_id, art_type) not in existing:
-                to_insert.append((
-                    queue_id,
-                    art_type,
-                    ARTITEM_REVIEW_MISSING,
-                    requires_manual,
-                    scan_session_id
-                ))
-            else:
-                to_update.append((
-                    ARTITEM_REVIEW_MISSING,
-                    requires_manual,
-                    scan_session_id,
-                    existing[(queue_id, art_type)]
-                ))
-
-        if to_insert:
-            cursor.executemany('''
-                INSERT INTO art_items (queue_id, art_type, review_mode, requires_manual, status, scan_session_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', [(q, a, r, m, STATUS_PENDING, s) for q, a, r, m, s in to_insert])  # noqa: E501
-
-        if to_update:
-            cursor.executemany('''
-                UPDATE art_items
-                SET review_mode = ?, requires_manual = ?, scan_session_id = ?, status = ?
-                WHERE id = ?
-            ''', [(r, m, s, STATUS_PENDING, i) for r, m, s, i in to_update])
+        cursor.executemany('''
+            INSERT INTO art_items (queue_id, art_type, review_mode, requires_manual, status, scan_session_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(queue_id, art_type) DO UPDATE SET
+                review_mode = excluded.review_mode,
+                requires_manual = excluded.requires_manual,
+                status = excluded.status,
+                scan_session_id = excluded.scan_session_id
+        ''', [(  # noqa: E501
+            item['queue_id'],
+            item['art_type'],
+            ARTITEM_REVIEW_MISSING,
+            1 if item.get('requires_manual') else 0,
+            STATUS_PENDING,
+            item.get('scan_session_id'),
+        ) for item in art_items])
 
 
 def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING,
@@ -318,13 +283,10 @@ def get_art_items_for_queue_batch(queue_ids: List[int]) -> Dict[int, List[ArtIte
         return {}
 
     with get_db(DB_PATH) as cursor:
-        placeholders = _build_placeholders(len(queue_ids))
-        cursor.execute(f'''
+        rows = list(chunked_in_query(cursor, '''
             SELECT * FROM art_items
             WHERE queue_id IN ({placeholders})
-        ''', queue_ids)
-
-        rows = cursor.fetchall()
+        ''', [], queue_ids))
 
         result: Dict[int, List[ArtItemEntry]] = {qid: [] for qid in queue_ids}
         for row in rows:

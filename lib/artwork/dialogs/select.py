@@ -89,27 +89,11 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         available_resolutions = self._get_available_resolutions()
         self.setProperty('show_sort_button', 'true' if len(available_resolutions) > 1 else 'false')
 
-        try:
-            button = self.getControl(self.BUTTON_MULTIART)
-            button.setVisible(self.art_type == 'fanart')
-        except Exception:
-            pass
-
-        try:
-            button = self.getControl(self.BUTTON_SOURCE_PREF)
-            button.setVisible(len(available_sources) > 1)
-        except Exception:
-            pass
-
-        try:
-            button = self.getControl(self.BUTTON_SORT)
-            button.setVisible(len(available_resolutions) > 1)
-        except Exception:
-            pass
+        self.setProperty('show_multiart', 'true' if self.art_type == 'fanart' else 'false')
 
         self._resort_artwork()
-        self._update_sort_button_label()
-        self._update_source_pref_button_label()
+        self._publish_sort_state()
+        self._publish_source_pref_state()
 
         if self.available_art:
             try:

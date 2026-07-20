@@ -1836,6 +1836,136 @@ msgctxt "#32652"
 msgid "Recommended based on recent watches"
 msgstr ""
 
+# Artwork selection dialogs
+msgctxt "#32653"
+msgid "Current Extra Art (Click to Remove)"
+msgstr ""
+
+msgctxt "#32654"
+msgid "Available Art (Click to Add)"
+msgstr ""
+
+msgctxt "#32655"
+msgid "Clear Selection"
+msgstr ""
+
+msgctxt "#32656"
+msgid "Apply"
+msgstr ""
+
+msgctxt "#32657"
+msgid "Sort: Popularity"
+msgstr ""
+
+msgctxt "#32658"
+msgid "Sort: Resolution"
+msgstr ""
+
+# Colour picker dialog
+msgctxt "#32659"
+msgid "Colour Manager"
+msgstr ""
+
+msgctxt "#32660"
+msgid "Alpha"
+msgstr ""
+
+msgctxt "#32661"
+msgid "Enter Hex"
+msgstr ""
+
+# Metadata editor, unique IDs
+msgctxt "#32663"
+msgid "Add ID"
+msgstr ""
+
+msgctxt "#32664"
+msgid "ID type (imdb, tmdb, tvdb...)"
+msgstr ""
+
+# {0} = id type, e.g. tmdb -> "tmdb ID (leave empty to remove)"
+msgctxt "#32665"
+msgid "{0} ID (leave empty to remove)"
+msgstr ""
+
+msgctxt "#32666"
+msgid "Kodi won't remove the default ID. Change its value, or set another ID as default first."
+msgstr ""
+
+# {0} = id type, e.g. tmdb -> "Remove the tmdb ID?"
+msgctxt "#32667"
+msgid "Remove the {0} ID?"
+msgstr ""
+
+msgctxt "#32668"
+msgid "User Rating"
+msgstr ""
+
+msgctxt "#32669"
+msgid "External Ratings"
+msgstr ""
+
+msgctxt "#32670"
+msgid "Display Artist"
+msgstr ""
+
+msgctxt "#32671"
+msgid "Sort Artist"
+msgstr ""
+
+msgctxt "#32672"
+msgid "Record Label"
+msgstr ""
+
+msgctxt "#32673"
+msgid "Album Type"
+msgstr ""
+
+msgctxt "#32674"
+msgid "Sort Name"
+msgstr ""
+
+# Info dialog section headers with no Kodi core string
+msgctxt "#32675"
+msgid "Top Movies"
+msgstr ""
+
+msgctxt "#32676"
+msgid "Top TV Shows"
+msgstr ""
+
+msgctxt "#32677"
+msgid "In Your Library - Movies"
+msgstr ""
+
+msgctxt "#32678"
+msgid "In Your Library - TV Shows"
+msgstr ""
+
+msgctxt "#32679"
+msgid "All Credits"
+msgstr ""
+
+msgctxt "#32680"
+msgid "Crew Credits"
+msgstr ""
+
+msgctxt "#32681"
+msgid "Images"
+msgstr ""
+
+msgctxt "#32682"
+msgid "Recommendations"
+msgstr ""
+
+msgctxt "#32683"
+msgid "Similar in Library"
+msgstr ""
+
+msgctxt "#32684"
+msgid "Crew"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

@@ -4,6 +4,10 @@ from __future__ import annotations
 from enum import Enum
 from typing import TypedDict
 
+import xbmc
+
+from lib.kodi.client import ADDON
+
 
 class FieldType(Enum):
     """Types of editable fields."""
@@ -18,13 +22,18 @@ class FieldType(Enum):
     USERRATING = "userrating"
     RATINGS = "ratings"
     STATUS = "status"
+    UNIQUEIDS = "uniqueids"
 
 
 class FieldDef(TypedDict):
-    """Definition for an editable field."""
+    """Definition for an editable field.
+
+    `display_name` resolves at render time: an int in 32000-32999 is our string,
+    any other int is a Kodi core string, a str is used verbatim.
+    """
 
     api_name: str
-    display_name: str
+    display_name: int | str
     field_type: FieldType
     category: str
     get_property: str
@@ -34,8 +43,9 @@ CATEGORY_CORE_TEXT = "Core Text"
 CATEGORY_DATES_NUMBERS = "Dates & Numbers"
 CATEGORY_LISTS = "Lists"
 CATEGORY_RATINGS = "Ratings"
+CATEGORY_IDS = "IDs"
 
-def field(api: str, display: str, ftype: FieldType, category: str) -> FieldDef:
+def field(api: str, display: int | str, ftype: FieldType, category: str) -> FieldDef:
     """Build a FieldDef. `get_property` always mirrors `api`."""
     return {
         "api_name": api,
@@ -46,63 +56,75 @@ def field(api: str, display: str, ftype: FieldType, category: str) -> FieldDef:
     }
 
 
+def get_display_name(field_def: FieldDef) -> str:
+    """Field label: str verbatim (Kodi terminology), 32000-32999 is ours, else a core string."""
+    name = field_def["display_name"]
+    if isinstance(name, str):
+        return name
+    if 32000 <= name <= 32999:
+        return ADDON.getLocalizedString(name)
+    return xbmc.getLocalizedString(name)
+
+
 FIELD_DEFINITIONS: dict[str, FieldDef] = {
     # Core Text
-    "title": field("title", "Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "artist": field("artist", "Artist Name", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "plot": field("plot", "Plot", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
-    "tagline": field("tagline", "Tagline", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "sorttitle": field("sorttitle", "Sort Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "sortname": field("sortname", "Sort Name", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "description": field("description", "Description", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
-    "disambiguation": field("disambiguation", "Disambiguation", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "displayartist": field("displayartist", "Display Artist", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "sortartist": field("sortartist", "Sort Artist", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "albumlabel": field("albumlabel", "Record Label", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "comment": field("comment", "Comment", FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
-    "songmood": field("mood", "Mood", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "disctitle": field("disctitle", "Disc Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
-    "originaltitle": field("originaltitle", "Original Title", FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "title": field("title", 369, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "artist": field("artist", 557, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "plot": field("plot", 207, FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "tagline": field("tagline", 202, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sorttitle": field("sorttitle", 171, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sortname": field("sortname", 32674, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "description": field("description", 21821, FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "disambiguation": field("disambiguation", 39026, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "displayartist": field("displayartist", 32670, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "sortartist": field("sortartist", 32671, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "albumlabel": field("albumlabel", 32672, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "comment": field("comment", 569, FieldType.TEXT_LONG, CATEGORY_CORE_TEXT),
+    "disctitle": field("disctitle", 38076, FieldType.TEXT, CATEGORY_CORE_TEXT),
+    "originaltitle": field("originaltitle", 20376, FieldType.TEXT, CATEGORY_CORE_TEXT),
     # Dates Numbers
-    "year": field("year", "Year", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "premiered": field("premiered", "Premiered", FieldType.DATE, CATEGORY_DATES_NUMBERS),
-    "firstaired": field("firstaired", "First Aired", FieldType.DATE, CATEGORY_DATES_NUMBERS),
-    "runtime": field("runtime", "Runtime", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "mpaa": field("mpaa", "MPAA Rating", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "born": field("born", "Born", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "formed": field("formed", "Formed", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "died": field("died", "Died", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "disbanded": field("disbanded", "Disbanded", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "artisttype": field("type", "Type", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "gender": field("gender", "Gender", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "top250": field("top250", "Top 250", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "track": field("track", "Track Number", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "disc": field("disc", "Disc Number", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "duration": field("duration", "Duration", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "bpm": field("bpm", "BPM", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "releasedate": field("releasedate", "Release Date", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "originaldate": field("originaldate", "Original Date", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
-    "albumtype": field("type", "Album Type", FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "year": field("year", 562, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "premiered": field("premiered", 20473, FieldType.DATE, CATEGORY_DATES_NUMBERS),
+    "firstaired": field("firstaired", 20416, FieldType.DATE, CATEGORY_DATES_NUMBERS),
+    "runtime": field("runtime", 2050, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "mpaa": field("mpaa", 20074, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "born": field("born", 21893, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "formed": field("formed", 21894, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "died": field("died", 21897, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "disbanded": field("disbanded", 21896, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "artisttype": field("type", 564, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "gender": field("gender", 39025, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "top250": field("top250", 13409, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "track": field("track", 554, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "disc": field("disc", 427, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "duration": field("duration", 180, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "bpm": field("bpm", 38080, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "releasedate": field("releasedate", 172, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "originaldate": field("originaldate", 38079, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
+    "albumtype": field("type", 32673, FieldType.TEXT, CATEGORY_DATES_NUMBERS),
     # Lists
-    "genre": field("genre", "Genre", FieldType.LIST, CATEGORY_LISTS),
-    "studio": field("studio", "Studio", FieldType.LIST, CATEGORY_LISTS),
-    "director": field("director", "Director", FieldType.LIST, CATEGORY_LISTS),
-    "writer": field("writer", "Writer", FieldType.LIST, CATEGORY_LISTS),
-    "country": field("country", "Country", FieldType.LIST, CATEGORY_LISTS),
-    "tag": field("tag", "Tags", FieldType.LIST, CATEGORY_LISTS),
-    "style": field("style", "Style", FieldType.LIST, CATEGORY_LISTS),
-    "mood": field("mood", "Mood", FieldType.LIST, CATEGORY_LISTS),
-    "instrument": field("instrument", "Instrument", FieldType.LIST, CATEGORY_LISTS),
-    "yearsactive": field("yearsactive", "Years Active", FieldType.LIST, CATEGORY_LISTS),
-    "theme": field("theme", "Theme", FieldType.LIST, CATEGORY_LISTS),
-    "artistlist": field("artist", "Artist", FieldType.LIST, CATEGORY_LISTS),
+    "genre": field("genre", 515, FieldType.LIST, CATEGORY_LISTS),
+    "studio": field("studio", 572, FieldType.LIST, CATEGORY_LISTS),
+    "director": field("director", 20339, FieldType.LIST, CATEGORY_LISTS),
+    "writer": field("writer", 20417, FieldType.LIST, CATEGORY_LISTS),
+    "country": field("country", 21875, FieldType.LIST, CATEGORY_LISTS),
+    "tag": field("tag", 20459, FieldType.LIST, CATEGORY_LISTS),
+    "style": field("style", 176, FieldType.LIST, CATEGORY_LISTS),
+    "mood": field("mood", 175, FieldType.LIST, CATEGORY_LISTS),
+    "songmood": field("mood", 175, FieldType.LIST, CATEGORY_LISTS),
+    "instrument": field("instrument", 21892, FieldType.LIST, CATEGORY_LISTS),
+    "yearsactive": field("yearsactive", 21898, FieldType.LIST, CATEGORY_LISTS),
+    "theme": field("theme", 21895, FieldType.LIST, CATEGORY_LISTS),
+    "artistlist": field("artist", 557, FieldType.LIST, CATEGORY_LISTS),
     # Ratings
-    "userrating": field("userrating", "User Rating", FieldType.USERRATING, CATEGORY_RATINGS),
-    "ratings": field("ratings", "External Ratings", FieldType.RATINGS, CATEGORY_RATINGS),
+    "userrating": field("userrating", 32668, FieldType.USERRATING, CATEGORY_RATINGS),
+    "ratings": field("ratings", 32669, FieldType.RATINGS, CATEGORY_RATINGS),
+    # IDs
+    "uniqueid": field("uniqueid", "Unique IDs", FieldType.UNIQUEIDS, CATEGORY_IDS),
     # Dates Numbers
-    "status": field("status", "Status", FieldType.STATUS, CATEGORY_DATES_NUMBERS),
-    "playcount": field("playcount", "Play Count", FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
-    "lastplayed": field("lastplayed", "Last Played", FieldType.DATETIME, CATEGORY_DATES_NUMBERS),
+    "status": field("status", 126, FieldType.STATUS, CATEGORY_DATES_NUMBERS),
+    "playcount": field("playcount", 567, FieldType.INTEGER, CATEGORY_DATES_NUMBERS),
+    "lastplayed": field("lastplayed", 568, FieldType.DATETIME, CATEGORY_DATES_NUMBERS),
 }
 
 MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
@@ -123,10 +145,11 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "writer",
         "country",
         "tag",
-        "userrating",
-        "ratings",
         "playcount",
         "lastplayed",
+        "userrating",
+        "ratings",
+        "uniqueid",
     ],
     "tvshow": [
         "title",
@@ -141,6 +164,7 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "tag",
         "userrating",
         "ratings",
+        "uniqueid",
     ],
     "episode": [
         "title",
@@ -150,10 +174,11 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "runtime",
         "director",
         "writer",
-        "userrating",
-        "ratings",
         "playcount",
         "lastplayed",
+        "userrating",
+        "ratings",
+        "uniqueid",
     ],
     "season": [
         "title",
@@ -169,9 +194,10 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "studio",
         "director",
         "tag",
-        "userrating",
         "playcount",
         "lastplayed",
+        "userrating",
+        "uniqueid",
     ],
     "artist": [
         "artist",
@@ -258,8 +284,11 @@ def get_field_def(field_name: str) -> FieldDef | None:
     return FIELD_DEFINITIONS.get(field_name)
 
 
+# imdbnumber fetched to identify default uniqueid
 _DEFAULT_PROPERTIES: dict[str, list[str]] = {
     "artist": [],
+    "movie": ["title", "imdbnumber"],
+    "tvshow": ["title", "imdbnumber"],
 }
 
 _UNREQUESTABLE_PROPERTIES: dict[str, set[str]] = {

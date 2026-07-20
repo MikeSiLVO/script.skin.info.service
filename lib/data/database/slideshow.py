@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from lib.data.database._infrastructure import get_db
+from lib.data.database._infrastructure import get_db, sql_placeholders
 
 _POOL_INSERT_SQL = '''
     INSERT OR REPLACE INTO slideshow_pool
@@ -57,7 +57,7 @@ def get_pool_compare_fields(media_types: tuple) -> dict:
     """
     if not media_types:
         return {}
-    placeholders = ','.join('?' * len(media_types))
+    placeholders = sql_placeholders(len(media_types))
     with get_db() as cursor:
         cursor.execute(
             'SELECT media_type, dbid, title, fanart, description, year FROM slideshow_pool '

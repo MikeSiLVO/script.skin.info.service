@@ -109,7 +109,7 @@
 							<textcolor>silver</textcolor>
 							<textoffsetx>10</textoffsetx>
 							<visible>!String.IsEmpty(Window.Property(Director)) | !String.IsEmpty(Window.Property(Writer))</visible>
-							<label>$INFO[Window.Property(Director),[B]Director:[/B] ]$INFO[Window.Property(Writer), · [B]Writer:[/B] ]</label>
+							<label>$INFO[Window.Property(Director),[B]$LOCALIZE[20339]:[/B] ]$INFO[Window.Property(Writer), · [B]$LOCALIZE[20417]:[/B] ]</label>
 						</control>
 						<control type="label">
 							<top>490</top>
@@ -119,7 +119,7 @@
 							<textcolor>silver</textcolor>
 							<textoffsetx>10</textoffsetx>
 							<visible>!String.IsEmpty(Window.Property(Studio))</visible>
-							<label>[B]Studio:[/B] $INFO[Window.Property(Studio)]</label>
+							<label>[B]$LOCALIZE[572]:[/B] $INFO[Window.Property(Studio)]</label>
 						</control>
 					</control>
 				</control>
@@ -142,7 +142,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]Cast[/B]$INFO[Container(1510).CurrentItem, (,/]$INFO[Container(1510).NumItems,,)]</label>
+							<label>[B]$LOCALIZE[206][/B]$INFO[Container(1510).CurrentItem, (,/]$INFO[Container(1510).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1510">
@@ -223,7 +223,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]Recommendations[/B]$INFO[Container(1511).CurrentItem, (,/]$INFO[Container(1511).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32682][/B]$INFO[Container(1511).CurrentItem, (,/]$INFO[Container(1511).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1511">
@@ -304,7 +304,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]Similar in Library[/B]$INFO[Container(1512).CurrentItem, (,/]$INFO[Container(1512).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32683][/B]$INFO[Container(1512).CurrentItem, (,/]$INFO[Container(1512).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1512">
@@ -385,7 +385,7 @@
 							<height>50</height>
 							<font>font13</font>
 							<textcolor>white</textcolor>
-							<label>[B]Crew[/B]$INFO[Container(1513).CurrentItem, (,/]$INFO[Container(1513).NumItems,,)]</label>
+							<label>[B]$ADDON[script.skin.info.service 32684][/B]$INFO[Container(1513).CurrentItem, (,/]$INFO[Container(1513).NumItems,,)]</label>
 						</control>
 					</control>
 					<control type="panel" id="1513">

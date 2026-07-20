@@ -10,7 +10,8 @@ import sqlite3
 from datetime import datetime
 from typing import Optional, Sequence, List, Dict, Set
 
-from lib.data.database._infrastructure import get_db, DB_PATH, sql_placeholders
+from lib.data.database._infrastructure import (
+    get_db, DB_PATH, chunked_in_query, sql_placeholders)
 
 
 def _insert_session_values(cursor: sqlite3.Cursor, junction_table: str, value_column: str,
@@ -66,16 +67,15 @@ def get_session_media_types_batch(session_ids: List[int]) -> Dict[int, List[str]
         return {}
 
     with get_db(DB_PATH) as cursor:
-        placeholders = sql_placeholders(len(session_ids))
-        cursor.execute(f'''
+        rows = chunked_in_query(cursor, '''
             SELECT session_id, media_type
             FROM session_media_types
             WHERE session_id IN ({placeholders})
             ORDER BY session_id, media_type
-        ''', session_ids)
+        ''', [], session_ids)
 
         result: Dict[int, List[str]] = {sid: [] for sid in session_ids}
-        for row in cursor.fetchall():
+        for row in rows:
             result[row['session_id']].append(row['media_type'])
 
         return result

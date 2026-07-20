@@ -12,6 +12,7 @@ from lib.kodi.client import log, ADDON
 from lib.editor.config import (
     MEDIA_TYPE_FIELDS,
     FieldType,
+    get_display_name,
     get_field_def,
     get_fields_for_media_type,
 )
@@ -25,6 +26,7 @@ from lib.editor.handlers import (
     handle_runtime,
     handle_status,
     handle_text,
+    handle_uniqueids,
     handle_userrating,
 )
 from lib.editor.operations import get_item_for_editing, save_field
@@ -96,7 +98,7 @@ def _show_main_menu(
                 continue
 
             current = item.get(field_def["get_property"])
-            display_name = field_def["display_name"]
+            display_name = get_display_name(field_def)
             field_type = field_def["field_type"]
 
             if field == "runtime":
@@ -108,7 +110,7 @@ def _show_main_menu(
             else:
                 value_display = format_value_for_display(current, field_type)
 
-            if field_type == FieldType.RATINGS:
+            if field_type in (FieldType.RATINGS, FieldType.UNIQUEIDS):
                 label = f"{display_name}..."
             else:
                 label = f"{display_name}: {value_display}"
@@ -136,7 +138,7 @@ _INTEGER_FIELD_OVERRIDES = {
 }
 
 
-def _dispatch_integer(display_name: str, current, media_type: str, field: str):
+def _dispatch_integer(display_name: str, current, media_type: str, field: str, _item):
     handler = _INTEGER_FIELD_OVERRIDES.get(field)
     if handler:
         return handler(display_name, current, media_type, field)
@@ -144,16 +146,18 @@ def _dispatch_integer(display_name: str, current, media_type: str, field: str):
 
 
 _FIELD_TYPE_HANDLERS = {
-    FieldType.TEXT:       lambda dn, cur, _mt, _f: handle_text(dn, cur),
-    FieldType.TEXT_LONG:  lambda dn, cur, _mt, _f: handle_text(dn, cur),
+    FieldType.TEXT:       lambda dn, cur, _mt, _f, _it: handle_text(dn, cur),
+    FieldType.TEXT_LONG:  lambda dn, cur, _mt, _f, _it: handle_text(dn, cur),
     FieldType.INTEGER:    _dispatch_integer,
-    FieldType.NUMBER:     lambda dn, cur, _mt, _f: handle_integer(dn, cur),
-    FieldType.DATE:       lambda dn, cur, _mt, _f: handle_date(dn, cur),
-    FieldType.DATETIME:   lambda dn, cur, _mt, _f: handle_lastplayed(dn, cur),
-    FieldType.LIST:       lambda dn, cur, mt, f: handle_list(dn, cur, mt, f),
-    FieldType.USERRATING: lambda dn, cur, _mt, _f: handle_userrating(dn, cur),
-    FieldType.RATINGS:    lambda dn, cur, _mt, _f: handle_ratings(dn, cur),
-    FieldType.STATUS:     lambda dn, cur, _mt, _f: handle_status(dn, cur),
+    FieldType.NUMBER:     lambda dn, cur, _mt, _f, _it: handle_integer(dn, cur),
+    FieldType.DATE:       lambda dn, cur, _mt, _f, _it: handle_date(dn, cur),
+    FieldType.DATETIME:   lambda dn, cur, _mt, _f, _it: handle_lastplayed(dn, cur),
+    FieldType.LIST:       lambda dn, cur, mt, f, _it: handle_list(dn, cur, mt, f),
+    FieldType.USERRATING: lambda dn, cur, _mt, _f, _it: handle_userrating(dn, cur),
+    FieldType.RATINGS:    lambda dn, cur, _mt, _f, _it: handle_ratings(dn, cur),
+    FieldType.STATUS:     lambda dn, cur, _mt, _f, _it: handle_status(dn, cur),
+    FieldType.UNIQUEIDS:  lambda dn, cur, _mt, _f, it: handle_uniqueids(
+        dn, cur, it.get("imdbnumber")),
 }
 
 
@@ -166,7 +170,7 @@ def _edit_field(
         return True
 
     current = item.get(field_def["get_property"])
-    display_name = field_def["display_name"]
+    display_name = get_display_name(field_def)
     field_type = field_def["field_type"]
 
     handler = _FIELD_TYPE_HANDLERS.get(field_type)
@@ -175,7 +179,7 @@ def _edit_field(
                           xbmcgui.NOTIFICATION_WARNING)
         return True
 
-    new_value, cancelled = handler(display_name, current, media_type, field)
+    new_value, cancelled = handler(display_name, current, media_type, field, item)
 
     if cancelled:
         return True
@@ -184,7 +188,11 @@ def _edit_field(
         return True
 
     if save_field(dbid, media_type, field, new_value, item):
-        item[field_def["get_property"]] = new_value
+        stored = new_value
+        if field_type == FieldType.UNIQUEIDS and isinstance(new_value, dict):
+            # Nulls tell Kodi to remove
+            stored = {k: v for k, v in new_value.items() if v is not None}
+        item[field_def["get_property"]] = stored
         # Also update premiered in local item when year changes since Kodi links them
         if field == "year" and isinstance(new_value, int):
             original = item.get("premiered", "")

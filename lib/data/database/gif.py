@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Optional, Dict, Set, Union
-from lib.data.database._infrastructure import get_db, sql_placeholders
+from lib.data.database._infrastructure import get_db, chunked_in_modify
 
 def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
     """Return `{mtime, scanned_at}` for a cached GIF path, or None if not cached."""
@@ -52,12 +52,13 @@ def cleanup_stale_gifs(accessed_paths: Set[str]) -> int:
             cursor.execute('DELETE FROM gif_cache')
             return cursor.rowcount
 
-        placeholders = sql_placeholders(len(accessed_paths))
-        cursor.execute(
-            f'DELETE FROM gif_cache WHERE path NOT IN ({placeholders})',
-            tuple(accessed_paths)
-        )
-        return cursor.rowcount
+        cursor.execute('SELECT path FROM gif_cache')
+        stale = [row['path'] for row in cursor.fetchall() if row['path'] not in accessed_paths]
+        if not stale:
+            return 0
+
+        return chunked_in_modify(
+            cursor, 'DELETE FROM gif_cache WHERE path IN ({placeholders})', [], stale)
 
 
 def clear_gif_cache() -> int:
