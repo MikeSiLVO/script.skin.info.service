@@ -492,11 +492,19 @@ def get_library_items(media_types: List[str], properties: List[str], *,
 
                             all_items.append(season)
 
-            done += len(items)
-            if progress_callback:
-                progress_callback(media_type, done, total)
-            if abort_check and abort_check():
-                raise LibraryScanAborted()
+                if include_nested_seasons:
+                    done += 1
+                    if progress_callback:
+                        progress_callback(media_type, done, total)
+                    if abort_check and abort_check():
+                        raise LibraryScanAborted()
+
+            if not include_nested_seasons:
+                done += len(items)
+                if progress_callback:
+                    progress_callback(media_type, done, total)
+                if abort_check and abort_check():
+                    raise LibraryScanAborted()
 
             start += page_size
             if not items or start >= total:

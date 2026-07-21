@@ -68,11 +68,10 @@ def _skin_override(key: str) -> str:
     """Return `Skin.String(SkinInfo.Stinger.<key>)` if set, else empty string."""
     return xbmc.getInfoLabel(f"Skin.String(SkinInfo.Stinger.{key})") or ""
 
-# String IDs for notifications
-STR_HEADING = 32162  # "Post-Credits Scene"
-STR_DURING = 32163   # "Stay for scene during credits"
-STR_AFTER = 32164    # "Stay for scene after credits"
-STR_BOTH = 32165     # "Stay for scenes during and after credits"
+STR_HEADING = 32162
+STR_DURING = 32163
+STR_AFTER = 32164
+STR_BOTH = 32165
 
 
 def get_settings() -> Dict[str, Any]:

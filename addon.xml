@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta40"
+	   version="2.0.0~beta41"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,13 +32,10 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.0~beta40
-- Added unique IDs (TMDb, IMDb and more) to the metadata editor for movies, TV shows, episodes and music videos
-- Fixed a crash when applying all missing artwork on larger libraries
-- Editor fields and all dialogs now follow your Kodi language
-- Skins can restyle the artwork dialog buttons without the script overriding them
-- Multi-art loads artwork previews instead of full-size images
-- Removed the redundant Cancel entry from the menus
+2.0.0~beta41
+- Fixed applying all missing artwork failing on the first item
+- The scan progress bar no longer sits still while seasons are loaded, and cancel now works during that stage
+- Corrected the button labels and wording on the artwork summary dialogs
 
 2.0.0-Betas
 - Complete rewrite of the service

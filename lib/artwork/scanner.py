@@ -10,7 +10,7 @@ from time import time
 from typing import Optional, List, Tuple, Any, Sequence
 
 from lib.data import database as db
-from lib.kodi.client import get_library_items
+from lib.kodi.client import get_library_items, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code
 from lib.artwork.config import REVIEW_MODE_MISSING
@@ -28,6 +28,7 @@ class ArtworkScanner:
         self.cancelled = False
         self.progress = ProgressDialog(
             use_background=False, heading=ADDON.getLocalizedString(32273))
+        self.progress.enable_throttling()
         self.scanned_count = 0
         self.queued_count = 0
         self.missing_count = 0
@@ -61,6 +62,11 @@ class ArtworkScanner:
         """Add the items from a collection to the overall progress total."""
         if count > 0:
             self._total_items += count
+
+    def _update_fetch_progress(self, progress_title: str, done: int, total: int) -> None:
+        """Keep the bar moving while library data is still being fetched (seasons are per-show)."""
+        percent = min(100, int((done * 100) / total)) if total else 0
+        self.progress.update(percent, f"{progress_title}[CR]Loading library: {done}/{total}")
 
     def _update_scan_progress(
         self,
@@ -235,6 +241,12 @@ class ArtworkScanner:
             year = str(year_value) if year_value else ''
             current_art = item.get('art', {}) or {}
 
+            self._update_scan_progress(
+                progress_title=progress_title,
+                title=title,
+                year=year,
+            )
+
             dbid_value = item.get(id_key)
             if dbid_value is None:
                 self._processed_items += 1
@@ -274,12 +286,6 @@ class ArtworkScanner:
                 'scan_session_id': session_id,
                 'art_requests': art_requests,
             })
-
-            self._update_scan_progress(
-                progress_title=progress_title,
-                title=title,
-                year=year,
-            )
 
             self._processed_items += 1
 
@@ -376,6 +382,7 @@ class ArtworkScanner:
     def _scan_collection(self, media_type: str, art_types: List[str], session_id: int,
                          scope_label: str) -> bool:
         cfg = self._SCAN_CONFIGS[media_type]
+        progress_title = cfg['progress_title']
         try:
             kwargs = {
                 'media_types': [cfg['fetch_media_type']],
@@ -385,7 +392,15 @@ class ArtworkScanner:
             if cfg.get('include_nested_seasons'):
                 kwargs['include_nested_seasons'] = True
                 kwargs['season_properties'] = cfg['season_properties']
-            items = get_library_items(**kwargs)
+            items = get_library_items(
+                **kwargs,
+                progress_callback=lambda _, done, total: self._update_fetch_progress(
+                    progress_title, done, total),
+                abort_check=self.progress.is_cancelled,
+            )
+        except LibraryScanAborted:
+            self.cancelled = True
+            return False
         except Exception as e:
             log("Artwork", f"Error fetching {scope_label}: {e}", xbmc.LOGWARNING)
             return True

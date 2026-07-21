@@ -10,6 +10,7 @@ import xbmcgui
 from typing import Optional, List, Sequence
 
 from lib.data import database as db
+from lib.data.database.queue import QueueEntry
 from lib.kodi.client import request, get_item_details, KODI_SET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
@@ -152,14 +153,14 @@ class ArtworkAuto:
         except Exception as e:
             log("Artwork", f"Slideshow pool reconcile failed: {str(e)}", xbmc.LOGWARNING)
 
-    def _process_item(self, queue_item) -> None:
+    def _process_item(self, queue_item: QueueEntry) -> None:
         """Process single queue item."""
         try:
-            media_type = queue_item['media_type']
-            dbid = queue_item['dbid']
-            title = queue_item['title']
+            media_type = queue_item.media_type
+            dbid = queue_item.dbid
+            title = queue_item.title
 
-            art_items = db.get_art_items_for_queue(queue_item['id'])
+            art_items = db.get_art_items_for_queue(queue_item.id)
 
             all_available_art = self.source_fetcher.fetch_all(media_type, dbid)
 
@@ -200,9 +201,9 @@ class ArtworkAuto:
                     self.applied_items.append((title, art_type, best['url']))
 
             if applied_any:
-                db.update_queue_status(queue_item['id'], 'completed')
+                db.update_queue_status(queue_item.id, 'completed')
             else:
-                db.update_queue_status(queue_item['id'], 'skipped')
+                db.update_queue_status(queue_item.id, 'skipped')
                 if no_art_available:
                     self.skipped_items.append((title, ADDON.getLocalizedString(32009)))
                 elif blocked_by_policy:
@@ -217,7 +218,7 @@ class ArtworkAuto:
         except Exception as e:
             log("Artwork", f"Error processing item: {str(e)}", xbmc.LOGERROR)
             self.stats['errors'] += 1
-            db.update_queue_status(queue_item['id'], 'error')
+            db.update_queue_status(queue_item.id, 'error')
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
                    artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:
@@ -342,7 +343,7 @@ class ArtworkAuto:
     def _show_summary(self) -> None:
         """Show processing summary."""
         message = (
-            f"{ADDON.getLocalizedString(32279)}[CR][CR]"
+            f"{ADDON.getLocalizedString(32032 if self.cancelled else 32279)}[CR][CR]"
             f"{ADDON.getLocalizedString(32284).format(self.stats['processed'])}[CR]"
             f"{ADDON.getLocalizedString(32285).format(self.stats['auto_applied'])}[CR]"
             f"{ADDON.getLocalizedString(32286).format(self.stats['skipped'])}"
@@ -357,10 +358,10 @@ class ArtworkAuto:
         if self.stats['processed'] > 0 and (self.applied_items or self.skipped_items):
             dialog = xbmcgui.Dialog()
             choice = dialog.yesno(
-                ADDON.getLocalizedString(32281),
+                ADDON.getLocalizedString(32033 if self.cancelled else 32281),
                 message,
                 yeslabel=ADDON.getLocalizedString(32282),
-                nolabel=xbmc.getLocalizedString(15066)
+                nolabel=xbmc.getLocalizedString(15067)
             )
 
             if choice:

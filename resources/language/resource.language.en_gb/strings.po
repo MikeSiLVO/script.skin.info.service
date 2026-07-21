@@ -127,6 +127,14 @@ msgctxt "#32031"
 msgid "Could not write NFO file"
 msgstr ""
 
+msgctxt "#32032"
+msgid "Processing cancelled"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Art Fetcher - Cancelled"
+msgstr ""
+
 msgctxt "#32035"
 msgid "Always Ask"
 msgstr ""

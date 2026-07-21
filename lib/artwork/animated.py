@@ -234,7 +234,7 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
                 resume_bg = dialog.yesno(
                     ADDON.getLocalizedString(32572),
                     ADDON.getLocalizedString(32573),
-                    nolabel=xbmc.getLocalizedString(15066),
+                    nolabel=xbmc.getLocalizedString(106),
                     yeslabel=ADDON.getLocalizedString(32568)
                 )
 
