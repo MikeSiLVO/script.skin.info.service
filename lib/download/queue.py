@@ -6,7 +6,7 @@ import threading
 from typing import Optional, Dict, Any
 import xbmcvfs
 
-from lib.infrastructure.workers import WorkerQueue
+from lib.infrastructure.workers import WorkerQueue, VFS_WORKER_COUNT
 from lib.download.artwork import DownloadArtwork
 
 
@@ -16,9 +16,10 @@ class DownloadQueue(WorkerQueue):
     def __init__(self, num_workers: Optional[int] = None, existing_file_mode: str = 'skip',
                  abort_flag=None, task_context=None):
         super().__init__(
-            num_workers=num_workers,
+            num_workers=num_workers or VFS_WORKER_COUNT,
             abort_flag=abort_flag,
-            task_context=task_context
+            task_context=task_context,
+            result_retention='none'
         )
 
         self.existing_file_mode = existing_file_mode
@@ -39,6 +40,13 @@ class DownloadQueue(WorkerQueue):
         item = (url, local_path, artwork_type, title, alternate_path, media_type)
         dedupe_key = (url, local_path)
         return self.add_item(item, dedupe_key=dedupe_key)
+
+    def stop(self, wait: bool = True) -> None:
+        """Stop workers, then release each worker's pooled connections."""
+        super().stop(wait=wait)
+        for downloader in list(self.artworks.values()):
+            downloader.close()
+        self.artworks.clear()
 
     def get_stats(self) -> Dict:
         """Return WorkerQueue stats plus download counters and folder breakdown."""

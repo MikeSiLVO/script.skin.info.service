@@ -9,12 +9,12 @@ import xbmcgui
 import xbmcvfs
 from typing import Optional, List, Dict, Tuple, Any
 
-from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items, request, extract_result
+from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items
 from lib.download.queue import DownloadQueue
-from lib.infrastructure.paths import PathBuilder, vfs_dirname
+from lib.infrastructure.paths import PathBuilder, get_album_folders, resolve_media_file
 from lib.infrastructure.tasks import TaskContext
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
-from lib.kodi.client import log, ADDON
+from lib.kodi.client import log, ADDON, is_inherited_art
 from lib.data import database as db
 
 # Log file paths
@@ -129,20 +129,6 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
         return None
 
 
-def _resolve_album_folders(album_ids: List[int]) -> Dict[int, str]:
-    """Batch-resolve album folders from one song file path per album."""
-    wanted = set(album_ids)
-    folder_map: Dict[int, str] = {}
-    resp = request("AudioLibrary.GetSongs", {"properties": ["file", "albumid"]})
-    for song in extract_result(resp, "songs", []):
-        album_id = song.get("albumid")
-        if album_id in wanted and album_id not in folder_map and song.get("file"):
-            folder_map[album_id] = vfs_dirname(song["file"])
-            if len(folder_map) == len(wanted):
-                break
-    return folder_map
-
-
 def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any]]:
     """Query Kodi library, return items with artwork as `{dbid, media_type, title, file, art}`."""
     def has_artwork(item: Dict[str, Any]) -> bool:
@@ -175,17 +161,10 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
 
         album_ids = [item['dbid'] for item in all_items
                      if item.get('media_type') == 'album' and item.get('dbid')]
-        album_folder_map = _resolve_album_folders(album_ids) if album_ids else {}
+        album_folders = get_album_folders(album_ids)
 
         for item in all_items:
-            file_path = item.get("file", "")
-            if item['media_type'] == 'set' and not file_path:
-                file_path = item.get("title", "")
-            elif item['media_type'] == 'artist' and not file_path:
-                file_path = item.get("label", "")
-            elif item['media_type'] == 'album' and not file_path:
-                file_path = album_folder_map.get(item.get('dbid', 0), "")
-            item['file'] = file_path
+            item['file'] = resolve_media_file(item, album_folders=album_folders)
 
             if 'title' not in item:
                 item['title'] = item.get('label', 'Unknown')
@@ -237,15 +216,7 @@ def build_download_jobs(
             if not url or not url.startswith('http'):
                 continue
 
-            if media_type == 'movie' and art_type.startswith('set.'):
-                continue
-
-            if media_type == 'episode' and (
-                art_type.startswith('tvshow.') or art_type.startswith('season.')
-            ):
-                continue
-
-            if media_type == 'season' and art_type.startswith('tvshow.'):
+            if is_inherited_art(media_type, art_type):
                 continue
 
             mbid = None
@@ -518,7 +489,8 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
 
                 final_stats = queue.get_stats()
 
-                cancelled = (
+                # stop() raises the abort flag itself, so a stall would otherwise read as a cancel.
+                cancelled = not stalled and (
                     monitor.abortRequested() or
                     ctx.abort_flag.is_requested() or
                     (isinstance(progress, xbmcgui.DialogProgress) and progress.iscanceled())

@@ -19,6 +19,7 @@ from lib.kodi.client import log, ADDON
 HEARTBEAT_INTERVAL = 5
 STALE_TIMEOUT = 15
 STUCK_TIMEOUT = 60
+ABORT_POLL_INTERVAL = 1.0
 
 _lock = threading.RLock()
 # Window 10000 is the Kodi Home window; properties survive across script invocations.
@@ -54,11 +55,18 @@ class AbortFlag:
 
     def __init__(self, task_id: str) -> None:
         self.task_id = task_id
+        self._monitor = xbmc.Monitor()
+        self._poll_lock = threading.Lock()
+        self._last_poll = 0.0
+        self._cached = False
 
     def request(self) -> None:
         """Request abort for this task."""
         with _lock:
             _home_window.setProperty(_PROPERTY_ABORT, self.task_id)
+        with self._poll_lock:
+            self._cached = True
+            self._last_poll = time.monotonic()
 
     def clear(self) -> None:
         """Clear the abort flag only if it still belongs to this task."""
@@ -69,9 +77,17 @@ class AbortFlag:
 
     def is_requested(self) -> bool:
         """Check if abort was requested (either user cancel or Kodi shutdown)."""
-        if xbmc.Monitor().abortRequested():
+        if self._monitor.abortRequested():
             return True
-        return _home_window.getProperty(_PROPERTY_ABORT) == self.task_id
+
+        # getProperty takes Kodi's global graphics lock, contended with the render thread.
+        now = time.monotonic()
+        with self._poll_lock:
+            if now - self._last_poll < ABORT_POLL_INTERVAL:
+                return self._cached
+            self._last_poll = now
+            self._cached = _home_window.getProperty(_PROPERTY_ABORT) == self.task_id
+            return self._cached
 
 
 class TaskContext:

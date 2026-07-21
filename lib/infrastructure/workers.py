@@ -23,13 +23,19 @@ def get_optimal_worker_count() -> int:
     return min(max(3, cores), 8)
 
 
+# Kodi serialises all NFS/SMB I/O on one global lock and caches textures one at a time.
+VFS_WORKER_COUNT = 2
+
+
 class WorkerQueue:
     """Multi-threaded worker queue base. Subclasses override `_process_item()` for specific work."""
 
-    def __init__(self, num_workers: Optional[int] = None, abort_flag=None, task_context=None):
+    def __init__(self, num_workers: Optional[int] = None, abort_flag=None, task_context=None,
+                 result_retention: str = 'failed'):
         self.num_workers = num_workers or get_optimal_worker_count()
         self.abort_flag = abort_flag
         self.task_context = task_context
+        self.result_retention = result_retention
 
         self.queue: Queue = Queue()
         self.processing_set: Set[Any] = set()
@@ -37,6 +43,9 @@ class WorkerQueue:
 
         self.results: List[Dict] = []
         self.results_lock = threading.Lock()
+        self.completed_count = 0
+        self.successful_count = 0
+        self.failed_count = 0
 
         self.workers: List[threading.Thread] = []
         self.running = False
@@ -67,6 +76,11 @@ class WorkerQueue:
 
         self.running = False
 
+        # A worker past the join is unreachable otherwise: `running` is only read at the top
+        # of the loop, and TaskContext clears the abort property moments after this returns.
+        if not wait and self.abort_flag:
+            self.abort_flag.request()
+
         if not wait:
             while not self.queue.empty():
                 try:
@@ -74,7 +88,8 @@ class WorkerQueue:
                     self.queue.task_done()
                 except Empty:
                     break
-            self.processing_set.clear()
+            with self.processing_lock:
+                self.processing_set.clear()
 
         for _ in self.workers:
             self.queue.put(None)
@@ -140,19 +155,31 @@ class WorkerQueue:
         num_workers, results`.
         """
         with self.results_lock:
-            successful = sum(1 for r in self.results if r.get('success', False))
-            failed = sum(1 for r in self.results if not r.get('success', False))
-
             return {
                 'queued': self.queue.qsize(),
                 'processing': len(self.processing_set),
-                'completed': len(self.results),
-                'successful': successful,
-                'failed': failed,
+                'completed': self.completed_count,
+                'successful': self.successful_count,
+                'failed': self.failed_count,
                 'total_queued': self.total_queued,
                 'num_workers': self.num_workers,
                 'results': list(self.results)
             }
+
+    def _record_result(self, result: Dict) -> None:
+        """Count one finished item, keeping its dict only if retention asks for it."""
+        success = result.get('success', False)
+        with self.results_lock:
+            self.completed_count += 1
+            if success:
+                self.successful_count += 1
+            else:
+                self.failed_count += 1
+
+            if self.result_retention == 'all' or (
+                self.result_retention == 'failed' and not success
+            ):
+                self.results.append(result)
 
     def get_progress(self) -> Dict:
         """Return `{percent, completed, total}` for the current queue run."""
@@ -160,7 +187,7 @@ class WorkerQueue:
             return {'percent': 0, 'completed': 0, 'total': 0}
 
         with self.results_lock:
-            completed = len(self.results)
+            completed = self.completed_count
 
         return {
             'percent': int((completed / self.total_queued) * 100),
@@ -215,8 +242,7 @@ class WorkerQueue:
             result['elapsed'] = time.time() - start_time
             result['worker'] = worker_id
 
-            with self.results_lock:
-                self.results.append(result)
+            self._record_result(result)
 
             self._on_item_complete(item_data, result)
 
@@ -228,8 +254,7 @@ class WorkerQueue:
                 'error': str(e),
             }
 
-            with self.results_lock:
-                self.results.append(result)
+            self._record_result(result)
 
             log(
                 "General",

@@ -15,6 +15,7 @@ import gzip
 import socket
 import time
 import threading
+import weakref
 from typing import Optional, Dict, Any, Tuple, List, Protocol, runtime_checkable
 from collections import deque
 
@@ -128,11 +129,28 @@ class AbortRequested(Exception):
 # A blocked read can't check its own abort flag, so a watcher closes the socket from
 # outside. Tracking the connection (not the response) reaches a stall in any phase; the
 # connection carries its request's cancel token, so a superseded focus closes it too.
-_OPEN_CONNS: set = set()
+# Weak so a pool-dropped connection untracks itself instead of pinning its socket.
+_OPEN_CONNS: "weakref.WeakSet" = weakref.WeakSet()
 _CONN_LOCK = threading.Lock()
 _CONN_WATCHER_STARTED = False
+_WATCHER_IDLE_POLLS = 25
 # per-thread cancel token for the in-flight request, read by the connection on connect
 _REQUEST_TOKEN = threading.local()
+# per-thread wall-clock limit for the in-flight request, enforced by the watcher because a
+# thread blocked inside a chunk read cannot check anything itself
+_REQUEST_DEADLINE = threading.local()
+
+
+def _stamp_request(abort_flag, deadline_seconds: Optional[float] = None) -> None:
+    """Publish this thread's cancel token and wall-clock limit for the connection to pick up.
+
+    Always sets both: these are thread-locals, and a deadline left over from an earlier
+    streamed request would have the watcher kill the next healthy connection instantly.
+    """
+    _REQUEST_TOKEN.token = abort_flag
+    _REQUEST_DEADLINE.value = (
+        time.monotonic() + deadline_seconds if deadline_seconds else None
+    )
 
 
 def _close_conn(conn) -> None:
@@ -159,14 +177,34 @@ def _close_all_conns() -> None:
 
 def _conn_watcher() -> None:
     """Close a connection when its request is cancelled; close all on Kodi abort."""
+    global _CONN_WATCHER_STARTED
     monitor = xbmc.Monitor()
+    idle_polls = 0
+
     while not monitor.abortRequested():
         with _CONN_LOCK:
             conns = list(_OPEN_CONNS)
+
+        now = time.monotonic()
         for conn in conns:
             token = getattr(conn, "_cancel_token", None)
-            if token is not None and token.is_requested():
+            deadline = getattr(conn, "_deadline", None)
+            if (token is not None and token.is_requested()) or (
+                deadline is not None and now > deadline
+            ):
                 _close_conn(conn)
+
+        idle_polls = 0 if conns else idle_polls + 1
+
+        # Kodi cannot end a script's interpreter while any of its threads is alive, and
+        # abortRequested only fires on shutdown. _register_conn restarts this on demand.
+        if idle_polls >= _WATCHER_IDLE_POLLS:
+            with _CONN_LOCK:
+                if not _OPEN_CONNS:
+                    _CONN_WATCHER_STARTED = False
+                    return
+            idle_polls = 0
+
         if monitor.waitForAbort(0.2):
             break
     # repeat briefly to catch a request that connects mid-shutdown
@@ -204,6 +242,8 @@ class _TrackedHTTPConnection(HTTPConnection):
     def request(self, *args, **kwargs):
         """Retag with the current request's token (covers keep-alive reuse), then send."""
         self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
+        _register_conn(self)
         return super().request(*args, **kwargs)
 
     def connect(self) -> None:
@@ -224,6 +264,8 @@ class _TrackedHTTPSConnection(HTTPSConnection):
     def request(self, *args, **kwargs):
         """Retag with the current request's token (covers keep-alive reuse), then send."""
         self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
+        _register_conn(self)
         return super().request(*args, **kwargs)
 
     def connect(self) -> None:
@@ -243,11 +285,23 @@ class _TrackedHTTPConnectionPool(HTTPConnectionPool):
 
     ConnectionCls = _TrackedHTTPConnection  # type: ignore[assignment]
 
+    def _put_conn(self, conn) -> None:
+        """Untrack on return to the pool: an idle pooled socket has no blocked read to break."""
+        if conn is not None:
+            _unregister_conn(conn)
+        return super()._put_conn(conn)
+
 
 class _TrackedHTTPSConnectionPool(HTTPSConnectionPool):
     """Pool that hands out tracked HTTPS connections."""
 
     ConnectionCls = _TrackedHTTPSConnection  # type: ignore[assignment]
+
+    def _put_conn(self, conn) -> None:
+        """Untrack on return to the pool: an idle pooled socket has no blocked read to break."""
+        if conn is not None:
+            _unregister_conn(conn)
+        return super()._put_conn(conn)
 
 
 class _TrackedAdapter(HTTPAdapter):
@@ -470,7 +524,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
-        _REQUEST_TOKEN.token = abort_flag
+        _stamp_request(abort_flag)
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
         cap = getattr(abort_flag, 'max_request_seconds', None)
@@ -542,7 +596,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
-        _REQUEST_TOKEN.token = abort_flag
+        _stamp_request(abort_flag)
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 
@@ -584,6 +638,7 @@ class ApiSession:
         abort_flag=None,
         timeout: Optional[Tuple[float, float]] = None,
         stream: bool = False,
+        deadline_seconds: Optional[float] = None,
     ) -> Optional[requests.Response]:
         """Make GET request returning raw Response object.
 
@@ -600,7 +655,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
-        _REQUEST_TOKEN.token = abort_flag
+        _stamp_request(abort_flag, deadline_seconds)
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 
@@ -613,10 +668,11 @@ class ApiSession:
                 stream=stream
             )
 
+            # A streamed response pins its pooled connection until closed.
             if response.status_code == 429:
-                raise RateLimitHit(
-                self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
-            )
+                retry_after = _parse_retry_after(response.headers.get("Retry-After"))
+                response.close()
+                raise RateLimitHit(self.service_name, retry_after)
 
             if response.status_code >= 400:
                 log(
@@ -624,6 +680,7 @@ class ApiSession:
                     f"{self.service_name}: HTTP {response.status_code}",
                     xbmc.LOGWARNING
                 )
+                response.close()
                 return None
 
             return response
@@ -649,7 +706,7 @@ class ApiSession:
             reporter, src = self._current_pause_context()
             self.rate_limiter.wait_if_needed(self.service_name, reporter, src)
 
-        _REQUEST_TOKEN.token = abort_flag
+        _stamp_request(abort_flag)
         url = self._build_url(endpoint)
         request_timeout = timeout or self.timeout
 

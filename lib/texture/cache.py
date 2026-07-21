@@ -10,6 +10,12 @@ import xbmcgui
 from lib.kodi.client import get_library_items, log, ADDON, decode_image_url, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.dialogs import ProgressDialog
+from lib.infrastructure.paths import (
+    PathBuilder,
+    get_album_folders,
+    get_tvshow_paths,
+    resolve_media_file,
+)
 from lib.texture.utilities import should_precache_url, is_library_artwork_url
 from lib.texture.queues import TextureCache, TextureCacheDownload
 from lib.texture.library import (
@@ -220,6 +226,8 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
 
         items: List[Dict[str, Any]] = []
         try:
+            tvshow_paths = get_tvshow_paths() if 'season' in media_types else {}
+
             for media_type in media_types:
                 properties = _PRECACHE_PROPERTIES.get(media_type, ['art', 'title'])
                 type_items = get_library_items(
@@ -231,9 +239,16 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
                 for item in type_items:
                     if 'title' not in item:
                         item['title'] = "Unknown"
-                    if 'file' not in item:
-                        item['file'] = ""
                 items.extend(type_items)
+
+            album_ids = [item['dbid'] for item in items
+                         if item.get('media_type') == 'album' and item.get('dbid')]
+            album_folders = get_album_folders(album_ids)
+
+            for item in items:
+                item['file'] = resolve_media_file(
+                    item, album_folders=album_folders, tvshow_paths=tvshow_paths
+                )
 
         except Exception as e:
             log("Texture",
@@ -257,6 +272,8 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
         )
         existing_file_mode = ['skip', 'overwrite', 'use_existing'][existing_file_mode_int]
 
+        PathBuilder.prepare_named_item_folders(media_types)
+
         queue = TextureCacheDownload(
             existing_file_mode=existing_file_mode,
             abort_flag=task_context.abort_flag if task_context else None,
@@ -268,7 +285,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
             queued = 0
             for item in items:
                 for art_type, url in item['art'].items():
-                    if not url:
+                    if not url or not should_precache_url(url):
                         continue
 
                     queue.add_cache_and_download(

@@ -7,8 +7,8 @@ from typing import Optional, List, Dict, Set, Any, Callable
 import xbmc
 import xbmcvfs
 
-from lib.kodi.client import request, log, extract_result, encode_image_url
-from lib.infrastructure.workers import WorkerQueue
+from lib.kodi.client import request, log, extract_result, encode_image_url, is_inherited_art
+from lib.infrastructure.workers import WorkerQueue, VFS_WORKER_COUNT
 from lib.infrastructure.paths import PathBuilder
 from lib.download.artwork import DownloadArtwork
 
@@ -42,9 +42,10 @@ class TextureCache(WorkerQueue):
         task_context=None
     ):
         super().__init__(
-            num_workers=num_workers,
+            num_workers=num_workers or VFS_WORKER_COUNT,
             abort_flag=abort_flag,
-            task_context=task_context
+            task_context=task_context,
+            result_retention='failed'
         )
 
         self.on_complete = on_complete
@@ -117,9 +118,10 @@ class TextureCacheDownload(WorkerQueue):
         task_context=None
     ):
         super().__init__(
-            num_workers=num_workers,
+            num_workers=num_workers or VFS_WORKER_COUNT,
             abort_flag=abort_flag,
-            task_context=task_context
+            task_context=task_context,
+            result_retention='none'
         )
 
         self.existing_file_mode = existing_file_mode
@@ -149,6 +151,13 @@ class TextureCacheDownload(WorkerQueue):
         """Queue an item for caching + downloading. Returns False if already processing."""
         item = (url, media_type, media_file, artwork_type, title, season, episode)
         return self.add_item(item, dedupe_key=url)
+
+    def stop(self, wait: bool = True) -> None:
+        """Stop workers, then release each worker's pooled connections."""
+        super().stop(wait=wait)
+        for downloader in list(self.artworks.values()):
+            downloader.close()
+        self.artworks.clear()
 
     def get_stats(self) -> Dict:
         base_stats = super().get_stats()
@@ -183,7 +192,7 @@ class TextureCacheDownload(WorkerQueue):
                     f"{cache_error}",
                     xbmc.LOGWARNING)
 
-        if url.startswith('http'):
+        if url.startswith('http') and not is_inherited_art(media_type, artwork_type):
             local_path = self.path_builder.build_path(
                 media_type=media_type,
                 media_file=media_file,
@@ -215,12 +224,15 @@ class TextureCacheDownload(WorkerQueue):
                         self.stats_download_skipped += 1
                     elif error_category != DownloadArtwork.ERROR_ABORTED:
                         self.stats_download_failed += 1
-            else:
+            elif media_file:
                 log("Artwork",
                     f"Could not build download path for {media_type} '{title}' {artwork_type}"
                 )
                 with self._stats_lock:
                     self.stats_download_failed += 1
+            else:
+                with self._stats_lock:
+                    self.stats_download_skipped += 1
 
         return {
             'url': url,

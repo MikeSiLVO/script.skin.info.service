@@ -384,6 +384,23 @@ def encode_image_url(decoded_url: str) -> str:
     return f'image://{encoded}/'
 
 
+def is_inherited_art(media_type: str, art_type: str) -> bool:
+    """True for art an item inherits from its parent, which must never be written to its own path.
+
+    Kodi folds a parent's whole art map into the child prefixed (`tvshow.`, `season.`, `set.`).
+    """
+    if media_type == 'movie':
+        return art_type.startswith('set.')
+    if media_type == 'episode':
+        return art_type.startswith('tvshow.') or art_type.startswith('season.')
+    if media_type == 'season':
+        return art_type.startswith('tvshow.')
+    if media_type == 'album':
+        # Kodi folds every album artist in as artist.*, artist1.*, artist2.* and so on.
+        return art_type.startswith('artist')
+    return False
+
+
 def _decode_art_dict(art: Dict[str, str]) -> Dict[str, str]:
     """Decode URLs in an art dict, dropping entries that decode to `image://video@...` wrappers."""
     if not art:

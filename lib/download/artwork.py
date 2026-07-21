@@ -7,12 +7,18 @@ import urllib.parse
 import requests
 import xbmc
 import xbmcvfs
-from typing import Optional, Tuple, Dict, Callable
+from typing import Optional, Tuple, Dict, Set, Callable
 
 from lib.kodi.client import log
 from lib.data.api.client import ApiSession
 from lib.data.api.client import RetryableError
-from lib.infrastructure.paths import vfs_ensure_dir_slash
+from lib.infrastructure.paths import vfs_ensure_dir_slash, vfs_split
+
+
+# Every chunk costs an abort check and a VFS write, both of which cross into Kodi.
+_CHUNK_SIZE = 256 * 1024
+# Generous enough for a large fanart on a slow link; only a stalled host should hit it.
+_STREAM_DEADLINE = 120.0
 
 
 class _StreamNetworkError(Exception):
@@ -50,6 +56,8 @@ class DownloadArtwork:
         self.max_provider_errors = 3
         self.max_file_errors = 3
         self.block_cooldown = 30.0
+        self._dir_files: Dict[str, Set[str]] = {}
+        self.max_cached_dirs = 4096
 
         self.session = ApiSession(
             service_name="Artwork",
@@ -63,6 +71,10 @@ class DownloadArtwork:
                 "Accept": "image/*"
             }
         )
+
+    def close(self) -> None:
+        """Release this downloader's pooled connections."""
+        self.session.close()
 
     def _block_provider(self, hostname: str) -> None:
         """Count a provider failure; arm a cooldown once the host crosses the error limit."""
@@ -128,7 +140,8 @@ class DownloadArtwork:
             response = self.session.get_raw(
                 url,
                 abort_flag=abort_flag,
-                stream=True
+                stream=True,
+                deadline_seconds=_STREAM_DEADLINE
             )
 
             if response is None:
@@ -155,6 +168,7 @@ class DownloadArtwork:
             bytes_written = self._write_file_stream(
                 full_path, response, abort_flag, progress_callback
             )
+            self._note_written_file(local_path + '.' + ext)
 
             if existing_file_mode == 'overwrite':
                 stale_bases = [local_path]
@@ -195,8 +209,50 @@ class DownloadArtwork:
             log("Download", f"Unexpected error downloading {url}: {str(e)}", xbmc.LOGERROR)
             return False, f"Unexpected error: {str(e)}", 0, self.ERROR_UNEXPECTED
 
+    def _list_dir_files(self, directory: str) -> Optional[Set[str]]:
+        """Lowercased filename set for `directory`, or None to fall back to per-file checks.
+
+        listdir reports an unreachable share and an empty folder identically, so an empty
+        result is never trusted or cached. Names are folded because xbmcvfs.exists is
+        case-insensitive on NTFS and SMB.
+        """
+        cached = self._dir_files.get(directory)
+        if cached is not None:
+            return cached
+
+        try:
+            _subdirs, files = xbmcvfs.listdir(vfs_ensure_dir_slash(directory))
+        except Exception:
+            return None
+
+        if not files:
+            return None
+
+        listing = {name.lower() for name in files}
+        if len(self._dir_files) >= self.max_cached_dirs:
+            self._dir_files.clear()
+        self._dir_files[directory] = listing
+        return listing
+
+    def _note_written_file(self, full_path: str) -> None:
+        """Keep the directory cache honest about a file this downloader just created."""
+        directory, filename = vfs_split(full_path)
+        listing = self._dir_files.get(directory)
+        if listing is not None:
+            listing.add(filename.lower())
+
     def _find_existing_with_extension(self, base_path: str) -> Optional[str]:
         """Return the first existing file at `base_path.<ext>` for any known extension, or None."""
+        directory, filename = vfs_split(base_path)
+
+        # Each stat is a network round trip serialised behind Kodi's global NFS/SMB lock.
+        listing = self._list_dir_files(directory) if directory else None
+        if listing is not None:
+            for ext_type in self.CONTENT_TYPE_MAP.values():
+                if (filename + '.' + ext_type).lower() in listing:
+                    return xbmcvfs.validatePath(base_path + '.' + ext_type)
+            return None
+
         for ext_type in self.CONTENT_TYPE_MAP.values():
             test_path = xbmcvfs.validatePath(base_path + '.' + ext_type)
             if xbmcvfs.exists(test_path):
@@ -210,37 +266,45 @@ class DownloadArtwork:
 
     def _write_file_stream(self, path: str, response, abort_flag=None,
                            progress_callback: Optional[Callable[[int], None]] = None) -> int:
-        """Stream `response` body to `path` in 8KB chunks.
+        """Stream `response` body to `path`.
 
         Deletes partial file on error. Raises `_StreamNetworkError` if the body transfer drops
         mid-stream, `_DownloadAborted` on abort, `IOError` on write failure.
         """
         bytes_written = 0
+        cap = getattr(abort_flag, 'max_request_seconds', None) if abort_flag else None
+        deadline = time.monotonic() + (cap or _STREAM_DEADLINE)
+
         try:
             f = xbmcvfs.File(path, 'wb')
-            if not f:
-                raise IOError(f"Failed to open file for writing: {path}")
 
             with f:
-                iterator = response.iter_content(chunk_size=8192)
+                iterator = response.iter_content(chunk_size=_CHUNK_SIZE)
                 while True:
                     try:
                         chunk = next(iterator)
                     except StopIteration:
                         break
                     except requests.exceptions.RequestException as e:
+                        # The watcher closes the socket on cancel, surfacing here first.
+                        if abort_flag and abort_flag.is_requested():
+                            raise _DownloadAborted("Download aborted")
                         raise _StreamNetworkError(str(e))
 
                     if abort_flag and abort_flag.is_requested():
                         raise _DownloadAborted("Download aborted")
+
+                    # The read timeout is per chunk, so a drip-feeding host is otherwise
+                    # never cut off and its worker outlives the whole batch.
+                    if time.monotonic() > deadline:
+                        raise _StreamNetworkError("stream exceeded time limit")
                     if chunk:
-                        chunk_bytes = bytearray(chunk)
-                        written = f.write(chunk_bytes)
+                        written = f.write(chunk)
                         if not written:
                             raise IOError(f"Failed to write to {path}")
-                        bytes_written += len(chunk_bytes)
+                        bytes_written += len(chunk)
                         if progress_callback:
-                            progress_callback(len(chunk_bytes))
+                            progress_callback(len(chunk))
         except Exception:
             if xbmcvfs.exists(path):
                 xbmcvfs.delete(path)

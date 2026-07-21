@@ -1,11 +1,13 @@
 """Build Kodi-compliant artwork file paths following naming conventions."""
 from __future__ import annotations
 
+import threading
+
 import xbmcgui
 import xbmcvfs
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, Dict, List
 
-from lib.kodi.client import request
+from lib.kodi.client import request, get_library_items
 
 
 def vfs_get_separator(path: str) -> str:
@@ -112,10 +114,74 @@ def build_actors_folder_path(media_type: str, file_path: str,
     return None
 
 
+def get_tvshow_paths() -> Dict[int, str]:
+    """Map tvshowid to the show's path, for season items queried without their parent show."""
+    paths: Dict[int, str] = {}
+    for show in get_library_items(media_types=['tvshow'], properties=['file']):
+        show_id = show.get('tvshowid') or show.get('dbid')
+        if show_id and show.get('file'):
+            paths[show_id] = show['file']
+    return paths
+
+
+def get_album_folders(album_ids: List[int]) -> Dict[int, str]:
+    """Map each albumid to its folder, taken from the first song file seen per album."""
+    wanted = set(album_ids)
+    folders: Dict[int, str] = {}
+    if not wanted:
+        return folders
+
+    page_size = 2000
+    start = 0
+    while True:
+        resp = request("AudioLibrary.GetSongs", {
+            "properties": ["file", "albumid"],
+            "limits": {"start": start, "end": start + page_size},
+        })
+        result = (resp or {}).get("result") or {}
+        songs = result.get("songs") or []
+        for song in songs:
+            album_id = song.get("albumid")
+            if album_id in wanted and album_id not in folders and song.get("file"):
+                folders[album_id] = vfs_dirname(song["file"])
+        if len(folders) == len(wanted):
+            break
+        total = result.get("limits", {}).get("total", len(songs))
+        start += page_size
+        if not songs or start >= total:
+            break
+    return folders
+
+
+def resolve_media_file(item: Dict[str, Any],
+                       album_folders: Optional[Dict[int, str]] = None,
+                       tvshow_paths: Optional[Dict[int, str]] = None) -> str:
+    """Resolve the `media_file` input `PathBuilder.build_path` needs; '' when the item has none.
+
+    Seasons fetched nested under their show already carry the show's `file`; standalone
+    season queries have no path, so `tvshow_paths` (from `get_tvshow_paths`) fills it in.
+    """
+    file_path = item.get('file', '')
+    if file_path:
+        return file_path
+    media_type = item.get('media_type', '')
+    if media_type == 'set':
+        return item.get('title', '')
+    if media_type == 'artist':
+        return item.get('label', '')
+    if media_type == 'album' and album_folders:
+        return album_folders.get(item.get('dbid', 0), '')
+    if media_type == 'season' and tvshow_paths:
+        return tvshow_paths.get(item.get('tvshowid', 0), '')
+    return ''
+
+
 class PathBuilder:
     """Build filesystem paths matching Kodi artwork naming conventions (movies, TV, music)."""
 
     _music_thumb_filename: Optional[str] = None
+    _folder_cache: Dict[str, Optional[str]] = {}
+    _folder_lock = threading.Lock()
 
     @staticmethod
     def _get_kodi_folder_setting(setting: str) -> str:
@@ -159,15 +225,56 @@ class PathBuilder:
         return None
 
     @staticmethod
+    def _movie_sets_folder() -> Optional[str]:
+        """Configured movie sets folder, prompting once if unset."""
+        return PathBuilder._resolve_named_item_folder(
+            "videolibrary.moviesetsfolder",
+            "Movie Set Information Folder Not Configured",
+            "MSIF (Movie Set Information Folder) is not configured in Kodi settings.[CR][CR]"
+            "This folder stores artwork for movie sets (like 'The Matrix Collection').[CR][CR]"
+            "Would you like to select a folder now?",
+            "Select Movie Sets Folder"
+        )
+
+    @staticmethod
+    def _artist_folder() -> Optional[str]:
+        """Configured artist information folder, prompting once if unset."""
+        return PathBuilder._resolve_named_item_folder(
+            "musiclibrary.artistsfolder",
+            "Artist Information Folder Not Configured",
+            "Artist Information Folder is not configured in Kodi settings.[CR][CR]"
+            "This folder stores artwork and metadata for music artists.[CR][CR]"
+            "Would you like to select a folder now?",
+            "Select Artist Information Folder"
+        )
+
+    @staticmethod
+    def prepare_named_item_folders(media_types) -> None:
+        """Resolve set/artist folders up front; the prompt is modal and must not hit a worker."""
+        if 'set' in media_types:
+            PathBuilder._movie_sets_folder()
+        if 'artist' in media_types:
+            PathBuilder._artist_folder()
+
+    @staticmethod
     def _resolve_named_item_folder(setting: str, heading: str, message: str,
                                    browse_heading: str) -> Optional[str]:
-        """Get a Kodi folder setting; prompt the user to configure one if missing."""
-        folder = PathBuilder._get_kodi_folder_setting(setting)
-        if not folder:
-            folder = PathBuilder._configure_kodi_folder_setting(
-                setting, heading, message, browse_heading
-            )
-        return folder
+        """Get a Kodi folder setting; prompt the user to configure one if missing.
+
+        Cached per setting: worker threads reach this per artwork, and the prompt is modal.
+        """
+        with PathBuilder._folder_lock:
+            if setting in PathBuilder._folder_cache:
+                return PathBuilder._folder_cache[setting]
+
+            folder = PathBuilder._get_kodi_folder_setting(setting)
+            if not folder:
+                folder = PathBuilder._configure_kodi_folder_setting(
+                    setting, heading, message, browse_heading
+                )
+
+            PathBuilder._folder_cache[setting] = folder
+            return folder
 
     @staticmethod
     def _get_music_thumb_filename() -> str:
@@ -295,14 +402,7 @@ class PathBuilder:
                 return vfs_join(dir_path, artwork_type)
 
         elif media_type == 'set':
-            movie_sets_folder = PathBuilder._resolve_named_item_folder(
-                "videolibrary.moviesetsfolder",
-                "Movie Set Information Folder Not Configured",
-                "MSIF (Movie Set Information Folder) is not configured in Kodi settings.[CR][CR]"
-                "This folder stores artwork for movie sets (like 'The Matrix Collection').[CR][CR]"
-                "Would you like to select a folder now?",
-                "Select Movie Sets Folder"
-            )
+            movie_sets_folder = PathBuilder._movie_sets_folder()
             if not movie_sets_folder:
                 return None
 
@@ -318,14 +418,7 @@ class PathBuilder:
             return vfs_join(movie_sets_folder, sanitized_title, clean_art_type)
 
         elif media_type == 'artist':
-            artist_folder = PathBuilder._resolve_named_item_folder(
-                "musiclibrary.artistsfolder",
-                "Artist Information Folder Not Configured",
-                "Artist Information Folder is not configured in Kodi settings.[CR][CR]"
-                "This folder stores artwork and metadata for music artists.[CR][CR]"
-                "Would you like to select a folder now?",
-                "Select Artist Information Folder"
-            )
+            artist_folder = PathBuilder._artist_folder()
             if not artist_folder:
                 return None
 
