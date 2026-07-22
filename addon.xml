@@ -37,15 +37,6 @@
 - Changing the "save with base filename" setting no longer re-downloads artwork that's already saved the other way
 - Artist artwork now saves to the correct folder when multiple artists share a name
 
-2.0.0~beta42
-- Pre-cache + download now saves artwork for movie sets, seasons, artists and albums
-- Pre-cache + download is much lighter on the system during long runs
-
-2.0.0~beta41
-- Fixed applying all missing artwork failing on the first item
-- The scan progress bar no longer sits still while seasons are loaded, and cancel now works during that stage
-- Corrected the button labels and wording on the artwork summary dialogs
-
 2.0.0-Betas
 - Complete rewrite of the service
 - Online metadata and multi-source ratings (TMDb, OMDb, MDBList, Trakt, IMDb, Rotten Tomatoes, Metacritic and more)
