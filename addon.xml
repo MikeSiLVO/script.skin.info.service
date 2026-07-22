@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta42"
+	   version="2.0.0~beta43"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,6 +32,11 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta43
+- Pre-cache + download stops cleanly instead of hanging when downloads stall on an unreachable source
+- Changing the "save with base filename" setting no longer re-downloads artwork that's already saved the other way
+- Artist artwork now saves to the correct folder when multiple artists share a name
+
 2.0.0~beta42
 - Pre-cache + download now saves artwork for movie sets, seasons, artists and albums
 - Pre-cache + download is much lighter on the system during long runs

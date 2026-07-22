@@ -255,6 +255,14 @@ msgctxt "#32065"
 msgid "Not configured"
 msgstr ""
 
+msgctxt "#32066"
+msgid "Stopped early: downloads stalled"
+msgstr ""
+
+msgctxt "#32067"
+msgid "No progress for over {0} seconds. Run it again to finish the rest."
+msgstr ""
+
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
 msgstr ""

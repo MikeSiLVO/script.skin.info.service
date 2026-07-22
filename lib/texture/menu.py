@@ -9,6 +9,7 @@ from typing import Optional, List, Union, Dict, Any
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog
+from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 
 _RESUME_HINT = "[B]CANCEL TO RESUME LATER[/B]"
 from lib.kodi.client import log, ADDON
@@ -145,6 +146,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
             progress.close()
 
         cancelled = stats.get('cancelled', False)
+        stalled = stats.get('stalled', False)
 
         if enable_download:
             total = stats['total_urls']
@@ -155,7 +157,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
             download_failed = stats['download_failed']
             mb = stats['bytes_downloaded'] / (1024 * 1024) if stats['bytes_downloaded'] > 0 else 0
 
-            title = (ADDON.getLocalizedString(32459) if cancelled
+            title = (ADDON.getLocalizedString(32459) if cancelled or stalled
                      else ADDON.getLocalizedString(32460))
 
             message_parts = [
@@ -194,7 +196,13 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
             if stats['failed'] > 0:
                 message_parts.append(ADDON.getLocalizedString(32470).format(stats['failed']))
 
-        if cancelled:
+        if stalled:
+            message_parts.append("")
+            message_parts.append(f"[B]{ADDON.getLocalizedString(32066)}[/B]")
+            message_parts.append(
+                ADDON.getLocalizedString(32067).format(STALL_TIMEOUT_SECONDS)
+            )
+        elif cancelled:
             message_parts.append("")
             message_parts.append(f"[B]{ADDON.getLocalizedString(32471)}[/B]")
 

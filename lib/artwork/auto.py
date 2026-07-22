@@ -52,6 +52,10 @@ class ArtworkAuto:
         }
         self.applied_items = []
         self.skipped_items = []
+        # One downloader for the whole run: a per-item instance resets the provider and
+        # file-write error counters, so the blocking they exist for could never engage.
+        self._downloader = None
+        self.savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
         if source_fetcher:
             self.source_fetcher = source_fetcher
@@ -134,6 +138,9 @@ class ArtworkAuto:
             self._update_progress(force=True)
         finally:
             self.progress.close()
+            if self._downloader is not None:
+                self._downloader.close()
+                self._downloader = None
 
         self._show_summary()
 
@@ -263,7 +270,7 @@ class ArtworkAuto:
         try:
             from lib.kodi.client import KODI_GET_DETAILS_METHODS
             from lib.download.artwork import DownloadArtwork
-            from lib.infrastructure.paths import PathBuilder
+            from lib.infrastructure.paths import PathBuilder, use_basename_for
 
             if media_type not in KODI_GET_DETAILS_METHODS:
                 return
@@ -291,13 +298,26 @@ class ArtworkAuto:
                 return
 
             path_builder = PathBuilder()
+            use_basename = use_basename_for(media_type, self.savewith_basefilename)
             local_path = path_builder.build_path(
                 media_type=media_type,
                 media_file=media_file,
                 artwork_type=artwork_type,
                 season_number=season,
-                use_basename=True
+                use_basename=use_basename
             )
+
+            # Art saved under the opposite naming convention still counts as present,
+            # otherwise flipping the setting re-downloads beside the old files.
+            alternate_path = None
+            if media_type in ('movie', 'musicvideo'):
+                alternate_path = path_builder.build_path(
+                    media_type=media_type,
+                    media_file=media_file,
+                    artwork_type=artwork_type,
+                    season_number=season,
+                    use_basename=not use_basename
+                )
 
             if not local_path:
                 log("Artwork",
@@ -309,11 +329,14 @@ class ArtworkAuto:
                 int(existing_file_mode_setting) if existing_file_mode_setting else 0)
             existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
 
-            downloader = DownloadArtwork()
-            success, error, bytes_downloaded, _ = downloader.download_artwork(
+            if self._downloader is None:
+                self._downloader = DownloadArtwork()
+
+            success, error, bytes_downloaded, _ = self._downloader.download_artwork(
                 url=url,
                 local_path=local_path,
-                existing_file_mode=existing_file_mode
+                existing_file_mode=existing_file_mode,
+                alternate_path=alternate_path
             )
 
             if success:

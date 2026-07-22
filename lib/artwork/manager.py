@@ -271,7 +271,7 @@ def _download_selected_artwork(
 ) -> None:
     """Download selected artwork to filesystem."""
     from lib.download.artwork import DownloadArtwork
-    from lib.infrastructure.paths import PathBuilder
+    from lib.infrastructure.paths import PathBuilder, use_basename_for
 
     if media_type not in KODI_GET_DETAILS_METHODS:
         return
@@ -341,9 +341,7 @@ def _download_selected_artwork(
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
-    use_basename = media_type == 'episode' \
-        or media_type == 'movie' and savewith_basefilename \
-        or media_type == 'musicvideo'
+    use_basename = use_basename_for(media_type, savewith_basefilename)
 
     path_builder = PathBuilder()
     downloader = DownloadArtwork()

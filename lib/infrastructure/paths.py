@@ -5,7 +5,7 @@ import threading
 
 import xbmcgui
 import xbmcvfs
-from typing import Any, Optional, Tuple, Dict, List
+from typing import Any, Optional, Tuple, Dict, List, Set
 
 from lib.kodi.client import request, get_library_items
 
@@ -153,6 +153,75 @@ def get_album_folders(album_ids: List[int]) -> Dict[int, str]:
     return folders
 
 
+class DirectoryListing:
+    """Per-directory filename cache, so existence checks cost one listing instead of a stat each.
+
+    Every stat is a network round trip serialised behind Kodi's global NFS/SMB lock.
+    """
+
+    def __init__(self, max_dirs: int = 4096):
+        self._dirs: Dict[str, Set[str]] = {}
+        self.max_dirs = max_dirs
+
+    def files(self, directory: str) -> Optional[Set[str]]:
+        """Lowercased filenames in `directory`; None when it can't be listed or came back empty.
+
+        listdir reports an unreachable share and an empty folder identically, so an empty
+        result is never trusted or cached. Names are folded because xbmcvfs.exists is
+        case-insensitive on NTFS and SMB.
+        """
+        cached = self._dirs.get(directory)
+        if cached is not None:
+            return cached
+
+        try:
+            _subdirs, names = xbmcvfs.listdir(vfs_ensure_dir_slash(directory))
+        except Exception:
+            return None
+
+        if not names:
+            return None
+
+        listing = {name.lower() for name in names}
+        if len(self._dirs) >= self.max_dirs:
+            self._dirs.clear()
+        self._dirs[directory] = listing
+        return listing
+
+    def note_written(self, full_path: str) -> None:
+        """Record a file just created, so a later lookup in that folder sees it."""
+        directory, filename = vfs_split(full_path)
+        listing = self._dirs.get(directory)
+        if listing is not None:
+            listing.add(filename.lower())
+
+    def find_with_extension(self, base_path: str, extensions) -> Optional[str]:
+        """First existing `base_path.<ext>`, falling back to per-file stat when unlisted."""
+        directory, filename = vfs_split(base_path)
+
+        listing = self.files(directory) if directory else None
+        if listing is not None:
+            for ext in extensions:
+                if (filename + '.' + ext).lower() in listing:
+                    return xbmcvfs.validatePath(base_path + '.' + ext)
+            return None
+
+        for ext in extensions:
+            candidate = xbmcvfs.validatePath(base_path + '.' + ext)
+            if xbmcvfs.exists(candidate):
+                return candidate
+        return None
+
+
+def use_basename_for(media_type: str, savewith_basefilename: bool) -> bool:
+    """True when art saves as `<mediafile>-<type>` rather than a bare `<type>` in the folder.
+
+    Callers read the setting once per run and pass it, since it can't change mid-operation.
+    """
+    return (media_type in ('episode', 'musicvideo')
+            or (media_type == 'movie' and savewith_basefilename))
+
+
 def resolve_media_file(item: Dict[str, Any],
                        album_folders: Optional[Dict[int, str]] = None,
                        tvshow_paths: Optional[Dict[int, str]] = None) -> str:
@@ -182,6 +251,8 @@ class PathBuilder:
     _music_thumb_filename: Optional[str] = None
     _folder_cache: Dict[str, Optional[str]] = {}
     _folder_lock = threading.Lock()
+    _artist_counts: Dict[str, int] = {}
+    _artist_count_lock = threading.Lock()
 
     @staticmethod
     def _get_kodi_folder_setting(setting: str) -> str:
@@ -314,13 +385,25 @@ class PathBuilder:
 
     @staticmethod
     def _count_library_artists(artist_name: str) -> int:
-        """Count how many library artists share `artist_name` (for MBID-based disambiguation)."""
+        """Count how many library artists share `artist_name` (for MBID-based disambiguation).
+
+        Cached: worker threads reach this once per artist art item.
+        """
+        with PathBuilder._artist_count_lock:
+            cached = PathBuilder._artist_counts.get(artist_name)
+        if cached is not None:
+            return cached
+
         response = request("AudioLibrary.GetArtists", {
             "filter": {"field": "artist", "operator": "is", "value": artist_name}
         })
+        count = 1
         if response and "artists" in response.get("result", {}):
-            return len(response["result"]["artists"])
-        return 1
+            count = len(response["result"]["artists"])
+
+        with PathBuilder._artist_count_lock:
+            PathBuilder._artist_counts[artist_name] = count
+        return count
 
     @staticmethod
     def _find_movie_root(path: str) -> str:

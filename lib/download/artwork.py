@@ -7,12 +7,12 @@ import urllib.parse
 import requests
 import xbmc
 import xbmcvfs
-from typing import Optional, Tuple, Dict, Set, Callable
+from typing import Optional, Tuple, Dict, Callable
 
 from lib.kodi.client import log
 from lib.data.api.client import ApiSession
 from lib.data.api.client import RetryableError
-from lib.infrastructure.paths import vfs_ensure_dir_slash, vfs_split
+from lib.infrastructure.paths import vfs_ensure_dir_slash, DirectoryListing
 
 
 # Every chunk costs an abort check and a VFS write, both of which cross into Kodi.
@@ -56,8 +56,7 @@ class DownloadArtwork:
         self.max_provider_errors = 3
         self.max_file_errors = 3
         self.block_cooldown = 30.0
-        self._dir_files: Dict[str, Set[str]] = {}
-        self.max_cached_dirs = 4096
+        self.listing = DirectoryListing()
 
         self.session = ApiSession(
             service_name="Artwork",
@@ -168,7 +167,7 @@ class DownloadArtwork:
             bytes_written = self._write_file_stream(
                 full_path, response, abort_flag, progress_callback
             )
-            self._note_written_file(local_path + '.' + ext)
+            self.listing.note_written(local_path + '.' + ext)
 
             if existing_file_mode == 'overwrite':
                 stale_bases = [local_path]
@@ -209,55 +208,9 @@ class DownloadArtwork:
             log("Download", f"Unexpected error downloading {url}: {str(e)}", xbmc.LOGERROR)
             return False, f"Unexpected error: {str(e)}", 0, self.ERROR_UNEXPECTED
 
-    def _list_dir_files(self, directory: str) -> Optional[Set[str]]:
-        """Lowercased filename set for `directory`, or None to fall back to per-file checks.
-
-        listdir reports an unreachable share and an empty folder identically, so an empty
-        result is never trusted or cached. Names are folded because xbmcvfs.exists is
-        case-insensitive on NTFS and SMB.
-        """
-        cached = self._dir_files.get(directory)
-        if cached is not None:
-            return cached
-
-        try:
-            _subdirs, files = xbmcvfs.listdir(vfs_ensure_dir_slash(directory))
-        except Exception:
-            return None
-
-        if not files:
-            return None
-
-        listing = {name.lower() for name in files}
-        if len(self._dir_files) >= self.max_cached_dirs:
-            self._dir_files.clear()
-        self._dir_files[directory] = listing
-        return listing
-
-    def _note_written_file(self, full_path: str) -> None:
-        """Keep the directory cache honest about a file this downloader just created."""
-        directory, filename = vfs_split(full_path)
-        listing = self._dir_files.get(directory)
-        if listing is not None:
-            listing.add(filename.lower())
-
     def _find_existing_with_extension(self, base_path: str) -> Optional[str]:
         """Return the first existing file at `base_path.<ext>` for any known extension, or None."""
-        directory, filename = vfs_split(base_path)
-
-        # Each stat is a network round trip serialised behind Kodi's global NFS/SMB lock.
-        listing = self._list_dir_files(directory) if directory else None
-        if listing is not None:
-            for ext_type in self.CONTENT_TYPE_MAP.values():
-                if (filename + '.' + ext_type).lower() in listing:
-                    return xbmcvfs.validatePath(base_path + '.' + ext_type)
-            return None
-
-        for ext_type in self.CONTENT_TYPE_MAP.values():
-            test_path = xbmcvfs.validatePath(base_path + '.' + ext_type)
-            if xbmcvfs.exists(test_path):
-                return test_path
-        return None
+        return self.listing.find_with_extension(base_path, self.CONTENT_TYPE_MAP.values())
 
     def _get_extension(self, response) -> Optional[str]:
         """Extract file extension from the response's Content-Type, or None if unrecognised."""

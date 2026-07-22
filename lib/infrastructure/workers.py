@@ -26,6 +26,8 @@ def get_optimal_worker_count() -> int:
 # Kodi serialises all NFS/SMB I/O on one global lock and caches textures one at a time.
 VFS_WORKER_COUNT = 2
 
+STALL_TIMEOUT_SECONDS = 120
+
 
 class WorkerQueue:
     """Multi-threaded worker queue base. Subclasses override `_process_item()` for specific work."""

@@ -11,8 +11,11 @@ from typing import Optional, List, Dict, Tuple, Any
 
 from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items
 from lib.download.queue import DownloadQueue
-from lib.infrastructure.paths import PathBuilder, get_album_folders, resolve_media_file
+from lib.infrastructure.paths import (
+    DirectoryListing, PathBuilder, get_album_folders, resolve_media_file, use_basename_for
+)
 from lib.infrastructure.tasks import TaskContext
+from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 from lib.kodi.client import log, ADDON, is_inherited_art
 from lib.data import database as db
@@ -23,7 +26,7 @@ LOG_FILE = LOG_DIR + 'artwork_download.log'
 LOG_FILE_PREVIOUS = LOG_DIR + 'artwork_download_previous.log'
 MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
-STALL_TIMEOUT_SECONDS = 120
+ART_EXTENSIONS = ('jpg', 'png', 'gif', 'webp')
 
 ERROR_CATEGORY_LABELS = {
     'network': "Network errors (timeouts / connection failures)",
@@ -189,6 +192,7 @@ def build_download_jobs(
     log("Artwork", f"Building download jobs from {len(items)} library items", xbmc.LOGDEBUG)
     jobs = []
     path_builder = PathBuilder()
+    listing = DirectoryListing()
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
@@ -208,9 +212,7 @@ def build_download_jobs(
             skipped_no_path += 1
             continue
 
-        use_basename = media_type == 'episode' \
-            or media_type == 'movie' and savewith_basefilename \
-            or media_type == 'musicvideo'
+        use_basename = use_basename_for(media_type, savewith_basefilename)
 
         for art_type, url in art.items():
             if not url or not url.startswith('http'):
@@ -254,20 +256,17 @@ def build_download_jobs(
                     use_basename=not use_basename
                 )
 
-                if alternate_path:
-                    for ext in ['jpg', 'png', 'gif', 'webp']:
-                        if xbmcvfs.exists(alternate_path + '.' + ext):
-                            if media_type == 'movie':
-                                if use_basename:
-                                    mismatch_counts['movie_folder_to_basename'] += 1
-                                else:
-                                    mismatch_counts['movie_basename_to_folder'] += 1
-                            else:
-                                if use_basename:
-                                    mismatch_counts['mvid_folder_to_basename'] += 1
-                                else:
-                                    mismatch_counts['mvid_basename_to_folder'] += 1
-                            break
+                if alternate_path and listing.find_with_extension(alternate_path, ART_EXTENSIONS):
+                    if media_type == 'movie':
+                        if use_basename:
+                            mismatch_counts['movie_folder_to_basename'] += 1
+                        else:
+                            mismatch_counts['movie_basename_to_folder'] += 1
+                    else:
+                        if use_basename:
+                            mismatch_counts['mvid_folder_to_basename'] += 1
+                        else:
+                            mismatch_counts['mvid_basename_to_folder'] += 1
 
             jobs.append((url, local_path, art_type, title, alternate_path, media_type))
 

@@ -49,6 +49,13 @@ View results from the last download operation.
 | Include TV Episode Guest Stars | Download guest stars from all episodes (disabled by default) |
 | Include Episode Thumbnails | Download episode thumbnails during bulk operations (disabled by default) |
 
+### Changing a filename prefix
+
+The prefix settings only decide how *new* files are named; they don't rename what's already on disk. Flipping one is affected by **When File Already Exists**:
+
+- **Skip:** existing artwork keeps its current filename. Kodi reads both `Movie-poster.jpg` and `poster.jpg`, so the art still shows and nothing is re-downloaded.
+- **Overwrite:** artwork is saved under the new name and the old file is removed, migrating the whole library to the new convention.
+
 ## Notes
 
 - Actor images use the thumbnail URL from Kodi's library (typically from TMDB)
