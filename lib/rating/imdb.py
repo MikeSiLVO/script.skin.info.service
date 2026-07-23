@@ -20,6 +20,8 @@ from lib.rating.ids import get_tvshow_uniqueid, prefetch_tvshow_uniqueids, updat
 
 PROGRESS_SAVE_INTERVAL = 50
 
+_RATING_EPSILON = 0.05  # IMDb ratings are 1-decimal; ignore sub-step drift from other scrapers
+
 _DRIP_DELAY = {
     "idle": {"movie": 0, "tvshow": 0, "episode": 0},
     "library": {"movie": 500, "tvshow": 1500, "episode": 1500},
@@ -295,7 +297,8 @@ def _collect_new_library_items(
             existing_imdb = item.get("ratings", {}).get("imdb", {})
             existing_rating = existing_imdb.get("rating") if existing_imdb else None
 
-            if existing_rating is not None and abs(existing_rating - rating_data["rating"]) <= 0.01:
+            if (existing_rating is not None
+                    and abs(existing_rating - rating_data["rating"]) < _RATING_EPSILON):
                 unchanged_syncs.append(
                     (mtype, item[id_key], 'imdb', imdb_id,
                      rating_data["rating"], rating_data["votes"])
@@ -671,7 +674,7 @@ def prepare_imdb_update(
     old_rating = existing_imdb.get("rating") if existing_imdb else None
 
     is_add = old_rating is None
-    if not is_add and abs(old_rating - new_rating) <= 0.01:
+    if not is_add and abs(old_rating - new_rating) < _RATING_EPSILON:
         return (dbid, None, imdb_id, new_rating, new_votes, title, str(year) if year else "", False)
 
     kodi_ratings = {
@@ -747,7 +750,7 @@ def update_single_item_imdb(item: Dict, media_type: str, abort_flag=None,
 
     if old_rating is None:
         added_ratings.append(f"imdb ({new_rating:.1f})")
-    elif abs(old_rating - new_rating) > 0.01:
+    elif abs(old_rating - new_rating) >= _RATING_EPSILON:
         updated_ratings.append(f"imdb ({old_rating:.1f} -> {new_rating:.1f})")
     else:
         return True, None

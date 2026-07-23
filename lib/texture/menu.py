@@ -101,15 +101,12 @@ def _handle_precache_download():
 
 def _run_precache(selected_types: Optional[List[str]], enable_download: bool):
     """Execute precache with selected scope and mode."""
-    from lib.infrastructure.menus import Menu, MenuItem
+    from lib.infrastructure.menus import run_with_mode_choice
 
-    mode_menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411),
-                 lambda: _execute_precache(selected_types, enable_download, False)),
-        MenuItem(ADDON.getLocalizedString(32412),
-                 lambda: _execute_precache(selected_types, enable_download, True)),
-    ])
-    return mode_menu.show()
+    return run_with_mode_choice(
+        ADDON.getLocalizedString(32455),
+        lambda bg: _execute_precache(selected_types, enable_download, bg),
+    )
 
 
 def _execute_precache(selected_types: Optional[List[str]], enable_download: bool,
@@ -123,9 +120,6 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
     operation_name = ADDON.getLocalizedString(32455)
 
     try:
-        if not task_manager.acquire_task_slot(operation_name, use_background):
-            return
-
         with task_manager.TaskContext(operation_name) as ctx:
             progress = ProgressDialog(
                 use_background=use_background,
@@ -252,13 +246,12 @@ def _show_advanced_cleanup_menu():
 
 def _handle_standard_cleanup():
     """Handle standard orphaned texture cleanup."""
-    from lib.infrastructure.menus import Menu, MenuItem
+    from lib.infrastructure.menus import run_with_mode_choice
 
-    menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), lambda: _execute_standard_cleanup(False)),
-        MenuItem(ADDON.getLocalizedString(32412), lambda: _execute_standard_cleanup(True)),
-    ])
-    return menu.show()
+    return run_with_mode_choice(
+        ADDON.getLocalizedString(32334),
+        _execute_standard_cleanup,
+    )
 
 
 def _execute_standard_cleanup(use_background: bool) -> None:
@@ -269,9 +262,6 @@ def _execute_standard_cleanup(use_background: bool) -> None:
     dialog = xbmcgui.Dialog()
 
     try:
-        if not task_manager.acquire_task_slot(ADDON.getLocalizedString(32334), use_background):
-            return
-
         with task_manager.TaskContext(ADDON.getLocalizedString(32334)) as ctx:
             progress = ProgressDialog(
                 use_background=use_background,
@@ -539,15 +529,12 @@ def _execute_age_cleanup(age_days: int) -> None:
         dialog.ok(ADDON.getLocalizedString(32184), f"Failed to analyze textures:[CR]{str(e)}")
         return
 
-    from lib.infrastructure.menus import Menu, MenuItem
+    from lib.infrastructure.menus import run_with_mode_choice
 
-    menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411),
-                 lambda: _execute_age_cleanup_with_mode(age_days, False, textures)),
-        MenuItem(ADDON.getLocalizedString(32412),
-                 lambda: _execute_age_cleanup_with_mode(age_days, True, textures)),
-    ])
-    return menu.show()
+    return run_with_mode_choice(
+        ADDON.getLocalizedString(32333),
+        lambda bg: _execute_age_cleanup_with_mode(age_days, bg, textures),
+    )
 
 
 def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
@@ -559,9 +546,6 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
     dialog = xbmcgui.Dialog()
 
     try:
-        if not task_manager.acquire_task_slot(ADDON.getLocalizedString(32333), use_background):
-            return
-
         with task_manager.TaskContext(ADDON.getLocalizedString(32333)) as ctx:
             if use_background:
                 progress = xbmcgui.DialogProgressBG()

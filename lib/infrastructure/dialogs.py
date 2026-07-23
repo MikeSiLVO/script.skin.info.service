@@ -98,6 +98,34 @@ class ProgressDialog:
         return False
 
 
+class BackgroundNotice:
+    """Background progress bar shown on demand, for slow work that only sometimes runs.
+
+    Pass `start` as an on-demand callback so the bar appears only when the work fires
+    (e.g. a dataset download that's skipped when the cache is current).
+    """
+
+    def __init__(self, heading: str, message: str):
+        self.heading = heading
+        self.message = message
+        self._dialog: Optional[xbmcgui.DialogProgressBG] = None
+
+    def start(self) -> None:
+        """Show the bar if not already shown."""
+        if self._dialog is None:
+            self._dialog = xbmcgui.DialogProgressBG()
+            self._dialog.create(self.heading, self.message)
+
+    def close(self) -> None:
+        """Close the bar if it was shown."""
+        if self._dialog is not None:
+            try:
+                self._dialog.close()
+            except Exception:
+                pass
+            self._dialog = None
+
+
 def show_notification(
     heading: str,
     message: str,

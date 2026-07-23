@@ -64,11 +64,12 @@ class ApiImdbDataset:
         """Check if the dataset has been imported to the database."""
         return db_imdb.is_dataset_available()
 
-    def refresh_if_stale(self, abort_flag=None) -> RefreshResult:
+    def refresh_if_stale(self, abort_flag=None, on_download_start=None) -> RefreshResult:
         """Check for updates (via HTTP Last-Modified) and download if remote is newer.
 
         `Updated` if dataset was downloaded, `Current` if local matches remote,
-        `Failed` if any network/import step errored.
+        `Failed` if any network/import step errored. `on_download_start` fires once
+        if a download actually begins, so callers can skip UI on the up-to-date path.
         """
         try:
             remote_mod = self._get_remote_last_modified(abort_flag)
@@ -81,22 +82,30 @@ class ApiImdbDataset:
                 return RefreshResult.Current
 
             log("IMDb", f"Dataset update available (local: {local_mod}, remote: {remote_mod})")
-            return (RefreshResult.Updated if self._download_and_import(abort_flag)
+            return (RefreshResult.Updated
+                    if self._download_and_import(abort_flag, on_download_start=on_download_start)
                     else RefreshResult.Failed)
 
         except Exception as e:
             log("IMDb", f"Error checking for dataset updates: {e}", xbmc.LOGWARNING)
             return RefreshResult.Failed
 
-    def force_download(self, abort_flag=None) -> bool:
+    def force_download(self, abort_flag=None, on_download_start=None) -> bool:
         """Force download the dataset regardless of cache state."""
-        return self._download_and_import(abort_flag, force=True)
+        return self._download_and_import(abort_flag, force=True,
+                                         on_download_start=on_download_start)
 
     def get_stats(self) -> dict[str, int | float | str | bool | None]:
         """Get dataset statistics (entry count, last modified date, downloaded timestamp)."""
         return db_imdb.get_dataset_stats()
 
-    def _download_and_import(self, abort_flag=None, force: bool = False) -> bool:
+    def _download_and_import(self, abort_flag=None, force: bool = False,
+                             on_download_start=None) -> bool:
+        """Download the dataset and swap it into the DB.
+
+        `on_download_start` fires once the server returns fresh data, right before the
+        multi-second stream+import, so callers can show progress for a real download only.
+        """
         try:
             log("IMDb", f"Downloading dataset from {DATASET_URL}...")
 
@@ -118,6 +127,12 @@ class ApiImdbDataset:
             if response.status_code == 304:
                 log("IMDb", "Dataset not modified (304), using cached version")
                 return False
+
+            if on_download_start:
+                try:
+                    on_download_start()
+                except Exception:
+                    pass
 
             last_mod = response.headers.get("Last-Modified")
 

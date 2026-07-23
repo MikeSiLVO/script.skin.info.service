@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Optional, Sequence, List, Dict, Set
 
 from lib.data.database._infrastructure import (
-    get_db, DB_PATH, chunked_in_query, sql_placeholders)
+    get_db, DB_PATH, sql_placeholders)
 
 
 def _insert_session_values(cursor: sqlite3.Cursor, junction_table: str, value_column: str,
@@ -59,26 +59,6 @@ def get_session_media_types(session_id: int) -> List[str]:
     """Public wrapper to retrieve media types for a session."""
     with get_db(DB_PATH) as cursor:
         return _get_session_media_types(cursor, session_id)
-
-
-def get_session_media_types_batch(session_ids: List[int]) -> Dict[int, List[str]]:
-    """Return `session_id -> [media_type]` for multiple sessions in one query."""
-    if not session_ids:
-        return {}
-
-    with get_db(DB_PATH) as cursor:
-        rows = chunked_in_query(cursor, '''
-            SELECT session_id, media_type
-            FROM session_media_types
-            WHERE session_id IN ({placeholders})
-            ORDER BY session_id, media_type
-        ''', [], session_ids)
-
-        result: Dict[int, List[str]] = {sid: [] for sid in session_ids}
-        for row in rows:
-            result[row['session_id']].append(row['media_type'])
-
-        return result
 
 
 def get_session_art_types(session_id: int) -> List[str]:
@@ -137,26 +117,9 @@ def complete_session(session_id: int) -> None:
     _update_session(session_id, 'completed', completed=datetime.now().isoformat())
 
 
-def pause_session(session_id: int, stats: dict) -> None:
-    """Mark session paused, saving current `stats` for later resume."""
-    _update_session(session_id, 'paused', stats=json.dumps(stats))
-
-
 def cancel_session(session_id: int) -> None:
     """Mark session as cancelled and timestamp completion."""
     _update_session(session_id, 'cancelled')
-
-
-def get_paused_sessions() -> List[sqlite3.Row]:
-    """Get all paused review sessions."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT * FROM scan_sessions
-            WHERE status = 'paused'
-            ORDER BY last_activity DESC
-        ''')
-
-        return cursor.fetchall()
 
 
 def get_session(session_id: int) -> Optional[sqlite3.Row]:
@@ -356,9 +319,9 @@ def update_synced_ratings_batch(items: List[tuple]) -> None:
 def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
     """Return previously-synced items whose IMDb rating/votes have drifted since.
 
-    Match criteria: rating diff > 0.01, OR votes crossed zero, OR votes changed by
-    any amount (<100 votes), >10% (100-1000), or >5% (1000+). Joins `ratings_synced`
-    to `imdb_ratings` in a single query.
+    Match criteria: rating diff >= 0.05 (half an IMDb step; ratings are 1-decimal), OR
+    votes crossed zero, OR votes changed by any amount (<100 votes), >10% (100-1000),
+    or >5% (1000+). Joins `ratings_synced` to `imdb_ratings` in a single query.
     Row fields: `media_type, dbid, imdb_id, new_rating, new_votes, old_rating, old_votes`.
     """
     query = '''
@@ -369,7 +332,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
         JOIN imdb_ratings r ON s.external_id = r.imdb_id
         WHERE s.source = 'imdb'
           AND (
-              ABS(s.rating - r.rating) > 0.01
+              ABS(s.rating - r.rating) >= 0.05
               OR (s.votes = 0 AND r.votes > 0)
               OR (s.votes > 0 AND s.votes < 100 AND r.votes != s.votes)
               OR (s.votes >= 100 AND s.votes < 1000

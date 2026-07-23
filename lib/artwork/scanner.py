@@ -22,12 +22,15 @@ from lib.kodi.client import log, ADDON
 class ArtworkScanner:
     """Scans library for missing artwork, builds queue for review."""
 
-    def __init__(self, fetcher: Optional[ApiArtworkFetcher] = None):
+    def __init__(self, fetcher: Optional[ApiArtworkFetcher] = None,
+                 use_background: bool = False, abort_flag=None, task_context=None):
         self.scan_mode = REVIEW_MODE_MISSING
         self.preferred_language = get_preferred_language_code()
         self.cancelled = False
+        self._abort_flag = abort_flag
+        self._task_context = task_context
         self.progress = ProgressDialog(
-            use_background=False, heading=ADDON.getLocalizedString(32273))
+            use_background=use_background, heading=ADDON.getLocalizedString(32273))
         self.progress.enable_throttling()
         self.scanned_count = 0
         self.queued_count = 0
@@ -41,6 +44,12 @@ class ArtworkScanner:
         else:
             from lib.data.api.artwork import create_default_fetcher
             self.fetcher = create_default_fetcher()
+
+    def _cancel_requested(self) -> bool:
+        """True if the scan dialog was cancelled or the owning task aborted."""
+        if self._abort_flag is not None and self._abort_flag.is_requested():
+            return True
+        return self.progress.is_cancelled()
 
     def _begin_scan_progress(self) -> None:
         """Create a single progress dialog for the entire scan."""
@@ -67,6 +76,8 @@ class ArtworkScanner:
         """Keep the bar moving while library data is still being fetched (seasons are per-show)."""
         percent = min(100, int((done * 100) / total)) if total else 0
         self.progress.update(percent, f"{progress_title}[CR]Loading library: {done}/{total}")
+        if self._task_context is not None:
+            self._task_context.mark_progress()
 
     def _update_scan_progress(
         self,
@@ -101,12 +112,11 @@ class ArtworkScanner:
 
         self.progress.update(percent, message)
 
-    def scan(self, media_type: str, resume_session_id: Optional[int] = None) -> bool:
+    def scan(self, media_type: str) -> bool:
         """Scan library for missing artwork.
 
         Args:
             media_type: "movies", "tvshows", "music", or "all".
-            resume_session_id: Optional session ID to resume from.
 
         Returns:
             True if scan queued any results or was cancelled gracefully, False on fatal error.
@@ -120,11 +130,8 @@ class ArtworkScanner:
             media_types.append("artist")
             media_types.append("album")
 
-        if resume_session_id:
-            session_id = resume_session_id
-        else:
-            all_art_types = self._get_art_types_to_check()
-            session_id = db.create_scan_session("missing_art", media_types, all_art_types)
+        all_art_types = self._get_art_types_to_check()
+        session_id = db.create_scan_session("missing_art", media_types, all_art_types)
 
         self._begin_scan_progress()
 
@@ -194,7 +201,8 @@ class ArtworkScanner:
         }
 
         if self.cancelled:
-            db.pause_session(session_id, stats)
+            db.update_session_stats(session_id, stats)
+            db.cancel_session(session_id)
             return True
 
         db.update_session_stats(session_id, stats)
@@ -230,11 +238,13 @@ class ArtworkScanner:
         art_items: List[dict] = []
 
         for item in items:
-            if self.progress.is_cancelled():
+            if self._cancel_requested():
                 self.cancelled = True
                 break
 
             self.scanned_count += 1
+            if self._task_context is not None:
+                self._task_context.mark_progress()
 
             title = item.get(title_key) or item.get('label') or 'Unknown'
             year_value = item.get(year_key) if year_key else ''
@@ -396,7 +406,7 @@ class ArtworkScanner:
                 **kwargs,
                 progress_callback=lambda _, done, total: self._update_fetch_progress(
                     progress_title, done, total),
-                abort_check=self.progress.is_cancelled,
+                abort_check=self._cancel_requested,
             )
         except LibraryScanAborted:
             self.cancelled = True

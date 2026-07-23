@@ -34,6 +34,8 @@ class ArtworkAuto:
         mode: str = 'full',
         source_fetcher: Optional[ApiArtworkFetcher] = None,
         enable_download: bool = False,
+        abort_flag=None,
+        task_context=None,
     ):
         self.progress = ProgressDialog(
             use_background=use_background, heading=ADDON.getLocalizedString(32072))
@@ -44,6 +46,8 @@ class ArtworkAuto:
         self.media_filter: Optional[Sequence[str]] = None
         self.preferred_language = get_preferred_language_code()
         self.enable_download = enable_download
+        self._abort_flag = abort_flag
+        self._task_context = task_context
         self.stats = {
             'processed': 0,
             'auto_applied': 0,
@@ -64,7 +68,9 @@ class ArtworkAuto:
             self.source_fetcher = create_default_fetcher()
 
     def _is_cancelled(self) -> bool:
-        """Check if progress dialog was cancelled."""
+        """True if the progress dialog was cancelled or the owning task aborted."""
+        if self._abort_flag is not None and self._abort_flag.is_requested():
+            return True
         return self.progress.is_cancelled()
 
     def _filter_candidates_for_mode(self, art_type: str, candidates: List[dict]) -> List[dict]:
@@ -131,6 +137,8 @@ class ArtworkAuto:
 
                     self._process_item(item)
                     self._update_progress()
+                    if self._task_context is not None:
+                        self._task_context.mark_progress()
 
                 if self.cancelled:
                     break

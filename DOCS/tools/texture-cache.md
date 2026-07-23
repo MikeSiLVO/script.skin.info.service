@@ -86,7 +86,7 @@ songs are not on an accessible file path is cached only.
 
 Both operations walk the whole library. Artwork already cached, and files
 already on disk, are skipped quickly, so a second run is much faster than the
-first. The operation can be cancelled at any point and resumed later.
+first. The operation can be cancelled at any point; re-running picks up where it left off.
 
 ### Cleanup finds no orphaned textures
 

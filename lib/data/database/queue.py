@@ -355,51 +355,6 @@ def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, in
     return stats
 
 
-def get_queue_breakdown_by_media() -> Dict[str, Dict[str, int]]:
-    """Return `media_type -> {status: count}`, e.g. `{'movie': {'pending': 5, 'completed': 2}}`."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT media_type, status, COUNT(*) as count
-            FROM art_queue
-            GROUP BY media_type, status
-        ''')
-
-        result = {}
-        for row in cursor.fetchall():
-            media_type = row['media_type']
-            status = row['status']
-            count = row['count']
-
-            if media_type not in result:
-                result[media_type] = {}
-            result[media_type][status] = count
-
-        return result
-
-
-def has_pending_queue() -> bool:
-    """Check if there are pending items in queue."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute(
-            'SELECT 1 FROM art_queue WHERE status = ? LIMIT 1',
-            (STATUS_PENDING,),
-        )
-        return cursor.fetchone() is not None
-
-
-def get_pending_media_counts(status: str = STATUS_PENDING) -> Dict[str, int]:
-    """Return `media_type -> count` for items with the given status."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT media_type, COUNT(*) as count
-            FROM art_queue
-            WHERE status = ?
-            GROUP BY media_type
-        ''', (status,))
-
-        return {row['media_type']: row['count'] for row in cursor.fetchall()}
-
-
 def count_pending_missing_art(media_types: Optional[Sequence[str]] = None) -> int:
     """Count pending `art_items` with `review_mode='missing'` whose queue row is also pending."""
     with get_db(DB_PATH) as cursor:
@@ -442,62 +397,6 @@ def count_queue_items(status: Optional[str] = None,
         cursor.execute(query, params)
         row = cursor.fetchone()
         return int(row['count']) if row else 0
-
-
-def prune_inactive_queue_items(statuses: Optional[Sequence[str]] = None) -> int:
-    """Remove queue items in a terminal state that have no pending art entries."""
-    terminal_statuses = tuple(
-        statuses if statuses is not None
-        else (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_CANCELLED, STATUS_ERROR))
-    if not terminal_statuses:
-        return 0
-
-    placeholders = _build_placeholders(len(terminal_statuses))
-
-    with get_db(DB_PATH) as cursor:
-        cursor.execute(
-            f'''
-            DELETE FROM art_queue
-            WHERE status IN ({placeholders})
-              AND id NOT IN (
-                  SELECT DISTINCT queue_id
-                  FROM art_items
-                  WHERE status = '{STATUS_PENDING}'
-              )
-            ''',
-            terminal_statuses
-        )
-        removed = cursor.rowcount
-
-    if removed > 0:
-        log("Database", f"Pruned {removed} inactive queue items")
-
-    return removed
-
-
-def restore_pending_queue_items(media_types: Optional[Sequence[str]] = None) -> int:
-    """Reset queue status to pending for items with pending art entries. Returns rows updated."""
-    with get_db(DB_PATH) as cursor:
-        query = '''
-            UPDATE art_queue
-            SET status = ?,
-                date_processed = NULL
-            WHERE status != ?
-              AND id IN (
-                  SELECT DISTINCT queue_id
-                  FROM art_items
-                  WHERE status = ?
-              )
-        '''
-        params: List[Any] = [STATUS_PENDING, STATUS_PENDING, STATUS_PENDING]
-
-        if media_types:
-            placeholders = _build_placeholders(len(media_types))
-            query += f' AND media_type IN ({placeholders})'
-            params.extend(media_types)
-
-        cursor.execute(query, params)
-        return cursor.rowcount
 
 
 def cleanup_old_queue_items(days_old: int = 30) -> int:

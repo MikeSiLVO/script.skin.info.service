@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta43"
+	   version="2.0.0~beta44"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,10 +32,11 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.0~beta43
-- Pre-cache + download stops cleanly instead of hanging when downloads stall on an unreachable source
-- Changing the "save with base filename" setting no longer re-downloads artwork that's already saved the other way
-- Artist artwork now saves to the correct folder when multiple artists share a name
+2.0.0~beta44
+- Rating updates show a progress bar while the IMDb ratings file downloads, instead of looking like they stalled
+- IMDb rating updates skip tiny changes below 0.1 to avoid needless rewrites
+- Artwork review no longer gets stuck on pending items after a cancelled scan
+- Auto-fill artwork, GIF scan and texture cache now use the same foreground/background prompt as ratings and downloads
 
 2.0.0-Betas
 - Complete rewrite of the service

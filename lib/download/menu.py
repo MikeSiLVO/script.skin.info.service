@@ -108,21 +108,10 @@ def _handle_download():
 
 def _select_mode(scope: str, media_filter: Optional[List[str]]):
     """Show foreground/background run-mode menu, then kick off the download."""
-    from lib.infrastructure import tasks as task_manager
-    from lib.infrastructure.menus import Menu, MenuItem
+    from lib.infrastructure.menus import run_with_mode_choice
 
-    def run_foreground():
-        if not task_manager.acquire_task_slot("Download Artwork", use_background=False):
-            return
-        download_scope_artwork(scope=scope, media_filter=media_filter, use_background=False)
-
-    def run_background():
-        if not task_manager.acquire_task_slot("Download Artwork", use_background=True):
-            return
-        download_scope_artwork(scope=scope, media_filter=media_filter, use_background=True)
-
-    mode_menu = Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), run_foreground),
-        MenuItem(ADDON.getLocalizedString(32412), run_background),
-    ])
-    return mode_menu.show()
+    return run_with_mode_choice(
+        "Download Artwork",
+        lambda bg: download_scope_artwork(
+            scope=scope, media_filter=media_filter, use_background=bg),
+    )

@@ -5,14 +5,14 @@ from typing import List, Optional, Tuple
 import xbmc
 import xbmcgui
 
-from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import request, get_api_key, log, KODI_GET_DETAILS_METHODS, ADDON
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource
 from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
 from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
 from lib.data.api.imdb import get_imdb_dataset
-from lib.infrastructure.dialogs import show_ok, show_textviewer, show_notification
+from lib.infrastructure.dialogs import (
+    show_ok, show_textviewer, show_notification, BackgroundNotice)
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.data.database import workflow as db
 from lib.data.database._infrastructure import init_database
@@ -62,19 +62,6 @@ def initialize_sources() -> List:
     return sources
 
 
-def _guard_background_start() -> bool:
-    """Show a notice if a background task is already running. Returns True if blocked."""
-    if not task_manager.is_task_running():
-        return False
-    task_info = task_manager.get_task_info()
-    current_task = task_info['name'] if task_info else "Unknown task"
-    show_ok(
-        ADDON.getLocalizedString(32172),
-        f"{ADDON.getLocalizedString(32173)}:[CR]{current_task}",
-    )
-    return True
-
-
 def run_ratings_menu() -> None:
     """Show ratings updater menu."""
     init_database()
@@ -105,22 +92,14 @@ def _run_update_all() -> None:
 
 def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str) -> None:
     """Show foreground/background picker, then run `update_library_ratings` per media type."""
-    def run_foreground():
+    from lib.infrastructure.menus import run_with_mode_choice
+
+    def run(use_background: bool) -> None:
         for media_type in media_types:
             update_library_ratings(
-                media_type, sources, use_background=False, source_mode=source_mode)
+                media_type, sources, use_background=use_background, source_mode=source_mode)
 
-    def run_background():
-        if _guard_background_start():
-            return
-        for media_type in media_types:
-            update_library_ratings(
-                media_type, sources, use_background=True, source_mode=source_mode)
-
-    Menu(ADDON.getLocalizedString(32410), [
-        MenuItem(ADDON.getLocalizedString(32411), run_foreground),
-        MenuItem(ADDON.getLocalizedString(32412), run_background),
-    ]).show()
+    run_with_mode_choice("Update Library Ratings", run)
 
 
 def _resolve_single_item_target(
@@ -203,7 +182,12 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
         xbmc.LOGINFO)
 
     init_database()
-    get_imdb_dataset().refresh_if_stale()
+    notice = BackgroundNotice(
+        ADDON.getLocalizedString(_RATINGS_HEADING_ID), ADDON.getLocalizedString(32305))
+    try:
+        get_imdb_dataset().refresh_if_stale(on_download_start=notice.start)
+    finally:
+        notice.close()
 
     sources = initialize_sources()
     if not sources:

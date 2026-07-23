@@ -9,7 +9,6 @@ Core functionality is in the artwork package (scanner, processor, api_integratio
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime
 from typing import Optional, List, Dict, Tuple, Any
 
@@ -24,7 +23,7 @@ from lib.kodi.client import (
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
-from lib.infrastructure.menus import Menu, MenuItem, RETURN_TO_MAIN_SENTINEL
+from lib.infrastructure.menus import Menu, MenuItem
 from lib.infrastructure.dialogs import (
     show_ok, show_yesno, show_textviewer, show_select, show_notification,
 )
@@ -38,7 +37,6 @@ from lib.artwork.config import (
     REVIEW_MODE_MISSING,
     SESSION_DETAIL_KEYS,
     default_session_stats as _default_session_stats,
-    load_session_stats as _load_session_stats,
     serialise_session_stats as _serialise_session_stats,
 )
 from lib.artwork.scanner import ArtworkScanner
@@ -46,18 +44,12 @@ from lib.artwork.scanner import ArtworkScanner
 MAX_REVIEW_LOG_ITEMS = 100
 
 
-def _count_pending_for_scope(pending_counts: Dict[str, int], scope: str) -> int:
-    """Return total pending items for a given review scope."""
-    if scope == 'all':
-        return sum(pending_counts.values())
-    media_types = REVIEW_MEDIA_FILTERS.get(scope, [])
-    return sum(pending_counts.get(mt, 0) for mt in media_types)
-
-
-def _scan_scope(scope: str) -> Optional[ArtworkScanner]:
+def _scan_scope(scope: str, use_background: bool = False,
+                abort_flag=None, task_context=None) -> Optional[ArtworkScanner]:
     """Run artwork scanner for the selected scope and return the scanner on success."""
 
-    scanner = ArtworkScanner()
+    scanner = ArtworkScanner(
+        use_background=use_background, abort_flag=abort_flag, task_context=task_context)
     log("Artwork", f"Running scan for scope '{scope}'")
     result = scanner.scan(scope)
     if not result:
@@ -935,7 +927,6 @@ class ArtworkSelection:
             Dict with keys: status, cancelled, session_id, remaining, stats.
             None if queue is empty.
         """
-        db.prune_inactive_queue_items()
         pending_check = db.get_next_batch(
             batch_size=1,
             status='pending',
@@ -1033,14 +1024,15 @@ class ArtworkSelection:
         self.remaining_pending = remaining
 
         if cancelled:
-            db.pause_session(
+            db.update_session_stats(
                 self.session_id, _serialise_session_stats(self._build_stats_payload())
             )
+            db.cancel_session(self.session_id)
             heading = (
-                f"Paused: manual {manual_total} "
+                f"Cancelled: manual {manual_total} "
                 f"(applied {applied_count}, skipped {skipped_count})"
             )
-            message = f"Auto-skipped: {auto_count}, Remaining: {remaining}"
+            message = f"Auto-skipped: {auto_count}"
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
         else:
             db.update_session_stats(
@@ -1055,18 +1047,17 @@ class ArtworkSelection:
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
 
         outcome = {
-            'status': 'paused' if cancelled else 'completed',
+            'status': 'cancelled' if cancelled else 'completed',
             'cancelled': cancelled,
             'session_id': self.session_id,
             'remaining': remaining,
             'stats': self._build_stats_payload()
         }
 
-        db.prune_inactive_queue_items()
         return outcome
 
     def _initialize_session(self) -> None:
-        """Create or resume the manual review session."""
+        """Create the manual review session."""
         if not self.session_id:
             self.session_id = db.create_scan_session(
                 scan_type='manual_review',
@@ -1074,33 +1065,6 @@ class ArtworkSelection:
                 art_types=[]
             )
             log("Artwork", f"Created review session {self.session_id}", xbmc.LOGDEBUG)
-            return
-
-        log("Artwork", f"Resuming review session {self.session_id}", xbmc.LOGDEBUG)
-
-        paused_sessions = [
-            s for s in db.get_paused_sessions()
-            if s['scan_type'] == 'manual_review'
-        ]
-        for session in paused_sessions:
-            if session['id'] == self.session_id:
-                saved_stats = _load_session_stats(session['stats'])
-                self.stats['applied'] = saved_stats['applied']
-                self.stats['skipped'] = saved_stats['skipped']
-                self.stats['auto'] = saved_stats['auto']
-                self.review_mode = REVIEW_MODE_MISSING
-                self.review_log = {
-                    key: [dict(entry) for entry in saved_stats['details'].get(key, [])]
-                    for key in SESSION_DETAIL_KEYS
-                }
-                self.remaining_pending = saved_stats['remaining']
-                self._session_base_stats = {
-                    'scanned': saved_stats.get('scanned'),
-                    'queued': saved_stats.get('queued')
-                }
-                stored_types = db.get_session_media_types(session['id'])
-                self.media_filter = stored_types or self.media_filter
-                break
 
     def _collect_pending_art_items(
         self,
@@ -1390,9 +1354,6 @@ class ArtworkManager:
         self.session_id: Optional[int] = None
         self.review_mode: str = REVIEW_MODE_MISSING
 
-    def _get_pending_counts(self) -> Dict[str, int]:
-        return db.get_pending_media_counts()
-
     def run(self) -> None:
         db.init_database()
         db.cleanup_old_queue_items()
@@ -1423,18 +1384,9 @@ class ArtworkManager:
         )
         self.session_id = None
 
-        pending_counts = self._get_pending_counts()
-        pending_for_scope = _count_pending_for_scope(pending_counts, self.scope)
         scope_label = REVIEW_SCOPE_LABELS.get(self.scope, self.scope.title())
 
         items = []
-
-        if pending_for_scope > 0:
-            items.append(
-                MenuItem(
-                    ADDON.getLocalizedString(32501).format(pending_for_scope), self._handle_resume
-                )
-            )
 
         items.append(
             MenuItem(
@@ -1470,7 +1422,7 @@ class ArtworkManager:
 
     def _run_auto_apply_and_return_false(self) -> bool:
         """Run auto-apply and return False to exit workflow."""
-        self._handle_auto_apply_missing()
+        self._run_auto_apply_mode()
         return False
 
     def _view_scope_report(self, scope_label: str) -> None:
@@ -1487,24 +1439,9 @@ class ArtworkManager:
             )
 
     def _select_intent(self):
-        """Show redesigned main menu with pending items surfaced."""
-        pending_counts = self._get_pending_counts()
-
+        """Show the artwork review main menu."""
         items = []
 
-        # Surface pending items immediately at the top
-        for scope, label in REVIEW_SCOPE_OPTIONS:
-            if scope == 'all':
-                continue
-            count = _count_pending_for_scope(pending_counts, scope)
-            if count > 0:
-                items.append(MenuItem(
-                    f"Resume {label} ({count} pending)",
-                    lambda s=scope: self._handle_resume_for_scope(s),
-                    loop=True
-                ))
-
-        # Main actions
         items.append(
             MenuItem(ADDON.getLocalizedString(32502), self._handle_manual_review_flow, loop=True)
         )
@@ -1525,15 +1462,6 @@ class ArtworkManager:
 
         menu = Menu(ADDON.getLocalizedString(32273), items)
         return menu.show()
-
-    def _handle_resume_for_scope(self, scope: str):
-        """Resume pending items for a specific scope."""
-        self.scope = scope
-        self.media_filter = (
-            None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
-        )
-        self.session_id = None
-        return self._handle_resume()
 
     def _handle_manual_review_flow(self):
         """Handle 'Browse & Choose Artwork' flow with scope selection."""
@@ -1579,6 +1507,15 @@ class ArtworkManager:
         menu = Menu(ADDON.getLocalizedString(32509), items)
         return menu.show()
 
+    def _run_auto_apply_mode(self) -> None:
+        """Foreground/background picker, then auto-apply for the current scope."""
+        from lib.infrastructure.menus import run_with_mode_choice
+
+        run_with_mode_choice(
+            ADDON.getLocalizedString(32072),
+            lambda bg: self._handle_auto_apply_missing(use_background=bg),
+        )
+
     def _run_auto_apply(self, scope: str) -> None:
         """Execute auto-apply for selected scope."""
         scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
@@ -1603,7 +1540,7 @@ class ArtworkManager:
         self.scope = scope
         self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope, None)
         self.session_id = None
-        self._handle_auto_apply_missing()
+        self._run_auto_apply_mode()
 
     def _handle_view_reports_flow(self):
         """Handle 'View Session History' flow with scope selection."""
@@ -1616,10 +1553,6 @@ class ArtworkManager:
                 items.append(
                     MenuItem(label, lambda s=scope: self._view_report_for_scope(s), loop=True)
                 )
-
-        items.append(
-            MenuItem(ADDON.getLocalizedString(32511), self._show_overall_queue_status, loop=True)
-        )
 
         menu = Menu(ADDON.getLocalizedString(32512), items)
         return menu.show()
@@ -1654,121 +1587,6 @@ class ArtworkManager:
                 3000
             )
 
-    def _show_overall_queue_status(self) -> None:
-        """Display overall queue status across all scopes."""
-        breakdown = db.get_queue_breakdown_by_media()
-
-        if not breakdown:
-            show_ok(
-                ADDON.getLocalizedString(32273),
-                ADDON.getLocalizedString(32288)
-            )
-            return
-
-        lines = [
-            "[B]Missing Artwork - Overall Queue Status[/B]",
-            f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-            ""
-        ]
-
-        total_pending = 0
-
-        for media_type, stats in sorted(breakdown.items()):
-            label = media_type.title() + 's'
-
-            pending = stats.get('pending', 0)
-            completed = stats.get('completed', 0)
-            skipped = stats.get('skipped', 0)
-
-            total_pending += pending
-
-            lines.append(f"{label}: {pending} pending, {completed} completed, {skipped} skipped")
-
-        lines.append("")
-        lines.append(f"[B]Total: {total_pending} pending items[/B]")
-
-        text = "[CR]".join(lines)
-        show_textviewer(ADDON.getLocalizedString(32513), text)
-
-    def _prompt_scan_mode(self) -> Optional[str]:
-        """Return missing artwork scan mode (only supported mode)."""
-        return REVIEW_MODE_MISSING
-
-    def _decide_session(self) -> Optional[bool]:
-        """Decide whether to scan or resume.
-
-        Returns:
-            True: Start new scan.
-            False: Resume existing queue.
-            None: Cancel.
-        """
-        if not self.scope:
-            return None
-
-        pending_counts = self._get_pending_counts()
-        pending_for_scope = _count_pending_for_scope(pending_counts, self.scope)
-        scope_label = REVIEW_SCOPE_LABELS.get(self.scope, self.scope.title())
-
-        session = self._find_matching_session()
-
-        return self._prompt_user_decision(session, pending_for_scope, scope_label)
-
-    def _prompt_user_decision(
-        self,
-        session: Optional[sqlite3.Row],
-        pending_count: int,
-        scope_label: str
-    ) -> Optional[bool]:
-        """Prompt user for session decision based on current state."""
-        has_pending = pending_count > 0
-        items = []
-
-        if session or has_pending:
-            items.append(
-                MenuItem(ADDON.getLocalizedString(32514), lambda s=session: self._start_new_scan(s))
-            )
-            if session and session['stats']:
-                items.append(
-                    MenuItem(
-                        ADDON.getLocalizedString(32515),
-                        lambda s=session: _show_session_report(s),
-                        loop=True,
-                    )
-                )
-        else:
-            items.append(
-                MenuItem(ADDON.getLocalizedString(32516), lambda s=session: self._start_new_scan(s))
-            )
-
-        menu = Menu(f"{scope_label}", items)
-        return menu.show()
-
-    def _start_new_scan(self, session: Optional[sqlite3.Row]) -> bool:
-        """Start a new scan, clearing existing session if needed."""
-        if session:
-            db.cancel_session(session['id'])
-        self._clear_scope_queue()
-        self.session_id = None
-        return True
-
-    def _find_matching_session(self) -> Optional[sqlite3.Row]:
-        target = set(self.media_filter or [])
-        paused_sessions = db.get_paused_sessions()
-
-        if not paused_sessions:
-            return None
-
-        session_ids = [s['id'] for s in paused_sessions]
-        media_types_map = db.get_session_media_types_batch(session_ids)
-
-        for session in paused_sessions:
-            if session['scan_type'] not in ('manual_review', 'missing_art'):
-                continue
-            stored = set(media_types_map.get(session['id'], []))
-            if target == stored:
-                return session
-        return None
-
     def _clear_scope_queue(self) -> None:
         if self.media_filter:
             db.clear_queue_for_media(self.media_filter)
@@ -1776,111 +1594,55 @@ class ArtworkManager:
             db.clear_queue_and_sessions()
         log("Artwork", "Cleared queue for scope")
 
-    def _handle_auto_apply_missing(self) -> None:
+    def _handle_auto_apply_missing(self, use_background: bool = False) -> None:
         from lib.artwork.auto import ArtworkAuto
+        from lib.infrastructure import tasks as task_manager
 
         if not self.scope:
             return
+
+        try:
+            with task_manager.TaskContext(ADDON.getLocalizedString(32072)) as ctx:
+                scanner = _scan_scope(
+                    self.scope, use_background=use_background,
+                    abort_flag=ctx.abort_flag, task_context=ctx)
+                if not scanner or scanner.cancelled:
+                    return
+
+                processor = ArtworkAuto(
+                    use_background=use_background, mode=REVIEW_MODE_MISSING,
+                    abort_flag=ctx.abort_flag, task_context=ctx)
+                processor.process_queue(media_types=self.media_filter)
+        except Exception as e:
+            log("Artwork", f"Auto-apply failed: {str(e)}", xbmc.LOGERROR)
+            show_notification(
+                ADDON.getLocalizedString(32072),
+                ADDON.getLocalizedString(32274),
+                xbmcgui.NOTIFICATION_ERROR,
+                4000,
+            )
+
+    def _handle_manual_review(self, enable_download: bool = False) -> bool:
+        if not self.scope:
+            return False
+
+        self.review_mode = REVIEW_MODE_MISSING
+        self._clear_scope_queue()
+        self.session_id = None
 
         scanner = _scan_scope(self.scope)
         if not scanner:
-            return
+            return False
         if scanner.cancelled:
-            return
+            return True
 
-        processor = ArtworkAuto(use_background=False, mode=REVIEW_MODE_MISSING)
-        processor.process_queue(media_types=self.media_filter)
-        db.restore_pending_queue_items(self.media_filter)
-
-    def _handle_resume(self) -> bool:
-        paused_session = self._find_matching_session()
-        if paused_session:
-            self.session_id = paused_session['id']
-            stored_types = db.get_session_media_types(paused_session['id'])
-            if stored_types:
-                self.media_filter = stored_types
-
-        if not self.scope:
-            return False
-
-        db.prune_inactive_queue_items()
-
-        pending_counts = self._get_pending_counts()
-        pending_total = _count_pending_for_scope(pending_counts, self.scope)
-
-        self.review_mode = REVIEW_MODE_MISSING
+        pending_total = db.count_queue_items(status='pending', media_types=self.media_filter)
 
         if pending_total == 0:
-            if paused_session and paused_session['scan_type'] == 'missing_art':
-                scanner = ArtworkScanner()
-                result = scanner.scan(self.scope, resume_session_id=paused_session['id'])
-                if not result:
-                    return False
-                if scanner.cancelled:
-                    return True
-
-                pending_counts = self._get_pending_counts()
-                pending_total = _count_pending_for_scope(pending_counts, self.scope)
-
-                if pending_total == 0:
-                    return False
-            else:
-                show_ok(
-                    ADDON.getLocalizedString(32273),
-                    ADDON.getLocalizedString(32289)
-                )
-                return False
-
-        reviewer = ArtworkSelection(
-            session_id=self.session_id,
-            media_filter=self.media_filter,
-        )
-        review_outcome = reviewer.review_queue()
-        if not review_outcome:
-            return False
-
-        return True
-
-    def _handle_manual_review(self, enable_download: bool = False) -> bool:
-        need_scan = self._decide_session()
-        if need_scan is None or need_scan is RETURN_TO_MAIN_SENTINEL:
-            return False
-
-        self.review_mode = REVIEW_MODE_MISSING
-
-        if need_scan or not self.session_id:
-            chosen_mode = self._prompt_scan_mode()
-            if chosen_mode != REVIEW_MODE_MISSING:
-                return False
-
-        if not self.scope:
-            return False
-
-        if need_scan:
-            scanner = _scan_scope(self.scope)
-            if not scanner:
-                return False
-            if scanner.cancelled:
-                return True
-
-        db.prune_inactive_queue_items()
-
-        pending_counts = self._get_pending_counts()
-        pending_total = _count_pending_for_scope(pending_counts, self.scope)
-
-        if pending_total == 0:
-            if need_scan:
-                show_ok(
-                    ADDON.getLocalizedString(32273),
-                    ADDON.getLocalizedString(32295)
-                )
-            else:
-                show_notification(
-                    ADDON.getLocalizedString(32273),
-                    ADDON.getLocalizedString(32171),
-                    xbmcgui.NOTIFICATION_INFO,
-                    3000
-                )
+            show_ok(
+                ADDON.getLocalizedString(32273),
+                ADDON.getLocalizedString(32295)
+            )
             return False
 
         reviewer = ArtworkSelection(

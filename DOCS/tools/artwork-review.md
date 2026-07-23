@@ -26,7 +26,6 @@ Scan library for missing artwork and fetch from TMDB and fanart.tv.
   - [Artwork Selection Dialog](#artwork-selection-dialog)
   - [Multi-Art Dialog Skinning](#multi-art-dialog-skinning)
   - [Testing Your Dialog XML](#testing-your-dialog-xml)
-- [Resume Capability](#resume-capability)
 - [Troubleshooting](#troubleshooting)
 - [Advanced Tips](#advanced-tips)
 
@@ -100,10 +99,9 @@ Choose which media types to review:
 
 After choosing a scope, select an action:
 
-- **Continue Review** - Resume a paused review session (shown when pending items exist)
-- **Manual Review** - Start or resume a manual review session with visual artwork selection
-- **Auto-Apply Missing Artwork** - Scan and automatically fill language-compliant empty slots
-- **View Last Report** - View statistics from your last review session (when available)
+- **Manual Review** - Scan, then visually pick artwork for each empty slot
+- **Auto-Apply Missing Artwork** - Scan and automatically fill language-compliant empty slots (foreground or background)
+- **View Reports** - View statistics from your last review session (when available)
 
 When starting **Manual Review**, choose what to scan for:
 
@@ -167,20 +165,13 @@ For fanart and other multi-image types, a special dialog allows:
 - Reorder by selection sequence
 - Apply changes in one batch
 
-### Auto Fetch Prompt
-
-After manual review completes or is paused, if any missing artwork remains, you'll see a prompt:
-
-- **Fetch** - Runs auto processor in "missing-only" mode, filling empty slots with language-compliant artwork
-- **Skip** - Leaves queue untouched for later manual review
-
 ## Processing Modes
 
 ### Auto-Process
 
 - Always applies the highest quality/resolution artwork
 - No user interaction required
-- Runs in background
+- Runs in the foreground or background (your choice)
 - Triggered via **Auto-Apply Missing Artwork** action
 
 ### Manual Review
@@ -188,7 +179,7 @@ After manual review completes or is paused, if any missing artwork remains, you'
 - Shows visual dialog for each art type
 - User selects preferred artwork
 - Can skip individual art types
-- Can cancel to exit (progress saved)
+- Can cancel to exit
 - Triggered via **Manual Review** action
 
 ## Session Reports
@@ -202,8 +193,7 @@ Manual-review session details:
 
 Reports are accessible from:
 
-- **View Last Report** option in the action menu
-- Resume dialog when picking a scope
+- **View Reports** option in the action menu
 
 ## Configuration
 
@@ -409,25 +399,6 @@ Available test types: `poster`, `fanart`, `clearlogo`, `clearart`, `banner`, `la
 - All items use type-specific test images from resources/media/artwork_test/
 
 Workflow: Edit XML → `ReloadSkin()` → Re-run test command → See changes
-
-## Resume Capability
-
-The Artwork Reviewer fully supports resume from any point:
-
-**Scenario:**
-
-1. Start scanning 4,000 movies
-2. Process 500 items
-3. Close Kodi or cancel processing
-4. Run Artwork Reviewer again later
-5. Dialog: "Continue Review (3,500 pending)"
-6. Choose to continue from item 501
-
-**Queue Persistence:**
-
-- Queue stored in SQLite database
-- Survives Kodi restarts
-- Can resume days/weeks/months later
 
 ## Troubleshooting
 

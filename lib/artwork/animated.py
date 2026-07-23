@@ -200,72 +200,34 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
         )
         return
 
-    dialog = xbmcgui.Dialog()
+    from lib.infrastructure.menus import run_with_mode_choice
 
+    run_with_mode_choice(
+        ADDON.getLocalizedString(32192),
+        lambda bg: _run_gif_scan(scope, scan_mode, use_background=bg),
+    )
+
+
+def _run_gif_scan(scope: str, scan_mode: str, use_background: bool) -> None:
+    """Open a task context and run the GIF scan in the chosen mode."""
     try:
-        if task_manager.is_task_running():
-            task_info = task_manager.get_task_info()
-            current_task = task_info['name'] if task_info else xbmc.getLocalizedString(13205)
-
-            cancel_it = dialog.yesno(
-                ADDON.getLocalizedString(32172),
-                f"{ADDON.getLocalizedString(32457).format(current_task)}[CR][CR]{ADDON.getLocalizedString(32592).format(ADDON.getLocalizedString(32192))}",
-                nolabel=xbmc.getLocalizedString(106),
-                yeslabel=ADDON.getLocalizedString(32569)
-            )
-
-            if not cancel_it:
-                return
-
-            task_manager.cancel_task()
-            monitor = xbmc.Monitor()
-            while task_manager.is_task_running() and not monitor.abortRequested():
-                monitor.waitForAbort(0.1)
-
         with task_manager.TaskContext(ADDON.getLocalizedString(32192)) as ctx:
-            progress = ProgressDialog(use_background=False, heading=ADDON.getLocalizedString(32192))
-            progress.create(f"[B]{ADDON.getLocalizedString(32574).upper()}[/B][CR]{ADDON.getLocalizedString(32278)}")
-
-            cancelled = _run_scan_operation(scope, scan_mode, progress, task_context=ctx)
-
-            progress.close()
-
-            if cancelled:
-                resume_bg = dialog.yesno(
-                    ADDON.getLocalizedString(32572),
-                    ADDON.getLocalizedString(32573),
-                    nolabel=xbmc.getLocalizedString(106),
-                    yeslabel=ADDON.getLocalizedString(32568)
-                )
-
-                if resume_bg:
-                    if task_manager.is_task_running():
-                        dialog.ok(
-                            ADDON.getLocalizedString(32172),
-                            f"{ADDON.getLocalizedString(32173)}.[CR]"
-                            f"{ADDON.getLocalizedString(32591)}",
-                        )
-                        return
-                    with task_manager.TaskContext(ADDON.getLocalizedString(32192)) as bg_ctx:
-                        progress_bg = ProgressDialog(
-                            use_background=True, heading=ADDON.getLocalizedString(32192)
-                        )
-                        progress_bg.create(ADDON.getLocalizedString(32577))
-                        _run_scan_operation(scope, scan_mode, progress_bg, task_context=bg_ctx)
-                        progress_bg.close()
-
-                        dialog.notification(
-                            ADDON.getLocalizedString(32192),
-                            ADDON.getLocalizedString(32578),
-                            xbmcgui.NOTIFICATION_INFO,
-                            3000
-                        )
-
+            progress = ProgressDialog(
+                use_background=use_background, heading=ADDON.getLocalizedString(32192))
+            if use_background:
+                progress.create(ADDON.getLocalizedString(32577))
+            else:
+                progress.create(
+                    f"[B]{ADDON.getLocalizedString(32574).upper()}[/B][CR]"
+                    f"{ADDON.getLocalizedString(32278)}")
+            try:
+                _run_scan_operation(scope, scan_mode, progress, task_context=ctx)
+            finally:
+                progress.close()
     except Exception as e:
         log("Artwork", f"Animated scan failed: {str(e)}", xbmc.LOGERROR)
-        dialog.ok(
-            ADDON.getLocalizedString(32192), f"{ADDON.getLocalizedString(32274)}:[CR]{str(e)}"
-        )
+        xbmcgui.Dialog().ok(
+            ADDON.getLocalizedString(32192), f"{ADDON.getLocalizedString(32274)}:[CR]{str(e)}")
 
 
 def _run_scan_operation(
@@ -431,6 +393,8 @@ class ArtworkAnimated:
                 f"Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
             )
             self.progress.update(percent, message)
+            if self.task_context is not None:
+                self.task_context.mark_progress()
 
             if not item_id or not file_path:
                 continue
