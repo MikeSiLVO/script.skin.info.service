@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from datetime import datetime
 import xbmc
-from lib.infrastructure.dialogs import show_ok, show_textviewer
+from lib.infrastructure.dialogs import show_ok, show_textviewer, DialogProgress
 import xbmcgui
 import xbmcvfs
 from typing import Optional, List, Dict, Tuple, Any
@@ -306,7 +306,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
         progress = xbmcgui.DialogProgressBG()
         progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32291))
     else:
-        progress = xbmcgui.DialogProgress()
+        progress = DialogProgress()
         progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32291))
 
     try:
@@ -378,7 +378,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                 progress = xbmcgui.DialogProgressBG()
                 progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32291))
             else:
-                progress = xbmcgui.DialogProgress()
+                progress = DialogProgress()
                 progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32291))
 
         if not jobs:

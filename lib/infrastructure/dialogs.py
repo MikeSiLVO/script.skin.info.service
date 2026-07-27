@@ -5,6 +5,20 @@ from typing import Optional, Union
 import xbmc
 import xbmcgui
 
+_MONITOR = xbmc.Monitor()
+
+
+class DialogProgress(xbmcgui.DialogProgress):
+    """`xbmcgui.DialogProgress` that also reports Kodi shutdown as cancelled.
+
+    Kodi's own `iscanceled()` tracks only the cancel button, so a loop polling it runs on
+    through a shutdown and holds Kodi open until its work finishes.
+    """
+
+    def iscanceled(self) -> bool:
+        """True if the user cancelled or Kodi is shutting down."""
+        return _MONITOR.abortRequested() or super().iscanceled()
+
 
 class ProgressDialog:
     """Context-managed progress dialog that picks `DialogProgress` or `DialogProgressBG` and
@@ -32,7 +46,7 @@ class ProgressDialog:
             self.dialog = xbmcgui.DialogProgressBG()
             self.dialog.create(self.heading, message)
         else:
-            self.dialog = xbmcgui.DialogProgress()
+            self.dialog = DialogProgress()
             self.dialog.create(self.heading, message)
 
         self.last_percent = -1

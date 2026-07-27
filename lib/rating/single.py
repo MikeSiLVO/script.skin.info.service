@@ -13,6 +13,7 @@ from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
+from lib.infrastructure.tasks import ShutdownAbortFlag
 from lib.rating.merger import merge_ratings, prepare_kodi_ratings
 from lib.rating.ids import (
     get_imdb_id_from_tmdb,
@@ -196,6 +197,9 @@ def update_single_item(
     force_refresh: bool = True,
 ) -> tuple[Optional[bool], Optional[Dict]]:
     """Fetch ratings for one item (context-menu path); batch jobs use `RatingBatchExecutor`."""
+    if abort_flag is None:
+        abort_flag = ShutdownAbortFlag()
+
     dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
     if not dbid:
         return False, None

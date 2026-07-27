@@ -4,6 +4,7 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import set_prop, clear_prop, resolve_infolabel
+from lib.infrastructure.dialogs import DialogProgress
 
 
 def _set_window_prop(key: str, value: str, window: str) -> None:
@@ -430,7 +431,7 @@ def _handle_search_library_person(args: dict) -> None:
     log("General", f"search_library_person: Searching library for {crew or 'actor'} '{name}'",
         xbmc.LOGDEBUG)
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(xbmc.getLocalizedString(194), name)
 
     movies = request('VideoLibrary.GetMovies', {

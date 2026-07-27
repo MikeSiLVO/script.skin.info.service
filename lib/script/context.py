@@ -8,7 +8,7 @@ import xbmcgui
 
 
 _ARTWORK_TYPES = ('movie', 'tvshow', 'episode', 'season', 'set', 'musicvideo', 'artist', 'album')
-_RATINGS_TYPES = ('movie', 'tvshow', 'episode')
+_RATINGS_TYPES = ('movie', 'tvshow', 'episode', 'set')
 _NFO_TYPES = ('movie', 'tvshow', 'episode', 'musicvideo')
 
 # (setting_id, label_id, action, applicable_types_or_None_for_any)

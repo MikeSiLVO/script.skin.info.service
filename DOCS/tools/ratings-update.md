@@ -30,6 +30,38 @@ After choosing a scope, pick how the update runs:
 
 After any update, the menu shows a **View Report** entry summarizing what changed (counts of updated, unchanged, and failed items).
 
+## RunScript
+
+### Single Item
+
+Refresh ratings for one library item:
+
+```xml
+RunScript(script.skin.info.service,action=update_ratings,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `dbid` | Yes | Database ID of the item |
+| `dbtype` | Yes | `movie`, `tvshow`, `episode` or `set` |
+
+Same operation as the **Update Ratings** context menu item.
+
+### Bulk
+
+Run a library-wide update without going through the Tools menu:
+
+```xml
+RunScript(script.skin.info.service,action=update_library_ratings,dbtype=movie,background=true)
+```
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | No | `movie` | `movie`, `tvshow` or `episode`. Anything else falls back to `movie`. |
+| `background` | No | `true` | `true` runs as a background task, `false` shows a progress dialog. |
+
+Note this takes one media type, unlike the Tools menu's **Update All**. Call it once per type for the same coverage.
+
 ## What Gets Updated
 
 For each item, the latest ratings are fetched from the enabled providers and written to the library's `ratings` field. Sources include TMDB, IMDb and Trakt. Disable providers in addon settings to skip them.

@@ -5,6 +5,7 @@ from typing import Sequence
 import xbmcgui
 
 from lib.kodi.client import ADDON
+from lib.infrastructure.dialogs import DialogProgress
 
 
 _session_skip_providers = set()
@@ -29,7 +30,7 @@ def handle_rate_limit_error(provider: str) -> str:
         # Wait 60 seconds then retry
         import xbmc
         monitor = xbmc.Monitor()
-        progress = xbmcgui.DialogProgress()
+        progress = DialogProgress()
         progress.create(ADDON.getLocalizedString(32313).format(provider.upper()),
                         ADDON.getLocalizedString(32314))
         for i in range(60):

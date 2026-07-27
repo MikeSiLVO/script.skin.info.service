@@ -15,7 +15,7 @@ from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import cache as db_cache
 from lib.data.database._infrastructure import init_database
 from lib.data.database import imdb as db_imdb
-from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno
+from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno, DialogProgress
 
 
 def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
@@ -183,7 +183,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
     """Fix missing IMDb IDs (via TMDB or IMDb dataset) and invalid TMDB IDs (via IMDb lookup)."""
     init_database()
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32260), ADDON.getLocalizedString(32350))
 
     movies = get_library_items(["movie"], properties=["title", "year", "uniqueid"])
@@ -316,7 +316,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         if not show_yesno(ADDON.getLocalizedString(32260), message):
             return
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32260), "Starting...")
 
     total_imdb_fixed = 0

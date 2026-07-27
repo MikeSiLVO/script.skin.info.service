@@ -44,7 +44,8 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
         ratings = omdb.fetch_ratings(media_type, {"imdb": imdb_id}, abort_flag=abort_flag)
         if ratings:
             for source, info in ratings.items():
-                props.update(format_rating_props(source, info["rating"], int(info["votes"])))
+                if isinstance(info, dict) and "rating" in info and "votes" in info:
+                    props.update(format_rating_props(source, info["rating"], int(info["votes"])))
     except Exception as e:
         log("Plugin", f"OMDb fetch error: {e}", xbmc.LOGWARNING)
 

@@ -1,7 +1,7 @@
 """Trakt ratings source with OAuth support."""
 from __future__ import annotations
 
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Set
 from datetime import datetime, timedelta
 import json
 import threading
@@ -50,6 +50,7 @@ class ApiTrakt(RatingSource):
         )
         self._season_locks_guard = threading.Lock()
         self._season_locks: Dict[str, threading.Lock] = {}
+        self._refreshed_seasons: Set[str] = set()
 
     def is_authorized(self) -> bool:
         """True when a stored OAuth token exists; auth-gated widgets check this before fetching."""
@@ -224,9 +225,14 @@ class ApiTrakt(RatingSource):
         headers: Dict[str, str], abort_flag=None, force_refresh: bool = False,
     ) -> Optional[dict]:
         """Fetch the episode's whole season in one call, caching every episode so only the
-        first hits the API."""
-        with self._get_season_lock(f"{trakt_id}_s{season}"):
-            if not force_refresh:
+        first hits the API.
+
+        `force_refresh` re-fetches a season once per run, not once per episode; the latter
+        costs one request per episode and blows Trakt's rate limit on a long-running show.
+        """
+        season_key = f"{trakt_id}_s{season}"
+        with self._get_season_lock(season_key):
+            if not (force_refresh and season_key not in self._refreshed_seasons):
                 cached = self.get_cached_data(cache_key)
                 if cached:
                     return cached
@@ -254,6 +260,7 @@ class ApiTrakt(RatingSource):
                 })
                 self.cache_data(ep_key, ep)
 
+            self._refreshed_seasons.add(season_key)
             log("Trakt", f"Fetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
 
         return self.get_cached_data(cache_key)

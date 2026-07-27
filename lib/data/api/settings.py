@@ -5,6 +5,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import ADDON
+from lib.infrastructure.dialogs import DialogProgress
 
 
 def edit_api_key(provider: str) -> None:
@@ -69,7 +70,7 @@ def test_api_key(provider: str) -> None:
     if not config:
         return
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(
         ADDON.getLocalizedString(32370).format(config['name']),
         ADDON.getLocalizedString(32371),
@@ -127,7 +128,7 @@ def authorize_trakt() -> None:
     from lib.data.api.client import ApiSession
     from lib.infrastructure.dialogs import show_ok
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32372), ADDON.getLocalizedString(32373))
 
     session = ApiSession(
@@ -222,7 +223,7 @@ def test_trakt_connection() -> None:
     from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
     from lib.infrastructure.dialogs import show_ok
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32374), ADDON.getLocalizedString(32371))
 
     try:

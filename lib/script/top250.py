@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 import xbmc
-import xbmcgui
 
 from lib.kodi.client import (
     request,
@@ -13,14 +12,14 @@ from lib.kodi.client import (
     KODI_SET_DETAILS_METHODS,
     extract_result,
 )
-from lib.infrastructure.dialogs import show_ok, show_yesno
+from lib.infrastructure.dialogs import show_ok, show_yesno, DialogProgress
 
 
 def run_top250_update() -> None:
     """Update IMDb Top 250 rankings from Trakt's official list."""
     from lib.data.api.trakt import fetch_top250_list
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32600))
     cancelled = False
 

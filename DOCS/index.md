@@ -52,6 +52,7 @@ Window properties and plugin paths for Kodi skins.
 | [Metadata Editor](tools/metadata-editor.md) | Edit library item metadata      |
 | [Ratings Update](tools/ratings-update.md) | Refresh IMDb/TMDB/Trakt ratings in bulk |
 | [Slideshow](tools/slideshow.md)           | Rotating fanart backgrounds       |
+| [Sync TV Show Metadata](tools/sync-tvshows.md) | Bulk-fetch online metadata for all TV shows |
 | [Texture Cache](tools/texture-cache.md)   | Pre-cache, download, and clean artwork |
 | [IMDb Top 250 Update](tools/top250-update.md) | Set Top 250 rank on library items |
 

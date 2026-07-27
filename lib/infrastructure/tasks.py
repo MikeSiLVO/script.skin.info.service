@@ -46,6 +46,25 @@ def _write_task_data(data: Dict[str, Any]) -> None:
     _home_window.setProperty(_PROPERTY_TASK, json.dumps(data))
 
 
+class ShutdownAbortFlag:
+    """Abort flag for script paths that have no task to cancel, so only shutdown stops them.
+
+    Lets `RunScript` work pass a flag down into the API layer without registering a task.
+    """
+
+    def __init__(self) -> None:
+        self._monitor = xbmc.Monitor()
+        self._requested = False
+
+    def request(self) -> None:
+        """Abort everything sharing this flag, e.g. the rate-limit cancel-all choice."""
+        self._requested = True
+
+    def is_requested(self) -> bool:
+        """True once Kodi is shutting down or an abort was requested."""
+        return self._requested or self._monitor.abortRequested()
+
+
 class AbortFlag:
     """Per-task abort flag stored in a shared Kodi home-window property.
 

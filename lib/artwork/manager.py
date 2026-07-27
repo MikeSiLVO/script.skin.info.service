@@ -25,8 +25,7 @@ from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.infrastructure.dialogs import (
-    show_ok, show_yesno, show_textviewer, show_select, show_notification,
-)
+    show_ok, show_yesno, show_textviewer, show_select, show_notification, DialogProgress)
 from lib.actor.downloader import download_actor_images
 
 # Import from new artwork package
@@ -428,7 +427,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     method_name, id_key, result_key = method_info
 
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32297))
 
     try:

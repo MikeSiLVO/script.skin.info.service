@@ -560,15 +560,15 @@ class ApiSession:
             raise
         except RetryableError:
             raise
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout as e:
             log("API", f"{self.service_name}: Request timed out", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, "timeout")
+            raise RetryableError(self.service_name, "timeout") from e
         except requests.exceptions.ConnectionError as e:
             log("API", f"{self.service_name}: Connection error: {e}", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, "connection error")
+            raise RetryableError(self.service_name, "connection error") from e
         except Exception as e:
             log("API", f"{self.service_name}: Request failed: {e}", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, str(e))
+            raise RetryableError(self.service_name, str(e)) from e
 
     def post(
         self,
@@ -620,15 +620,15 @@ class ApiSession:
             raise
         except RetryableError:
             raise
-        except requests.exceptions.Timeout:
+        except requests.exceptions.Timeout as e:
             log("API", f"{self.service_name}: Request timed out", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, "timeout")
+            raise RetryableError(self.service_name, "timeout") from e
         except requests.exceptions.ConnectionError as e:
             log("API", f"{self.service_name}: Connection error: {e}", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, "connection error")
+            raise RetryableError(self.service_name, "connection error") from e
         except Exception as e:
             log("API", f"{self.service_name}: Request failed: {e}", xbmc.LOGWARNING)
-            raise RetryableError(self.service_name, str(e))
+            raise RetryableError(self.service_name, str(e)) from e
 
     def get_raw(
         self,
@@ -687,12 +687,12 @@ class ApiSession:
 
         except (AbortRequested, RateLimitHit, RetryableError):
             raise
-        except requests.exceptions.Timeout:
-            raise RetryableError(self.service_name, "timeout")
+        except requests.exceptions.Timeout as e:
+            raise RetryableError(self.service_name, "timeout") from e
         except requests.exceptions.ConnectionError as e:
-            raise RetryableError(self.service_name, f"connection error: {e}")
+            raise RetryableError(self.service_name, f"connection error: {e}") from e
         except Exception as e:
-            raise RetryableError(self.service_name, str(e))
+            raise RetryableError(self.service_name, str(e)) from e
 
     def head(
         self,
@@ -734,12 +734,12 @@ class ApiSession:
 
         except (AbortRequested, RateLimitHit, RetryableError):
             raise
-        except requests.exceptions.Timeout:
-            raise RetryableError(self.service_name, "timeout")
+        except requests.exceptions.Timeout as e:
+            raise RetryableError(self.service_name, "timeout") from e
         except requests.exceptions.ConnectionError as e:
-            raise RetryableError(self.service_name, f"connection error: {e}")
+            raise RetryableError(self.service_name, f"connection error: {e}") from e
         except Exception as e:
-            raise RetryableError(self.service_name, str(e))
+            raise RetryableError(self.service_name, str(e)) from e
 
     def close(self) -> None:
         """Close the session and release connections."""

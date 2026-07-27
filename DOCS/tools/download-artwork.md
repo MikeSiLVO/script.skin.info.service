@@ -56,6 +56,30 @@ The prefix settings only decide how *new* files are named; they don't rename wha
 - **Skip:** existing artwork keeps its current filename. Kodi reads both `Movie-poster.jpg` and `poster.jpg`, so the art still shows and nothing is re-downloaded.
 - **Overwrite:** artwork is saved under the new name and the old file is removed, migrating the whole library to the new convention.
 
+## Single Item Download (RunScript)
+
+Download artwork for one library item:
+
+```xml
+RunScript(script.skin.info.service,action=download_artwork,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `dbid` | Yes | Database ID of the item |
+| `dbtype` | Yes | `movie`, `tvshow`, `episode`, `season`, `set`, `musicvideo`, `artist` or `album` |
+
+This is the same operation as the **Download Artwork** context menu item, so TV shows still pull in seasons and episodes.
+
+```xml
+<control type="button" id="1">
+    <label>Download Artwork</label>
+    <onclick>RunScript(script.skin.info.service,action=download_artwork,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])</onclick>
+</control>
+```
+
 ## Notes
 
 - Actor images use the thumbnail URL from Kodi's library (typically from TMDB)

@@ -10,7 +10,8 @@ import xbmcgui
 from lib.kodi.client import request, log, KODI_SET_DETAILS_METHODS, ADDON
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.database import workflow as db
-from lib.infrastructure.dialogs import show_textviewer, show_notification, show_yesnocustom
+from lib.infrastructure.dialogs import (
+    show_textviewer, show_notification, show_yesnocustom, DialogProgress)
 from lib.rating.merger import merge_ratings, prepare_kodi_ratings
 from lib.rating.executor import RetryPoolEntry
 from lib.rating.ids import build_external_ids
@@ -165,7 +166,7 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
     On 429, the offending source is paused for the remainder of this pass per
     Retry-After. Returns count of entries fully resolved.
     """
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32310))
 
     success_count = 0

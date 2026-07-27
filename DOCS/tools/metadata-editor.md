@@ -186,6 +186,19 @@ In addon settings under **Advanced → NFO Files**:
 
 A manual **Export to NFO** action is also available as a context menu item (enable it under **Advanced → Context Menu Items**). It writes the current item's NFO on demand, creating the file if needed, regardless of the settings above.
 
+The same export can be run from a skin control:
+
+```xml
+RunScript(script.skin.info.service,action=export_nfo,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])
+```
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `dbid` | Yes | Database ID of the item. Ignored if empty or `-1`. |
+| `dbtype` | Yes | `movie`, `tvshow`, `episode` or `musicvideo` |
+
+Both NFO settings are bypassed: the write happens even with the master switch off, and the file is created even with **Create an NFO file when none exists** off. A notification reports whether the file was written.
+
 ### Limitations
 
 | Limitation | Detail |

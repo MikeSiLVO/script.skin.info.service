@@ -241,8 +241,8 @@ class DownloadArtwork:
                     except requests.exceptions.RequestException as e:
                         # The watcher closes the socket on cancel, surfacing here first.
                         if abort_flag and abort_flag.is_requested():
-                            raise _DownloadAborted("Download aborted")
-                        raise _StreamNetworkError(str(e))
+                            raise _DownloadAborted("Download aborted") from None
+                        raise _StreamNetworkError(str(e)) from e
 
                     if abort_flag and abort_flag.is_requested():
                         raise _DownloadAborted("Download aborted")

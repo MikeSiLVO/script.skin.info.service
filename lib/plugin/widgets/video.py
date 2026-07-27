@@ -810,7 +810,7 @@ def handle_similar(handle: int, params: dict) -> None:
 
     # full properties fetched only for items that survived scoring
     all_items = []
-    for score, item_data in scored_items:
+    for _score, item_data in scored_items:
         item_id = item_data[id_field]
         if target_dbtype == 'movie':
             detail = request('VideoLibrary.GetMovieDetails',

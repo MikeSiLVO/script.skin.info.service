@@ -196,12 +196,56 @@ def _calculate_percent_played(details: dict) -> str:
     return ""
 
 
+def _seconds_to_minutes(seconds: int) -> int:
+    """Round seconds to whole minutes, matching Kodi's Duration(mins)."""
+    return round(seconds / 60)
+
+
+def _runtime_props(minutes: int, playcount: int = 0) -> Dict[str, str]:
+    """Runtime and WatchTime keys, shared by the unified block and the per-type builders."""
+    watched = minutes * playcount if minutes > 0 and playcount > 0 else 0
+    props: Dict[str, str] = {}
+    for key, total in (("Runtime", minutes), ("WatchTime", watched)):
+        hrs, mins = divmod(total, 60)
+        props[key] = str(total) if total > 0 else ""
+        props[f"{key}.Hours"] = str(hrs) if hrs else ""
+        props[f"{key}.Minutes"] = str(mins) if mins >= 1 else ""
+    return props
+
+
+def _rt_status_props(ratings_dict: Optional[dict]) -> Dict[str, str]:
+    """Rotten Tomatoes Fresh/Rotten/Spilled labels, shared by the unified block and per-type."""
+    props = {"Tomatometer": "", "Popcornmeter": ""}
+    if not ratings_dict:
+        return props
+    for key, sources, low in (("Tomatometer", ("tomatoes", "tomatometerallcritics"), "Rotten"),
+                              ("Popcornmeter", ("popcorn", "tomatometerallaudience"), "Spilled")):
+        info = next((ratings_dict[s] for s in sources if ratings_dict.get(s)), None)
+        if not info or info.get("rating") is None:
+            continue
+        result = _scale_rating(info["rating"], info.get("max") or 10)
+        if result:
+            props[key] = "Fresh" if result[1] >= 60 else low
+    return props
+
+
+def _duration_props(seconds: int) -> Dict[str, str]:
+    """Duration clock string plus raw seconds; rolls into hours past the 60 minute mark."""
+    if seconds <= 0:
+        return {"Duration": "", "Duration.Seconds": ""}
+    hrs, remainder = divmod(seconds, 3600)
+    mins, secs = divmod(remainder, 60)
+    clock = f"{hrs}:{mins:02d}:{secs:02d}" if hrs else f"{mins}:{secs:02d}"
+    return {"Duration": clock, "Duration.Seconds": str(seconds)}
+
+
 def _build_listitem_unified_data(
     title: str = "",
     plot: str = "",
     year: str = "",
     genre: str = "",
     runtime_minutes: int = 0,
+    playcount: int = 0,
     duration_seconds: int = 0,
     rating: Optional[float] = None,
     votes: Optional[int] = None,
@@ -220,26 +264,11 @@ def _build_listitem_unified_data(
     data["ListItem.Year"] = year
     data["ListItem.Genre"] = genre
 
-    # Video runtime (minutes-based)
-    if runtime_minutes > 0:
-        hrs = runtime_minutes // 60
-        mins = runtime_minutes % 60
-        data["ListItem.Runtime"] = str(runtime_minutes)
-        data["ListItem.Runtime.Hours"] = str(hrs) if hrs else ""
-        data["ListItem.Runtime.Minutes"] = str(mins) if mins >= 1 else ""
-    else:
-        data["ListItem.Runtime"] = ""
-        data["ListItem.Runtime.Hours"] = ""
-        data["ListItem.Runtime.Minutes"] = ""
+    for key, val in _runtime_props(runtime_minutes, playcount).items():
+        data[f"ListItem.{key}"] = val
 
-    if duration_seconds > 0:
-        mins = duration_seconds // 60
-        secs = duration_seconds % 60
-        data["ListItem.Duration"] = f"{mins}:{secs:02d}"
-        data["ListItem.Duration.Seconds"] = str(duration_seconds)
-    else:
-        data["ListItem.Duration"] = ""
-        data["ListItem.Duration.Seconds"] = ""
+    for key, val in _duration_props(duration_seconds).items():
+        data[f"ListItem.{key}"] = val
 
     if rating is not None and rating > 0:
         data["ListItem.Rating"] = f"{rating:.1f}"
@@ -252,8 +281,8 @@ def _build_listitem_unified_data(
     data["ListItem.Rating.Votes"] = format_number(votes) if votes else ""
     data["ListItem.UserRating"] = str(userrating) if userrating else ""
 
-    data["ListItem.Tomatometer"] = ""
-    data["ListItem.Popcornmeter"] = ""
+    for key, val in _rt_status_props(ratings_dict).items():
+        data[f"ListItem.{key}"] = val
 
     if ratings_dict:
         for src, info in ratings_dict.items():
@@ -267,24 +296,6 @@ def _build_listitem_unified_data(
             data[f"ListItem.Rating.{output_src}"] = str(scaled)
             data[f"ListItem.Rating.{output_src}.Votes"] = format_number(info.get("votes"))
             data[f"ListItem.Rating.{output_src}.Percent"] = str(pct)
-
-        tomatometer_info = (
-            ratings_dict.get("tomatoes") or
-            ratings_dict.get("tomatometerallcritics")
-        )
-        if tomatometer_info and tomatometer_info.get("rating") is not None:
-            result = _scale_rating(tomatometer_info["rating"], tomatometer_info.get("max") or 10)
-            if result:
-                data["ListItem.Tomatometer"] = "Fresh" if result[1] >= 60 else "Rotten"
-
-        popcorn_info = (
-            ratings_dict.get("popcorn") or
-            ratings_dict.get("tomatometerallaudience")
-        )
-        if popcorn_info and popcorn_info.get("rating") is not None:
-            result = _scale_rating(popcorn_info["rating"], popcorn_info.get("max") or 10)
-            if result:
-                data["ListItem.Popcornmeter"] = "Fresh" if result[1] >= 60 else "Spilled"
 
     return data
 
@@ -371,6 +382,7 @@ def _trim_indexed(prefix: str, prev: int, now: int) -> None:
         "Title",
         "Year",
         "Duration",
+        "Runtime",
         "TrackNumber",
         "FileExtension",
         "Genre",
@@ -418,9 +430,7 @@ def build_movie_data(details: dict) -> dict:
     info = media_streamdetails(path, details.get("streamdetails", {}))
 
     runtime_seconds = int(details.get("runtime") or 0)
-    runtime_minutes = runtime_seconds // 60
-    hrs = runtime_minutes // 60
-    mins = runtime_minutes % 60
+    runtime_minutes = _seconds_to_minutes(runtime_seconds)
 
     year = details.get("year")
     rating = details.get("rating")
@@ -441,9 +451,7 @@ def build_movie_data(details: dict) -> dict:
     data["Tagline"] = details.get("tagline") or ""
     data["Plot"] = details.get("plot") or ""
     data["MPAA"] = details.get("mpaa") or ""
-    data["Runtime"] = str(runtime_minutes) if runtime_minutes else ""
-    data["Runtime.Hours"] = str(hrs) if hrs else ""
-    data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
+    data.update(_runtime_props(runtime_minutes, int(details.get("playcount") or 0)))
     data["Codec"] = info.get("videocodec") or ""
     data["Resolution"] = info.get("videoresolution") or ""
     data["Aspect"] = info.get("videoaspect") or ""
@@ -486,6 +494,7 @@ def build_movie_data(details: dict) -> dict:
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
+    data.update(_rt_status_props(ratings_dict))
 
     data["_streamdetails"] = details.get("streamdetails") or {}
 
@@ -511,7 +520,8 @@ def set_movie_properties(details: dict) -> None:
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
         genre=join_multi(details.get("genre")),
-        runtime_minutes=runtime_seconds // 60,
+        runtime_minutes=_seconds_to_minutes(runtime_seconds),
+        playcount=int(details.get("playcount") or 0),
         rating=details.get("rating"),
         votes=details.get("votes"),
         userrating=details.get("userrating"),
@@ -524,8 +534,8 @@ def set_movie_extras_aggregates(count: int, total_runtime: int, unwatched: int,
                                 unwatched_runtime: int) -> None:
     """Set `SkinInfo.Movie.Extras.*` aggregates (Piers+ asset view). Runtimes in minutes."""
     has_extras = count > 0
-    total_min = total_runtime // 60
-    unwatched_min = unwatched_runtime // 60
+    total_min = _seconds_to_minutes(total_runtime)
+    unwatched_min = _seconds_to_minutes(unwatched_runtime)
     batch_set_props({
         "SkinInfo.Movie.Extras.Count": str(count) if has_extras else "",
         "SkinInfo.Movie.Extras.TotalRuntime": str(total_min) if has_extras and total_min else "",
@@ -557,7 +567,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         label = m.get("title") or m.get("label") or ""
         year = m.get("year")
         runtime = int(m.get("runtime") or 0)
-        duration_min = runtime // 60
+        duration_min = _seconds_to_minutes(runtime)
         total_runtime_min += duration_min
         years.append(str(year) if year is not None else "")
 
@@ -570,7 +580,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         data[f"Movie.{idx}.PlotOutline"] = m.get("plotoutline") or ""
         data[f"Movie.{idx}.Path"] = path or ""
         data[f"Movie.{idx}.Year"] = str(year) if year is not None else ""
-        data[f"Movie.{idx}.Duration"] = str(duration_min) if duration_min else ""
+        data[f"Movie.{idx}.Runtime"] = str(duration_min) if duration_min else ""
         data[f"Movie.{idx}.VideoResolution"] = info.get("videoresolution") or ""
         data[f"Movie.{idx}.MPAA"] = m.get("mpaa") or ""
         data[f"Movie.{idx}.Genre"] = join_multi(m.get("genre"))
@@ -893,10 +903,10 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
         if trk is not None and title:
             tracklist_parts.append(f"{_BOLD_OPEN}{trk}{_BOLD_CLOSE}: {title}{_CR}")
 
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
+    album_seconds = int(album.get("albumduration") or 0) or total_seconds
+    data["AlbumDuration"] = str(album_seconds) if album_seconds else ""
     data["Songs.Discs"] = str(disc_max)
-    data["Songs.Duration"] = f"{minutes:02d}:{seconds:02d}" if total_seconds else ""
+    data["Songs.Duration"] = _duration_props(total_seconds)["Duration"]
     data["Songs.Tracklist"] = "".join(tracklist_parts)
     data["Songs.Count"] = str(len(songs))
 
@@ -984,7 +994,7 @@ def build_tvshow_data(details: dict) -> dict:
     year = details.get("year")
     rating = details.get("rating")
     runtime_seconds = int(details.get("runtime") or 0)
-    runtime_minutes = runtime_seconds // 60
+    runtime_minutes = _seconds_to_minutes(runtime_seconds)
     episode = details.get("episode")
     season = details.get("season")
     watchedepisodes = details.get("watchedepisodes")
@@ -1006,7 +1016,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["Runtime.Hours"] = str(hrs) if hrs else ""
     data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
     total_seconds = int(details.get("total_runtime") or 0)
-    total_minutes = total_seconds // 60
+    total_minutes = _seconds_to_minutes(total_seconds)
     total_hrs = total_minutes // 60
     total_mins = total_minutes % 60
     data["TotalRuntime"] = str(total_minutes) if total_minutes else ""
@@ -1050,6 +1060,7 @@ def build_tvshow_data(details: dict) -> dict:
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
+    data.update(_rt_status_props(ratings_dict))
 
     return data
 
@@ -1067,7 +1078,7 @@ def set_tvshow_properties(details: dict) -> None:
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
         genre=join_multi(details.get("genre")),
-        runtime_minutes=runtime_seconds // 60,
+        runtime_minutes=_seconds_to_minutes(runtime_seconds),
         rating=details.get("rating"),
         votes=details.get("votes"),
         userrating=details.get("userrating"),
@@ -1087,7 +1098,7 @@ def build_season_data(details: dict) -> dict:
     tvshowid = details.get("tvshowid")
     userrating = details.get("userrating")
     runtime_seconds = int(details.get("runtime") or 0)
-    runtime_minutes = runtime_seconds // 60
+    runtime_minutes = _seconds_to_minutes(runtime_seconds)
 
     hrs = runtime_minutes // 60
     mins = runtime_minutes % 60
@@ -1100,7 +1111,7 @@ def build_season_data(details: dict) -> dict:
     data["Runtime.Hours"] = str(hrs) if hrs else ""
     data["Runtime.Minutes"] = str(mins) if mins >= 1 else ""
     total_seconds = int(details.get("total_runtime") or 0)
-    total_minutes = total_seconds // 60
+    total_minutes = _seconds_to_minutes(total_seconds)
     total_hrs = total_minutes // 60
     total_mins = total_minutes % 60
     data["TotalRuntime"] = str(total_minutes) if total_minutes else ""
@@ -1123,7 +1134,7 @@ def set_season_properties(details: dict) -> None:
     runtime_seconds = int(details.get("runtime") or 0)
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
-        runtime_minutes=runtime_seconds // 60,
+        runtime_minutes=_seconds_to_minutes(runtime_seconds),
         userrating=details.get("userrating"),
     )
     set_listitem_unified_properties(unified)
@@ -1140,7 +1151,7 @@ def build_episode_data(details: dict) -> dict:
     season = details.get("season")
     episode = details.get("episode")
     runtime_seconds = int(details.get("runtime") or 0)
-    runtime_minutes = runtime_seconds // 60
+    runtime_minutes = _seconds_to_minutes(runtime_seconds)
     playcount = details.get("playcount")
     tvshowid = details.get("tvshowid")
     userrating = details.get("userrating")
@@ -1154,7 +1165,7 @@ def build_episode_data(details: dict) -> dict:
     data["Episode"] = str(episode) if episode is not None else ""
     data["TVShow"] = details.get("showtitle") or ""
     data["FirstAired"] = details.get("firstaired") or ""
-    data["Runtime"] = str(runtime_minutes) if runtime_minutes else ""
+    data.update(_runtime_props(runtime_minutes, int(playcount or 0)))
     data["Director"] = join_multi(details.get("director"))
     data["Writer"] = join_multi(details.get("writer"))
     data["Path"] = path or ""
@@ -1192,6 +1203,7 @@ def build_episode_data(details: dict) -> dict:
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
+    data.update(_rt_status_props(ratings_dict))
 
     data["_streamdetails"] = details.get("streamdetails") or {}
 
@@ -1216,7 +1228,8 @@ def set_episode_properties(details: dict) -> None:
         title=details.get("title") or "",
         plot=details.get("plot") or "",
         genre=join_multi(details.get("genre")),
-        runtime_minutes=runtime_seconds // 60,
+        runtime_minutes=_seconds_to_minutes(runtime_seconds),
+        playcount=int(details.get("playcount") or 0),
         rating=details.get("rating"),
         votes=details.get("votes"),
         userrating=details.get("userrating"),
@@ -1233,12 +1246,6 @@ def build_musicvideo_data(details: dict) -> dict:
     info = media_streamdetails(path, details.get("streamdetails", {}))
 
     runtime_seconds = int(details.get("runtime") or 0)
-    if runtime_seconds:
-        minutes = runtime_seconds // 60
-        seconds = runtime_seconds % 60
-        runtime_formatted = f"{minutes}:{seconds:02d}"
-    else:
-        runtime_formatted = ""
 
     year = details.get("year")
     playcount = details.get("playcount")
@@ -1252,7 +1259,8 @@ def build_musicvideo_data(details: dict) -> dict:
     data["Genre"] = join_multi(details.get("genre"))
     data["Year"] = str(year) if year else ""
     data["Plot"] = details.get("plot") or ""
-    data["Runtime"] = runtime_formatted
+    data.update(_runtime_props(_seconds_to_minutes(runtime_seconds), int(playcount or 0)))
+    data.update(_duration_props(runtime_seconds))
     data["Director"] = join_multi(details.get("director"))
     data["Studio"] = join_multi(details.get("studio"))
     data["Path"] = path or ""
@@ -1288,6 +1296,7 @@ def build_musicvideo_data(details: dict) -> dict:
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
+    data.update(_rt_status_props(ratings_dict))
 
     data["_streamdetails"] = details.get("streamdetails") or {}
 
@@ -1313,7 +1322,8 @@ def set_musicvideo_properties(details: dict) -> None:
         plot=details.get("plot") or "",
         year=str(details.get("year")) if details.get("year") else "",
         genre=join_multi(details.get("genre")),
-        runtime_minutes=runtime_seconds // 60,
+        runtime_minutes=_seconds_to_minutes(runtime_seconds),
+        playcount=int(details.get("playcount") or 0),
         duration_seconds=runtime_seconds,
         rating=details.get("rating"),
         userrating=details.get("userrating"),

@@ -1,4 +1,5 @@
 {
+  "pythonVersion": "3.8",
   "reportFunctionMemberAccess": "none",
   "reportAttributeAccessIssue": "warning"
 }

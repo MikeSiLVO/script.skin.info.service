@@ -57,11 +57,25 @@ Media-type-agnostic properties that work regardless of what item is focused.
 | `Runtime.Hours` | Hours component | Movie, TVShow, Season, Episode, Set, MusicVideo |
 | `Runtime.Minutes` | Minutes component | Movie, TVShow, Season, Episode, Set, MusicVideo |
 
-### Duration (Music)
+`Runtime` is always whole minutes. For a clock-formatted value use `Duration` below.
+
+### Time Watched (Video)
+
+Total time spent watching an item, equal to `Runtime × PlayCount`. `Runtime` is rounded to whole minutes to match Kodi's `$INFO[ListItem.Duration(mins)]`, so `WatchTime` reconciles when done by hand. Empty when unwatched.
 
 | Property | Description | Available For |
 |----------|-------------|---------------|
-| `Duration` | Duration in mm:ss format | Album, MusicVideo |
+| `WatchTime` | Total minutes watched | Movie, Episode, MusicVideo |
+| `WatchTime.Hours` | Hours component | Movie, Episode, MusicVideo |
+| `WatchTime.Minutes` | Minutes component | Movie, Episode, MusicVideo |
+
+### Duration
+
+Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an hour or over.
+
+| Property | Description | Available For |
+|----------|-------------|---------------|
+| `Duration` | Duration as `m:ss` or `h:mm:ss` | Album, MusicVideo |
 | `Duration.Seconds` | Total seconds | Album, MusicVideo |
 
 ### Ratings
@@ -279,7 +293,7 @@ Use `%d` as placeholder for index (1-based):
 | `Movie.%d.Title` | Movie title |
 | `Movie.%d.Path` | File path |
 | `Movie.%d.Year` | Release year |
-| `Movie.%d.Duration` | Runtime in minutes |
+| `Movie.%d.Runtime` | Runtime in minutes |
 | `Movie.%d.Plot` | Full plot |
 | `Movie.%d.PlotOutline` | Short summary |
 | `Movie.%d.Genre` | Genre(s) |
@@ -435,6 +449,8 @@ Use `%d` as placeholder for index (1-based):
 |----------|-------------|
 | `FirstAired` | Original air date |
 | `Runtime` | Runtime in minutes |
+| `Runtime.Hours` | Runtime hours component |
+| `Runtime.Minutes` | Runtime minutes component |
 | `ProductionCode` | Production code |
 | `TVShowID` | Parent TV show database ID |
 | `SeasonID` | Season database ID |
@@ -500,7 +516,11 @@ Use `%d` as placeholder for index (1-based):
 | `Album` | Album name |
 | `Year` | Release year |
 | `Plot` | Description |
-| `Runtime` | Runtime (mm:ss format) |
+| `Runtime` | Runtime in minutes |
+| `Runtime.Hours` | Runtime hours component |
+| `Runtime.Minutes` | Runtime minutes component |
+| `Duration` | Runtime as `m:ss` or `h:mm:ss` |
+| `Duration.Seconds` | Runtime in seconds |
 | `Premiered` | Release date |
 | `Track` | Track number |
 
@@ -688,7 +708,7 @@ Use `%d` as placeholder for index (1-based):
 |----------|-------------|
 | `Songs.Tracklist` | Formatted tracklist |
 | `Songs.Discs` | Number of discs |
-| `Songs.Duration` | Total duration (mm:ss) |
+| `Songs.Duration` | Total duration as `m:ss` or `h:mm:ss` |
 | `Songs.Count` | Total song count |
 
 ### Per-Song Properties
@@ -698,7 +718,7 @@ Use `%d` as placeholder for index (1-based):
 | Property | Description |
 |----------|-------------|
 | `Song.%d.Title` | Song title |
-| `Song.%d.Duration` | Duration (mm:ss) |
+| `Song.%d.Duration` | Duration in seconds |
 | `Song.%d.Track` | Track number |
 | `Song.%d.FileExtension` | File extension |
 

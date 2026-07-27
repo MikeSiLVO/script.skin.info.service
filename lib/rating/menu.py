@@ -12,8 +12,9 @@ from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
 from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
 from lib.data.api.imdb import get_imdb_dataset
 from lib.infrastructure.dialogs import (
-    show_ok, show_textviewer, show_notification, BackgroundNotice)
+    show_ok, show_textviewer, show_notification, BackgroundNotice, ProgressDialog)
 from lib.infrastructure.menus import Menu, MenuItem
+from lib.infrastructure import tasks as task_manager
 from lib.data.database import workflow as db
 from lib.data.database._infrastructure import init_database
 from lib.rating.updater import (
@@ -116,7 +117,7 @@ def _resolve_single_item_target(
         return None
 
     media_type = dbtype.lower()
-    if media_type not in ("movie", "tvshow", "episode"):
+    if media_type not in ("movie", "tvshow", "episode", "set"):
         _notify(32263, xbmcgui.NOTIFICATION_WARNING, 3000, media_type)
         return None
 
@@ -171,6 +172,45 @@ def _report_single_item_result(success: Optional[bool], item_stats: Optional[dic
         _notify(32403)
 
 
+def _update_movieset_ratings(setid: int, sources: List) -> None:
+    """Update ratings for every movie in a set, then report the aggregate."""
+    response = request("VideoLibrary.GetMovieSetDetails", {
+        "setid": setid,
+        "movies": {"properties": ["title", "year", "uniqueid", "ratings"]},
+    })
+    setdetails = response.get("result", {}).get("setdetails") if response else None
+    movies = setdetails.get("movies") if setdetails else None
+    if not setdetails or not movies:
+        _notify(32401, xbmcgui.NOTIFICATION_WARNING, 3000, "Set")
+        return
+
+    abort_flag = task_manager.ShutdownAbortFlag()
+    updated_titles: List[str] = []
+    total = len(movies)
+    progress = ProgressDialog(heading=ADDON.getLocalizedString(_RATINGS_HEADING_ID))
+    progress.create(ADDON.getLocalizedString(32402))
+    try:
+        for idx, movie in enumerate(movies):
+            if progress.is_cancelled():
+                abort_flag.request()
+                break
+            progress.update(int(idx / total * 100), movie.get("title") or movie.get("label", ""))
+            success, item_stats = update_single_item(movie, "movie", sources, abort_flag)
+            if success and item_stats and (
+                    item_stats.get("added_details") or item_stats.get("updated_details")):
+                updated_titles.append(movie.get("title", "Unknown"))
+    finally:
+        progress.close()
+
+    if updated_titles:
+        message = (f"[B]Movies updated ({len(updated_titles)}/{len(movies)}):[/B][CR]"
+                   f"{', '.join(updated_titles)}")
+        show_ok(ADDON.getLocalizedString(32316).format(setdetails.get("label", "Set")), message)
+        xbmc.executebuiltin("Container.Refresh")
+    else:
+        _notify(32403)
+
+
 def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> None:
     """Update ratings for a single item by DBID. Three-phase: validate, fetch+update, report."""
     target = _resolve_single_item_target(dbid, dbtype)
@@ -192,6 +232,10 @@ def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> No
     sources = initialize_sources()
     if not sources:
         show_ok(ADDON.getLocalizedString(_RATINGS_HEADING_ID), ADDON.getLocalizedString(32400))
+        return
+
+    if media_type == "set":
+        _update_movieset_ratings(int(dbid), sources)
         return
 
     item = _fetch_single_item(dbid, media_type)

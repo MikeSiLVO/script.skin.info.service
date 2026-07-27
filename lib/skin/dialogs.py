@@ -9,6 +9,7 @@ from lib.kodi.utilities import (
     resolve_infolabel as _resolve_infolabel,
     parse_pipe_list as _parse_list,
 )
+from lib.infrastructure.dialogs import DialogProgress
 
 TEST_DEFAULTS = {
     'heading': 'Test Dialog',
@@ -649,7 +650,7 @@ def dialog_progress(
         dialog_bg.create(heading, message)
         dialog_normal = None
     else:
-        dialog_normal = xbmcgui.DialogProgress()
+        dialog_normal = DialogProgress()
         dialog_normal.create(heading)
         dialog_normal.update(0, message)
         dialog_bg = None

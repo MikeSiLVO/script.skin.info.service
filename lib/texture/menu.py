@@ -8,7 +8,7 @@ from typing import Optional, List, Union, Dict, Any
 
 from lib.data.database import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
-from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog
+from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog, DialogProgress
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 
 _RESUME_HINT = "[B]CANCEL TO RESUME LATER[/B]"
@@ -320,7 +320,7 @@ def _execute_standard_cleanup(use_background: bool) -> None:
 def _handle_stats() -> None:
     """Show texture cache statistics."""
     dialog = xbmcgui.Dialog()
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32180), ADDON.getLocalizedString(32472))
 
     try:
@@ -457,7 +457,7 @@ def _handle_age_cleanup():
 def _execute_age_cleanup(age_days: int) -> None:
     """Execute age-based cleanup."""
     dialog = xbmcgui.Dialog()
-    progress = xbmcgui.DialogProgress()
+    progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32330), ADDON.getLocalizedString(32331))
 
     try:
@@ -551,7 +551,7 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
                 progress = xbmcgui.DialogProgressBG()
                 progress.create(ADDON.getLocalizedString(32333), ADDON.getLocalizedString(32335))
             else:
-                progress = xbmcgui.DialogProgress()
+                progress = DialogProgress()
                 progress.create(ADDON.getLocalizedString(32333), ADDON.getLocalizedString(32335))
             stats = cleanup_textures_by_age(age_days, progress_dialog=progress, task_context=ctx,
                                             textures=textures)

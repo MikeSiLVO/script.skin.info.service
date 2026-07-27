@@ -88,6 +88,11 @@ through a hidden container.
 | `StudioPrimary`  | First studio        |
 | `Country`        | Countries           |
 | `Runtime`        | Minutes             |
+| `Runtime.Hours`  | Hours component     |
+| `Runtime.Minutes`| Minutes component   |
+| `WatchTime`      | Minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours`| Hours component     |
+| `WatchTime.Minutes` | Minutes component |
 | `MPAA`           | Content rating      |
 | `Tagline`        | Tagline             |
 | `OriginalTitle`  | Original title      |
@@ -188,7 +193,12 @@ Properties (percent values only):
 | `UniqueID.IMDB`   | IMDB ID           |
 | `UniqueID.TMDB`   | TMDB ID           |
 | `UniqueID.TVDB`   | TVDB ID           |
-| `Runtime`         | Episode runtime   |
+| `Runtime`         | Episode runtime in minutes |
+| `Runtime.Hours`   | Hours component   |
+| `Runtime.Minutes` | Minutes component |
+| `WatchTime`       | Minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours` | Hours component   |
+| `WatchTime.Minutes` | Minutes component |
 
 ### TV Show Artwork
 
@@ -351,7 +361,7 @@ Use `%d` as index (1-based):
 - `Movie.%d.Title`
 - `Movie.%d.Path`
 - `Movie.%d.Year`
-- `Movie.%d.Duration`
+- `Movie.%d.Runtime`
 - `Movie.%d.Plot`
 - `Movie.%d.Genre`
 - `Movie.%d.Director`
@@ -488,7 +498,14 @@ Use `%d` as index (1-based):
 | `Album`         | Album          |
 | `Year`          | Year           |
 | `Plot`          | Description    |
-| `Runtime`       | Runtime        |
+| `Runtime`       | Runtime in minutes |
+| `Runtime.Hours` | Hours component |
+| `Runtime.Minutes` | Minutes component |
+| `Duration`      | Runtime as `m:ss` or `h:mm:ss` |
+| `Duration.Seconds` | Runtime in seconds |
+| `WatchTime`     | Minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 | `Premiered`     | Release date   |
 | `Track`         | Track number   |
 | `Playcount`     | Play count     |
