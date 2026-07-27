@@ -30,26 +30,20 @@ msgid "Gif filename patterns (exact/suffix)"
 msgstr "Modèles de noms de fichiers Gif (exact/suffixe)"
 
 msgctxt "#32003"
-msgid ""
-"Comma-separated list of gif filename patterns. Matches exact filenames "
-"(e.g., 'poster.gif') or files ending with the pattern (e.g., "
-"'movie.poster.gif')"
+msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
 msgstr "Liste séparée par des virgules de modèles de noms de fichiers gif. Correspond aux noms de fichiers exacts (ex : 'poster.gif') ou aux fichiers se terminant par le modèle (ex : 'movie.poster.gif')"
 
 msgctxt "#32004"
 msgid "Artwork"
 msgstr "Illustrations"
 
-#. Label for language dropdown in settings (used for both metadata and artwork
-#. language selection)
+#. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
 msgid "Preferred language"
 msgstr "Langue préférée"
 
 msgctxt "#32007"
-msgid ""
-"Artwork in this language is prioritized for posters, logos, and other "
-"language-sensitive art."
+msgid "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
 msgstr "Les illustrations dans cette langue sont prioritaires pour les affiches, logos et autres éléments sensibles à la langue."
 
 msgctxt "#32008"
@@ -97,9 +91,7 @@ msgid "Add 'Download' option to missing artwork and pre-cache"
 msgstr "Ajouter l'option 'Télécharger' aux illustrations manquantes et à la pré-mise en cache"
 
 msgctxt "#32020"
-msgid ""
-"Show additional menu options to download artwork to filesystem during review"
-" and pre-cache operations"
+msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
 msgstr "Afficher des options de menu supplémentaires pour télécharger les illustrations sur le système de fichiers lors des opérations de vérification et de pré-mise en cache"
 
 msgctxt "#32022"
@@ -137,6 +129,14 @@ msgstr "Fichier NFO créé"
 msgctxt "#32031"
 msgid "Could not write NFO file"
 msgstr "Impossible d'écrire le fichier NFO"
+
+msgctxt "#32032"
+msgid "Processing cancelled"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Art Fetcher - Cancelled"
+msgstr ""
 
 msgctxt "#32035"
 msgid "Always Ask"
@@ -223,9 +223,7 @@ msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
 msgstr "Obtenez votre clé API sur http://www.omdbapi.com/apikey.aspx"
 
 msgctxt "#32056"
-msgid ""
-"Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · "
-"VIP: immediate"
+msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
 msgstr "Fanart.tv · fanart.tv/get-an-api-key[CR]Sans clé : 7 jours · Personnel : 2 jours · VIP : immédiat"
 
 msgctxt "#32057"
@@ -259,6 +257,14 @@ msgstr "Notes"
 msgctxt "#32065"
 msgid "Not configured"
 msgstr "Non configuré"
+
+msgctxt "#32066"
+msgid "Stopped early: downloads stalled"
+msgstr ""
+
+msgctxt "#32067"
+msgid "No progress for over {0} seconds. Run it again to finish the rest."
+msgstr ""
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -378,8 +384,7 @@ msgctxt "#32099"
 msgid "Downloaded {0} files ({1} MB)"
 msgstr "{0} fichiers téléchargés ({1} Mo)"
 
-#. Context menu item and settings group - opens artwork browser for selected
-#. item
+#. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
 msgstr "Gérer les illustrations"
@@ -696,8 +701,7 @@ msgctxt "#32211"
 msgid "sexual content"
 msgstr "contenu sexuel"
 
-#. Content advisory category - profanity/swearing (e.g., "Rated R for graphic
-#. language")
+#. Content advisory category - profanity/swearing (e.g., "Rated R for graphic language")
 msgctxt "#32212"
 msgid "language"
 msgstr "langage"
@@ -710,8 +714,7 @@ msgctxt "#32220"
 msgid "Rated {0}+ for {1}"
 msgstr "Classé {0}+ pour {1}"
 
-#. Conjunction between content advisory items - spaces are intentional (e.g.,
-#. "violence and language")
+#. Conjunction between content advisory items - spaces are intentional (e.g., "violence and language")
 msgctxt "#32221"
 msgid " and "
 msgstr " et "
@@ -1394,9 +1397,7 @@ msgid "Orphaned Found: {0} | Removed: {1}"
 msgstr "Orphelines trouvées : {0} | Supprimées : {1}"
 
 msgctxt "#32498"
-msgid ""
-"{0} artwork files not found on disk.[CR]These are stale library entries "
-"pointing to missing files.[CR][CR]View the list?"
+msgid "{0} artwork files not found on disk.[CR]These are stale library entries pointing to missing files.[CR][CR]View the list?"
 msgstr "{0} fichiers d'illustration non trouvés sur le disque.[CR]Ce sont des entrées de médiathèque périmées pointant vers des fichiers manquants.[CR][CR]Voir la liste ?"
 
 msgctxt "#32499"
@@ -1508,9 +1509,7 @@ msgid "GIF Cache Statistics"
 msgstr "Statistiques du cache GIF"
 
 msgctxt "#32546"
-msgid ""
-"Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache "
-"issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
+msgid "Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
 msgstr "Effacer {0} entrées GIF du cache ?[CR][CR]Utilisez ceci pour résoudre les problèmes de cache.[CR][CR]Astuce : Utilisez le mode 'Nouvelle analyse complète' pour traiter à nouveau les GIFs."
 
 msgctxt "#32547"
@@ -1738,14 +1737,307 @@ msgid "Update IMDb Top 250?"
 msgstr "Mettre à jour le Top 250 IMDb ?"
 
 msgctxt "#32610"
-msgid ""
-"Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} "
-"movies[CR][CR]This will overwrite existing Top 250 values."
+msgid "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
 msgstr "Définir/Mettre à jour : {0} films[CR]Effacer : {1} films[CR]Déjà corrects : {2} films[CR][CR]Ceci écrasera les valeurs Top 250 existantes."
 
 msgctxt "#32611"
 msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
 msgstr "Annulé. Mis à jour : {0} | Effacés : {1} avant l'annulation."
+
+msgctxt "#32612"
+msgid "Trakt Not Signed In"
+msgstr ""
+
+msgctxt "#32613"
+msgid "Sign in to Trakt or remove this widget"
+msgstr ""
+
+msgctxt "#32614"
+msgid "Search"
+msgstr ""
+
+msgctxt "#32615"
+msgid "Widgets"
+msgstr ""
+
+msgctxt "#32616"
+msgid "Search Movies"
+msgstr ""
+
+msgctxt "#32617"
+msgid "Search TV Shows"
+msgstr ""
+
+msgctxt "#32618"
+msgid "Search People"
+msgstr ""
+
+msgctxt "#32619"
+msgid "Discover"
+msgstr ""
+
+msgctxt "#32620"
+msgid "Next Up"
+msgstr ""
+
+msgctxt "#32621"
+msgid "Recent Episodes"
+msgstr ""
+
+msgctxt "#32622"
+msgid "Seasonal"
+msgstr ""
+
+msgctxt "#32623"
+msgid "Recommended Movies"
+msgstr ""
+
+msgctxt "#32624"
+msgid "Recommended TV Shows"
+msgstr ""
+
+msgctxt "#32625"
+msgid "Movies"
+msgstr ""
+
+msgctxt "#32626"
+msgid "TV Shows"
+msgstr ""
+
+msgctxt "#32627"
+msgid "TMDB Trending"
+msgstr ""
+
+msgctxt "#32628"
+msgid "TMDB Popular"
+msgstr ""
+
+msgctxt "#32629"
+msgid "TMDB Top Rated"
+msgstr ""
+
+msgctxt "#32630"
+msgid "TMDB Now Playing"
+msgstr ""
+
+msgctxt "#32631"
+msgid "TMDB Upcoming"
+msgstr ""
+
+msgctxt "#32632"
+msgid "TMDB Airing Today"
+msgstr ""
+
+msgctxt "#32633"
+msgid "TMDB On The Air"
+msgstr ""
+
+msgctxt "#32634"
+msgid "Trakt Trending"
+msgstr ""
+
+msgctxt "#32635"
+msgid "Trakt Popular"
+msgstr ""
+
+msgctxt "#32636"
+msgid "Trakt Anticipated"
+msgstr ""
+
+msgctxt "#32637"
+msgid "Trakt Most Watched"
+msgstr ""
+
+msgctxt "#32638"
+msgid "Trakt Most Collected"
+msgstr ""
+
+msgctxt "#32639"
+msgid "Trakt Box Office"
+msgstr ""
+
+msgctxt "#32640"
+msgid "Trakt Recommendations"
+msgstr ""
+
+msgctxt "#32641"
+msgid "(OAuth)"
+msgstr ""
+
+msgctxt "#32642"
+msgid "Christmas"
+msgstr ""
+
+msgctxt "#32643"
+msgid "Halloween"
+msgstr ""
+
+msgctxt "#32644"
+msgid "Valentine's Day"
+msgstr ""
+
+msgctxt "#32645"
+msgid "Thanksgiving"
+msgstr ""
+
+msgctxt "#32646"
+msgid "Star Wars Day"
+msgstr ""
+
+msgctxt "#32647"
+msgid "Star Trek"
+msgstr ""
+
+msgctxt "#32648"
+msgid "New Year"
+msgstr ""
+
+msgctxt "#32649"
+msgid "Easter"
+msgstr ""
+
+msgctxt "#32650"
+msgid "Independence Day"
+msgstr ""
+
+# Recommended widget label, single-seed mode. {0} = seed title -> "Recommended based on Avatar"
+msgctxt "#32651"
+msgid "Recommended based on {0}"
+msgstr ""
+
+msgctxt "#32652"
+msgid "Recommended based on recent watches"
+msgstr ""
+
+# Artwork selection dialogs
+msgctxt "#32653"
+msgid "Current Extra Art (Click to Remove)"
+msgstr ""
+
+msgctxt "#32654"
+msgid "Available Art (Click to Add)"
+msgstr ""
+
+msgctxt "#32655"
+msgid "Clear Selection"
+msgstr ""
+
+msgctxt "#32656"
+msgid "Apply"
+msgstr ""
+
+msgctxt "#32657"
+msgid "Sort: Popularity"
+msgstr ""
+
+msgctxt "#32658"
+msgid "Sort: Resolution"
+msgstr ""
+
+# Colour picker dialog
+msgctxt "#32659"
+msgid "Colour Manager"
+msgstr ""
+
+msgctxt "#32660"
+msgid "Alpha"
+msgstr ""
+
+msgctxt "#32661"
+msgid "Enter Hex"
+msgstr ""
+
+# Metadata editor, unique IDs
+msgctxt "#32663"
+msgid "Add ID"
+msgstr ""
+
+msgctxt "#32664"
+msgid "ID type (imdb, tmdb, tvdb...)"
+msgstr ""
+
+# {0} = id type, e.g. tmdb -> "tmdb ID (leave empty to remove)"
+msgctxt "#32665"
+msgid "{0} ID (leave empty to remove)"
+msgstr ""
+
+msgctxt "#32666"
+msgid "Kodi won't remove the default ID. Change its value, or set another ID as default first."
+msgstr ""
+
+# {0} = id type, e.g. tmdb -> "Remove the tmdb ID?"
+msgctxt "#32667"
+msgid "Remove the {0} ID?"
+msgstr ""
+
+msgctxt "#32668"
+msgid "User Rating"
+msgstr ""
+
+msgctxt "#32669"
+msgid "External Ratings"
+msgstr ""
+
+msgctxt "#32670"
+msgid "Display Artist"
+msgstr ""
+
+msgctxt "#32671"
+msgid "Sort Artist"
+msgstr ""
+
+msgctxt "#32672"
+msgid "Record Label"
+msgstr ""
+
+msgctxt "#32673"
+msgid "Album Type"
+msgstr ""
+
+msgctxt "#32674"
+msgid "Sort Name"
+msgstr ""
+
+# Info dialog section headers with no Kodi core string
+msgctxt "#32675"
+msgid "Top Movies"
+msgstr ""
+
+msgctxt "#32676"
+msgid "Top TV Shows"
+msgstr ""
+
+msgctxt "#32677"
+msgid "In Your Library - Movies"
+msgstr ""
+
+msgctxt "#32678"
+msgid "In Your Library - TV Shows"
+msgstr ""
+
+msgctxt "#32679"
+msgid "All Credits"
+msgstr ""
+
+msgctxt "#32680"
+msgid "Crew Credits"
+msgstr ""
+
+msgctxt "#32681"
+msgid "Images"
+msgstr ""
+
+msgctxt "#32682"
+msgid "Recommendations"
+msgstr ""
+
+msgctxt "#32683"
+msgid "Similar in Library"
+msgstr ""
+
+msgctxt "#32684"
+msgid "Crew"
+msgstr ""
 
 msgctxt "#32901"
 msgid "Enable Debug Output"
@@ -1820,9 +2112,7 @@ msgid "Use Custom TMDb API Key"
 msgstr "Utiliser une clé API TMDb personnalisée"
 
 msgctxt "#32952"
-msgid ""
-"A built-in TMDb API key is provided and works for most users. Enable this "
-"only if you need higher rate limits or want to use your own dedicated quota."
+msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 msgstr "Une clé API TMDb intégrée est fournie et fonctionne pour la plupart des utilisateurs. N'activez ceci que si vous avez besoin de limites de débit plus élevées ou si vous souhaitez utiliser votre propre quota dédié."
 
 msgctxt "#32960"
@@ -1858,17 +2148,14 @@ msgid "Auto-download after Manage Artwork"
 msgstr "Téléchargement auto après Gérer les illustrations"
 
 msgctxt "#32971"
-msgid ""
-"Automatically download selected artwork to filesystem after selection in "
-"Manage Artwork"
+msgid "Automatically download selected artwork to filesystem after selection in Manage Artwork"
 msgstr "Télécharger automatiquement les illustrations sélectionnées sur le système de fichiers après la sélection dans Gérer les illustrations"
 
 msgctxt "#32974"
 msgid "Download Settings"
 msgstr "Paramètres de téléchargement"
 
-#. Settings group - language for data from online APIs (TMDb titles, plots,
-#. etc.)
+#. Settings group - language for data from online APIs (TMDb titles, plots, etc.)
 msgctxt "#32976"
 msgid "Online Service"
 msgstr "Service en ligne"
@@ -1911,9 +2198,7 @@ msgid "Sync TV Show Metadata"
 msgstr "Synchroniser les métadonnées des séries TV"
 
 msgctxt "#32989"
-msgid ""
-"Updates online metadata for every TV show in your library. Large libraries "
-"may take significantly longer."
+msgid "Updates online metadata for every TV show in your library. Large libraries may take significantly longer."
 msgstr "Met à jour les métadonnées en ligne pour chaque série TV de votre médiathèque. Les grandes médiathèques peuvent prendre beaucoup plus de temps."
 
 msgctxt "#32990"
@@ -1937,9 +2222,7 @@ msgid "Write metadata changes to NFO files"
 msgstr "Enregistrer les modifications des métadonnées dans les fichiers NFO"
 
 msgctxt "#32995"
-msgid ""
-"When you edit metadata, also write the change to the item's local NFO file "
-"so it survives a library refresh or rescrape."
+msgid "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
 msgstr "Lorsque vous modifiez des métadonnées, les changements sont également enregistrés dans le fichier NFO local de l'élément afin qu'ils soient préservés après une mise à jour de la médiathèque ou une nouvelle récupération des informations."
 
 msgctxt "#32996"
@@ -1947,9 +2230,7 @@ msgid "Create an NFO file when none exists"
 msgstr "Créer un fichier NFO si aucun n'existe"
 
 msgctxt "#32997"
-msgid ""
-"If the item has no NFO file yet, create one. When off, only existing NFO "
-"files are updated."
+msgid "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
 msgstr "Si aucun fichier NFO n'existe pour l'élément, un nouveau fichier est créé. Lorsque cette option est désactivée, seuls les fichiers NFO existants sont mis à jour."
 
 msgctxt "#32998"
@@ -1957,7 +2238,5 @@ msgid "Include watched state in NFO files"
 msgstr "Inclure l'état de visionnage dans les fichiers NFO"
 
 msgctxt "#32999"
-msgid ""
-"Write playcount and last-played date to NFO files. Turn off to keep watched "
-"state out of your NFO files."
+msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
 msgstr "Enregistrer le nombre de lectures et la date de dernier visionnage dans les fichiers NFO. Désactivez cette option pour exclure l'état de visionnage des fichiers NFO."
