@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta45"
+	   version="2.0.0~beta46"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,12 +32,15 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta46
+- Fix: poster labels in artwork selection no longer cover the poster
+
 2.0.0~beta45
 - Update Ratings now works on a movie set, with progress and cancel
 - Fixed online ratings not appearing for some items
-- New WatchTime property: total time watched (movies, episodes, music videos)
+- New WatchTime property: total time watched
 - Runtime is whole minutes and matches Kodi's Duration(mins)
-- Rotten Tomatoes status now works on plugin paths, not just the focused item
+- Rotten Tomatoes status now works on plugin paths
 - Skinner note: music video Runtime is now minutes, Movie.%d.Duration is Movie.%d.Runtime
 
 2.0.0-Betas

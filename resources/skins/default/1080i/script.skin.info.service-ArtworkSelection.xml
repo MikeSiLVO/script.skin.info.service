@@ -97,16 +97,16 @@
 					<!-- Poster layout: 6x2 grid (12 items) - 2:3 aspect ratio -->
 					<itemlayout height="440" width="300" condition="String.IsEqual(Window.Property(artlayout),poster)">
 						<control type="image">
-							<left>10</left>
+							<left>18</left>
 							<top>10</top>
-							<width>280</width>
-							<height>420</height>
+							<width>264</width>
+							<height>388</height>
 							<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
 							<aspectratio>scale</aspectratio>
 							<bordersize>8</bordersize>
 						</control>
 						<control type="group">
-							<left>234</left>
+							<left>226</left>
 							<top>18</top>
 							<visible>String.IsEqual(ListItem.Property(is_current),true)</visible>
 							<control type="image">
@@ -122,22 +122,15 @@
 								<texture>check_circle.png</texture>
 							</control>
 						</control>
-						<control type="image">
-							<left>10</left>
-							<top>380</top>
-							<width>280</width>
-							<height>50</height>
-							<texture colordiffuse="80000000">white.png</texture>
-							<bordersize>8</bordersize>
-						</control>
 						<control type="label">
 							<left>10</left>
-							<top>390</top>
+							<top>407</top>
 							<width>280</width>
 							<height>30</height>
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -145,17 +138,17 @@
 						<control type="group">
 							<animation effect="zoom" center="auto" start="100" end="105" time="420" tween="back" reversible="false">Focus</animation>
 							<control type="image">
-								<left>10</left>
+								<left>18</left>
 								<top>10</top>
-								<width>280</width>
-								<height>420</height>
+								<width>264</width>
+								<height>388</height>
 								<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
 								<aspectratio>scale</aspectratio>
 								<bordersize>8</bordersize>
 								<bordertexture colordiffuse="FF0088FF" border="8" infill="false">white.png</bordertexture>
 							</control>
 							<control type="group">
-								<left>234</left>
+								<left>226</left>
 								<top>18</top>
 								<visible>String.IsEqual(ListItem.Property(is_current),true)</visible>
 								<control type="image">
@@ -171,24 +164,17 @@
 									<texture>check_circle.png</texture>
 								</control>
 							</control>
-							<control type="image">
-								<left>10</left>
-								<top>380</top>
-								<width>280</width>
-								<height>50</height>
-								<texture colordiffuse="80000000">white.png</texture>
-								<bordersize>8</bordersize>
-							</control>
-							<control type="label">
-								<left>10</left>
-								<top>390</top>
-								<width>280</width>
-								<height>30</height>
-								<font>font13</font>
-								<textcolor>FFFFFFFF</textcolor>
-								<align>center</align>
-								<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
-							</control>
+						</control>
+						<control type="label">
+							<left>10</left>
+							<top>407</top>
+							<width>280</width>
+							<height>30</height>
+							<font>font13</font>
+							<textcolor>FFFFFFFF</textcolor>
+							<align>center</align>
+							<aligny>center</aligny>
+							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
 					<!-- Fanart layout: 3x2 grid (6 items) - 16:9 aspect ratio -->
@@ -227,6 +213,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -269,6 +256,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -308,6 +296,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -347,6 +336,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -386,6 +376,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -425,6 +416,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -464,6 +456,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -503,6 +496,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -542,6 +536,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -581,6 +576,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -620,6 +616,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -659,6 +656,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -698,6 +696,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -740,6 +739,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -779,6 +779,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -821,6 +822,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -860,6 +862,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -902,6 +905,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
@@ -941,6 +945,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</itemlayout>
@@ -983,6 +988,7 @@
 							<font>font13</font>
 							<textcolor>FFFFFFFF</textcolor>
 							<align>center</align>
+							<aligny>center</aligny>
 							<label>$INFO[ListItem.Property(dimensions),, • ]$INFO[ListItem.Property(source)]</label>
 						</control>
 					</focusedlayout>
