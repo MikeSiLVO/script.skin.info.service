@@ -14,8 +14,7 @@ from typing import Optional, Dict, Any, List
 
 from lib.data.database import slideshow as db_slideshow
 from lib.kodi.utilities import set_prop, clear_prop, get_prop
-from lib.kodi.client import (
-    log, request, batch_request, KODI_GET_DETAILS_METHODS, get_item_details)
+from lib.kodi.client import log, request, get_item_details
 
 MIN_SLIDESHOW_INTERVAL = 5
 MAX_SLIDESHOW_INTERVAL = 3600
@@ -134,6 +133,12 @@ def reconcile_pool(scope: tuple) -> None:
 
 
 _POOL_MEDIA_TYPES = ('movie', 'tvshow', 'artist')
+
+_DETAIL_PROPS = {
+    'movie':  ['art', 'title', 'plot', 'year'],
+    'tvshow': ['art', 'title', 'plot', 'year'],
+    'artist': ['art', 'description'],
+}
 
 
 def refresh_pool_item(media_type: str, dbid: int) -> None:
@@ -285,17 +290,21 @@ _PLAYLIST_PATHS = _PLAYLIST_PREFIX + 'Paths'
 _PLAYLIST_MUSIC_TYPES = {'song', 'album', 'artist'}
 _PLAYLIST_SUFFIXES = ('Title', 'FanArt', 'Plot', 'Year', 'Artist', 'Description')
 
-# Per type: 'year' is invalid for episode/set, 'displayartist'/'description' are music-only.
-_DETAIL_PROPS = {
-    'movie':      ['art', 'title', 'plot', 'year'],
-    'tvshow':     ['art', 'title', 'plot', 'year'],
-    'episode':    ['art', 'title', 'plot', 'firstaired'],
-    'musicvideo': ['art', 'title', 'plot', 'year'],
-    'set':        ['art', 'title'],
-    'song':       ['art', 'title', 'displayartist', 'artistid'],
-    'album':      ['art', 'title', 'displayartist', 'description', 'artistid'],
-    'artist':     ['art', 'description'],
-}
+# movie-set nodes report type 'unknown'; the id/fanart checks drop the rest of that bucket
+_PLAYLIST_TYPES = frozenset(
+    ('movie', 'tvshow', 'episode', 'musicvideo', 'set', 'song', 'album', 'artist', 'unknown'))
+
+_PLAYLIST_PROPS = ['art', 'title', 'plot', 'year', 'firstaired', 'displayartist', 'description',
+                   'artistid']
+
+# episodes/songs/albums inherit fanart from the show/artist
+_FANART_KEYS = ('fanart', 'tvshow.fanart', 'artist.fanart', 'albumartist.fanart')
+
+# items are held whole
+_PLAYLIST_POOL_LIMIT = 200
+
+# a tiny or fanart-less pool wraps almost immediately
+_PLAYLIST_REFETCH_MIN_S = 60
 
 LOOKAHEAD_DEPTH = 2
 
@@ -304,26 +313,23 @@ def _detail_fanart(detail: Dict[str, Any]) -> str:
     return (detail.get('art', {}).get('fanart', '') or detail.get('fanart', '')).strip()
 
 
-def _music_artist_fanart(detail: Dict[str, Any]) -> str:
-    """Fanart for a song/album with none of its own, taken from its primary artist.
+def _item_fanart(item: Dict[str, Any]) -> str:
+    """Fanart for a directory-listing item, falling back to its parent show/artist art."""
+    art = item.get('art', {})
+    for key in _FANART_KEYS:
+        fanart = art.get(key, '').strip()
+        if fanart:
+            return fanart
+    return ''
 
-    Songs and albums only expose artist/album thumbs via JSON-RPC, never fanart, so a music
-    playlist background has to resolve the artist. Also fills an empty description from the
-    artist bio. Returns '' when unavailable.
-    """
-    artist_id = detail.get('artistid')
+
+def _artist_description(artist_id: Any) -> str:
+    """Artist bio from the local pool, for a song/album carrying none of its own."""
     if isinstance(artist_id, list):
         artist_id = artist_id[0] if artist_id else None
     if not artist_id:
         return ''
-    resp = request("AudioLibrary.GetArtistDetails",
-                   {"artistid": int(artist_id), "properties": ["art", "description"]})
-    artist = resp.get('result', {}).get('artistdetails') if resp else None
-    if not isinstance(artist, dict):
-        return ''
-    if not detail.get('description'):
-        detail['description'] = artist.get('description', '')
-    return _detail_fanart(artist)
+    return db_slideshow.get_artist_description(int(artist_id))
 
 
 def _year_of(detail: Dict[str, Any]) -> str:
@@ -335,21 +341,22 @@ def _year_of(detail: Dict[str, Any]) -> str:
 
 
 def _fetch_pool(path: str) -> list:
-    """Randomised `(type, id)` refs for `path`. Id-less items (plugin/m3u8) are dropped."""
+    """Randomised items for `path` with the properties a background needs; id-less items dropped."""
     response = request("Files.GetDirectory", {
         "directory": path,
         "media": "files",
+        "properties": _PLAYLIST_PROPS,
         "sort": {"method": "random"},
+        "limits": {"start": 0, "end": _PLAYLIST_POOL_LIMIT},
     })
     files = response.get('result', {}).get('files', []) if response else []
-    return [(f['type'], f['id']) for f in files
-            if f.get('type') in _DETAIL_PROPS and f.get('id')]
+    return [f for f in files if f.get('type') in _PLAYLIST_TYPES and f.get('id')]
 
 
 class _RotationCursor:
     """Shuffled ref list with a fixed-depth lookahead of resolved entries.
 
-    The owner resolves refs out-of-band (so it can batch); `pop()` only returns an
+    The owner resolves refs out-of-band (image caching blocks); `pop()` only returns an
     already-cached entry.
     """
 
@@ -382,6 +389,10 @@ class _RotationCursor:
         """True if a resolved entry is queued for display this tick."""
         return bool(self._ready)
 
+    def wrapped(self) -> bool:
+        """True once the whole shuffled list has been handed out."""
+        return bool(self._refs) and self._cursor >= len(self._refs)
+
     def pop(self):
         """Next ready entry, or None if the lookahead is empty this tick."""
         return self._ready.popleft() if self._ready else None
@@ -390,8 +401,8 @@ class _RotationCursor:
 class PlaylistRotator:
     """Rotates skin-registered playlist backgrounds by menu-item name.
 
-    Holds only `(type, id)` refs per slot; fetches the shown item's detail lazily (batched,
-    2-ahead) so a fade lands on a cached image.
+    Holds each slot's whole pool, re-fetched when it wraps; fanart is force-cached 2-ahead so a
+    fade lands on a cached image.
     """
 
     def __init__(self):
@@ -428,18 +439,21 @@ class PlaylistRotator:
         return pairs
 
     def _reconcile(self) -> bool:
-        """Rebuild changed/new slots. Returns True if any slot was (re)built."""
+        """Rebuild changed, new and exhausted slots. Returns True if any slot was (re)built."""
         invalidate = self._invalidate
         self._invalidate = False
         rebuilt = False
 
+        now = time.time()
         new_slots: Dict[str, Dict[str, Any]] = {}
         for name, path in self._registry():
             existing = self._slots.get(name)
-            if existing and existing['path'] == path and not invalidate:
+            if (existing and existing['path'] == path and not invalidate
+                    and not self._needs_refetch(existing, now)):
                 new_slots[name] = existing
                 continue
-            new_slots[name] = {'path': path, 'cursor': _RotationCursor(_fetch_pool(path))}
+            new_slots[name] = {'path': path, 'built': now,
+                               'cursor': _RotationCursor(_fetch_pool(path))}
             rebuilt = True
 
         for name in self._known_names - set(new_slots):
@@ -448,6 +462,14 @@ class PlaylistRotator:
         self._slots = new_slots
         self._known_names = set(new_slots)
         return rebuilt
+
+    @staticmethod
+    def _needs_refetch(slot: Dict[str, Any], now: float) -> bool:
+        """True if a slot's pool is spent, or empty because its fetch failed."""
+        if now - slot['built'] < _PLAYLIST_REFETCH_MIN_S:
+            return False
+        cursor = slot['cursor']
+        return cursor.wrapped() or not cursor
 
     def _display(self) -> None:
         for name, slot in self._slots.items():
@@ -460,46 +482,22 @@ class PlaylistRotator:
                 self._publish_video(name, entry)
 
     def _refill(self) -> None:
-        """Batch-fetch each slot's next item, cache fanart, fill the lookaheads."""
-        wants: List[tuple] = []
-        calls: List[dict] = []
-        for name, slot in self._slots.items():
-            for media_type, dbid in slot['cursor'].wanted():
-                method_info = KODI_GET_DETAILS_METHODS.get(media_type)
-                props = _DETAIL_PROPS.get(media_type)
-                if not method_info or not props:
-                    continue
-                method, id_key, _ = method_info
-                wants.append((name, media_type))
-                calls.append({'method': method, 'params': {id_key: dbid, 'properties': props}})
-
-        if not calls:
-            return
-
-        responses = batch_request(calls)
-        by_name: Dict[str, list] = {}
-        for (name, media_type), resp in zip(wants, responses):
-            by_name.setdefault(name, []).append(self._resolve(media_type, resp))
-
-        for name, entries in by_name.items():
-            slot = self._slots.get(name)
-            if slot:
-                slot['cursor'].deliver(entries)
+        """Force-cache each slot's next fanart and fill the lookaheads."""
+        for slot in self._slots.values():
+            cursor = slot['cursor']
+            for item in cursor.wanted():
+                cursor.deliver([self._resolve(item)])
 
     @staticmethod
-    def _resolve(media_type: str, resp: Optional[dict]) -> Optional[dict]:
-        """Entry from a detail response; None if no fanart or caching fails."""
-        if not resp or 'result' not in resp:
-            return None
-        detail = resp['result'].get(KODI_GET_DETAILS_METHODS[media_type][2])
-        if not isinstance(detail, dict):
-            return None
-        fanart = _detail_fanart(detail)
-        if not fanart and media_type in _PLAYLIST_MUSIC_TYPES:
-            fanart = _music_artist_fanart(detail)
+    def _resolve(item: Dict[str, Any]) -> Optional[dict]:
+        """Entry from a pool item; None if it has no fanart or caching fails."""
+        media_type = item.get('type', '')
+        fanart = _item_fanart(item)
         if not fanart or not _cache_image_url(fanart):
             return None
-        return {'type': media_type, 'detail': detail, 'fanart': fanart}
+        if media_type in _PLAYLIST_MUSIC_TYPES and not item.get('description'):
+            item['description'] = _artist_description(item.get('artistid'))
+        return {'type': media_type, 'detail': item, 'fanart': fanart}
 
     @staticmethod
     def _publish_video(name: str, entry: Dict[str, Any]) -> None:

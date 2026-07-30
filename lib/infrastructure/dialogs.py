@@ -182,9 +182,9 @@ def show_yesnocustom(heading: str, message: str, customlabel: str,
     )
 
 
-def show_textviewer(heading: str, text: str) -> None:
-    """Show text viewer dialog."""
-    xbmcgui.Dialog().textviewer(heading, text)
+def show_textviewer(heading: str, text: str, use_mono: bool = False) -> None:
+    """Show text viewer dialog. `use_mono` for reports whose columns or rules need to line up."""
+    xbmcgui.Dialog().textviewer(heading, text, usemono=use_mono)
 
 
 def show_select(

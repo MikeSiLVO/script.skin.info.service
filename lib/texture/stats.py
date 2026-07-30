@@ -155,7 +155,7 @@ def format_statistics_report(stats: Dict[str, Any]) -> str:
 
     lines = [
         "=" * 50,
-        "   TEXTURE CACHE STATISTICS",
+        "TEXTURE CACHE STATISTICS",
         "=" * 50,
         "",
         "OVERVIEW",

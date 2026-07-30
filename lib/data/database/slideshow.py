@@ -95,6 +95,16 @@ def get_all_pool_rows() -> list:
         return cursor.fetchall()
 
 
+def get_artist_description(dbid: int) -> str:
+    """Cached artist bio, for a song/album background carrying no description of its own."""
+    with get_db() as cursor:
+        cursor.execute(
+            "SELECT description FROM slideshow_pool WHERE media_type = 'artist' AND dbid = ?",
+            (dbid,))
+        row = cursor.fetchone()
+    return (row[0] or '') if row else ''
+
+
 def is_pool_populated() -> bool:
     """True if the slideshow pool has any rows."""
     with get_db() as cursor:

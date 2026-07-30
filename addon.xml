@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.0~beta46"
+	   version="2.0.0~beta47"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,16 +32,14 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
+2.0.0~beta47
+- Cache statistics and artwork reports use a monospace font when the skin provides one
+- Fixed episode and movie set playlist backgrounds not appearing
+- Playlist backgrounds cycle fresh items instead of repeating the same few
+- Much less debug logging from playlist backgrounds
+
 2.0.0~beta46
 - Fix: poster labels in artwork selection no longer cover the poster
-
-2.0.0~beta45
-- Update Ratings now works on a movie set, with progress and cancel
-- Fixed online ratings not appearing for some items
-- New WatchTime property: total time watched
-- Runtime is whole minutes and matches Kodi's Duration(mins)
-- Rotten Tomatoes status now works on plugin paths
-- Skinner note: music video Runtime is now minutes, Movie.%d.Duration is Movie.%d.Runtime
 
 2.0.0-Betas
 - Complete rewrite of the service

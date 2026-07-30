@@ -330,7 +330,7 @@ def _handle_stats() -> None:
 
         if stats:
             report = format_statistics_report(stats)
-            dialog.textviewer(ADDON.getLocalizedString(32180), report)
+            dialog.textviewer(ADDON.getLocalizedString(32180), report, usemono=True)
         else:
             dialog.ok(ADDON.getLocalizedString(32180), ADDON.getLocalizedString(32181))
     except Exception as e:

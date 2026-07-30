@@ -250,7 +250,7 @@ def _show_session_report(session_row) -> None:
     lines.append("=" * 50)
 
     text = "\n".join(lines)
-    show_textviewer(ADDON.getLocalizedString(32500), text)
+    show_textviewer(ADDON.getLocalizedString(32500), text, use_mono=True)
 
 
 def _download_selected_artwork(
