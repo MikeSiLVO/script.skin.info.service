@@ -13,12 +13,7 @@ TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
 
 
 def decode_key(blob: str) -> str:
-    """Decode a base64-encoded built-in provider key.
-
-    Not security: the addon ships as source, so the value is recoverable at
-    runtime. Encoding only keeps keys out of cleartext per provider terms and
-    away from automated secret scanners.
-    """
+    """Decode a built-in provider key."""
     return b64decode(blob).decode("ascii")
 
 
