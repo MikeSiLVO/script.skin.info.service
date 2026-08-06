@@ -8,7 +8,9 @@ from typing import Optional, Set, TYPE_CHECKING
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import clear_group, batch_set_props, gui_transition_settled
+from lib.kodi.utilities import (
+    clear_group, batch_set_props, gui_transition_settled, modal_dialog_active,
+)
 from lib.data.database.cache import (
     get_cached_online_properties,
     cache_online_properties,
@@ -51,6 +53,8 @@ class FocusHandler:
         dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
 
         if not dbid or dbtype not in ("movie", "tvshow", "episode", "season"):
+            if modal_dialog_active():
+                return
             if self._last_item_key:
                 self._clear_properties()
                 self._last_item_key = None

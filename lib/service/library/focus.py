@@ -11,7 +11,9 @@ from lib.kodi.client import (
     request, get_cache_only, extract_result, get_item_details,
     KODI_MOVIE_PROPERTIES,
 )
-from lib.kodi.utilities import clear_group, gui_transition_settled, is_kodi_piers_or_later
+from lib.kodi.utilities import (
+    clear_group, gui_transition_settled, is_kodi_piers_or_later, modal_dialog_active,
+)
 from lib.service.properties import (
     set_artist_properties,
     set_album_properties,
@@ -157,7 +159,7 @@ class FocusDispatcher:
             "Container.Content(videoversions) | Container.Content(videoextras)"
         )
         if not in_container:
-            if self._last_asset_parent is not None:
+            if self._last_asset_parent is not None and not modal_dialog_active():
                 set_movie_extras_aggregates(0, 0, 0, 0)
                 self._last_asset_parent = None
             return False
@@ -187,6 +189,8 @@ class FocusDispatcher:
         if not dbid:
             if in_asset_view:
                 self._service.blur.handle_focus()
+                return
+            if modal_dialog_active():
                 return
             if self._last_type:
                 self.clear_media_type(self._last_type)

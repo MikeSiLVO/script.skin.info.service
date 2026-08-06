@@ -7,7 +7,9 @@ from typing import Dict, Optional, Tuple, TYPE_CHECKING
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import batch_set_props, clear_group, gui_transition_settled
+from lib.kodi.utilities import (
+    batch_set_props, clear_group, gui_transition_settled, modal_dialog_active,
+)
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain, CancelToken
@@ -38,6 +40,8 @@ class MusicVideoFocusHandler:
             return
         artist, album, title = self._read_focus()
         if not artist:
+            if modal_dialog_active():
+                return
             if self._last_key is not None:
                 self._cancel_pending()
                 clear_group(ONLINE_PREFIX)

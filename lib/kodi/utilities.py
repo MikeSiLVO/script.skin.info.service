@@ -77,10 +77,18 @@ class _TransitionGate:
 
 _transition_gate = _TransitionGate()
 
+WINDOW_INVALID = 9999
+
 
 def gui_transition_settled() -> bool:
     """False while a window/dialog transition is in flight; gates off-thread ListItem reads."""
     return _transition_gate.settled()
+
+
+def modal_dialog_active() -> bool:
+    """True while a modal dialog is on top, where ListItem.* answers from that dialog's own list
+    instead of the underlying window."""
+    return xbmcgui.getCurrentWindowDialogId() != WINDOW_INVALID
 
 
 def parse_pipe_list(value: str, separator: str = '|') -> list:
