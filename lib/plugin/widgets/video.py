@@ -1309,11 +1309,10 @@ def _sort_movies(movies: list, method: str) -> None:
 
 def _library_movies_by_tmdb(tmdb_ids: set) -> list:
     """Full movie dicts for library movies whose uniqueid.tmdb is in `tmdb_ids`."""
-    scan = request('VideoLibrary.GetMovies', {'properties': ['uniqueid']})
-    movieids = [m['movieid'] for m in extract_result(scan, 'movies', [])
-                if str((m.get('uniqueid') or {}).get('tmdb')) in tmdb_ids]
+    from lib.data.database.rollcall import get_dbids_by_tmdb
+
     out = []
-    for movieid in movieids:
+    for movieid in get_dbids_by_tmdb('movie', tmdb_ids).values():
         detail = request('VideoLibrary.GetMovieDetails',
                          {'movieid': movieid, 'properties': _MOVIE_PROPS})
         movie = extract_result(detail, 'moviedetails', {})

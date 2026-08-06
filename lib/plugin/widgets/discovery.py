@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import traceback
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import ADDON, log, request, extract_result
+from lib.kodi.client import ADDON, log, get_item_details
 from lib.data.api.utilities import tmdb_image_url
 
 # Trakt wrapped responses nest the media object under "movie" or "show"
@@ -36,34 +36,19 @@ WIDGET_REGISTRY: Dict[str, dict] = {
 }
 
 
-def _get_library_lookup(media_type: str) -> Dict[str, Dict[str, object]]:
-    """Map `tmdb_id -> {dbid, file}` for library `media_type` items, for "in library" matching."""
-    lookup: Dict[str, Dict[str, object]] = {}
+def _get_library_lookup(media_type: str, tmdb_ids: Iterable) -> Dict[str, Dict[str, object]]:
+    """Map `tmdb_id -> {dbid, file}` for the ids that are in the library, for "in library"
+    matching."""
+    from lib.data.database.rollcall import get_dbids_by_tmdb
 
-    if media_type == "movie":
-        result = request("VideoLibrary.GetMovies", {
-            "properties": ["uniqueid", "file"]
-        })
-        items = extract_result(result, 'movies', [])
-        for item in items:
-            tmdb_id = (item.get("uniqueid") or {}).get("tmdb")
-            if tmdb_id:
-                lookup[str(tmdb_id)] = {
-                    "dbid": item["movieid"],
-                    "file": item.get("file", "")
-                }
-    else:
-        result = request("VideoLibrary.GetTVShows", {
-            "properties": ["uniqueid"]
-        })
-        items = extract_result(result, 'tvshows', [])
-        for item in items:
-            tmdb_id = (item.get("uniqueid") or {}).get("tmdb")
-            if tmdb_id:
-                lookup[str(tmdb_id)] = {
-                    "dbid": item["tvshowid"],
-                    "file": f"videodb://tvshows/titles/{item['tvshowid']}/"
-                }
+    lookup: Dict[str, Dict[str, object]] = {}
+    for tmdb_id, dbid in get_dbids_by_tmdb(media_type, tmdb_ids).items():
+        if media_type == "movie":
+            details = get_item_details("movie", dbid, ["file"])
+            file_path = (details or {}).get("file", "")
+        else:
+            file_path = f"videodb://tvshows/titles/{dbid}/"
+        lookup[tmdb_id] = {"dbid": dbid, "file": file_path}
 
     return lookup
 
@@ -306,7 +291,6 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         period = params.get("period", ["weekly"])[0]
 
         kodi_media_type = "movie" if media_type == "movie" else "tvshow"
-        library_lookup = _get_library_lookup(kodi_media_type)
 
         normalized_items: List[dict] = []
 
@@ -327,6 +311,10 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
 
             for media_obj in medias:
                 normalized_items.append(_normalize_trakt_item(media_obj, media_type))
+
+        library_lookup = _get_library_lookup(
+            kodi_media_type, [n.get("tmdb_id") for n in normalized_items]
+        )
 
         items: List[Tuple[str, xbmcgui.ListItem, bool]] = []
         for normalized in normalized_items:
@@ -407,12 +395,15 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
         kodi_media_type = 'movie' if media_type == 'movie' else 'tvshow'
         tmdb_type = 'movie' if media_type == 'movie' else 'tv'
 
-        library_lookup = _get_library_lookup(kodi_media_type)
         genre_map = api.get_genre_list(tmdb_type)
 
+        normalized_recs = [_normalize_tmdb_item(raw, media_type, genre_map) for raw in recs]
+        library_lookup = _get_library_lookup(
+            kodi_media_type, [n.get("tmdb_id") for n in normalized_recs]
+        )
+
         items: List[Tuple[str, xbmcgui.ListItem, bool]] = []
-        for raw in recs:
-            normalized = _normalize_tmdb_item(raw, media_type, genre_map)
+        for normalized in normalized_recs:
             tmdb_id_match = str(normalized.get("tmdb_id", ""))
             lib_match = library_lookup.get(tmdb_id_match)
 
