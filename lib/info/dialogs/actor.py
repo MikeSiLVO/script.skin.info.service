@@ -41,10 +41,12 @@ class DialogActorInfo(InfoDialogBase):
 
         containers = {
             'library_movies': (
-                f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"
+                f"{base_url}?action=person_library&info_type=movies"
+                f"&person_id={pid}&person_name={encoded_name}"
             ),
             'library_tvshows': (
-                f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"
+                f"{base_url}?action=person_library&info_type=tvshows"
+                f"&person_id={pid}&person_name={encoded_name}"
             ),
             'movies': (
                 f"{base_url}?action=person_info&info_type=filmography&person_id={pid}&dbtype=movie"

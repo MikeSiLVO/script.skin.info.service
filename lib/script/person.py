@@ -237,9 +237,11 @@ def _set_person_properties(person_id: int, name: str, open_window: str) -> None:
         ('SkinInfo.Person.Crew',
          f"{base_url}?action=person_info&info_type=crew&person_id={person_id}"),
         ('SkinInfo.Person.LibraryMovies',
-         f"{base_url}?action=person_library&info_type=movies&person_name={encoded_name}"),
+         f"{base_url}?action=person_library&info_type=movies"
+         f"&person_id={person_id}&person_name={encoded_name}"),
         ('SkinInfo.Person.LibraryTVShows',
-         f"{base_url}?action=person_library&info_type=tvshows&person_name={encoded_name}"),
+         f"{base_url}?action=person_library&info_type=tvshows"
+         f"&person_id={person_id}&person_name={encoded_name}"),
     )
     for prop, url in routes:
         xbmc.executebuiltin(f'SetProperty({prop},{url},home)')
