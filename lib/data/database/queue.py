@@ -400,7 +400,8 @@ def count_queue_items(status: Optional[str] = None,
 
 
 def cleanup_old_queue_items(days_old: int = 30) -> int:
-    """Delete completed/skipped/error queue items processed more than `days_old` days ago."""
+    """Delete queue items older than `days_old`: processed ones by `date_processed`, and pending
+    ones a run left behind by `date_added`."""
     with get_db(DB_PATH) as cursor:
         cutoff = datetime.now() - timedelta(days=days_old)
         cutoff_str = cutoff.isoformat()
@@ -413,6 +414,15 @@ def cleanup_old_queue_items(days_old: int = 30) -> int:
         ''', (STATUS_COMPLETED, STATUS_SKIPPED, STATUS_ERROR, cutoff_str))
 
         deleted = cursor.rowcount
+
+        # date_added is SQLite's CURRENT_TIMESTAMP, which has no T separator to compare against
+        cursor.execute('''
+            DELETE FROM art_queue
+            WHERE status = ?
+            AND date_added < ?
+        ''', (STATUS_PENDING, cutoff.strftime('%Y-%m-%d %H:%M:%S')))
+
+        deleted += cursor.rowcount
 
     if deleted > 0:
         log("Database", f"Cleaned up {deleted} old queue items")
