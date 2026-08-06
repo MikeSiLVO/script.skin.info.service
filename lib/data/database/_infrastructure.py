@@ -15,6 +15,7 @@ from typing import Any, Generator
 from lib.kodi.client import log
 
 DB_VERSION = 4
+SCHEMA_VERSION = 1
 
 
 def compress_data(data: Any) -> bytes:
@@ -504,6 +505,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             dbid INTEGER NOT NULL,
             title TEXT NOT NULL,
             content_id TEXT,
+            tmdb_id TEXT,
             updated_at TEXT NOT NULL,
             PRIMARY KEY (media_type, dbid)
         )
@@ -529,6 +531,34 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     cursor.execute('DROP INDEX IF EXISTS idx_provider_cache_lookup')
 
 
+def _add_column(cursor: sqlite3.Cursor, table: str, column: str, definition: str) -> bool:
+    """Add a column to an existing table; False when it is already there."""
+    cursor.execute(f'PRAGMA table_info({table})')
+    if column in {row[1] for row in cursor.fetchall()}:
+        return False
+    cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+    return True
+
+
+def _migrate_schema(cursor: sqlite3.Cursor) -> None:
+    """Apply additive changes an existing DB missed. Runs after the tables exist, because
+    `CREATE TABLE IF NOT EXISTS` never revisits a table it already found."""
+    cursor.execute('PRAGMA user_version')
+    version = cursor.fetchone()[0]
+    if version >= SCHEMA_VERSION:
+        return
+
+    if version < 1:
+        if _add_column(cursor, 'dbid_registry', 'tmdb_id', 'TEXT'):
+            log("Database", "Schema migration 1: added dbid_registry.tmdb_id", xbmc.LOGINFO)
+        cursor.execute(
+            'CREATE INDEX IF NOT EXISTS idx_dbid_registry_tmdb '
+            'ON dbid_registry(media_type, tmdb_id)'
+        )
+
+    cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
+
+
 def _cleanup_old_databases() -> None:
     """Delete old database versions if they exist."""
     for path in _OLD_DB_PATHS:
@@ -551,6 +581,7 @@ def init_database() -> None:
         # WAL is persistent at the DB level; apply once during init.
         cursor.execute('PRAGMA journal_mode = WAL')
         _create_base_schema(cursor)
+        _migrate_schema(cursor)
         conn.commit()
 
     except Exception as e:
