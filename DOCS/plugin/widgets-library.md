@@ -310,6 +310,7 @@ By default this is single-seed: it picks titles most like your single most recen
 ### Notes
 
 - Requires watch history; only returns unwatched items.
+- A TV show counts as watched history once any episode is watched, and as an unwatched pick only while no episode is watched.
 - Single-seed fills to `limit` with same-tone titles when there are few genuine matches, so the widget isn't sparse.
 - `dbtype=both` mixes movies and TV shows in one widget.
 

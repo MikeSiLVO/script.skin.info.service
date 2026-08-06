@@ -855,7 +855,7 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
             candidates.append(movie)
     if dbtype in ('tvshow', 'both'):
         result = request('VideoLibrary.GetTVShows', {
-            'filter': {'and': [{'field': 'playcount', 'operator': 'lessthan', 'value': '1'},
+            'filter': {'and': [{'field': 'numwatched', 'operator': 'is', 'value': '0'},
                                genre_filter]},
             'properties': ['genre', 'year', 'mpaa', 'rating', 'cast'],
         })
@@ -868,8 +868,8 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
 def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
     """Top-rated unwatched titles for padding a sparse single-seed widget; `mpaa` restricts to
     the seed's tone so padding stays related to it."""
-    def _filter(unwatched_op: str, unwatched_val: str) -> dict:
-        unwatched = {'field': 'playcount', 'operator': unwatched_op, 'value': unwatched_val}
+    def _filter(field: str) -> dict:
+        unwatched = {'field': field, 'operator': 'is', 'value': '0'}
         if mpaa:
             return {'and': [unwatched,
                             {'field': 'mpaarating', 'operator': 'is', 'value': mpaa}]}
@@ -878,7 +878,7 @@ def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
     extra = []
     if dbtype in ('movie', 'both'):
         result = request('VideoLibrary.GetMovies', {
-            'filter': _filter('is', '0'),
+            'filter': _filter('playcount'),
             'properties': ['rating'], 'sort': {'method': 'rating', 'order': 'descending'},
             'limits': {'start': 0, 'end': count},
         })
@@ -887,7 +887,7 @@ def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
             extra.append(movie)
     if dbtype in ('tvshow', 'both'):
         result = request('VideoLibrary.GetTVShows', {
-            'filter': _filter('lessthan', '1'),
+            'filter': _filter('numwatched'),
             'properties': ['rating'], 'sort': {'method': 'rating', 'order': 'descending'},
             'limits': {'start': 0, 'end': count},
         })
@@ -1065,8 +1065,9 @@ def handle_recommended(handle: int, params: dict) -> None:
         history.extend(movies)
 
     if dbtype in ('tvshow', 'both'):
+        # tvshow playcount only turns 1 once every episode is watched, numwatched is per episode
         show_history = request('VideoLibrary.GetTVShows', {
-            'filter': {'field': 'playcount', 'operator': 'greaterthan', 'value': '0'},
+            'filter': {'field': 'numwatched', 'operator': 'greaterthan', 'value': '0'},
             'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'cast', 'lastplayed'],
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': history_size}
@@ -1158,7 +1159,7 @@ def handle_recommended(handle: int, params: dict) -> None:
     if dbtype in ('tvshow', 'both'):
         tvshow_filter = {
             'and': [
-                {'field': 'playcount', 'operator': 'lessthan', 'value': '1'},
+                {'field': 'numwatched', 'operator': 'is', 'value': '0'},
                 genre_filter
             ]
         }
