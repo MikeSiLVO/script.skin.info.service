@@ -109,6 +109,14 @@ For episodes, also pass the season and episode numbers (the ids are the show's):
 
 Pass both `tmdb_id` and `imdb_id` when available; `tmdb_id` is used directly and `imdb_id` is the fallback. A skin can pick library vs online with a `String.IsEmpty(ListItem.DBID)` condition.
 
+### Library Mode
+
+Kodi stores guest stars on the episode, not on the show:
+
+- `tvshow` - Show cast only, no guest stars
+- `episode` - Episode cast (guest stars included) plus the show cast
+- `season` - Deduplicated cast from every episode in the season, so guest stars are included
+
 ### Online Mode
 
 When `online=true` is used, cast is fetched directly from TMDB:
