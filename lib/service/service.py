@@ -75,8 +75,11 @@ class Orchestrator:
                 return
             from lib.data.database.cache import clear_expired_cache
             from lib.data.database.music import clear_expired_music_cache
+            from lib.data.database.rollcall import needs_id_backfill, sync_dbids
             clear_expired_cache()
             clear_expired_music_cache()
+            if needs_id_backfill():
+                sync_dbids()
 
         threading.Thread(target=_run, daemon=True).start()
 

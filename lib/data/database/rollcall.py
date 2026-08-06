@@ -1,12 +1,18 @@
 """DBID rollcall: tracks valid Kodi library DBIDs and cleans up stale references."""
 from __future__ import annotations
 
+import sqlite3
 from datetime import datetime
-from typing import Dict, Optional, Set, Tuple
+from typing import Dict, Iterable, Optional, Set, Tuple
 
 import xbmc
 
-from lib.data.database._infrastructure import DB_PATH, get_db, chunked_in_modify as _chunked_delete
+from lib.data.database._infrastructure import (
+    DB_PATH,
+    get_db,
+    chunked_in_query,
+    chunked_in_modify as _chunked_delete,
+)
 from lib.kodi.client import log
 
 
@@ -71,9 +77,9 @@ _LIBRARY_SOURCES = [
 ]
 
 
-def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str]]]:
-    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: (title, content_id)}`."""
-    snapshot: Dict[str, Dict[int, Tuple[str, str]]] = {}
+def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str, str]]]:
+    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: (title, content_id, tmdb_id)}`."""
+    snapshot: Dict[str, Dict[int, Tuple[str, str, str]]] = {}
 
     for media_type, method, result_key, id_field, has_uniqueid in _LIBRARY_SOURCES:
         properties = ["title", "uniqueid"] if has_uniqueid else None
@@ -81,12 +87,15 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str]]]:
         snapshot[media_type] = {}
         for item in items:
             if has_uniqueid:
+                uniqueid = item.get("uniqueid") or {}
                 title = item.get("title", "")
-                content_id = _build_content_id(item.get("uniqueid") or {})
+                content_id = _build_content_id(uniqueid)
+                tmdb_id = str(uniqueid.get("tmdb") or "")
             else:
                 title = item.get("label") or ""
                 content_id = f"name:{title}"
-            snapshot[media_type][item[id_field]] = (title, content_id)
+                tmdb_id = ""
+            snapshot[media_type][item[id_field]] = (title, content_id, tmdb_id)
 
     return snapshot
 
@@ -123,11 +132,11 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
     with get_db(DB_PATH) as cursor:
         for media_type, library_items in snapshot.items():
             cursor.execute(
-                "SELECT dbid, title, content_id FROM dbid_registry WHERE media_type = ?",
+                "SELECT dbid, title, content_id, tmdb_id FROM dbid_registry WHERE media_type = ?",
                 (media_type,),
             )
             existing = {
-                row["dbid"]: (row["title"], row["content_id"] or "")
+                row["dbid"]: (row["title"], row["content_id"] or "", row["tmdb_id"])
                 for row in cursor.fetchall()
             }
 
@@ -160,25 +169,43 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
                 )
 
             for dbid in reused:
-                title, content_id = library_items[dbid]
+                title, content_id, tmdb_id = library_items[dbid]
                 cursor.execute(
-                    "UPDATE dbid_registry SET title = ?, content_id = ?, updated_at = ? "
+                    "UPDATE dbid_registry SET title = ?, content_id = ?, tmdb_id = ?, "
+                    "updated_at = ? WHERE media_type = ? AND dbid = ?",
+                    (title, content_id, tmdb_id, now, media_type, dbid),
+                )
+
+            drifted = [
+                (library_items[dbid][2], now, media_type, dbid)
+                for dbid in common - reused
+                if existing[dbid][2] != library_items[dbid][2]
+            ]
+            if drifted:
+                cursor.executemany(
+                    "UPDATE dbid_registry SET tmdb_id = ?, updated_at = ? "
                     "WHERE media_type = ? AND dbid = ?",
-                    (title, content_id, now, media_type, dbid),
+                    drifted,
                 )
 
             if new:
                 rows = [
-                    (media_type, dbid, library_items[dbid][0], library_items[dbid][1], now)
+                    (media_type, dbid) + library_items[dbid] + (now,)
                     for dbid in new
                 ]
                 cursor.executemany(
-                    "INSERT INTO dbid_registry (media_type, dbid, title, content_id, updated_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO dbid_registry "
+                    "(media_type, dbid, title, content_id, tmdb_id, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     rows,
                 )
 
-            stats = {"added": len(new), "removed": len(gone), "reused": len(reused)}
+            stats = {
+                "added": len(new),
+                "removed": len(gone),
+                "reused": len(reused),
+                "ids": len(drifted),
+            }
             if any(v > 0 for v in stats.values()):
                 results[media_type] = stats
 
@@ -202,6 +229,37 @@ def get_valid_dbids(media_type: str) -> Set[int]:
             (media_type,),
         )
         return {row["dbid"] for row in cursor.fetchall()}
+
+
+def needs_id_backfill() -> bool:
+    """True while rows predate the tmdb_id column, so the first sync after an upgrade runs
+    without waiting for a library scan."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute("SELECT 1 FROM dbid_registry WHERE tmdb_id IS NULL LIMIT 1")
+        return cursor.fetchone() is not None
+
+
+def get_dbids_by_tmdb(media_type: str, tmdb_ids: Iterable) -> Dict[str, int]:
+    """Map TMDB ids to library DBIDs for one media type; ids not in the library are left out."""
+    wanted = {str(tmdb_id) for tmdb_id in tmdb_ids if tmdb_id}
+    if not wanted:
+        return {}
+
+    sql = (
+        "SELECT tmdb_id, dbid FROM dbid_registry "
+        "WHERE media_type = ? AND tmdb_id IN ({placeholders})"
+    )
+    try:
+        with get_db(DB_PATH) as cursor:
+            return {
+                row["tmdb_id"]: row["dbid"]
+                for row in chunked_in_query(cursor, sql, [media_type], sorted(wanted))
+            }
+    except sqlite3.OperationalError:
+        # Plugin and script entries never run init_database, so the column can still be
+        # missing until the service has started once after the upgrade.
+        log("Database", "DBID registry has no tmdb_id column yet", xbmc.LOGDEBUG)
+        return {}
 
 
 def remove_dbid(media_type: str, dbid: int) -> None:
