@@ -16,7 +16,7 @@ The slideshow feature provides rotating fanart backgrounds for your skin. It exp
 - Uses database cache for property updates
 - Automatically updates when library is scanned or cleaned
 - Configurable refresh interval from 1 second to 1 hour
-- Supports movies, TV shows, and music
+- Supports movies, TV shows, music, and music videos
 
 ## Enabling Slideshow
 
@@ -86,9 +86,23 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.FanArt)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.Description)]
 ```
 
+### Music Video Properties
+
+```xml
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Title)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Artist)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Plot)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Year)]
+```
+
+A music video's fanart is its own, not the artist's, so this group reaches artwork the Music
+group cannot: a music video by an artist with no music library entry still has a background.
+The same artist can appear in both groups with different images.
+
 ### Global Properties (Mixed Media)
 
-Global properties rotate through all media types (movies, TV, music):
+Global properties rotate through all media types (movies, TV, music, music videos):
 
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.Title)]

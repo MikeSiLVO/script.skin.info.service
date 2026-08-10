@@ -157,8 +157,8 @@ class ArtworkAuto:
 
     def _reconcile_slideshow_pool(self) -> None:
         """One batched slideshow-pool reconcile after a bulk run (per-item refresh was deferred)."""
-        pool_types = ('movie', 'tvshow', 'artist')
-        scope = tuple(t for t in pool_types
+        from lib.service.slideshow import POOL_MEDIA_TYPES
+        scope = tuple(t for t in POOL_MEDIA_TYPES
                       if self.media_filter is None or t in self.media_filter)
         if not scope:
             return
@@ -261,8 +261,7 @@ class ArtworkAuto:
                 if url.startswith('http'):
                     self._download_artwork(media_type, dbid, artwork_type, url, title)
 
-            if (not defer_pool_refresh and 'fanart' in art_dict
-                    and media_type in ('movie', 'tvshow', 'artist')):
+            if not defer_pool_refresh and 'fanart' in art_dict:
                 from lib.service.slideshow import refresh_pool_item
                 refresh_pool_item(media_type, dbid)
 

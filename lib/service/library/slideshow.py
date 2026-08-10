@@ -111,7 +111,7 @@ class SlideshowDriver:
             if self._stopping:
                 return
             from lib.service.slideshow import reconcile_pool
-            reconcile_pool(('movie', 'tvshow', 'artist'))
+            reconcile_pool(('movie', 'tvshow', 'artist', 'musicvideo'))
         except Exception as e:
             log("Service", f"Slideshow: Reconcile error: {str(e)}", xbmc.LOGERROR)
 

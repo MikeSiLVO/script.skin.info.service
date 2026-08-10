@@ -61,19 +61,28 @@ def _build_pool_records(media_type: str, items: list, id_key: str, title_key: st
             year,
             None,
             None,
-            current_time
+            current_time,
+            _joined_artist(item.get('artist')) if media_type == 'musicvideo' else ''
         ))
     return records
 
 
+def _joined_artist(artist: Any) -> str:
+    """Music video artist names as one string; Kodi stores them as a list."""
+    if isinstance(artist, list):
+        return ', '.join(a for a in artist if a)
+    return artist or ''
+
+
 def populate_slideshow_pool() -> None:
-    """Rebuild slideshow_pool from the library (movies/tvshows/artists with fanart)."""
+    """Rebuild slideshow_pool from the library (movies/tvshows/artists/music videos with fanart)."""
     current_time = int(time.time())
 
     movies = _get_movies_with_fanart()
     tvshows = _get_tvshows_with_fanart()
     artists = _get_artists_with_fanart()
-    if movies is None or tvshows is None or artists is None:
+    musicvideos = _get_musicvideos_with_fanart()
+    if movies is None or tvshows is None or artists is None or musicvideos is None:
         log("Service", "Slideshow: a library fetch failed, skipping populate to avoid wiping pool",
             xbmc.LOGWARNING)
         return
@@ -87,12 +96,15 @@ def populate_slideshow_pool() -> None:
     artist_records = _build_pool_records(
         'artist', artists, 'artistid', 'artist', 'fanart', 'description', current_time
     )
+    musicvideo_records = _build_pool_records(
+        'musicvideo', musicvideos, 'musicvideoid', 'title', 'fanart', 'plot', current_time
+    )
 
-    db_slideshow.populate_pool(movie_records, tvshow_records, artist_records)
+    db_slideshow.populate_pool(movie_records, tvshow_records, artist_records, musicvideo_records)
 
     log("Service",
         f"Slideshow: Pool populated with {len(movies)} movies, {len(tvshows)} TV shows, "
-        f"{len(artists)} artists")
+        f"{len(artists)} artists, {len(musicvideos)} music videos")
 
 
 _RECONCILE_LOCK = threading.Lock()
@@ -104,13 +116,15 @@ def reconcile_pool(scope: tuple) -> None:
     Bumps the pool generation only when something differs, so an unchanged pass causes no cursor
     reshuffle. A scope whose library fetch fails is left untouched (its rows are NOT deleted), so a
     transient JSON-RPC failure can't wipe the pool. Serialised so the scan and idle reconcile
-    paths never run concurrently. `scope` is e.g. ('movie','tvshow'), ('artist',), or all three.
+    paths never run concurrently. `scope` is e.g. ('movie','tvshow'), ('artist',), or all of
+    `POOL_MEDIA_TYPES`.
     """
     with _RECONCILE_LOCK:
         fetchers = {
-            'movie':  (_get_movies_with_fanart,  'movieid',  'title',  'plot'),
-            'tvshow': (_get_tvshows_with_fanart, 'tvshowid', 'title',  'plot'),
-            'artist': (_get_artists_with_fanart, 'artistid', 'artist', 'description'),
+            'movie':      (_get_movies_with_fanart,      'movieid',      'title',  'plot'),
+            'tvshow':     (_get_tvshows_with_fanart,     'tvshowid',     'title',  'plot'),
+            'artist':     (_get_artists_with_fanart,     'artistid',     'artist', 'description'),
+            'musicvideo': (_get_musicvideos_with_fanart, 'musicvideoid', 'title',  'plot'),
         }
         current_time = int(time.time())
         desired = {}
@@ -127,17 +141,18 @@ def reconcile_pool(scope: tuple) -> None:
 
         existing = db_slideshow.get_pool_compare_fields(scope)
         upserts = [rec for key, rec in desired.items()
-                   if (rec[2], rec[3], rec[4], rec[5]) != existing.get(key)]
+                   if (rec[2], rec[3], rec[4], rec[5], rec[9]) != existing.get(key)]
         deletes = [key for key in existing if key not in desired and key[0] in fetched]
         db_slideshow.apply_pool_diff(upserts, deletes)
 
 
-_POOL_MEDIA_TYPES = ('movie', 'tvshow', 'artist')
+POOL_MEDIA_TYPES = ('movie', 'tvshow', 'artist', 'musicvideo')
 
 _DETAIL_PROPS = {
-    'movie':  ['art', 'title', 'plot', 'year'],
-    'tvshow': ['art', 'title', 'plot', 'year'],
-    'artist': ['art', 'description'],
+    'movie':      ['art', 'title', 'plot', 'year'],
+    'tvshow':     ['art', 'title', 'plot', 'year'],
+    'artist':     ['art', 'description'],
+    'musicvideo': ['art', 'title', 'plot', 'year', 'artist'],
 }
 
 
@@ -146,7 +161,7 @@ def refresh_pool_item(media_type: str, dbid: int) -> None:
 
     Upserts if it now has fanart, drops the row otherwise. No-op for media the pool doesn't track.
     """
-    if media_type not in _POOL_MEDIA_TYPES:
+    if media_type not in POOL_MEDIA_TYPES:
         return
 
     detail = get_item_details(media_type, dbid, _DETAIL_PROPS[media_type])
@@ -167,8 +182,9 @@ def refresh_pool_item(media_type: str, dbid: int) -> None:
         description = detail.get('plot', '')
         year = detail.get('year')
 
+    artist = _joined_artist(detail.get('artist')) if media_type == 'musicvideo' else ''
     db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, description, year,
-                                  int(time.time()))
+                                  int(time.time()), artist)
 
 
 def _get_movies_with_fanart() -> Optional[list]:
@@ -221,6 +237,21 @@ def _get_artists_with_fanart() -> Optional[list]:
     return artists_with_fanart
 
 
+def _get_musicvideos_with_fanart() -> Optional[list]:
+    """Music videos with fanart, or None if the library fetch failed.
+
+    Fanart is the music video's own art, not the artist's: core gives musicvideo items no artist
+    art fallback (`VideoThumbLoader::FillLibraryArt`), so these reach art the artist pool cannot.
+    """
+    response = request("VideoLibrary.GetMusicVideos", {
+        "properties": ["title", "art", "year", "plot", "artist"]
+    })
+    if response is None:
+        return None
+    return [m for m in response.get('result', {}).get('musicvideos', [])
+            if m.get('art', {}).get('fanart', '').strip()]
+
+
 def set_movie_slideshow_properties(item: Dict[str, Any]) -> None:
     """Set SkinInfo.Slideshow.Movie.* properties."""
     set_prop('SkinInfo.Slideshow.Movie.Title', item.get('title', ''))
@@ -252,6 +283,16 @@ def set_music_slideshow_properties(item: Dict[str, Any]) -> None:
     set_prop('SkinInfo.Slideshow.Music.Description', item.get('description', ''))
 
 
+def set_musicvideo_slideshow_properties(item: Dict[str, Any]) -> None:
+    """Set SkinInfo.Slideshow.MusicVideo.* properties."""
+    set_prop('SkinInfo.Slideshow.MusicVideo.Title', item.get('title', ''))
+    set_prop('SkinInfo.Slideshow.MusicVideo.Artist', item.get('artist', ''))
+    set_prop('SkinInfo.Slideshow.MusicVideo.FanArt', item.get('fanart', ''))
+    set_prop('SkinInfo.Slideshow.MusicVideo.Plot', item.get('plot', ''))
+    set_prop('SkinInfo.Slideshow.MusicVideo.Year',
+             str(item.get('year', '')) if item.get('year') else '')
+
+
 def set_global_slideshow_properties(item: Dict[str, Any]) -> None:
     """Set SkinInfo.Slideshow.Global.* properties."""
     set_prop('SkinInfo.Slideshow.Global.Title', item.get('title', ''))
@@ -269,6 +310,7 @@ _CATEGORY_PROPS = {
     'TV': ('Title', 'FanArt', 'Plot', 'Year'),
     'Video': ('Title', 'FanArt', 'Plot', 'Year'),
     'Music': ('Artist', 'FanArt', 'Description'),
+    'MusicVideo': ('Title', 'Artist', 'FanArt', 'Plot', 'Year'),
     'Global': ('Title', 'FanArt', 'Description'),
 }
 
@@ -530,19 +572,21 @@ class PlaylistRotator:
 # category -> (publish style, eligible types). Mixed categories (Video/Global) weight the
 # type pick by pool size; see LibrarySlideshow.
 _LIBRARY_CATEGORIES = {
-    'Movie':  ('video',  ('movie',)),
-    'TV':     ('video',  ('tvshow',)),
-    'Music':  ('music',  ('artist',)),
-    'Video':  ('video',  ('movie', 'tvshow')),
-    'Global': ('global', ('movie', 'tvshow', 'artist')),
+    'Movie':      ('video',      ('movie',)),
+    'TV':         ('video',      ('tvshow',)),
+    'Music':      ('music',      ('artist',)),
+    'MusicVideo': ('musicvideo', ('musicvideo',)),
+    'Video':      ('video',      ('movie', 'tvshow')),
+    'Global':     ('global',     ('movie', 'tvshow', 'artist', 'musicvideo')),
 }
 
 _CATEGORY_PUBLISHERS = {
-    'Movie':  set_movie_slideshow_properties,
-    'TV':     set_tv_slideshow_properties,
-    'Music':  set_music_slideshow_properties,
-    'Video':  set_video_slideshow_properties,
-    'Global': set_global_slideshow_properties,
+    'Movie':      set_movie_slideshow_properties,
+    'TV':         set_tv_slideshow_properties,
+    'Music':      set_music_slideshow_properties,
+    'MusicVideo': set_musicvideo_slideshow_properties,
+    'Video':      set_video_slideshow_properties,
+    'Global':     set_global_slideshow_properties,
 }
 
 # sqrt damping for mixed-category type weighting: 1.0 = proportional, 0.0 = equal.
@@ -556,6 +600,10 @@ def _publish_library(category: str, row: Dict[str, Any]) -> None:
     if style == 'music':
         publisher({'artist': row.get('title', ''), 'fanart': fanart,
                    'description': row.get('description', '')})
+    elif style == 'musicvideo':
+        publisher({'title': row.get('title', ''), 'artist': row.get('artist', ''),
+                   'fanart': fanart, 'plot': row.get('description', ''),
+                   'year': row.get('year')})
     elif style == 'global':
         publisher({'title': row.get('title', ''), 'fanart': fanart,
                    'description': row.get('description', '')})
@@ -650,7 +698,7 @@ class SlideshowMonitor(xbmc.Monitor):
     """
 
     def _reconcile(self, library: str, reason: str) -> None:
-        scope = ('artist',) if library == 'music' else ('movie', 'tvshow')
+        scope = ('artist',) if library == 'music' else ('movie', 'tvshow', 'musicvideo')
         try:
             log("Service", f"Slideshow: {reason}, reconciling {scope}...", xbmc.LOGDEBUG)
             reconcile_pool(scope)

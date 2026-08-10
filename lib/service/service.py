@@ -76,10 +76,14 @@ class Orchestrator:
             from lib.data.database.cache import clear_expired_cache
             from lib.data.database.music import clear_expired_music_cache
             from lib.data.database.rollcall import needs_id_backfill, sync_dbids
+            from lib.data.database.slideshow import pool_predates_artist
             clear_expired_cache()
             clear_expired_music_cache()
             if needs_id_backfill():
                 sync_dbids()
+            if pool_predates_artist():
+                from lib.service.slideshow import reconcile_pool, POOL_MEDIA_TYPES
+                reconcile_pool(POOL_MEDIA_TYPES)
 
         threading.Thread(target=_run, daemon=True).start()
 

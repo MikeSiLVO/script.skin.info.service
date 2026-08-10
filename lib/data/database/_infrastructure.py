@@ -15,7 +15,7 @@ from typing import Any, Generator
 from lib.kodi.client import log
 
 DB_VERSION = 4
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def compress_data(data: Any) -> bytes:
@@ -372,6 +372,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
             season INTEGER,
             episode INTEGER,
             last_synced INTEGER,
+            artist TEXT,
             PRIMARY KEY (media_type, dbid)
         )
     ''')
@@ -555,6 +556,10 @@ def _migrate_schema(cursor: sqlite3.Cursor) -> None:
             'CREATE INDEX IF NOT EXISTS idx_dbid_registry_tmdb '
             'ON dbid_registry(media_type, tmdb_id)'
         )
+
+    if version < 2:
+        if _add_column(cursor, 'slideshow_pool', 'artist', 'TEXT'):
+            log("Database", "Schema migration 2: added slideshow_pool.artist", xbmc.LOGINFO)
 
     cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
 
