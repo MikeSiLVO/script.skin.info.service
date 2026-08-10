@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Sequence, Dict, List
 
 from lib.data.database._infrastructure import (
@@ -186,6 +186,7 @@ def add_to_queue_batch(items: List[dict]) -> List[int]:
             ON CONFLICT(media_type, dbid) DO UPDATE SET
                 status = '{STATUS_PENDING}',
                 date_processed = NULL,
+                date_added = CURRENT_TIMESTAMP,
                 scope = COALESCE(NULLIF(excluded.scope, ''), art_queue.scope),
                 scan_session_id = COALESCE(excluded.scan_session_id, art_queue.scan_session_id),
                 guid = COALESCE(NULLIF(art_queue.guid, ''), excluded.guid)
@@ -415,12 +416,13 @@ def cleanup_old_queue_items(days_old: int = 30) -> int:
 
         deleted = cursor.rowcount
 
-        # date_added is SQLite's CURRENT_TIMESTAMP, which has no T separator to compare against
+        # date_added is SQLite's CURRENT_TIMESTAMP: UTC, and no T separator to compare against
+        utc_cutoff = datetime.now(timezone.utc) - timedelta(days=days_old)
         cursor.execute('''
             DELETE FROM art_queue
             WHERE status = ?
             AND date_added < ?
-        ''', (STATUS_PENDING, cutoff.strftime('%Y-%m-%d %H:%M:%S')))
+        ''', (STATUS_PENDING, utc_cutoff.strftime('%Y-%m-%d %H:%M:%S')))
 
         deleted += cursor.rowcount
 
