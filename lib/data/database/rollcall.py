@@ -232,11 +232,14 @@ def get_valid_dbids(media_type: str) -> Set[int]:
 
 
 def needs_id_backfill() -> bool:
-    """True while rows predate the tmdb_id column, so the first sync after an upgrade runs
-    without waiting for a library scan."""
+    """True when the registry is empty or predates the tmdb_id column, so a new install or an
+    upgrade seeds it without waiting for a library scan."""
     with get_db(DB_PATH) as cursor:
         cursor.execute("SELECT 1 FROM dbid_registry WHERE tmdb_id IS NULL LIMIT 1")
-        return cursor.fetchone() is not None
+        if cursor.fetchone() is not None:
+            return True
+        cursor.execute("SELECT 1 FROM dbid_registry LIMIT 1")
+        return cursor.fetchone() is None
 
 
 def get_dbids_by_tmdb(media_type: str, tmdb_ids: Iterable) -> Dict[str, int]:
