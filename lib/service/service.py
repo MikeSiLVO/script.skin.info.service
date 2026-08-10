@@ -79,8 +79,12 @@ class Orchestrator:
             from lib.data.database.slideshow import pool_predates_artist
             clear_expired_cache()
             clear_expired_music_cache()
+            if self.monitor.abortRequested():
+                return
             if needs_id_backfill():
                 sync_dbids()
+            if self.monitor.abortRequested():
+                return
             if pool_predates_artist():
                 from lib.service.slideshow import reconcile_pool, POOL_MEDIA_TYPES
                 reconcile_pool(POOL_MEDIA_TYPES)

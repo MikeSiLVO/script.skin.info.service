@@ -41,8 +41,10 @@ def _build_content_id(uniqueid: dict) -> str:
 _PAGE_SIZE = 5000
 
 
-def _fetch_paginated(method: str, result_key: str, properties: Optional[list] = None) -> list:
-    """Fetch all items from a JSON-RPC library call, paginating to avoid silent truncation."""
+def _fetch_paginated(method: str, result_key: str,
+                     properties: Optional[list] = None) -> Optional[list]:
+    """All items from a paginated JSON-RPC library call, or None if a page failed, since a short
+    list would read as "these rows were deleted"."""
     from lib.kodi.client import request
 
     items: list = []
@@ -53,7 +55,7 @@ def _fetch_paginated(method: str, result_key: str, properties: Optional[list] = 
             params["properties"] = properties
         resp = request(method, params)
         if not resp:
-            break
+            return None
         result = resp.get("result") or {}
         page = result.get(result_key) or []
         if not page:
@@ -84,6 +86,10 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str, str]]]:
     for media_type, method, result_key, id_field, has_uniqueid in _LIBRARY_SOURCES:
         properties = ["title", "uniqueid"] if has_uniqueid else None
         items = _fetch_paginated(method, result_key, properties)
+        if items is None:
+            log("Database", f"DBID sync: {media_type} fetch failed, leaving its rows alone",
+                xbmc.LOGWARNING)
+            continue
         snapshot[media_type] = {}
         for item in items:
             if has_uniqueid:
