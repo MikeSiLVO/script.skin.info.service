@@ -537,7 +537,13 @@ def _add_column(cursor: sqlite3.Cursor, table: str, column: str, definition: str
     cursor.execute(f'PRAGMA table_info({table})')
     if column in {row[1] for row in cursor.fetchall()}:
         return False
-    cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+    try:
+        cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+    except sqlite3.OperationalError as e:
+        # Another Kodi process migrated between the check and here; both entry points init the DB.
+        if 'duplicate column name' not in str(e):
+            raise
+        return False
     return True
 
 
