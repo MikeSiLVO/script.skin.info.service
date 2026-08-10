@@ -191,6 +191,7 @@ class FocusDispatcher:
                 self._service.blur.handle_focus()
                 return
             if modal_dialog_active():
+                self._service.blur.handle_focus()
                 return
             if self._last_type:
                 self.clear_media_type(self._last_type)
