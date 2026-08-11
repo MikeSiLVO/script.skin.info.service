@@ -343,10 +343,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
 
     result = request('VideoLibrary.GetTVShows', {
         'filter': tvshow_filter,
-        'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                      'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                      'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                      'imdbnumber', 'originaltitle', 'season'],
+        'properties': _FULL_SHOW_PROPERTIES,
         'sort': {'method': 'dateadded', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
@@ -360,9 +357,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
             ep_result = request('VideoLibrary.GetEpisodes', {
                 'tvshowid': show['tvshowid'],
                 'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
-                'properties': ['title', 'season', 'episode', 'showtitle', 'plot',
-                              'art', 'file', 'resume', 'runtime', 'firstaired',
-                              'rating', 'userrating', 'playcount', 'lastplayed'],
+                'properties': _EPISODE_PROPERTIES,
                 'sort': {'method': 'dateadded', 'order': 'descending'},
                 'limits': {'start': 0, 'end': 1}
             })
@@ -595,9 +590,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
     if mix or dbtype in ('movie', 'set'):
         movie_result = request('VideoLibrary.GetMovies', {
             'filter': {'actor': actor},
-            'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast'],
+            'properties': _MOVIE_PROPERTIES + ['cast'],
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
@@ -614,10 +607,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
     if mix or dbtype in ('tvshow', 'season', 'episode'):
         show_result = request('VideoLibrary.GetTVShows', {
             'filter': {'actor': actor},
-            'properties': ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                          'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                          'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                          'imdbnumber', 'originaltitle'],
+            'properties': _FULL_SHOW_PROPERTIES,
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
@@ -773,9 +763,7 @@ def handle_by_director(handle: int, params: dict) -> None:
     if mix or dbtype in ('movie', 'set'):
         movie_result = request('VideoLibrary.GetMovies', {
             'filter': {'field': 'director', 'operator': 'is', 'value': director},
-            'properties': ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                          'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                          'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume'],
+            'properties': _MOVIE_PROPERTIES,
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
@@ -953,13 +941,6 @@ def handle_similar(handle: int, params: dict) -> None:
     scored_items.sort(key=lambda x: (x[0], random.random()), reverse=True)
     scored_items = scored_items[:limit]
 
-    movie_props = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                   'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                   'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
-    tvshow_props = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                    'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                    'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                    'imdbnumber', 'originaltitle']
 
     # full properties fetched only for items that survived scoring
     all_items = []
@@ -967,7 +948,7 @@ def handle_similar(handle: int, params: dict) -> None:
         item_id = item_data[id_field]
         if target_dbtype == 'movie':
             detail = request('VideoLibrary.GetMovieDetails',
-                             {'movieid': item_id, 'properties': movie_props})
+                             {'movieid': item_id, 'properties': _MOVIE_PROPERTIES})
             full = extract_result(detail, 'moviedetails', {})
             if not full:
                 continue
@@ -976,7 +957,7 @@ def handle_similar(handle: int, params: dict) -> None:
             all_items.append((full.get('file', ''), listitem, False))
         else:
             detail = request('VideoLibrary.GetTVShowDetails',
-                             {'tvshowid': item_id, 'properties': tvshow_props})
+                             {'tvshowid': item_id, 'properties': _FULL_SHOW_PROPERTIES})
             full = extract_result(detail, 'tvshowdetails', {})
             if not full:
                 continue
@@ -1053,20 +1034,13 @@ def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
 def _render_recommended(handle: int, scored_items: list, based_on_label: str, dbtype: str) -> None:
     """Turn the chosen picks into directory items, tagged with their seed title and the
     "based on" header label."""
-    movie_props = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
-                   'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
-                   'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume', 'cast']
-    tvshow_props = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
-                    'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
-                    'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
-                    'imdbnumber', 'originaltitle', 'season']
 
     all_items = []
     for item_data, based_on_raw in scored_items:
         if item_data['_mtype'] == 'movie':
             item_id = item_data['movieid']
             detail = request('VideoLibrary.GetMovieDetails',
-                             {'movieid': item_id, 'properties': movie_props})
+                             {'movieid': item_id, 'properties': _MOVIE_PROPERTIES + ['cast']})
             full = extract_result(detail, 'moviedetails', {})
             if not full:
                 continue
@@ -1079,7 +1053,7 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
         else:
             item_id = item_data['tvshowid']
             detail = request('VideoLibrary.GetTVShowDetails',
-                             {'tvshowid': item_id, 'properties': tvshow_props})
+                             {'tvshowid': item_id, 'properties': _FULL_SHOW_PROPERTIES})
             full = extract_result(detail, 'tvshowdetails', {})
             if not full:
                 continue
@@ -1411,9 +1385,7 @@ SEASONAL_FRANCHISES = {
     'startrek': {'title': 'Star Trek', 'collections': []},
 }
 
-_MOVIE_PROPS = ['title', 'sorttitle', 'originaltitle', 'art', 'file', 'year', 'rating',
-                'userrating', 'playcount', 'plot', 'tagline', 'runtime', 'genre', 'director',
-                'studio', 'mpaa', 'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
+_SEASONAL_MOVIE_PROPERTIES = _MOVIE_PROPERTIES + ['sorttitle', 'originaltitle']
 
 # widget sort method -> (movie field, reverse, is_text)
 _SORT_KEYS = {
@@ -1454,7 +1426,7 @@ def _library_movies_by_tmdb(tmdb_ids: set) -> list:
     out = []
     for movieid in get_dbids_by_tmdb('movie', tmdb_ids).values():
         detail = request('VideoLibrary.GetMovieDetails',
-                         {'movieid': movieid, 'properties': _MOVIE_PROPS})
+                         {'movieid': movieid, 'properties': _SEASONAL_MOVIE_PROPERTIES})
         movie = extract_result(detail, 'moviedetails', {})
         if movie:
             out.append(movie)
@@ -1470,7 +1442,7 @@ def _franchise_movies(franchise: dict, limit: int, sort_method: str) -> list:
             {'field': 'set', 'operator': 'contains', 'value': name},
             {'field': 'title', 'operator': 'contains', 'value': name},
         ]},
-        'properties': _MOVIE_PROPS + ['uniqueid'],
+        'properties': _SEASONAL_MOVIE_PROPERTIES + ['uniqueid'],
     })
     movies = extract_result(result, 'movies', [])
     have = {str((m.get('uniqueid') or {}).get('tmdb')) for m in movies}
@@ -1497,7 +1469,7 @@ def _query_movies(movie_filter: dict, sort_method: str, limit: int) -> list:
     reverse = _SORT_KEYS.get(sort_method, ('', False, False))[1]
     result = request('VideoLibrary.GetMovies', {
         'filter': movie_filter,
-        'properties': _MOVIE_PROPS,
+        'properties': _SEASONAL_MOVIE_PROPERTIES,
         'sort': {'method': sort_method, 'order': 'descending' if reverse else 'ascending'},
         'limits': {'start': 0, 'end': limit},
     })
