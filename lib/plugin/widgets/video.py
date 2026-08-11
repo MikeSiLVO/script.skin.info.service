@@ -16,7 +16,7 @@ _EPISODE_PROPERTIES = ['title', 'season', 'episode', 'showtitle', 'plot', 'art',
                        'resume', 'runtime', 'firstaired', 'rating', 'userrating',
                        'playcount', 'lastplayed']
 
-_SHOW_PROPERTIES = ['art', 'title', 'mpaa', 'studio', 'episode', 'watchedepisodes']
+_SHOW_PROPERTIES = ['title', 'mpaa', 'studio', 'episode', 'watchedepisodes']
 
 
 def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
@@ -74,10 +74,16 @@ def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
     return episodes[0] if episodes else None
 
 
+def _show_art_from_episode(episode_art: dict) -> dict:
+    """Parent show art, which Kodi mirrors onto every episode under `tvshow.*`."""
+    return {key[7:]: value for key, value in episode_art.items() if key.startswith('tvshow.')}
+
+
 def _episode_item_from_show(show: dict, episode: dict) -> xbmcgui.ListItem:
     """Episode ListItem carrying the parent show's art, certificate and studio."""
     listitem = _create_episode_listitem(episode)
-    _set_episode_artwork_from_show(listitem, show.get('art', {}), episode.get('art', {}))
+    episode_art = episode.get('art', {})
+    _set_episode_artwork_from_show(listitem, _show_art_from_episode(episode_art), episode_art)
     video_tag = listitem.getVideoInfoTag()
     if show.get('mpaa'):
         video_tag.setMpaa(show['mpaa'])
@@ -679,35 +685,18 @@ def handle_by_director(handle: int, params: dict) -> None:
     if mix or dbtype == 'episode':
         episode_result = request('VideoLibrary.GetEpisodes', {
             'filter': {'field': 'director', 'operator': 'is', 'value': director},
-            'properties': ['title', 'season', 'episode', 'showtitle', 'plot', 'art', 'file',
-                          'resume', 'runtime', 'firstaired', 'rating', 'userrating', 'playcount',
-                          'lastplayed', 'tvshowid'],
+            'properties': _EPISODE_PROPERTIES,
             'sort': {'method': 'random'},
             'limits': {'start': 0, 'end': limit if not mix else limit // 2}
         })
         episodes = extract_result(episode_result, 'episodes', [])
 
-        show_art_cache: dict[int, dict] = {}
         for episode in episodes:
             if episode.get('episodeid') != dbid or dbtype != 'episode':
+                episode_art = episode.get('art', {})
                 listitem = _create_episode_listitem(episode)
-
-                tvshowid = episode.get('tvshowid')
-                if tvshowid:
-                    if tvshowid not in show_art_cache:
-                        show_result = request('VideoLibrary.GetTVShowDetails', {
-                            'tvshowid': tvshowid,
-                            'properties': ['art']
-                        })
-                        show = extract_result(show_result, 'tvshowdetails', {})
-                        show_art_cache[tvshowid] = (
-                            show.get('art', {}) if isinstance(show, dict) else {}
-                        )
-
-                    show_art = show_art_cache[tvshowid]
-                    if show_art:
-                        _set_episode_artwork_from_show(listitem, show_art, episode['art'])
-
+                _set_episode_artwork_from_show(listitem, _show_art_from_episode(episode_art),
+                                               episode_art)
                 all_items.append((episode['file'], listitem, False))
 
     random.shuffle(all_items)
