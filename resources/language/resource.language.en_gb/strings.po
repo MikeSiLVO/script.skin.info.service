@@ -1982,6 +1982,10 @@ msgctxt "#32684"
 msgid "Crew"
 msgstr ""
 
+msgctxt "#32685"
+msgid "Favourite Episodes"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

@@ -9,6 +9,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 ## Table of Contents
 
 - [Next Up](#next-up)
+- [Favourite Episodes](#favourite-episodes)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
 - [By Actor](#by-actor)
 - [By Director](#by-director)
@@ -57,6 +58,60 @@ Returns the next unwatched episode for each in-progress TV show.
 2. For each show, finds the last played episode
 3. Returns the next unwatched episode in same season
 4. If season complete, returns first unwatched overall
+
+### Item Properties
+
+- **Label**: Formatted as `2x05. Episode Title`
+- **MediaType**: `episode`
+- **Video Info**: title, season, episode, showtitle, plot, rating, runtime, firstaired
+- **Artwork**: TV show artwork + episode thumb
+- **Resume Point**: If partially watched
+
+**Widget Type:** Episode
+
+---
+
+## Favourite Episodes
+
+Returns the next unwatched episode for each TV show in your Kodi favourites.
+
+Where [Next Up](#next-up) only covers shows you have already started, this covers every
+favourited show, so one you have never watched appears at its first episode.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=favourite_episodes</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `limit` | No | 25 | Maximum episodes to return |
+
+### Examples
+
+```xml
+<!-- Basic -->
+<content>plugin://script.skin.info.service/?action=favourite_episodes</content>
+
+<!-- Custom limit -->
+<content>plugin://script.skin.info.service/?action=favourite_episodes&amp;limit=10</content>
+
+<!-- With auto-refresh -->
+<content>plugin://script.skin.info.service/?action=favourite_episodes&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
+```
+
+### Behavior
+
+1. Reads TV shows from the favourites list, keeping the order you favourited them
+2. Skips shows that are fully watched
+3. Returns the next unwatched episode in the season last played
+4. If the show has not been started, returns its first unwatched episode
+
+Only shows favourited from the library are used. Favourites pointing at a file or an add-on are
+ignored.
 
 ### Item Properties
 

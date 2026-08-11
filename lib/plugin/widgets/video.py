@@ -2,12 +2,21 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Optional
 
 import xbmc
 import xbmcgui
 import xbmcplugin
 from lib.kodi.client import request, get_item_details, extract_result, ADDON
+
+_FAVOURITE_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
+
+_EPISODE_PROPERTIES = ['title', 'season', 'episode', 'showtitle', 'plot', 'art', 'file',
+                       'resume', 'runtime', 'firstaired', 'rating', 'userrating',
+                       'playcount', 'lastplayed']
+
+_SHOW_PROPERTIES = ['art', 'title', 'mpaa', 'studio', 'episode', 'watchedepisodes']
 
 
 def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
@@ -25,79 +34,130 @@ def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
     })
 
 
+def _earliest_unwatched(tvshowid: int, season: Optional[int] = None) -> list:
+    """Lowest-numbered unwatched episode of a show, restricted to `season` when given."""
+    params = {
+        'tvshowid': tvshowid,
+        'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
+        'properties': _EPISODE_PROPERTIES,
+        'sort': {'method': 'episode', 'order': 'ascending'},
+        'limits': {'start': 0, 'end': 1}
+    }
+    if season is not None:
+        params['season'] = season
+    return extract_result(request('VideoLibrary.GetEpisodes', params), 'episodes', [])
+
+
+def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
+    """Episode to watch next: earliest unwatched in the season last played, else earliest
+    unwatched anywhere, so an untouched show starts at its first episode."""
+    last_result = request('VideoLibrary.GetEpisodes', {
+        'tvshowid': tvshowid,
+        'filter': {
+            'or': [
+                {'field': 'inprogress', 'operator': 'true', 'value': ''},
+                {'field': 'playcount', 'operator': 'greaterthan', 'value': '0'}
+            ]
+        },
+        'properties': ['season'],
+        'sort': {'method': 'lastplayed', 'order': 'descending'},
+        'limits': {'start': 0, 'end': 1}
+    })
+    last_played = extract_result(last_result, 'episodes', [])
+
+    if last_played:
+        episodes = _earliest_unwatched(tvshowid, last_played[0]['season'])
+        if episodes:
+            return episodes[0]
+
+    episodes = _earliest_unwatched(tvshowid)
+    return episodes[0] if episodes else None
+
+
+def _episode_item_from_show(show: dict, episode: dict) -> xbmcgui.ListItem:
+    """Episode ListItem carrying the parent show's art, certificate and studio."""
+    listitem = _create_episode_listitem(episode)
+    _set_episode_artwork_from_show(listitem, show.get('art', {}), episode.get('art', {}))
+    video_tag = listitem.getVideoInfoTag()
+    if show.get('mpaa'):
+        video_tag.setMpaa(show['mpaa'])
+    if show.get('studio'):
+        video_tag.setStudios(show['studio'])
+    return listitem
+
+
 def handle_next_up(handle: int, params: dict) -> None:
     """Plugin entry: next unwatched episode per in-progress show (`limit`, default 25)."""
     limit = int(params.get('limit', ['25'])[0])
 
     result = request('VideoLibrary.GetTVShows', {
         'filter': {'field': 'inprogress', 'operator': 'true', 'value': ''},
-        'properties': ['art', 'title', 'mpaa', 'studio', 'episode', 'watchedepisodes'],
+        'properties': _SHOW_PROPERTIES,
         'sort': {'method': 'lastplayed', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
     shows = extract_result(result, 'tvshows', [])
 
-    items = []
     for show in shows:
         if show.get('episode', 0) <= show.get('watchedepisodes', 0):
             continue
 
-        last_result = request('VideoLibrary.GetEpisodes', {
-            'tvshowid': show['tvshowid'],
-            'filter': {
-                'or': [
-                    {'field': 'inprogress', 'operator': 'true', 'value': ''},
-                    {'field': 'playcount', 'operator': 'greaterthan', 'value': '0'}
-                ]
-            },
-            'properties': ['season'],
-            'sort': {'method': 'lastplayed', 'order': 'descending'},
-            'limits': {'start': 0, 'end': 1}
-        })
-        last_played = extract_result(last_result, 'episodes', [])
-
-        if not last_played:
+        episode = _next_unwatched_episode(show['tvshowid'])
+        if not episode:
             continue
 
-        season = last_played[0]['season']
+        listitem = _episode_item_from_show(show, episode)
+        xbmcplugin.addDirectoryItem(handle, episode['file'], listitem, False)
 
-        next_result = request('VideoLibrary.GetEpisodes', {
-            'tvshowid': show['tvshowid'],
-            'season': season,
-            'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
-            'properties': ['title', 'season', 'episode', 'showtitle', 'plot',
-                          'art', 'file', 'resume', 'runtime', 'firstaired',
-                          'rating', 'userrating', 'playcount', 'lastplayed'],
-            'sort': {'method': 'episode', 'order': 'ascending'},
-            'limits': {'start': 0, 'end': 1}
-        })
-        next_ep = extract_result(next_result, 'episodes', [])
+    xbmcplugin.setContent(handle, 'episodes')
+    xbmcplugin.endOfDirectory(handle)
 
-        if not next_ep:
-            fallback_result = request('VideoLibrary.GetEpisodes', {
-                'tvshowid': show['tvshowid'],
-                'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
-                'properties': ['title', 'season', 'episode', 'showtitle', 'plot',
-                              'art', 'file', 'resume', 'runtime', 'firstaired',
-                              'rating', 'userrating', 'playcount', 'lastplayed'],
-                'sort': {'method': 'episode', 'order': 'ascending'},
-                'limits': {'start': 0, 'end': 1}
-            })
-            next_ep = extract_result(fallback_result, 'episodes', [])
 
-        if next_ep:
-            episode = next_ep[0]
-            listitem = _create_episode_listitem(episode)
-            _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
-            video_tag = listitem.getVideoInfoTag()
-            if show.get('mpaa'):
-                video_tag.setMpaa(show['mpaa'])
-            if show.get('studio'):
-                video_tag.setStudios(show['studio'])
-            items.append((episode['file'], listitem, False))
+def _favourite_tvshow_ids() -> list:
+    """TV show DBIDs pulled from the favourites list, in the order they were favourited."""
+    result = request('Favourites.GetFavourites',
+                     {'type': 'window', 'properties': ['windowparameter']})
 
-    for url, listitem, isfolder in items:
-        xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
+    ids = []
+    seen = set()
+    for favourite in extract_result(result, 'favourites', []):
+        match = _FAVOURITE_TVSHOW.search(favourite.get('windowparameter') or '')
+        if not match:
+            continue
+        tvshowid = int(match.group(1))
+        if tvshowid not in seen:
+            seen.add(tvshowid)
+            ids.append(tvshowid)
+    return ids
+
+
+def handle_favourite_episodes(handle: int, params: dict) -> None:
+    """Plugin entry: next unwatched episode for each favourited TV show (`limit`, default 25)."""
+    limit = int(params.get('limit', ['25'])[0])
+
+    favourite_ids = _favourite_tvshow_ids()
+    if favourite_ids:
+        result = request('VideoLibrary.GetTVShows', {'properties': _SHOW_PROPERTIES})
+        shows = {show['tvshowid']: show for show in extract_result(result, 'tvshows', [])}
+    else:
+        shows = {}
+
+    added = 0
+    for tvshowid in favourite_ids:
+        if added >= limit:
+            break
+
+        show = shows.get(tvshowid)
+        if not show or show.get('episode', 0) <= show.get('watchedepisodes', 0):
+            continue
+
+        episode = _next_unwatched_episode(tvshowid)
+        if not episode:
+            continue
+
+        listitem = _episode_item_from_show(show, episode)
+        xbmcplugin.addDirectoryItem(handle, episode['file'], listitem, False)
+        added += 1
 
     xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle)
