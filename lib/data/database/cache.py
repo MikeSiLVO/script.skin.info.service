@@ -249,14 +249,10 @@ def cache_artwork(
         )
 
 
-def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
-    """Return cached extended metadata, or None if missing/expired."""
+def _fetch_cached(table: str, where: str, params: tuple, label: str) -> Optional[Any]:
+    """Decompressed `data` from one cache row; None when it is missing or unreadable."""
     with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM metadata_cache
-            WHERE media_type = ? AND tmdb_id = ?
-              AND expires_at > ?
-        ''', (media_type, tmdb_id, datetime.now().isoformat()))
+        cursor.execute(f"SELECT data FROM {table} WHERE {where}", params)
 
         row = cursor.fetchone()
         if not row:
@@ -265,8 +261,15 @@ def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
         try:
             return _decompress_data(row['data'])
         except Exception as e:
-            log("Cache", f"Failed to decompress metadata: {e}", xbmc.LOGERROR)
+            log("Cache", f"Failed to decompress {label}: {e}", xbmc.LOGERROR)
             return None
+
+
+def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
+    """Return cached extended metadata, or None if missing/expired."""
+    return _fetch_cached(
+        'metadata_cache', 'media_type = ? AND tmdb_id = ? AND expires_at > ?',
+        (media_type, tmdb_id, datetime.now().isoformat()), 'metadata')
 
 
 def cache_metadata(
@@ -301,22 +304,9 @@ def cache_metadata(
 
 def get_cached_season_metadata(tmdb_id: str, season_number: int) -> Optional[dict]:
     """Return cached TMDB season-details response, or None if missing/expired."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM season_metadata_cache
-            WHERE tmdb_id = ? AND season_number = ?
-              AND expires_at > ?
-        ''', (tmdb_id, season_number, datetime.now().isoformat()))
-
-        row = cursor.fetchone()
-        if not row:
-            return None
-
-        try:
-            return _decompress_data(row['data'])
-        except Exception as e:
-            log("Cache", f"Failed to decompress season metadata: {e}", xbmc.LOGERROR)
-            return None
+    return _fetch_cached(
+        'season_metadata_cache', 'tmdb_id = ? AND season_number = ? AND expires_at > ?',
+        (tmdb_id, season_number, datetime.now().isoformat()), 'season metadata')
 
 
 def cache_season_metadata(tmdb_id: str, season_number: int, data: dict,
@@ -354,22 +344,10 @@ def _season_ttl_hours(season_data: dict) -> int:
 
 def get_cached_tmdb_genre_list(tmdb_type: str) -> Optional[Dict[int, str]]:
     """Return cached TMDB genre id->name mapping for `movie` or `tv`, or None if missing/expired."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM tmdb_genre_cache
-            WHERE tmdb_type = ? AND expires_at > ?
-        ''', (tmdb_type, datetime.now().isoformat()))
-
-        row = cursor.fetchone()
-        if not row:
-            return None
-
-        try:
-            decoded = _decompress_data(row['data'])
-            return {int(k): v for k, v in decoded.items()}
-        except Exception as e:
-            log("Cache", f"Failed to decompress genre list: {e}", xbmc.LOGERROR)
-            return None
+    decoded = _fetch_cached(
+        'tmdb_genre_cache', 'tmdb_type = ? AND expires_at > ?',
+        (tmdb_type, datetime.now().isoformat()), 'genre list')
+    return {int(k): v for k, v in decoded.items()} if decoded else None
 
 
 def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: int = 24) -> None:
@@ -467,22 +445,9 @@ def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
 
 def get_cached_person_data(person_id: int) -> Optional[dict]:
     """Return cached TMDB person data, or None if missing/expired."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM person_cache
-            WHERE person_id = ? AND expires_at > ?
-        ''', (person_id, int(time.time())))
-
-        row = cursor.fetchone()
-
-        if not row:
-            return None
-
-        try:
-            return _decompress_data(row['data'])
-        except Exception as e:
-            log("Cache", f"Failed to parse cached person data: {str(e)}", xbmc.LOGERROR)
-            return None
+    return _fetch_cached(
+        'person_cache', 'person_id = ? AND expires_at > ?',
+        (person_id, int(time.time())), 'person data')
 
 
 def get_cached_online_keys() -> set:
@@ -498,21 +463,8 @@ def get_cached_online_keys() -> set:
 
 def get_cached_online_properties(item_key: str) -> Optional[Dict[str, str]]:
     """Return cached online properties. Serves stale data until a refresh overwrites it."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM online_properties_cache
-            WHERE item_key = ?
-        ''', (item_key,))
-
-        row = cursor.fetchone()
-        if not row:
-            return None
-
-        try:
-            return _decompress_data(row['data'])
-        except Exception as e:
-            log("Cache", f"Failed to decompress online properties: {e}", xbmc.LOGERROR)
-            return None
+    return _fetch_cached(
+        'online_properties_cache', 'item_key = ?', (item_key,), 'online properties')
 
 
 def get_mb_id_mapping(old_id: str) -> Optional[str]:
