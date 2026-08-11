@@ -74,6 +74,17 @@ class ApiLastfm:
 
         return None
 
+    def _get_info(self, kind: str, identity: Dict[str, Any], mbid: Optional[str],
+                  lang: str, abort_flag) -> Optional[dict]:
+        """Raw `<kind>` dict from a Last.fm `<kind>.getInfo` call, or None."""
+        params: Dict[str, Any] = ({"mbid": mbid, "lang": lang} if mbid
+                                  else {**identity, "lang": lang})
+        data = self._request(f"{kind}.getInfo", params, abort_flag)
+        if not data:
+            return None
+        info = data.get(kind)
+        return info if isinstance(info, dict) else None
+
     def get_track_info(
         self,
         artist: str,
@@ -82,23 +93,9 @@ class ApiLastfm:
         lang: str = "en",
         abort_flag=None
     ) -> Optional[dict]:
-        """Get track metadata from Last.fm.
-
-        Returns the raw 'track' dict from the API response, or None.
-        """
-        if mbid:
-            params: Dict[str, Any] = {"mbid": mbid, "lang": lang}
-        else:
-            params = {"artist": artist, "track": track, "lang": lang}
-
-        data = self._request("track.getInfo", params, abort_flag)
-        if not data:
-            return None
-
-        track_data = data.get('track')
-        if not isinstance(track_data, dict):
-            return None
-        return track_data
+        """Raw `track` dict from Last.fm, or None."""
+        return self._get_info("track", {"artist": artist, "track": track},
+                              mbid, lang, abort_flag)
 
     def get_artist_info(
         self,
@@ -107,23 +104,8 @@ class ApiLastfm:
         lang: str = "en",
         abort_flag=None
     ) -> Optional[dict]:
-        """Get artist metadata from Last.fm.
-
-        Returns the raw 'artist' dict from the API response, or None.
-        """
-        if mbid:
-            params: Dict[str, Any] = {"mbid": mbid, "lang": lang}
-        else:
-            params = {"artist": artist, "lang": lang}
-
-        data = self._request("artist.getInfo", params, abort_flag)
-        if not data:
-            return None
-
-        artist_data = data.get('artist')
-        if not isinstance(artist_data, dict):
-            return None
-        return artist_data
+        """Raw `artist` dict from Last.fm, or None."""
+        return self._get_info("artist", {"artist": artist}, mbid, lang, abort_flag)
 
     def get_album_info(
         self,
@@ -133,21 +115,6 @@ class ApiLastfm:
         lang: str = "en",
         abort_flag=None
     ) -> Optional[dict]:
-        """Get album metadata from Last.fm.
-
-        Returns the raw 'album' dict from the API response, or None.
-        """
-        if mbid:
-            params: Dict[str, Any] = {"mbid": mbid, "lang": lang}
-        else:
-            params = {"artist": artist, "album": album, "lang": lang}
-
-        data = self._request("album.getInfo", params, abort_flag)
-        if not data:
-            return None
-
-        album_data = data.get('album')
-        if not isinstance(album_data, dict):
-            return None
-        return album_data
-
+        """Raw `album` dict from Last.fm, or None."""
+        return self._get_info("album", {"artist": artist, "album": album},
+                              mbid, lang, abort_flag)
