@@ -67,6 +67,9 @@ def _handle_widgets_menu(handle: int) -> None:
         (ADDON.getLocalizedString(32686),
          "plugin://script.skin.info.service/?action=recent_videos",
          "DefaultVideo.png", True),
+        (xbmc.getLocalizedString(1036),
+         "plugin://script.skin.info.service/?action=favourites",
+         "DefaultFavourites.png", True),
         (ADDON.getLocalizedString(32622), "plugin://script.skin.info.service/?action=menu_seasonal",
          "DefaultYear.png", True),
         (ADDON.getLocalizedString(32623),
@@ -170,6 +173,11 @@ def _handle_next_up(handle: int, params: dict) -> None:
 def _handle_favourite_episodes(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_favourite_episodes
     handle_favourite_episodes(handle, params)
+
+
+def _handle_favourites(handle: int, params: dict) -> None:
+    from lib.plugin.widgets.favourites import handle_favourites
+    handle_favourites(handle, params)
 
 
 def _handle_recent_videos(handle: int, params: dict) -> None:
@@ -292,6 +300,7 @@ _HANDLERS = {
     'discover_tvshows_menu': _handle_discover_tvshows_menu_action,
     'next_up': _handle_next_up,
     'favourite_episodes': _handle_favourite_episodes,
+    'favourites': _handle_favourites,
     'recent_episodes_grouped': _handle_recent_episodes_grouped,
     'recent_videos': _handle_recent_videos,
     'by_actor': _handle_by_actor,

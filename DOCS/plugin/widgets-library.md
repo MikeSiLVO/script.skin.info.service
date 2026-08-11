@@ -12,6 +12,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 - [Favourite Episodes](#favourite-episodes)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
 - [Recent Videos](#recent-videos)
+- [Favourites](#favourites)
 - [By Actor](#by-actor)
 - [By Director](#by-director)
 - [Similar Items](#similar-items)
@@ -221,6 +222,62 @@ row, while a show airing weekly still shows its individual episode.
 Collapsed show rows are folders that open the show; everything else is playable.
 
 **Widget Type:** Mixed video
+
+---
+
+## Favourites
+
+Your Kodi favourites, resolved back to their library items so they carry full metadata.
+
+Kodi's own favourites list stores only a label, a thumb and a path or window target. This resolves
+each one to the library item behind it, so the widget gets poster, fanart, clearlogo, plot, rating,
+watched state and resume point. It also lets you show one media type on its own, which the plain
+favourites list cannot do.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=favourites&amp;dbtype=movie</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | No | all | `movie`, `tvshow`, `episode` or `musicvideo`. Omit for every resolved favourite |
+| `limit` | No | 0 | Maximum items; 0 returns all |
+
+### Examples
+
+```xml
+<!-- Favourited movies only -->
+<content>plugin://script.skin.info.service/?action=favourites&amp;dbtype=movie</content>
+
+<!-- Favourited TV shows only -->
+<content>plugin://script.skin.info.service/?action=favourites&amp;dbtype=tvshow</content>
+
+<!-- Everything, mixed -->
+<content>plugin://script.skin.info.service/?action=favourites</content>
+```
+
+### Behavior
+
+1. Reads the favourites list, keeping the order you favourited things
+2. TV shows are matched by the database id stored in the favourite
+3. Movies, episodes and music videos are matched on their file path
+4. Favourites whose item is no longer in the library are skipped
+
+Favourites pointing at an add-on or a plugin path are not resolved and do not appear. TV show rows
+are folders that open the show; everything else is playable.
+
+### Item Properties
+
+- **MediaType**: `movie`, `tvshow`, `episode` or `musicvideo`
+- **Artwork**: full library artwork for the resolved item
+- **Video Info**: plot, rating, year, and watched state
+- **Resume Point**: If partially watched
+
+**Widget Type:** Mixed video, or the requested `dbtype`
 
 ---
 
