@@ -88,13 +88,7 @@ def bulk_episode_lookup() -> Generator[Callable[..., Optional[str]], None, None]
     """Context manager yielding a lookup function with a shared connection."""
     with get_db() as cursor:
         def lookup(show_imdb_id: str, season: int, episode: int) -> Optional[str]:
-            cursor.execute(
-                "SELECT episode_id FROM imdb_episodes "
-                "WHERE parent_id = ? AND season = ? AND episode = ?",
-                (show_imdb_id, season, episode)
-            )
-            row = cursor.fetchone()
-            return row["episode_id"] if row else None
+            return _select_episode_imdb_id(cursor, show_imdb_id, season, episode)
         yield lookup
 
 
