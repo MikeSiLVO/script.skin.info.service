@@ -1001,7 +1001,7 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
         result = request('VideoLibrary.GetMovies', {
             'filter': {'and': [{'field': 'playcount', 'operator': 'is', 'value': '0'},
                                genre_filter]},
-            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast', 'director'],
+            'properties': ['genre', 'year', 'mpaa', 'rating', 'director'],
         })
         for movie in extract_result(result, 'movies', []):
             movie['_mtype'] = 'movie'
@@ -1010,7 +1010,7 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
         result = request('VideoLibrary.GetTVShows', {
             'filter': {'and': [{'field': 'numwatched', 'operator': 'is', 'value': '0'},
                                genre_filter]},
-            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast'],
+            'properties': ['genre', 'year', 'mpaa', 'rating'],
         })
         for show in extract_result(result, 'tvshows', []):
             show['_mtype'] = 'tvshow'
@@ -1107,7 +1107,7 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
 def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
                       min_rating: float, strict_rating: bool) -> None:
     """Recommend unwatched titles most like the single most recent watch (genre, tone,
-    director, cast, era); pads with top-rated unwatched so it isn't sparse, with a
+    director, era); pads with top-rated unwatched so it isn't sparse, with a
     truthful "Based on <that movie>" header."""
     seed = None
     seed_set: frozenset = frozenset()
@@ -1127,7 +1127,6 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
     seed_year = seed.get('year', 0)
     sd = seed.get('director', [])
     seed_directors = set(sd if isinstance(sd, list) else [sd] if sd else [])
-    seed_cast = {m.get('name', '') for m in (seed.get('cast', []) or [])[:8] if m.get('name')}
 
     genre_filters = [{'field': 'genre', 'operator': 'contains', 'value': g} for g in seed_set]
     genre_filter = {'or': genre_filters} if len(genre_filters) > 1 else genre_filters[0]
@@ -1146,7 +1145,7 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
         inter = len(cset & seed_set)
         if not inter:
             continue
-        # score vs the one seed only (genre, tone, director/cast, era), not a history blend
+        # score vs the one seed only (genre, tone, director, era), not a history blend
         score = inter / len(cset | seed_set)
         if cmpaa and cmpaa == seed_mpaa:
             score += 0.25
@@ -1155,8 +1154,6 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
             cd = [cd] if cd else []
         if seed_directors.intersection(cd):
             score += 0.30
-        if seed_cast.intersection(m.get('name', '') for m in (c.get('cast', []) or [])[:8]):
-            score += 0.20
         cyear = c.get('year', 0)
         if cyear and seed_year:
             yd = abs(cyear - seed_year)
@@ -1209,7 +1206,7 @@ def handle_recommended(handle: int, params: dict) -> None:
     if dbtype in ('movie', 'both'):
         movie_history = request('VideoLibrary.GetMovies', {
             'filter': {'field': 'playcount', 'operator': 'greaterthan', 'value': '0'},
-            'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'cast', 'director',
+            'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'director',
                            'lastplayed'],
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': history_size}
@@ -1221,7 +1218,7 @@ def handle_recommended(handle: int, params: dict) -> None:
         # tvshow playcount only turns 1 once every episode is watched, numwatched is per episode
         show_history = request('VideoLibrary.GetTVShows', {
             'filter': {'field': 'numwatched', 'operator': 'greaterthan', 'value': '0'},
-            'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'cast', 'lastplayed'],
+            'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'lastplayed'],
             'sort': {'method': 'lastplayed', 'order': 'descending'},
             'limits': {'start': 0, 'end': history_size}
         })
@@ -1243,7 +1240,6 @@ def handle_recommended(handle: int, params: dict) -> None:
     all_watched_genres = set()
     mpaa_counts = {}
     years = []
-    actors = {}
     directors = {}
 
     for idx, item in enumerate(history):
@@ -1265,12 +1261,6 @@ def handle_recommended(handle: int, params: dict) -> None:
         if year:
             years.append(year)
 
-        cast = item.get('cast', [])
-        for member in cast[:3]:
-            name = member.get('name', '')
-            if name:
-                actors[name] = actors.get(name, 0) + weight
-
         item_directors = item.get('director', [])
         if not isinstance(item_directors, list):
             item_directors = [item_directors] if item_directors else []
@@ -1285,7 +1275,6 @@ def handle_recommended(handle: int, params: dict) -> None:
     total_weight = sum(w for _, w, _ in watched_sets)
     preferred_mpaa = set(mpaa_counts.keys())
     median_year = sorted(years)[len(years) // 2] if years else 0
-    favorite_actors = {a for a, w in actors.items() if w >= 1.5}
     favorite_directors = {d for d, w in directors.items() if w >= 1.5}
 
     genre_filters = [{'field': 'genre', 'operator': 'contains', 'value': g}
@@ -1303,7 +1292,7 @@ def handle_recommended(handle: int, params: dict) -> None:
         }
         result = request('VideoLibrary.GetMovies', {
             'filter': movie_filter,
-            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast', 'director'],
+            'properties': ['genre', 'year', 'mpaa', 'rating', 'director'],
         })
         for movie in extract_result(result, 'movies', []):
             movie['_mtype'] = 'movie'
@@ -1318,13 +1307,13 @@ def handle_recommended(handle: int, params: dict) -> None:
         }
         result = request('VideoLibrary.GetTVShows', {
             'filter': tvshow_filter,
-            'properties': ['genre', 'year', 'mpaa', 'rating', 'cast'],
+            'properties': ['genre', 'year', 'mpaa', 'rating'],
         })
         for show in extract_result(result, 'tvshows', []):
             show['_mtype'] = 'tvshow'
             candidates.append(show)
 
-    # quality multiplier (tone/year/cast/director) ranks picks within each watch's own slots
+    # quality multiplier (tone/year/director) ranks picks within each watch's own slots
     pool = []
     for candidate in candidates:
         cand_genres = candidate.get('genre', [])
@@ -1347,8 +1336,6 @@ def handle_recommended(handle: int, params: dict) -> None:
                 quality += 0.15
             elif year_distance <= 15:
                 quality += 0.06
-        if any(m.get('name', '') in favorite_actors for m in candidate.get('cast', [])[:5]):
-            quality += 0.10
         cand_directors = candidate.get('director', [])
         if not isinstance(cand_directors, list):
             cand_directors = [cand_directors] if cand_directors else []

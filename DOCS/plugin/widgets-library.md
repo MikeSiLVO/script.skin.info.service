@@ -431,7 +431,7 @@ Source: "The Dark Knight" (Action, Crime, Drama | 2008 | PG-13)
 
 Personalized recommendations from your watch history.
 
-By default this is single-seed: it picks titles most like your single most recent watch, matching on genre, MPAA tone, shared director, shared cast, and release era. Every item is tagged with that seed, so the widget can show a "Recommended based on <title>" header. Add `multi=true` for a blend across several recent watches instead, weighted toward the most recent.
+By default this is single-seed: it picks titles most like your single most recent watch, matching on genre, MPAA tone, shared director, and release era. Every item is tagged with that seed, so the widget can show a "Recommended based on <title>" header. Add `multi=true` for a blend across several recent watches instead, weighted toward the most recent.
 
 ### Usage
 
