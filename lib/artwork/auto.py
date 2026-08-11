@@ -67,7 +67,7 @@ class ArtworkAuto:
             from lib.data.api.artwork import create_default_fetcher
             self.source_fetcher = create_default_fetcher()
 
-    def _is_cancelled(self) -> bool:
+    def _cancel_requested(self) -> bool:
         """True if the progress dialog was cancelled or the owning task aborted."""
         if self._abort_flag is not None and self._abort_flag.is_requested():
             return True
@@ -131,7 +131,7 @@ class ArtworkAuto:
                     break
 
                 for item in batch:
-                    if self._is_cancelled():
+                    if self._cancel_requested():
                         self.cancelled = True
                         break
 
