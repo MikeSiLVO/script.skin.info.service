@@ -18,6 +18,17 @@ _EPISODE_PROPERTIES = ['title', 'season', 'episode', 'showtitle', 'plot', 'art',
 
 _SHOW_PROPERTIES = ['title', 'mpaa', 'studio', 'episode', 'watchedepisodes']
 
+_FULL_SHOW_PROPERTIES = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
+                         'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
+                         'studio', 'mpaa', 'cast', 'tag', 'dateadded', 'lastplayed',
+                         'imdbnumber', 'originaltitle', 'season']
+
+_MOVIE_PROPERTIES = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
+                     'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
+                     'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
+
+_RECENT_WINDOW = {'field': 'dateadded', 'operator': 'inthelast', 'value': '365 days'}
+
 
 def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
                                    episode_art: dict) -> None:
@@ -166,6 +177,99 @@ def handle_favourite_episodes(handle: int, params: dict) -> None:
         added += 1
 
     xbmcplugin.setContent(handle, 'episodes')
+    xbmcplugin.endOfDirectory(handle)
+
+
+def _recently_added(method: str, result_key: str, properties: list, limit: int) -> list:
+    """Newest items by date added, from a recent window first and the whole library only when
+    that window cannot fill the widget."""
+    params = {
+        'properties': properties,
+        'sort': {'method': 'dateadded', 'order': 'descending'},
+        'limits': {'start': 0, 'end': limit},
+        'filter': _RECENT_WINDOW
+    }
+    items = extract_result(request(method, params), result_key, [])
+    if len(items) >= limit:
+        return items
+
+    del params['filter']
+    return extract_result(request(method, params), result_key, [])
+
+
+def _recent_movie_rows(limit: int) -> list:
+    """Recently added movies as `(dateadded, url, listitem, isfolder)` rows."""
+    movies = _recently_added('VideoLibrary.GetMovies', 'movies', _MOVIE_PROPERTIES, limit)
+    return [(movie.get('dateadded', ''), movie['file'],
+             _dated(_create_movie_listitem(movie), movie.get('dateadded', '')), False)
+            for movie in movies]
+
+
+def _dated(listitem: xbmcgui.ListItem, added: str) -> xbmcgui.ListItem:
+    """Stamp the added date a date-ordered widget sorts on, so skins can show it."""
+    if added:
+        listitem.getVideoInfoTag().setDateAdded(added)
+    return listitem
+
+
+def _collapsed_show_row(episodes: list, show_cache: dict) -> tuple:
+    """One row for a show's recent episodes, collapsing a same-day batch add into a show
+    folder."""
+    newest = episodes[0]
+    added = newest.get('dateadded', '')
+
+    same_day = (len(episodes) > 1
+                and added[:10] == episodes[1].get('dateadded', '')[:10]
+                and added[:10])
+    if same_day:
+        tvshowid = newest['tvshowid']
+        if tvshowid not in show_cache:
+            detail = request('VideoLibrary.GetTVShowDetails',
+                             {'tvshowid': tvshowid, 'properties': _FULL_SHOW_PROPERTIES})
+            show_cache[tvshowid] = extract_result(detail, 'tvshowdetails', {})
+        show = show_cache[tvshowid]
+        if show:
+            listitem = _dated(_create_tvshow_listitem(show), added)
+            if show.get('season'):
+                listitem.setProperty('TotalSeasons', str(show['season']))
+            return (added, f"videodb://tvshows/titles/{tvshowid}/", listitem, True)
+
+    return (added, newest['file'], _dated(_episode_item_from_show({}, newest), added), False)
+
+
+def _recent_episode_rows(limit: int, group: bool) -> list:
+    """Recently added episodes as `(dateadded, url, listitem, isfolder)` rows, one row per show
+    when grouping."""
+    episodes = _recently_added('VideoLibrary.GetEpisodes', 'episodes',
+                               _EPISODE_PROPERTIES + ['dateadded', 'tvshowid'], limit)
+
+    if not group:
+        return [(episode.get('dateadded', ''), episode['file'],
+                 _dated(_episode_item_from_show({}, episode), episode.get('dateadded', '')), False)
+                for episode in episodes]
+
+    by_show: dict = {}
+    for episode in episodes:
+        by_show.setdefault(episode.get('tvshowid'), []).append(episode)
+
+    show_cache: dict = {}
+    return [_collapsed_show_row(show_episodes, show_cache)
+            for show_episodes in by_show.values()]
+
+
+def handle_recent_videos(handle: int, params: dict) -> None:
+    """Plugin entry: recently added movies and episodes interleaved by date; `group=false` lists
+    every episode instead of one row per show."""
+    limit = int(params.get('limit', ['25'])[0])
+    group = params.get('group', ['true'])[0].lower() != 'false'
+
+    rows = _recent_movie_rows(limit) + _recent_episode_rows(limit, group)
+    rows.sort(key=lambda row: row[0], reverse=True)
+
+    for _, url, listitem, isfolder in rows[:limit]:
+        xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
+
+    xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle)
 
 

@@ -64,6 +64,9 @@ def _handle_widgets_menu(handle: int) -> None:
         (ADDON.getLocalizedString(32621),
          "plugin://script.skin.info.service/?action=recent_episodes_grouped",
          "DefaultRecentlyAddedEpisodes.png", True),
+        (ADDON.getLocalizedString(32686),
+         "plugin://script.skin.info.service/?action=recent_videos",
+         "DefaultVideo.png", True),
         (ADDON.getLocalizedString(32622), "plugin://script.skin.info.service/?action=menu_seasonal",
          "DefaultYear.png", True),
         (ADDON.getLocalizedString(32623),
@@ -167,6 +170,11 @@ def _handle_next_up(handle: int, params: dict) -> None:
 def _handle_favourite_episodes(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_favourite_episodes
     handle_favourite_episodes(handle, params)
+
+
+def _handle_recent_videos(handle: int, params: dict) -> None:
+    from lib.plugin.widgets.video import handle_recent_videos
+    handle_recent_videos(handle, params)
 
 
 def _handle_recent_episodes_grouped(handle: int, params: dict) -> None:
@@ -285,6 +293,7 @@ _HANDLERS = {
     'next_up': _handle_next_up,
     'favourite_episodes': _handle_favourite_episodes,
     'recent_episodes_grouped': _handle_recent_episodes_grouped,
+    'recent_videos': _handle_recent_videos,
     'by_actor': _handle_by_actor,
     'by_director': _handle_by_director,
     'similar': _handle_similar,

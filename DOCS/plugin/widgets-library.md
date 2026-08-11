@@ -11,6 +11,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 - [Next Up](#next-up)
 - [Favourite Episodes](#favourite-episodes)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
+- [Recent Videos](#recent-videos)
 - [By Actor](#by-actor)
 - [By Director](#by-director)
 - [Similar Items](#similar-items)
@@ -163,6 +164,63 @@ Recently added episodes with intelligent grouping.
 Returns **mixed** episode and TV show items.
 
 **Widget Type:** Mixed
+
+---
+
+## Recent Videos
+
+Recently added movies and episodes in one list, interleaved by the date they were added.
+
+Kodi has no equivalent: `videodb://recentlyaddedmovies/` and `videodb://recentlyaddedepisodes/`
+are separate nodes, two `<content>` tags list one after the other rather than interleaving, and no
+smart playlist type combines movies with episodes.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=recent_videos</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `limit` | No | 25 | Maximum items to return |
+| `group` | No | `true` | One row per show. `false` lists every episode |
+
+### Examples
+
+```xml
+<!-- Basic -->
+<content>plugin://script.skin.info.service/?action=recent_videos</content>
+
+<!-- Every episode, ungrouped -->
+<content>plugin://script.skin.info.service/?action=recent_videos&amp;group=false</content>
+
+<!-- With auto-refresh -->
+<content>plugin://script.skin.info.service/?action=recent_videos&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
+```
+
+### Behavior
+
+1. Fetches movies and episodes added in the last year, each sorted by date added. If that window
+   holds fewer items than `limit`, the whole library is used instead
+2. With `group=true`, each show contributes one row: a show folder when its two newest episodes
+   were added on the same day, otherwise its newest episode
+3. Merges both into one list ordered by date added, then trims to `limit`
+
+Grouping keeps a batch add from filling the widget. A season added at once collapses to a single
+row, while a show airing weekly still shows its individual episode.
+
+### Item Properties
+
+- **MediaType**: `movie`, `episode`, or `tvshow` for a collapsed show
+- **DateAdded**: set on every item, so lists can be sorted or labelled by it
+- **Artwork**: movie artwork, or TV show artwork plus episode thumb
+
+Collapsed show rows are folders that open the show; everything else is playable.
+
+**Widget Type:** Mixed video
 
 ---
 
