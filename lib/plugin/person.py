@@ -275,6 +275,9 @@ def handle_person_library(handle: int, params: dict) -> None:
         if not items and person_name:
             items = _library_from_actor_link(person_name, dbtype)
 
+        items.sort(key=lambda item: (-(item.get('year') or 0),
+                                     (item.get('title') or '').lower()))
+
         for item in items:
             xbmcplugin.addDirectoryItem(handle, '', _create_library_listitem(item, dbtype), False)
 
@@ -321,7 +324,6 @@ def _library_from_filmography(person_id: str, dbtype: str) -> List[dict]:
         details['_role'] = roles.get(tmdb_id, '')
         items.append(details)
 
-    items.sort(key=lambda item: (item.get('title') or '').lower())
     return items
 
 
@@ -335,8 +337,7 @@ def _library_from_actor_link(person_name: str, dbtype: str) -> List[dict]:
     )
     result = request(method, {
         'filter': {'field': 'actor', 'operator': 'is', 'value': person_name},
-        'properties': ['title', 'year', 'rating', 'playcount', 'art', 'cast'],
-        'sort': {'method': 'sorttitle', 'order': 'ascending'}
+        'properties': ['title', 'year', 'rating', 'playcount', 'art', 'cast']
     })
 
     items = extract_result(result, result_key, [])
