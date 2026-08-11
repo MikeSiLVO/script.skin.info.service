@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Dict, List, Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import xbmc
 
@@ -20,86 +21,59 @@ PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
 PLAYER_MUSICVIDEO_ONLINE_PREFIX = "SkinInfo.Player.Online.MusicVideo."
 
 
+@dataclass(frozen=True)
+class _Mode:
+    """Everything that differs between the audio and musicvideo tracks."""
+    condition: str
+    player: str
+    prefix: str
+    fetch_mbids: bool
+    log_label: str
+
+
+@dataclass
+class _State:
+    """Playback state for one mode."""
+    key: Optional[str] = None
+    thread: Optional[threading.Thread] = None
+    thread_key: Optional[str] = None
+
+
+_MODES = (
+    _Mode(
+        condition="Player.HasAudio",
+        player="MusicPlayer",
+        prefix=PLAYER_MUSIC_ONLINE_PREFIX,
+        fetch_mbids=True,
+        log_label="Music player",
+    ),
+    _Mode(
+        condition="Player.HasVideo + VideoPlayer.Content(musicvideos)",
+        player="VideoPlayer",
+        prefix=PLAYER_MUSICVIDEO_ONLINE_PREFIX,
+        fetch_mbids=False,
+        log_label="Music video player",
+    ),
+)
+
+
 class MusicPlayerHandler:
     """Tracks audio and musicvideo playback, fetches online data, rotates fanart."""
 
     def __init__(self, service: 'OnlineServiceMain'):
         self._service = service
-        self._last_audio_key: Optional[str] = None
-        self._audio_fetch_thread: Optional[threading.Thread] = None
-        self._audio_fetch_for_key: Optional[str] = None
-        self._last_video_key: Optional[str] = None
-        self._video_fetch_thread: Optional[threading.Thread] = None
-        self._video_fetch_for_key: Optional[str] = None
+        self._players: Tuple[Tuple[_Mode, _State], ...] = tuple(
+            (mode, _State()) for mode in _MODES
+        )
         self._fanart_urls: List[str] = []
         self._fanart_index: int = 0
         self._fanart_last_rotate: float = 0.0
         self._active_prefix: str = PLAYER_MUSIC_ONLINE_PREFIX
 
-    def process_audio(self) -> None:
-        """Handle plain audio playback: fetch artist online data on first track of an artist."""
-        if not xbmc.getCondVisibility("Player.HasAudio"):
-            self._reset_audio()
-            return
-
-        artist_name = xbmc.getInfoLabel("MusicPlayer.Artist") or ""
-        if not artist_name:
-            self._reset_audio()
-            return
-
-        if artist_name == self._last_audio_key:
-            return
-
-        self._last_audio_key = artist_name
-        self._fanart_urls = []
-        self._fanart_index = 0
-
-        if (self._audio_fetch_thread and self._audio_fetch_thread.is_alive()
-                and self._audio_fetch_for_key == artist_name):
-            return
-
-        self._audio_fetch_for_key = artist_name
-        self._audio_fetch_thread = threading.Thread(
-            target=self._audio_fetch_worker,
-            args=(artist_name,),
-            daemon=True,
-        )
-        self._audio_fetch_thread.start()
-
-    def process_video(self) -> None:
-        """Handle musicvideo playback: fetch artist online data."""
-        is_musicvideo = (
-            xbmc.getCondVisibility("Player.HasVideo")
-            and xbmc.getCondVisibility("VideoPlayer.Content(musicvideos)")
-        )
-
-        if not is_musicvideo:
-            self._reset_video()
-            return
-
-        artist_name = xbmc.getInfoLabel("VideoPlayer.Artist") or ""
-        if not artist_name:
-            self._reset_video()
-            return
-
-        if artist_name == self._last_video_key:
-            return
-
-        self._last_video_key = artist_name
-        self._fanart_urls = []
-        self._fanart_index = 0
-
-        if (self._video_fetch_thread and self._video_fetch_thread.is_alive()
-                and self._video_fetch_for_key == artist_name):
-            return
-
-        self._video_fetch_for_key = artist_name
-        self._video_fetch_thread = threading.Thread(
-            target=self._video_fetch_worker,
-            args=(artist_name,),
-            daemon=True,
-        )
-        self._video_fetch_thread.start()
+    def process(self) -> None:
+        """Fetch artist online data whenever either player moves to a new artist."""
+        for mode, state in self._players:
+            self._process(mode, state)
 
     def rotate_fanart(self) -> None:
         """Cycle through artist fanart URLs at the configured slideshow interval."""
@@ -129,64 +103,66 @@ class MusicPlayerHandler:
             urls[next_index],
         )
 
-    def _audio_fetch_worker(self, artist_name: str) -> None:
+    def _process(self, mode: _Mode, state: _State) -> None:
+        """Start a fetch thread when this player's artist changes."""
+        if not xbmc.getCondVisibility(mode.condition):
+            self._reset(mode, state)
+            return
+
+        artist_name = xbmc.getInfoLabel(f"{mode.player}.Artist") or ""
+        if not artist_name:
+            self._reset(mode, state)
+            return
+
+        if artist_name == state.key:
+            return
+
+        state.key = artist_name
+        self._fanart_urls = []
+        self._fanart_index = 0
+
+        if state.thread and state.thread.is_alive() and state.thread_key == artist_name:
+            return
+
+        state.thread_key = artist_name
+        state.thread = threading.Thread(
+            target=self._fetch_worker,
+            args=(mode, state, artist_name),
+            daemon=True,
+        )
+        state.thread.start()
+
+    def _fetch_worker(self, mode: _Mode, state: _State, artist_name: str) -> None:
+        """Off-thread artist fetch, discarded if the artist changed while it ran."""
         try:
             if self._service.abort_flag.is_requested():
                 return
 
             from lib.service.music import fetch_artist_online_data
 
-            mbids = get_playing_artist_mbids()
-            album = xbmc.getInfoLabel("MusicPlayer.Album") or None
-            track = xbmc.getInfoLabel("MusicPlayer.Title") or None
+            mbids = get_playing_artist_mbids() if mode.fetch_mbids else None
+            album = xbmc.getInfoLabel(f"{mode.player}.Album") or None
+            title = xbmc.getInfoLabel(f"{mode.player}.Title") or None
 
             result = fetch_artist_online_data(
                 artist_name,
                 mbids=mbids or None,
                 album=album,
-                track=track,
+                track=title,
                 abort_flag=self._service.capped_abort_flag,
             )
 
-            if artist_name != self._last_audio_key:
-                return
-            if not result:
+            if artist_name != state.key or not result:
                 return
 
-            self._apply(artist_name, result, track, album, PLAYER_MUSIC_ONLINE_PREFIX)
+            self._apply(mode, artist_name, result, title, album)
 
         except Exception as e:
-            log("Service", f"Music player online fetch error: {e}", xbmc.LOGWARNING)
+            log("Service", f"{mode.log_label} online fetch error: {e}", xbmc.LOGWARNING)
 
-    def _video_fetch_worker(self, artist_name: str) -> None:
-        try:
-            if self._service.abort_flag.is_requested():
-                return
-
-            from lib.service.music import fetch_artist_online_data
-
-            album = xbmc.getInfoLabel("VideoPlayer.Album") or None
-            track = xbmc.getInfoLabel("VideoPlayer.Title") or None
-
-            result = fetch_artist_online_data(
-                artist_name,
-                album=album,
-                track=track,
-                abort_flag=self._service.capped_abort_flag,
-            )
-
-            if artist_name != self._last_video_key:
-                return
-            if not result:
-                return
-
-            self._apply(artist_name, result, track, album, PLAYER_MUSICVIDEO_ONLINE_PREFIX)
-
-        except Exception as e:
-            log("Service", f"Music video player online fetch error: {e}", xbmc.LOGWARNING)
-
-    def _apply(self, artist_name: str, result: 'MusicOnlineResult',
-               track: Optional[str], album: Optional[str], prefix: str) -> None:
+    def _apply(self, mode: _Mode, artist_name: str, result: 'MusicOnlineResult',
+               track: Optional[str], album: Optional[str]) -> None:
+        """Publish artist, track and album properties under this mode's prefix."""
         from lib.service.music import (
             fill_artist_online_props,
             fill_track_online_props,
@@ -196,36 +172,30 @@ class MusicPlayerHandler:
         self._fanart_urls = result.fanart_urls
         self._fanart_index = 0
         self._fanart_last_rotate = time.time()
-        self._active_prefix = prefix
+        self._active_prefix = mode.prefix
 
         artist_props: Dict[str, Optional[str]] = {}
-        fill_artist_online_props(artist_props, prefix, result, name=artist_name)
+        fill_artist_online_props(artist_props, mode.prefix, result, name=artist_name)
         batch_set_props(artist_props)
 
         if track:
             track_props: Dict[str, Optional[str]] = {}
-            fill_track_online_props(track_props, prefix, artist_name, track,
+            fill_track_online_props(track_props, mode.prefix, artist_name, track,
                                     abort_flag=self._service.capped_abort_flag)
             if track_props:
                 batch_set_props(track_props)
 
         if album:
             album_props: Dict[str, Optional[str]] = {}
-            fill_album_online_props(album_props, prefix, artist_name, album,
+            fill_album_online_props(album_props, mode.prefix, artist_name, album,
                                     abort_flag=self._service.capped_abort_flag)
             if album_props:
                 batch_set_props(album_props)
 
-    def _reset_audio(self) -> None:
-        if self._last_audio_key:
-            clear_group(PLAYER_MUSIC_ONLINE_PREFIX)
+    def _reset(self, mode: _Mode, state: _State) -> None:
+        """Clear this player's properties once it stops."""
+        if state.key:
+            clear_group(mode.prefix)
             self._fanart_urls = []
             self._fanart_index = 0
-            self._last_audio_key = None
-
-    def _reset_video(self) -> None:
-        if self._last_video_key:
-            clear_group(PLAYER_MUSICVIDEO_ONLINE_PREFIX)
-            self._fanart_urls = []
-            self._fanart_index = 0
-            self._last_video_key = None
+            state.key = None

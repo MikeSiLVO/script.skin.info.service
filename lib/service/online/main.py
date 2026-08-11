@@ -114,7 +114,6 @@ class OnlineServiceMain(threading.Thread):
     def _loop(self) -> None:
         self.focus.process()
         self.player.process()
-        self.music.process_audio()
-        self.music.process_video()
+        self.music.process()
         self.music.rotate_fanart()
         self.musicvideo.process()
