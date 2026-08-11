@@ -28,10 +28,6 @@ class DialogImageViewer(InfoDialogBase):
         except Exception:
             pass
 
-    def onAction(self, action: xbmcgui.Action) -> None:
-        if self.is_close_action(action):
-            self.close()
-
 
 def open_image_viewer(
     images_path: str,

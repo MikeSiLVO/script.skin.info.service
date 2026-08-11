@@ -20,3 +20,8 @@ class DialogBase(xbmcgui.WindowXMLDialog):
 
     def is_close_action(self, action: xbmcgui.Action) -> bool:
         return action.getId() in _CLOSE_ACTIONS
+
+    def onAction(self, action: xbmcgui.Action) -> None:
+        """Close on the back and menu actions."""
+        if self.is_close_action(action):
+            self.close()

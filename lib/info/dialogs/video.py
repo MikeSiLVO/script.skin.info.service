@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 import xbmc
-import xbmcgui
 
 from lib.info.dialogs.base import InfoDialogBase, ADDON_PATH
 from lib.kodi.client import log
@@ -87,10 +86,6 @@ class DialogVideoInfo(InfoDialogBase):
 
         for name, path in containers.items():
             self.setProperty(f"container.{name}.path", path)
-
-    def onAction(self, action: xbmcgui.Action) -> None:
-        if self.is_close_action(action):
-            self.close()
 
 
 def open_video_info(
