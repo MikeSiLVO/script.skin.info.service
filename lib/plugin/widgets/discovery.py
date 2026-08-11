@@ -46,6 +46,8 @@ def _get_library_lookup(media_type: str, tmdb_ids: Iterable) -> Dict[str, Dict[s
         if media_type == "movie":
             details = get_item_details("movie", dbid, ["file"])
             file_path = (details or {}).get("file", "")
+            if not file_path:
+                continue
         else:
             file_path = f"videodb://tvshows/titles/{dbid}/"
         lookup[tmdb_id] = {"dbid": dbid, "file": file_path}
