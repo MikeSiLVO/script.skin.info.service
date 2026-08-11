@@ -252,72 +252,27 @@ def _get_musicvideos_with_fanart() -> Optional[list]:
             if m.get('art', {}).get('fanart', '').strip()]
 
 
-def set_movie_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.Movie.* properties."""
-    set_prop('SkinInfo.Slideshow.Movie.Title', item.get('title', ''))
-    set_prop('SkinInfo.Slideshow.Movie.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.Movie.Plot', item.get('plot', ''))
-    set_prop('SkinInfo.Slideshow.Movie.Year', str(item.get('year', '')) if item.get('year') else '')
-
-
-def set_tv_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.TV.* properties."""
-    set_prop('SkinInfo.Slideshow.TV.Title', item.get('title', ''))
-    set_prop('SkinInfo.Slideshow.TV.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.TV.Plot', item.get('plot', ''))
-    set_prop('SkinInfo.Slideshow.TV.Year', str(item.get('year', '')) if item.get('year') else '')
-
-
-def set_video_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.Video.* properties."""
-    set_prop('SkinInfo.Slideshow.Video.Title', item.get('title', ''))
-    set_prop('SkinInfo.Slideshow.Video.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.Video.Plot', item.get('plot', ''))
-    set_prop('SkinInfo.Slideshow.Video.Year', str(item.get('year', '')) if item.get('year') else '')
-
-
-def set_music_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.Music.* properties."""
-    set_prop('SkinInfo.Slideshow.Music.Artist', item.get('artist', ''))
-    set_prop('SkinInfo.Slideshow.Music.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.Music.Description', item.get('description', ''))
-
-
-def set_musicvideo_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.MusicVideo.* properties."""
-    set_prop('SkinInfo.Slideshow.MusicVideo.Title', item.get('title', ''))
-    set_prop('SkinInfo.Slideshow.MusicVideo.Artist', item.get('artist', ''))
-    set_prop('SkinInfo.Slideshow.MusicVideo.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.MusicVideo.Plot', item.get('plot', ''))
-    set_prop('SkinInfo.Slideshow.MusicVideo.Year',
-             str(item.get('year', '')) if item.get('year') else '')
-
-
-def set_global_slideshow_properties(item: Dict[str, Any]) -> None:
-    """Set SkinInfo.Slideshow.Global.* properties."""
-    set_prop('SkinInfo.Slideshow.Global.Title', item.get('title', ''))
-    set_prop('SkinInfo.Slideshow.Global.FanArt', item.get('fanart', ''))
-    set_prop('SkinInfo.Slideshow.Global.Description', item.get('description', ''))
-
-
 def is_pool_populated() -> bool:
     """Check if slideshow pool has any items."""
     return db_slideshow.is_pool_populated()
 
 
+# category -> ((skin property, pool row field), ...). Music takes the artist name from the row's
+# title column, MusicVideo from its own artist column.
 _CATEGORY_PROPS = {
-    'Movie': ('Title', 'FanArt', 'Plot', 'Year'),
-    'TV': ('Title', 'FanArt', 'Plot', 'Year'),
-    'Video': ('Title', 'FanArt', 'Plot', 'Year'),
-    'Music': ('Artist', 'FanArt', 'Description'),
-    'MusicVideo': ('Title', 'Artist', 'FanArt', 'Plot', 'Year'),
-    'Global': ('Title', 'FanArt', 'Description'),
+    'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
+    'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
+    'Video': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
+    'Music': (('Artist', 'title'), ('FanArt', 'fanart'), ('Description', 'description')),
+    'MusicVideo': (('Title', 'title'), ('Artist', 'artist'), ('FanArt', 'fanart'),
+                   ('Plot', 'description'), ('Year', 'year')),
+    'Global': (('Title', 'title'), ('FanArt', 'fanart'), ('Description', 'description')),
 }
 
 
 def _clear_category_properties(category: str) -> None:
     """Clear one category's `SkinInfo.Slideshow.<category>.*` window props."""
-    for prop in _CATEGORY_PROPS.get(category, ()):
+    for prop, _field in _CATEGORY_PROPS.get(category, ()):
         clear_prop(f'SkinInfo.Slideshow.{category}.{prop}')
 
 
@@ -569,24 +524,15 @@ class PlaylistRotator:
             clear_prop(prefix + suffix)
 
 
-# category -> (publish style, eligible types). Mixed categories (Video/Global) weight the
-# type pick by pool size; see LibrarySlideshow.
+# category -> eligible pool types. Mixed categories (Video/Global) weight the type pick by
+# pool size; see LibrarySlideshow.
 _LIBRARY_CATEGORIES = {
-    'Movie':      ('video',      ('movie',)),
-    'TV':         ('video',      ('tvshow',)),
-    'Music':      ('music',      ('artist',)),
-    'MusicVideo': ('musicvideo', ('musicvideo',)),
-    'Video':      ('video',      ('movie', 'tvshow')),
-    'Global':     ('global',     ('movie', 'tvshow', 'artist', 'musicvideo')),
-}
-
-_CATEGORY_PUBLISHERS = {
-    'Movie':      set_movie_slideshow_properties,
-    'TV':         set_tv_slideshow_properties,
-    'Music':      set_music_slideshow_properties,
-    'MusicVideo': set_musicvideo_slideshow_properties,
-    'Video':      set_video_slideshow_properties,
-    'Global':     set_global_slideshow_properties,
+    'Movie':      ('movie',),
+    'TV':         ('tvshow',),
+    'Music':      ('artist',),
+    'MusicVideo': ('musicvideo',),
+    'Video':      ('movie', 'tvshow'),
+    'Global':     ('movie', 'tvshow', 'artist', 'musicvideo'),
 }
 
 # sqrt damping for mixed-category type weighting: 1.0 = proportional, 0.0 = equal.
@@ -594,22 +540,10 @@ _WEIGHT_ALPHA = 0.5
 
 
 def _publish_library(category: str, row: Dict[str, Any]) -> None:
-    style = _LIBRARY_CATEGORIES[category][0]
-    publisher = _CATEGORY_PUBLISHERS[category]
-    fanart = row.get('fanart', '')
-    if style == 'music':
-        publisher({'artist': row.get('title', ''), 'fanart': fanart,
-                   'description': row.get('description', '')})
-    elif style == 'musicvideo':
-        publisher({'title': row.get('title', ''), 'artist': row.get('artist', ''),
-                   'fanart': fanart, 'plot': row.get('description', ''),
-                   'year': row.get('year')})
-    elif style == 'global':
-        publisher({'title': row.get('title', ''), 'fanart': fanart,
-                   'description': row.get('description', '')})
-    else:
-        publisher({'title': row.get('title', ''), 'fanart': fanart,
-                   'plot': row.get('description', ''), 'year': row.get('year')})
+    """Publish one pool row as that category's `SkinInfo.Slideshow.*` properties."""
+    for prop, field in _CATEGORY_PROPS[category]:
+        value = row.get(field)
+        set_prop(f'SkinInfo.Slideshow.{category}.{prop}', str(value) if value else '')
 
 
 class LibrarySlideshow:
@@ -653,8 +587,7 @@ class LibrarySlideshow:
         previous = set(self._categories)
         self._categories = {}
         self._weights = {}
-        for category, spec in _LIBRARY_CATEGORIES.items():
-            types = spec[1]
+        for category, types in _LIBRARY_CATEGORIES.items():
             cursors = {t: _RotationCursor(random.sample(pool[t], len(pool[t])))
                        for t in types if pool.get(t)}
             if cursors:
