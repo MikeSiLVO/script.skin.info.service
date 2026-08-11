@@ -118,7 +118,7 @@ All properties via `Window(Home).Property(SkinInfo.PathStats.*)`
 
 | Property | Description |
 |----------|-------------|
-| `TVShowCount` | Number of TV shows |
+| `TVShowCount` | Number of TV shows, counting each show once for a path of episodes |
 | `Episodes` | Total episodes across all shows |
 | `WatchedEpisodes` | Watched episodes |
 | `UnWatchedEpisodes` | Unwatched episodes |
