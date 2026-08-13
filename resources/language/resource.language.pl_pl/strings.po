@@ -2039,6 +2039,14 @@ msgctxt "#32684"
 msgid "Crew"
 msgstr "Ekipa"
 
+msgctxt "#32685"
+msgid "Favourite Episodes"
+msgstr ""
+
+msgctxt "#32686"
+msgid "Recent Videos"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr "Włącz debugowanie"
