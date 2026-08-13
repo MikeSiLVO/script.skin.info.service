@@ -1805,7 +1805,7 @@ msgstr "Trakt ajánlások"
 
 msgctxt "#32641"
 msgid "(OAuth)"
-msgstr ""(OAuth)
+msgstr "(OAuth)"
 
 msgctxt "#32642"
 msgid "Christmas"
