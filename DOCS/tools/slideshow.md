@@ -17,6 +17,7 @@ The slideshow feature provides rotating fanart backgrounds for your skin. It exp
 - Automatically updates when library is scanned or cleaned
 - Configurable refresh interval from 1 second to 1 hour
 - Supports movies, TV shows, music, and music videos
+- Can rotate through a specific playlist or node instead of the whole library
 
 ## Enabling Slideshow
 
@@ -108,6 +109,63 @@ Global properties rotate through all media types (movies, TV, music, music video
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.FanArt)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.Description)]
+```
+
+## Playlist Backgrounds
+
+The properties above rotate through the whole library. To rotate through one specific list instead
+(a playlist, a library node, any directory path), register it by name and read the properties back
+under that name.
+
+### Registering
+
+Set `SkinInfo.Slideshow.Playlist.Paths` to a `name=path` manifest, separated by `|`:
+
+```xml
+<onload>SetProperty(SkinInfo.Slideshow.Playlist.Paths,unwatched=special://profile/playlists/video/Unwatched.xsp|rock=musicdb://artists/12/,Home)</onload>
+```
+
+Names are yours to choose and become part of the property name. Change the manifest at any time and
+the slideshow follows it; clearing the property stops the rotation and drops the properties.
+
+### Reading
+
+Each registered name publishes the same set:
+
+```xml
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Playlist.unwatched.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Playlist.unwatched.Title)]
+```
+
+| Suffix        | Description                                        |
+|---------------|----------------------------------------------------|
+| `Title`       | Item title                                         |
+| `FanArt`      | Fanart, falling back to the show or artist art     |
+| `Plot`        | Plot                                               |
+| `Year`        | Year                                               |
+| `Artist`      | Artist, for music and music video items            |
+| `Description` | Artist biography, for songs and albums             |
+
+### What can be registered
+
+Anything Kodi can list: smart playlists, `videodb://` and `musicdb://` nodes, folders. Items
+without fanart are skipped, so a list with no artwork publishes nothing.
+
+Movies, TV shows, episodes, music videos, movie sets, songs, albums and artists are all eligible.
+Episodes take show fanart, and songs and albums take artist fanart, so an episode or album list is
+still usable as a background.
+
+### Example
+
+```xml
+<control type="multiimage">
+    <imagepath background="true">$INFO[Window(Home).Property(SkinInfo.Slideshow.Playlist.unwatched.FanArt)]</imagepath>
+    <aspectratio>scale</aspectratio>
+    <fadetime>1000</fadetime>
+</control>
+<control type="label">
+    <label>$INFO[Window(Home).Property(SkinInfo.Slideshow.Playlist.unwatched.Title)]</label>
+</control>
 ```
 
 ## Usage Examples
