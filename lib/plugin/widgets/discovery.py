@@ -436,48 +436,46 @@ def _discover_url(action: str, media_type: str) -> str:
     return f"plugin://script.skin.info.service/?action={action}&type={media_type}"
 
 
+_DISCOVER_MENUS = {
+    "movie": {"action": "discover_movies_menu", "label": 32625, "icon": "DefaultMovies.png"},
+    "tv": {"action": "discover_tvshows_menu", "label": 32626, "icon": "DefaultTVShows.png"},
+}
+
+
 def handle_discover_menu(handle: int, params: dict) -> None:
     """Render the top-level Discover menu (Movies / TV Shows)."""
-    items = [
-        (ADDON.getLocalizedString(32625),
-         "plugin://script.skin.info.service/?action=discover_movies_menu", "DefaultMovies.png"),
-        (ADDON.getLocalizedString(32626),
-         "plugin://script.skin.info.service/?action=discover_tvshows_menu", "DefaultTVShows.png"),
-    ]
+    for menu in _DISCOVER_MENUS.values():
+        icon = menu["icon"]
+        li = xbmcgui.ListItem(ADDON.getLocalizedString(menu["label"]), offscreen=True)
+        li.setArt({"icon": icon, "thumb": icon})
+        xbmcplugin.addDirectoryItem(
+            handle, f"plugin://script.skin.info.service/?action={menu['action']}",
+            li, isFolder=True)
 
-    for label, path, icon in items:
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
+def _render_discover_widgets(handle: int, media: str) -> None:
+    """List every registry widget supporting `media`, marking the ones needing an account."""
+    icon = _DISCOVER_MENUS[media]["icon"]
+    for action, config in WIDGET_REGISTRY.items():
+        if media not in config["types"]:
+            continue
+        label = ADDON.getLocalizedString(config["label"])
+        if config.get("auth") == "oauth":
+            label += " " + ADDON.getLocalizedString(32641)
         li = xbmcgui.ListItem(label, offscreen=True)
         li.setArt({"icon": icon, "thumb": icon})
-        xbmcplugin.addDirectoryItem(handle, path, li, isFolder=True)
+        xbmcplugin.addDirectoryItem(handle, _discover_url(action, media), li, isFolder=True)
 
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
 def handle_discover_movies_menu(handle: int, params: dict) -> None:
     """Render the movies sub-menu listing every movie-capable widget from WIDGET_REGISTRY."""
-    for action, config in WIDGET_REGISTRY.items():
-        if "movie" not in config["types"]:
-            continue
-        label = ADDON.getLocalizedString(config["label"])
-        if config.get("auth") == "oauth":
-            label += " " + ADDON.getLocalizedString(32641)
-        li = xbmcgui.ListItem(label, offscreen=True)
-        li.setArt({"icon": "DefaultMovies.png", "thumb": "DefaultMovies.png"})
-        xbmcplugin.addDirectoryItem(handle, _discover_url(action, "movie"), li, isFolder=True)
-
-    xbmcplugin.endOfDirectory(handle, succeeded=True)
+    _render_discover_widgets(handle, "movie")
 
 
 def handle_discover_tvshows_menu(handle: int, params: dict) -> None:
     """Render the TV shows sub-menu listing every TV-capable widget from WIDGET_REGISTRY."""
-    for action, config in WIDGET_REGISTRY.items():
-        if "tv" not in config["types"]:
-            continue
-        label = ADDON.getLocalizedString(config["label"])
-        if config.get("auth") == "oauth":
-            label += " " + ADDON.getLocalizedString(32641)
-        li = xbmcgui.ListItem(label, offscreen=True)
-        li.setArt({"icon": "DefaultTVShows.png", "thumb": "DefaultTVShows.png"})
-        xbmcplugin.addDirectoryItem(handle, _discover_url(action, "tv"), li, isFolder=True)
-
-    xbmcplugin.endOfDirectory(handle, succeeded=True)
+    _render_discover_widgets(handle, "tv")
