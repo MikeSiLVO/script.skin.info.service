@@ -347,7 +347,14 @@ def get_cached_tmdb_genre_list(tmdb_type: str) -> Optional[Dict[int, str]]:
     decoded = _fetch_cached(
         'tmdb_genre_cache', 'tmdb_type = ? AND expires_at > ?',
         (tmdb_type, datetime.now().isoformat()), 'genre list')
-    return {int(k): v for k, v in decoded.items()} if decoded else None
+    if decoded is None:
+        return None
+
+    try:
+        return {int(k): v for k, v in decoded.items()}
+    except (ValueError, TypeError, AttributeError) as e:
+        log("Cache", f"Failed to read genre list: {e}", xbmc.LOGERROR)
+        return None
 
 
 def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: int = 24) -> None:
