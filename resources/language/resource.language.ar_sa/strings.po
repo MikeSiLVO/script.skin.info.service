@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
 "PO-Revision-Date: 2024-10-23 00:00+0000\n"
-"Last-Translator: Automatically generated\n"
+"Last-Translator: taiseer999"
 "Language: ar_sa\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -14,2174 +14,2174 @@ msgstr ""
 
 msgctxt "Addon Summary"
 msgid "Provides rich media info and artwork to skins."
-msgstr ""
+msgstr "يوفّر معلومات وسائط غنية وصوراً فنية للواجهات."
 
 msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
-msgstr ""
+msgstr "تُزوّد خدمة Skin Info Service الواجهات ببيانات وصفية غنية وصور فنية تتجاوز ما يعرضه Kodi افتراضياً. تضيف خصائص إضافية مثل التقييمات من مصادر متعددة، والصور الفنية، وتفاصيل البث، ومعلومات طاقم العمل والحبكة للأفلام والمسلسلات والحلقات والمجموعات والفيديوهات الموسيقية والفنانين والألبومات، مستفيدةً من مكتبتك والبيانات عبر الإنترنت. كما تتضمّن أداة للعثور على ملصقات GIF المتحركة وإضافتها إلى مكتبتك."
 
 msgctxt "#32000"
 msgid "Animated Art"
-msgstr ""
+msgstr "الصور المتحركة"
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
-msgstr ""
+msgstr "أنماط أسماء ملفات Gif (مطابق/لاحقة)"
 
 msgctxt "#32003"
 msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
-msgstr ""
+msgstr "قائمة بأنماط أسماء ملفات gif مفصولة بفواصل. تطابق أسماء الملفات تماماً (مثل 'poster.gif') أو الملفات المنتهية بالنمط (مثل 'movie.poster.gif')"
 
 msgctxt "#32004"
 msgid "Artwork"
-msgstr ""
+msgstr "الصور الفنية"
 
 #. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
 msgid "Preferred language"
-msgstr ""
+msgstr "اللغة المفضّلة"
 
 msgctxt "#32007"
 msgid "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
-msgstr ""
+msgstr "تُعطى الأولوية للصور الفنية بهذه اللغة للملصقات والشعارات وسائر الصور الحسّاسة للغة."
 
 msgctxt "#32008"
 msgid "Prefer fanart in selected language"
-msgstr ""
+msgstr "تفضيل صور الخلفية باللغة المحددة"
 
 msgctxt "#32009"
 msgid "No artwork available from scrapers"
-msgstr ""
+msgstr "لا توجد صور فنية متاحة من أدوات الجمع"
 
 msgctxt "#32010"
 msgid "No artwork matched language preferences"
-msgstr ""
+msgstr "لا توجد صور فنية تطابق تفضيلات اللغة"
 
 msgctxt "#32011"
 msgid "Needs manual review"
-msgstr ""
+msgstr "بحاجة إلى مراجعة يدوية"
 
 msgctxt "#32012"
 msgid "No images selected"
-msgstr ""
+msgstr "لم يتم اختيار أي صور"
 
 msgctxt "#32013"
 msgid "Downloaded {0} files"
-msgstr ""
+msgstr "تم تنزيل {0} ملف"
 
 msgctxt "#32014"
 msgid "{0} files"
-msgstr ""
+msgstr "{0} ملف"
 
 msgctxt "#32015"
 msgid "{0} image(s) selected"
-msgstr ""
+msgstr "تم اختيار {0} صورة"
 
 msgctxt "#32016"
 msgid "{0} seasons"
-msgstr ""
+msgstr "{0} موسم"
 
 msgctxt "#32017"
 msgid "{0} episodes"
-msgstr ""
+msgstr "{0} حلقة"
 
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
-msgstr ""
+msgstr "إضافة خيار 'تنزيل' للصور الفنية المفقودة والتخزين المؤقت المسبق"
 
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
-msgstr ""
+msgstr "إظهار خيارات قائمة إضافية لتنزيل الصور الفنية إلى نظام الملفات أثناء المراجعة وعمليات التخزين المؤقت المسبق"
 
 msgctxt "#32022"
 msgid "When File Already Exists"
-msgstr ""
+msgstr "عند وجود الملف مسبقاً"
 
 msgctxt "#32023"
 msgid "What to do when artwork file already exists on filesystem"
-msgstr ""
+msgstr "ما الذي يجب فعله عند وجود ملف الصورة الفنية مسبقاً في نظام الملفات"
 
 msgctxt "#32024"
 msgid "Skip (don't download)"
-msgstr ""
+msgstr "تخطّي (عدم التنزيل)"
 
 msgctxt "#32025"
 msgid "Overwrite existing file"
-msgstr ""
+msgstr "استبدال الملف الموجود"
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
-msgstr ""
+msgstr "استخدام بادئة اسم ملف الفيلم"
 
 msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
-msgstr ""
+msgstr "الحفظ باسم 'Avatar-poster.jpg' بدلاً من 'poster.jpg' في مجلد الفيلم"
 
 msgctxt "#32029"
 msgid "Export to NFO"
-msgstr ""
+msgstr "التصدير إلى NFO"
 
 msgctxt "#32030"
 msgid "NFO file written"
-msgstr ""
+msgstr "تم كتابة ملف NFO"
 
 msgctxt "#32031"
 msgid "Could not write NFO file"
-msgstr ""
+msgstr "تعذّر كتابة ملف NFO"
 
 msgctxt "#32032"
 msgid "Processing cancelled"
-msgstr ""
+msgstr "تم إلغاء المعالجة"
 
 msgctxt "#32033"
 msgid "Art Fetcher - Cancelled"
-msgstr ""
+msgstr "جالب الصور الفنية - أُلغي"
 
 msgctxt "#32035"
 msgid "Always Ask"
-msgstr ""
+msgstr "السؤال دائماً"
 
 msgctxt "#32036"
 msgid "GIF Scanner Mode"
-msgstr ""
+msgstr "وضع فاحص GIF"
 
 msgctxt "#32037"
 msgid "Scan mode for animated art scanner"
-msgstr ""
+msgstr "وضع الفحص لفاحص الصور المتحركة"
 
 msgctxt "#32038"
 msgid "Incremental"
-msgstr ""
+msgstr "تزايدي"
 
 msgctxt "#32039"
 msgid "Full Scan"
-msgstr ""
+msgstr "فحص كامل"
 
 msgctxt "#32040"
 msgid "Download Report"
-msgstr ""
+msgstr "تقرير التنزيل"
 
 msgctxt "#32041"
 msgid "No download history found."
-msgstr ""
+msgstr "لم يُعثر على سجل تنزيل."
 
 msgctxt "#32042"
 msgid "Cancelled"
-msgstr ""
+msgstr "أُلغي"
 
 msgctxt "#32043"
 msgid "No valid media types to download."
-msgstr ""
+msgstr "لا توجد أنواع وسائط صالحة للتنزيل."
 
 msgctxt "#32045"
 msgid "Downloaded:"
-msgstr ""
+msgstr "تم التنزيل:"
 
 msgctxt "#32044"
 msgid "API Keys"
-msgstr ""
+msgstr "مفاتيح API"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
-msgstr ""
+msgstr "إعداد مفتاح TMDB API"
 
 msgctxt "#32047"
 msgid "Get your API key from https://www.themoviedb.org/settings/api"
-msgstr ""
+msgstr "احصل على مفتاح API من https://www.themoviedb.org/settings/api"
 
 msgctxt "#32048"
 msgid "Test Connection"
-msgstr ""
+msgstr "اختبار الاتصال"
 
 msgctxt "#32049"
 msgid "Clear API Key"
-msgstr ""
+msgstr "مسح مفتاح API"
 
 msgctxt "#32050"
 msgid "MDBList"
-msgstr ""
+msgstr "MDBList"
 
 msgctxt "#32051"
 msgid "Configure MDBList API Key"
-msgstr ""
+msgstr "إعداد مفتاح MDBList API"
 
 msgctxt "#32052"
 msgid "Get your API key from https://mdblist.com/preferences/"
-msgstr ""
+msgstr "احصل على مفتاح API من https://mdblist.com/preferences/"
 
 msgctxt "#32053"
 msgid "OMDb"
-msgstr ""
+msgstr "OMDb"
 
 msgctxt "#32054"
 msgid "Configure OMDb API Key"
-msgstr ""
+msgstr "إعداد مفتاح OMDb API"
 
 msgctxt "#32055"
 msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
-msgstr ""
+msgstr "احصل على مفتاح API من http://www.omdbapi.com/apikey.aspx"
 
 msgctxt "#32056"
 msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
-msgstr ""
+msgstr "Fanart.tv · fanart.tv/get-an-api-key[CR]بدون مفتاح: 7 أيام · شخصي: يومان · VIP: فوري"
 
 msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
-msgstr ""
+msgstr "إعداد مفتاح Fanart.tv API"
 
 msgctxt "#32059"
 msgid "Trakt"
-msgstr ""
+msgstr "Trakt"
 
 msgctxt "#32060"
 msgid "Authorize Trakt"
-msgstr ""
+msgstr "تفويض Trakt"
 
 msgctxt "#32061"
 msgid "Authorize this addon to access your Trakt account"
-msgstr ""
+msgstr "تفويض هذه الإضافة للوصول إلى حساب Trakt الخاص بك"
 
 msgctxt "#32062"
 msgid "Test Trakt Connection"
-msgstr ""
+msgstr "اختبار اتصال Trakt"
 
 msgctxt "#32063"
 msgid "Revoke Authorization"
-msgstr ""
+msgstr "إلغاء التفويض"
 
 msgctxt "#32064"
 msgid "Ratings"
-msgstr ""
+msgstr "التقييمات"
 
 msgctxt "#32065"
 msgid "Not configured"
-msgstr ""
+msgstr "غير مُعدّ"
 
 msgctxt "#32066"
 msgid "Stopped early: downloads stalled"
-msgstr ""
+msgstr "توقّف مبكراً: تعثّرت التنزيلات"
 
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
-msgstr ""
+msgstr "لا تقدّم لأكثر من {0} ثانية. شغّله مرة أخرى لإنهاء الباقي."
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
-msgstr ""
+msgstr "معالجة قائمة انتظار الصور الفنية"
 
 msgctxt "#32073"
 msgid "Cache is empty"
-msgstr ""
+msgstr "ذاكرة التخزين المؤقت فارغة"
 
 msgctxt "#32074"
 msgid "Default ratings source"
-msgstr ""
+msgstr "مصدر التقييمات الافتراضي"
 
 msgctxt "#32075"
 msgid "Primary source to display when multiple ratings are available"
-msgstr ""
+msgstr "المصدر الأساسي للعرض عند توفّر تقييمات متعددة"
 
 msgctxt "#32076"
 msgid "IMDb"
-msgstr ""
+msgstr "IMDb"
 
 msgctxt "#32077"
 msgid "TMDB"
-msgstr ""
+msgstr "TMDB"
 
 msgctxt "#32080"
 msgid "API Key"
-msgstr ""
+msgstr "مفتاح API"
 
 msgctxt "#32081"
 msgid "Status: Authorized"
-msgstr ""
+msgstr "الحالة: مُفوَّض"
 
 msgctxt "#32082"
 msgid "Texture Cache Manager"
-msgstr ""
+msgstr "مدير ذاكرة تخزين النسيج المؤقتة"
 
 msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
-msgstr ""
+msgstr "تخزين صور المكتبة الفنية مؤقتاً مسبقاً"
 
 msgctxt "#32085"
 msgid "Statistics & Info"
-msgstr ""
+msgstr "الإحصائيات والمعلومات"
 
 msgctxt "#32086"
 msgid "View Last Report"
-msgstr ""
+msgstr "عرض آخر تقرير"
 
 msgctxt "#32087"
 msgid "Cleanup Textures"
-msgstr ""
+msgstr "تنظيف الأنسجة"
 
 msgctxt "#32088"
 msgid "Library Artwork Orphans"
-msgstr ""
+msgstr "الصور الفنية اليتيمة في المكتبة"
 
 msgctxt "#32089"
 msgid "By Age (Older Than...)"
-msgstr ""
+msgstr "حسب العمر (أقدم من...)"
 
 msgctxt "#32090"
 msgid "By Usage (Low Usage)"
-msgstr ""
+msgstr "حسب الاستخدام (استخدام منخفض)"
 
 msgctxt "#32091"
 msgid "By URL Pattern (Force Re-Cache)"
-msgstr ""
+msgstr "حسب نمط الرابط (فرض إعادة التخزين المؤقت)"
 
 msgctxt "#32092"
 msgid "Advanced Cleanup..."
-msgstr ""
+msgstr "تنظيف متقدّم..."
 
 msgctxt "#32093"
 msgid "Enter {0} API Key"
-msgstr ""
+msgstr "أدخل مفتاح {0} API"
 
 msgctxt "#32094"
 msgid "Are you sure you want to clear the {0} API key?"
-msgstr ""
+msgstr "هل أنت متأكد من رغبتك في مسح مفتاح {0} API؟"
 
 msgctxt "#32095"
 msgid "Error testing connection:\n\n{0}"
-msgstr ""
+msgstr "خطأ في اختبار الاتصال:\n\n{0}"
 
 msgctxt "#32096"
 msgid "Failed to get device code from Trakt."
-msgstr ""
+msgstr "تعذّر الحصول على رمز الجهاز من Trakt."
 
 msgctxt "#32097"
 msgid "Error:\n\n{0}"
-msgstr ""
+msgstr "خطأ:\n\n{0}"
 
 msgctxt "#32098"
 msgid "Are you sure you want to revoke Trakt authorization?\n\nYou will need to re-authorize to use Trakt ratings."
-msgstr ""
+msgstr "هل أنت متأكد من رغبتك في إلغاء تفويض Trakt؟\n\nستحتاج إلى إعادة التفويض لاستخدام تقييمات Trakt."
 
 msgctxt "#32099"
 msgid "Downloaded {0} files ({1} MB)"
-msgstr ""
+msgstr "تم تنزيل {0} ملف ({1} ميغابايت)"
 
 #. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
-msgstr ""
+msgstr "إدارة الصور الفنية"
 
 msgctxt "#32101"
 msgid "Update Ratings"
-msgstr ""
+msgstr "تحديث التقييمات"
 
 msgctxt "#32102"
 msgid "Skin Info Tools"
-msgstr ""
+msgstr "أدوات معلومات الواجهة"
 
 msgctxt "#32103"
 msgid "Edit Metadata"
-msgstr ""
+msgstr "تحرير البيانات الوصفية"
 
 msgctxt "#32104"
 msgid "{0} - Connection Test"
-msgstr ""
+msgstr "{0} - اختبار الاتصال"
 
 msgctxt "#32105"
 msgid "Connection successful!\n\nAPI key is valid and working."
-msgstr ""
+msgstr "نجح الاتصال!\n\nمفتاح API صالح ويعمل."
 
 msgctxt "#32106"
 msgid "Connection failed.\n\nPlease check your API key."
-msgstr ""
+msgstr "فشل الاتصال.\n\nيرجى التحقق من مفتاح API."
 
 msgctxt "#32107"
 msgid "Trakt Authorization Failed"
-msgstr ""
+msgstr "فشل تفويض Trakt"
 
 msgctxt "#32108"
 msgid "Trakt - Connection Test"
-msgstr ""
+msgstr "Trakt - اختبار الاتصال"
 
 msgctxt "#32109"
 msgid "Authorization successful!\n\nTrakt is now connected."
-msgstr ""
+msgstr "نجح التفويض!\n\nتم توصيل Trakt الآن."
 
 msgctxt "#32110"
 msgid "Authorization timed out.\n\nPlease try again."
-msgstr ""
+msgstr "انتهت مهلة التفويض.\n\nيرجى المحاولة مرة أخرى."
 
 msgctxt "#32111"
 msgid "Context Menu Items"
-msgstr ""
+msgstr "عناصر قائمة السياق"
 
 msgctxt "#32112"
 msgid "Show Manage Artwork"
-msgstr ""
+msgstr "إظهار إدارة الصور الفنية"
 
 msgctxt "#32113"
 msgid "Show Update Ratings"
-msgstr ""
+msgstr "إظهار تحديث التقييمات"
 
 msgctxt "#32114"
 msgid "Show Edit Metadata"
-msgstr ""
+msgstr "إظهار تحرير البيانات الوصفية"
 
 msgctxt "#32115"
 msgid "Connection successful!\n\nTrakt is authorized and working."
-msgstr ""
+msgstr "نجح الاتصال!\n\nTrakt مُفوَّض ويعمل."
 
 msgctxt "#32116"
 msgid "Connection failed.\n\nPlease authorize Trakt first."
-msgstr ""
+msgstr "فشل الاتصال.\n\nيرجى تفويض Trakt أولاً."
 
 msgctxt "#32117"
 msgid "Show Download Artwork"
-msgstr ""
+msgstr "إظهار تنزيل الصور الفنية"
 
 msgctxt "#32118"
 msgid "No HTTP artwork URLs found in {0} library items."
-msgstr ""
+msgstr "لم يُعثر على روابط HTTP لصور فنية في {0} عنصر بالمكتبة."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"
-msgstr ""
+msgstr "تحذير وضع الاستبدال"
 
 msgctxt "#32120"
 msgid "Change Language"
-msgstr ""
+msgstr "تغيير اللغة"
 
 msgctxt "#32121"
 msgid "Download Complete"
-msgstr ""
+msgstr "اكتمل التنزيل"
 
 msgctxt "#32122"
 msgid "Text-free / Untagged"
-msgstr ""
+msgstr "خالٍ من النص / غير موسوم"
 
 msgctxt "#32128"
 msgid "Skip"
-msgstr ""
+msgstr "تخطّي"
 
 msgctxt "#32130"
 msgid "Multi-Art..."
-msgstr ""
+msgstr "متعدد الصور..."
 
 msgctxt "#32131"
 msgid "Sort"
-msgstr ""
+msgstr "فرز"
 
 msgctxt "#32132"
 msgid "Source: All"
-msgstr ""
+msgstr "المصدر: الكل"
 
 msgctxt "#32133"
 msgid "Source: TMDB"
-msgstr ""
+msgstr "المصدر: TMDB"
 
 msgctxt "#32134"
 msgid "Source: Fanart.tv"
-msgstr ""
+msgstr "المصدر: Fanart.tv"
 
 msgctxt "#32135"
 msgid "IMDb Ratings"
-msgstr ""
+msgstr "تقييمات IMDb"
 
 msgctxt "#32136"
 msgid "Auto-update"
-msgstr ""
+msgstr "تحديث تلقائي"
 
 msgctxt "#32137"
 msgid "Automatically update IMDb ratings in your library"
-msgstr ""
+msgstr "تحديث تقييمات IMDb في مكتبتك تلقائياً"
 
 msgctxt "#32139"
 msgid "After library scan"
-msgstr ""
+msgstr "بعد فحص المكتبة"
 
 msgctxt "#32140"
 msgid "When new ratings available"
-msgstr ""
+msgstr "عند توفّر تقييمات جديدة"
 
 msgctxt "#32141"
 msgid "Both"
-msgstr ""
+msgstr "كلاهما"
 
 msgctxt "#32142"
 msgid "Scope"
-msgstr ""
+msgstr "النطاق"
 
 msgctxt "#32143"
 msgid "Which media types to include in auto-updates"
-msgstr ""
+msgstr "أنواع الوسائط المشمولة في التحديثات التلقائية"
 
 msgctxt "#32144"
 msgid "All (Movies, TV Shows, Episodes)"
-msgstr ""
+msgstr "الكل (أفلام، مسلسلات، حلقات)"
 
 msgctxt "#32145"
 msgid "Movies and TV Shows only"
-msgstr ""
+msgstr "الأفلام والمسلسلات فقط"
 
 msgctxt "#32146"
 msgid "Movies only"
-msgstr ""
+msgstr "الأفلام فقط"
 
 msgctxt "#32150"
 msgid "Stinger Detection"
-msgstr ""
+msgstr "كشف مشاهد ما بعد الشارة"
 
 msgctxt "#32151"
 msgid "Enable stinger detection"
-msgstr ""
+msgstr "تفعيل كشف مشاهد ما بعد الشارة"
 
 msgctxt "#32152"
 msgid "Notify about post-credits scenes during movie playback"
-msgstr ""
+msgstr "التنبيه بشأن مشاهد ما بعد الشارة أثناء تشغيل الفيلم"
 
 msgctxt "#32156"
 msgid "Minutes before end"
-msgstr ""
+msgstr "دقائق قبل النهاية"
 
 msgctxt "#32157"
 msgid "For movies without chapters, notify this many minutes before the end"
-msgstr ""
+msgstr "للأفلام دون فصول، نبّه بهذا العدد من الدقائق قبل النهاية"
 
 msgctxt "#32158"
 msgid "Notification duration (seconds)"
-msgstr ""
+msgstr "مدة الإشعار (ثوانٍ)"
 
 msgctxt "#32159"
 msgid "How long to display the notification"
-msgstr ""
+msgstr "مدة عرض الإشعار"
 
 msgctxt "#32162"
 msgid "Wait For It..."
-msgstr ""
+msgstr "انتظر قليلاً..."
 
 msgctxt "#32163"
 msgid "Stay for scene during credits"
-msgstr ""
+msgstr "ابقَ لمشهد أثناء الشارة"
 
 msgctxt "#32164"
 msgid "Stay for scene after credits"
-msgstr ""
+msgstr "ابقَ لمشهد بعد الشارة"
 
 msgctxt "#32165"
 msgid "Stay for scenes during and after credits"
-msgstr ""
+msgstr "ابقَ للمشاهد أثناء الشارة وبعدها"
 
 msgctxt "#32170"
 msgid "Operation failed"
-msgstr ""
+msgstr "فشلت العملية"
 
 msgctxt "#32171"
 msgid "No items to display"
-msgstr ""
+msgstr "لا توجد عناصر للعرض"
 
 msgctxt "#32172"
 msgid "Task Already Running"
-msgstr ""
+msgstr "المهمة قيد التشغيل بالفعل"
 
 msgctxt "#32173"
 msgid "Another background task is currently running"
-msgstr ""
+msgstr "توجد مهمة خلفية أخرى قيد التشغيل حالياً"
 
 msgctxt "#32180"
 msgid "Texture Cache Statistics"
-msgstr ""
+msgstr "إحصائيات ذاكرة تخزين النسيج المؤقتة"
 
 msgctxt "#32181"
 msgid "Failed to gather statistics"
-msgstr ""
+msgstr "تعذّر جمع الإحصائيات"
 
 msgctxt "#32182"
 msgid "No textures found in cache"
-msgstr ""
+msgstr "لم يُعثر على أنسجة في ذاكرة التخزين المؤقت"
 
 msgctxt "#32183"
 msgid "Orphaned Textures Report"
-msgstr ""
+msgstr "تقرير الأنسجة اليتيمة"
 
 msgctxt "#32184"
 msgid "Analysis Failed"
-msgstr ""
+msgstr "فشل التحليل"
 
 msgctxt "#32190"
 msgid "Art Fetcher Report"
-msgstr ""
+msgstr "تقرير جالب الصور الفنية"
 
 msgctxt "#32191"
 msgid "Art Fetcher - Detailed Report"
-msgstr ""
+msgstr "جالب الصور الفنية - تقرير مفصّل"
 
 msgctxt "#32192"
 msgid "Animated Art Scanner"
-msgstr ""
+msgstr "فاحص الصور المتحركة"
 
 msgctxt "#32200"
 msgid "graphic"
-msgstr ""
+msgstr "رسومي"
 
 msgctxt "#32201"
 msgid "a lot of"
-msgstr ""
+msgstr "الكثير من"
 
 msgctxt "#32202"
 msgid "some"
-msgstr ""
+msgstr "بعض"
 
 msgctxt "#32203"
 msgid "a little"
-msgstr ""
+msgstr "قليل من"
 
 msgctxt "#32204"
 msgid "very little"
-msgstr ""
+msgstr "قليل جداً من"
 
 msgctxt "#32210"
 msgid "violence or scares"
-msgstr ""
+msgstr "عنف أو مشاهد مخيفة"
 
 msgctxt "#32211"
 msgid "sexual content"
-msgstr ""
+msgstr "محتوى جنسي"
 
 #. Content advisory category - profanity/swearing (e.g., "Rated R for graphic language")
 msgctxt "#32212"
 msgid "language"
-msgstr ""
+msgstr "ألفاظ"
 
 msgctxt "#32213"
 msgid "substance use or smoking"
-msgstr ""
+msgstr "تعاطي مواد أو تدخين"
 
 msgctxt "#32220"
 msgid "Rated {0}+ for {1}"
-msgstr ""
+msgstr "مصنّف {0}+ بسبب {1}"
 
 #. Conjunction between content advisory items - spaces are intentional (e.g., "violence and language")
 msgctxt "#32221"
 msgid " and "
-msgstr ""
+msgstr " و "
 
 msgctxt "#32250"
 msgid "Unsupported field type"
-msgstr ""
+msgstr "نوع حقل غير مدعوم"
 
 msgctxt "#32251"
 msgid "Failed to save"
-msgstr ""
+msgstr "فشل الحفظ"
 
 msgctxt "#32252"
 msgid "Rating Source (e.g., imdb, tmdb)"
-msgstr ""
+msgstr "مصدر التقييم (مثل imdb، tmdb)"
 
 msgctxt "#32253"
 msgid "Vote Count"
-msgstr ""
+msgstr "عدد الأصوات"
 
 msgctxt "#32254"
 msgid "Invalid Value"
-msgstr ""
+msgstr "قيمة غير صالحة"
 
 msgctxt "#32255"
 msgid "Invalid Date"
-msgstr ""
+msgstr "تاريخ غير صالح"
 
 msgctxt "#32256"
 msgid "Invalid Rating"
-msgstr ""
+msgstr "تقييم غير صالح"
 
 msgctxt "#32257"
 msgid "Already Exists"
-msgstr ""
+msgstr "موجود بالفعل"
 
 #. Notification title for metadata editor operations
 msgctxt "#32258"
 msgid "Editor"
-msgstr ""
+msgstr "المحرّر"
 
 msgctxt "#32259"
 msgid "No valid item selected"
-msgstr ""
+msgstr "لم يُحدَّد عنصر صالح"
 
 msgctxt "#32260"
 msgid "Fix Library IDs"
-msgstr ""
+msgstr "إصلاح معرّفات المكتبة"
 
 msgctxt "#32261"
 msgid "All IDs are valid"
-msgstr ""
+msgstr "جميع المعرّفات صالحة"
 
 msgctxt "#32262"
 msgid "Failed to load item"
-msgstr ""
+msgstr "تعذّر تحميل العنصر"
 
 msgctxt "#32263"
 msgid "Unsupported type: {0}"
-msgstr ""
+msgstr "نوع غير مدعوم: {0}"
 
 msgctxt "#32270"
 msgid "No path provided"
-msgstr ""
+msgstr "لم يُقدَّم أي مسار"
 
 msgctxt "#32271"
 msgid "No items found in directory"
-msgstr ""
+msgstr "لم يُعثر على عناصر في الدليل"
 
 msgctxt "#32272"
 msgid "Select Actor"
-msgstr ""
+msgstr "اختر الممثل"
 
 #. Menu title and feature name - scans library for items without artwork
 msgctxt "#32273"
 msgid "Missing Artwork"
-msgstr ""
+msgstr "الصور الفنية المفقودة"
 
 msgctxt "#32274"
 msgid "Scan failed"
-msgstr ""
+msgstr "فشل الفحص"
 
 msgctxt "#32275"
 msgid "Select Artwork"
-msgstr ""
+msgstr "اختر الصورة الفنية"
 
 msgctxt "#32276"
 msgid "Loading artwork for {0}..."
-msgstr ""
+msgstr "جارٍ تحميل الصور الفنية لـ {0}..."
 
 msgctxt "#32277"
 msgid "Preparing library scan..."
-msgstr ""
+msgstr "جارٍ تجهيز فحص المكتبة..."
 
 msgctxt "#32278"
 msgid "Initializing..."
-msgstr ""
+msgstr "جارٍ التهيئة..."
 
 msgctxt "#32279"
 msgid "Processing complete!"
-msgstr ""
+msgstr "اكتملت المعالجة!"
 
 msgctxt "#32280"
 msgid "Art Fetcher"
-msgstr ""
+msgstr "جالب الصور الفنية"
 
 msgctxt "#32281"
 msgid "Art Fetcher - Complete"
-msgstr ""
+msgstr "جالب الصور الفنية - اكتمل"
 
 msgctxt "#32282"
 msgid "View Report"
-msgstr ""
+msgstr "عرض التقرير"
 
 msgctxt "#32284"
 msgid "Processed: {0} items"
-msgstr ""
+msgstr "تمّت معالجة: {0} عنصر"
 
 msgctxt "#32285"
 msgid "Auto-applied: {0}"
-msgstr ""
+msgstr "طُبّق تلقائياً: {0}"
 
 msgctxt "#32286"
 msgid "Skipped: {0}"
-msgstr ""
+msgstr "تم تخطّي: {0}"
 
 msgctxt "#32287"
 msgid "Errors: {0}"
-msgstr ""
+msgstr "أخطاء: {0}"
 
 msgctxt "#32288"
 msgid "No items in queue"
-msgstr ""
+msgstr "لا توجد عناصر في قائمة الانتظار"
 
 msgctxt "#32289"
 msgid "No pending items found in queue"
-msgstr ""
+msgstr "لم يُعثر على عناصر معلّقة في قائمة الانتظار"
 
 msgctxt "#32290"
 msgid "Download Artwork"
-msgstr ""
+msgstr "تنزيل الصور الفنية"
 
 msgctxt "#32291"
 msgid "Preparing..."
-msgstr ""
+msgstr "جارٍ التجهيز..."
 
 msgctxt "#32292"
 msgid "Scanning library..."
-msgstr ""
+msgstr "جارٍ فحص المكتبة..."
 
 msgctxt "#32293"
 msgid "Building download list from {0} items..."
-msgstr ""
+msgstr "جارٍ بناء قائمة التنزيل من {0} عنصر..."
 
 msgctxt "#32294"
 msgid "Starting download of {0} artwork files..."
-msgstr ""
+msgstr "جارٍ بدء تنزيل {0} ملف صور فنية..."
 
 msgctxt "#32295"
 msgid "Scan complete. No missing artwork found."
-msgstr ""
+msgstr "اكتمل الفحص. لم يُعثر على صور فنية مفقودة."
 
 msgctxt "#32296"
 msgid "No remote artwork to download"
-msgstr ""
+msgstr "لا توجد صور فنية بعيدة للتنزيل"
 
 msgctxt "#32297"
 msgid "Preparing download..."
-msgstr ""
+msgstr "جارٍ تجهيز التنزيل..."
 
 msgctxt "#32298"
 msgid "Downloading artwork..."
-msgstr ""
+msgstr "جارٍ تنزيل الصور الفنية..."
 
 msgctxt "#32299"
 msgid "Loading seasons and episodes..."
-msgstr ""
+msgstr "جارٍ تحميل المواسم والحلقات..."
 
 msgctxt "#32300"
 msgid "Ratings Updater"
-msgstr ""
+msgstr "أداة تحديث التقييمات"
 
 msgctxt "#32301"
 msgid "Remove Rating?"
-msgstr ""
+msgstr "إزالة التقييم؟"
 
 msgctxt "#32302"
 msgid "Remove {0} rating?"
-msgstr ""
+msgstr "إزالة تقييم {0}؟"
 
 msgctxt "#32303"
 msgid "Loading {0}s..."
-msgstr ""
+msgstr "جارٍ تحميل {0}..."
 
 msgctxt "#32304"
 msgid "Updating {0} {1}s..."
-msgstr ""
+msgstr "جارٍ تحديث {0} {1}..."
 
 msgctxt "#32305"
 msgid "Downloading IMDb dataset..."
-msgstr ""
+msgstr "جارٍ تنزيل مجموعة بيانات IMDb..."
 
 msgctxt "#32306"
 msgid "Updating: {0}/{1} - {2}"
-msgstr ""
+msgstr "جارٍ التحديث: {0}/{1} - {2}"
 
 msgctxt "#32307"
 msgid "Updating: {0}/{1} items"
-msgstr ""
+msgstr "جارٍ التحديث: {0}/{1} عنصر"
 
 msgctxt "#32308"
 msgid "Finalizing: {0}/{1}"
-msgstr ""
+msgstr "جارٍ الإنهاء: {0}/{1}"
 
 msgctxt "#32309"
 msgid "Finalizing: {0}/{1} items"
-msgstr ""
+msgstr "جارٍ الإنهاء: {0}/{1} عنصر"
 
 msgctxt "#32310"
 msgid "Retrying failed items..."
-msgstr ""
+msgstr "جارٍ إعادة محاولة العناصر الفاشلة..."
 
 msgctxt "#32311"
 msgid "Retrying: {0}/{1}"
-msgstr ""
+msgstr "جارٍ إعادة المحاولة: {0}/{1}"
 
 msgctxt "#32312"
 msgid "Updating episode data..."
-msgstr ""
+msgstr "جارٍ تحديث بيانات الحلقات..."
 
 msgctxt "#32313"
 msgid "{0} - Rate Limit"
-msgstr ""
+msgstr "{0} - حدّ المعدّل"
 
 msgctxt "#32314"
 msgid "Waiting to retry..."
-msgstr ""
+msgstr "بانتظار إعادة المحاولة..."
 
 msgctxt "#32315"
 msgid "Waiting {0}s before retry..."
-msgstr ""
+msgstr "بانتظار {0} ثانية قبل إعادة المحاولة..."
 
 msgctxt "#32316"
 msgid "Ratings Updated - {0}"
-msgstr ""
+msgstr "تم تحديث التقييمات - {0}"
 
 msgctxt "#32317"
 msgid "Ratings Updater - Complete"
-msgstr ""
+msgstr "أداة تحديث التقييمات - اكتمل"
 
 msgctxt "#32318"
 msgid "IMDb Ratings Update"
-msgstr ""
+msgstr "تحديث تقييمات IMDb"
 
 msgctxt "#32319"
 msgid "{0} IMDb ratings updated"
-msgstr ""
+msgstr "تم تحديث {0} تقييم من IMDb"
 
 msgctxt "#32320"
 msgid "IMDb ratings up to date"
-msgstr ""
+msgstr "تقييمات IMDb محدّثة"
 
 msgctxt "#32330"
 msgid "Analyzing Textures"
-msgstr ""
+msgstr "جارٍ تحليل الأنسجة"
 
 msgctxt "#32331"
 msgid "Scanning texture cache..."
-msgstr ""
+msgstr "جارٍ فحص ذاكرة تخزين النسيج المؤقتة..."
 
 msgctxt "#32332"
 msgid "Analyzing {0} textures..."
-msgstr ""
+msgstr "جارٍ تحليل {0} نسيج..."
 
 msgctxt "#32333"
 msgid "Cleanup Textures by Age"
-msgstr ""
+msgstr "تنظيف الأنسجة حسب العمر"
 
 msgctxt "#32334"
 msgid "Clean Orphaned Textures"
-msgstr ""
+msgstr "تنظيف الأنسجة اليتيمة"
 
 msgctxt "#32335"
 msgid "Starting cleanup..."
-msgstr ""
+msgstr "جارٍ بدء التنظيف..."
 
 msgctxt "#32336"
 msgid "Starting..."
-msgstr ""
+msgstr "جارٍ البدء..."
 
 msgctxt "#32350"
 msgid "Loading library..."
-msgstr ""
+msgstr "جارٍ تحميل المكتبة..."
 
 msgctxt "#32351"
 msgid "Loading TV shows..."
-msgstr ""
+msgstr "جارٍ تحميل المسلسلات..."
 
 msgctxt "#32352"
 msgid "Loading episodes..."
-msgstr ""
+msgstr "جارٍ تحميل الحلقات..."
 
 msgctxt "#32353"
 msgid "Analyzing library..."
-msgstr ""
+msgstr "جارٍ تحليل المكتبة..."
 
 msgctxt "#32354"
 msgid "Downloading episode data..."
-msgstr ""
+msgstr "جارٍ تنزيل بيانات الحلقات..."
 
 msgctxt "#32355"
 msgid "Matching episodes (dataset)... {0}/{1}"
-msgstr ""
+msgstr "جارٍ مطابقة الحلقات (مجموعة البيانات)... {0}/{1}"
 
 msgctxt "#32356"
 msgid "Fetching episodes (TMDB)... {0}/{1}"
-msgstr ""
+msgstr "جارٍ جلب الحلقات (TMDB)... {0}/{1}"
 
 msgctxt "#32357"
 msgid "Fixing TMDB IDs... {0}/{1}"
-msgstr ""
+msgstr "جارٍ إصلاح معرّفات TMDB... {0}/{1}"
 
 msgctxt "#32358"
 msgid "Fetching {0}... {1}/{2}"
-msgstr ""
+msgstr "جارٍ جلب {0}... {1}/{2}"
 
 msgctxt "#32359"
 msgid "No IDs could be fixed"
-msgstr ""
+msgstr "تعذّر إصلاح أي معرّفات"
 
 msgctxt "#32370"
 msgid "Testing {0}"
-msgstr ""
+msgstr "جارٍ اختبار {0}"
 
 msgctxt "#32371"
 msgid "Connecting to API..."
-msgstr ""
+msgstr "جارٍ الاتصال بواجهة API..."
 
 msgctxt "#32372"
 msgid "Trakt Authorization"
-msgstr ""
+msgstr "تفويض Trakt"
 
 msgctxt "#32373"
 msgid "Requesting device code..."
-msgstr ""
+msgstr "جارٍ طلب رمز الجهاز..."
 
 msgctxt "#32374"
 msgid "Testing Trakt"
-msgstr ""
+msgstr "جارٍ اختبار Trakt"
 
 msgctxt "#32390"
 msgid "No Library Values"
-msgstr ""
+msgstr "لا توجد قيم في المكتبة"
 
 #. Displayed when user rating is 0 (no rating given by user)
 msgctxt "#32391"
 msgid "Not Rated"
-msgstr ""
+msgstr "غير مقيّم"
 
 #. Placeholder shown when a field has no value
 msgctxt "#32392"
 msgid "(Not Set)"
-msgstr ""
+msgstr "(غير محدَّد)"
 
 msgctxt "#32393"
 msgid "Save Changes"
-msgstr ""
+msgstr "حفظ التغييرات"
 
 msgctxt "#32394"
 msgid "Add {0}"
-msgstr ""
+msgstr "إضافة {0}"
 
 msgctxt "#32395"
 msgid "Quick Edit: {0}"
-msgstr ""
+msgstr "تحرير سريع: {0}"
 
 msgctxt "#32396"
 msgid "Select from Library"
-msgstr ""
+msgstr "الاختيار من المكتبة"
 
 msgctxt "#32397"
 msgid "Add/Remove Items"
-msgstr ""
+msgstr "إضافة/إزالة عناصر"
 
 msgctxt "#32399"
 msgid "Edit {0} (comma-separated)"
-msgstr ""
+msgstr "تحرير {0} (مفصولة بفواصل)"
 
 msgctxt "#32400"
 msgid "No rating sources available. Please configure API keys in settings."
-msgstr ""
+msgstr "لا توجد مصادر تقييم متاحة. يرجى إعداد مفاتيح API في الإعدادات."
 
 msgctxt "#32401"
 msgid "{0} not found"
-msgstr ""
+msgstr "{0} غير موجود"
 
 msgctxt "#32402"
 msgid "Updating ratings..."
-msgstr ""
+msgstr "جارٍ تحديث التقييمات..."
 
 msgctxt "#32403"
 msgid "No changes needed"
-msgstr ""
+msgstr "لا حاجة لأي تغييرات"
 
 msgctxt "#32404"
 msgid "Item skipped (no IDs or rate limit)"
-msgstr ""
+msgstr "تم تخطّي العنصر (لا توجد معرّفات أو حدّ المعدّل)"
 
 msgctxt "#32405"
 msgid "Failed to update ratings"
-msgstr ""
+msgstr "فشل تحديث التقييمات"
 
 msgctxt "#32406"
 msgid "Update Movies"
-msgstr ""
+msgstr "تحديث الأفلام"
 
 msgctxt "#32407"
 msgid "Update TV Shows"
-msgstr ""
+msgstr "تحديث المسلسلات"
 
 msgctxt "#32408"
 msgid "Update Episodes"
-msgstr ""
+msgstr "تحديث الحلقات"
 
 msgctxt "#32409"
 msgid "Update All"
-msgstr ""
+msgstr "تحديث الكل"
 
 msgctxt "#32410"
 msgid "Run Mode"
-msgstr ""
+msgstr "وضع التشغيل"
 
 msgctxt "#32411"
 msgid "Show progress dialog (Foreground)"
-msgstr ""
+msgstr "إظهار مربّع حوار التقدّم (المقدّمة)"
 
 msgctxt "#32412"
 msgid "Run in background"
-msgstr ""
+msgstr "التشغيل في الخلفية"
 
 msgctxt "#32413"
 msgid "No {0}s found in library"
-msgstr ""
+msgstr "لم يُعثر على {0} في المكتبة"
 
 msgctxt "#32414"
 msgid "Fetching ratings batch {0}/{1}..."
-msgstr ""
+msgstr "جارٍ جلب دفعة التقييمات {0}/{1}..."
 
 msgctxt "#32415"
 msgid "Retry Failed Items"
-msgstr ""
+msgstr "إعادة محاولة العناصر الفاشلة"
 
 msgctxt "#32416"
 msgid "{0} item(s) had temporary network issues."
-msgstr ""
+msgstr "واجه {0} عنصر مشكلات شبكة مؤقتة."
 
 msgctxt "#32417"
 msgid "Retry these items now?"
-msgstr ""
+msgstr "إعادة محاولة هذه العناصر الآن؟"
 
 msgctxt "#32418"
 msgid "Network Issues"
-msgstr ""
+msgstr "مشكلات الشبكة"
 
 msgctxt "#32419"
 msgid "Items with network issues"
-msgstr ""
+msgstr "العناصر ذات مشكلات الشبكة"
 
 msgctxt "#32420"
 msgid "Retry: {0}/{1} succeeded"
-msgstr ""
+msgstr "إعادة المحاولة: نجح {0}/{1}"
 
 msgctxt "#32421"
 msgid "IMDb ID Corrections"
-msgstr ""
+msgstr "تصحيحات معرّف IMDb"
 
 msgctxt "#32422"
 msgid "{0} item(s) have outdated IMDb ID(s) (redirects)."
-msgstr ""
+msgstr "لدى {0} عنصر معرّف IMDb قديم (إعادة توجيه)."
 
 msgctxt "#32423"
 msgid "Correct them in your library?"
-msgstr ""
+msgstr "تصحيحها في مكتبتك؟"
 
 msgctxt "#32424"
 msgid "No ratings update history found."
-msgstr ""
+msgstr "لم يُعثر على سجل تحديث للتقييمات."
 
 msgctxt "#32425"
 msgid "Calculating disk usage..."
-msgstr ""
+msgstr "جارٍ حساب استخدام القرص..."
 
 msgctxt "#32426"
 msgid "Complete"
-msgstr ""
+msgstr "اكتمل"
 
 #. Button label meaning "display/reveal" (not TV Show)
 msgctxt "#32427"
 msgid "Show"
-msgstr ""
+msgstr "إظهار"
 
 msgctxt "#32429"
 msgid "Retry"
-msgstr ""
+msgstr "إعادة المحاولة"
 
 msgctxt "#32430"
 msgid "Ratings Update Report"
-msgstr ""
+msgstr "تقرير تحديث التقييمات"
 
 msgctxt "#32440"
 msgid "Pre-Cache + Download"
-msgstr ""
+msgstr "تخزين مؤقت مسبق + تنزيل"
 
 msgctxt "#32441"
 msgid "Pre-Cache Artwork - Select Scope"
-msgstr ""
+msgstr "تخزين الصور الفنية مؤقتاً مسبقاً - اختر النطاق"
 
 msgctxt "#32451"
 msgid "Pre-Cache + Download - Select Scope"
-msgstr ""
+msgstr "تخزين مؤقت مسبق + تنزيل - اختر النطاق"
 
 msgctxt "#32455"
 msgid "Pre-Cache Artwork"
-msgstr ""
+msgstr "تخزين الصور الفنية مؤقتاً مسبقاً"
 
 msgctxt "#32457"
 msgid "[B]{0}[/B] is currently running."
-msgstr ""
+msgstr "[B]{0}[/B] قيد التشغيل حالياً."
 
 msgctxt "#32458"
 msgid "Cannot start another background task."
-msgstr ""
+msgstr "لا يمكن بدء مهمة خلفية أخرى."
 
 msgctxt "#32459"
 msgid "Pre-Cache Cancelled"
-msgstr ""
+msgstr "أُلغي التخزين المؤقت المسبق"
 
 msgctxt "#32460"
 msgid "Pre-Cache Complete"
-msgstr ""
+msgstr "اكتمل التخزين المؤقت المسبق"
 
 msgctxt "#32461"
 msgid "Cleanup Cancelled"
-msgstr ""
+msgstr "أُلغي التنظيف"
 
 msgctxt "#32462"
 msgid "Cleanup Complete"
-msgstr ""
+msgstr "اكتمل التنظيف"
 
 msgctxt "#32463"
 msgid "Total: {0}"
-msgstr ""
+msgstr "الإجمالي: {0}"
 
 msgctxt "#32464"
 msgid "Cached: {0}"
-msgstr ""
+msgstr "مخزَّن مؤقتاً: {0}"
 
 msgctxt "#32465"
 msgid "Downloaded: {0} ({1:.1f} MB)"
-msgstr ""
+msgstr "تم التنزيل: {0} ({1:.1f} ميغابايت)"
 
 msgctxt "#32467"
 msgid "Failed: {0} cache, {1} download"
-msgstr ""
+msgstr "فشل: {0} تخزين مؤقت، {1} تنزيل"
 
 msgctxt "#32468"
 msgid "Already Cached: {0}"
-msgstr ""
+msgstr "مخزَّن مؤقتاً بالفعل: {0}"
 
 msgctxt "#32469"
 msgid "Newly Cached: {0}"
-msgstr ""
+msgstr "مخزَّن مؤقتاً حديثاً: {0}"
 
 msgctxt "#32470"
 msgid "Failed: {0}"
-msgstr ""
+msgstr "فشل: {0}"
 
 msgctxt "#32471"
 msgid "Status: Cancelled"
-msgstr ""
+msgstr "الحالة: أُلغي"
 
 msgctxt "#32472"
 msgid "Gathering statistics..."
-msgstr ""
+msgstr "جارٍ جمع الإحصائيات..."
 
 msgctxt "#32473"
 msgid "Remove textures not used in..."
-msgstr ""
+msgstr "إزالة الأنسجة غير المستخدمة منذ..."
 
 msgctxt "#32474"
 msgid "30 days"
-msgstr ""
+msgstr "30 يوماً"
 
 msgctxt "#32475"
 msgid "60 days"
-msgstr ""
+msgstr "60 يوماً"
 
 msgctxt "#32476"
 msgid "90 days"
-msgstr ""
+msgstr "90 يوماً"
 
 msgctxt "#32477"
 msgid "180 days"
-msgstr ""
+msgstr "180 يوماً"
 
 msgctxt "#32478"
 msgid "365 days (1 year)"
-msgstr ""
+msgstr "365 يوماً (سنة واحدة)"
 
 msgctxt "#32479"
 msgid "No Old Textures"
-msgstr ""
+msgstr "لا توجد أنسجة قديمة"
 
 msgctxt "#32480"
 msgid "No textures found older than {0} days."
-msgstr ""
+msgstr "لم يُعثر على أنسجة أقدم من {0} يوم."
 
 msgctxt "#32481"
 msgid "Total textures checked: {0}"
-msgstr ""
+msgstr "إجمالي الأنسجة المفحوصة: {0}"
 
 msgctxt "#32482"
 msgid "Confirm Cleanup"
-msgstr ""
+msgstr "تأكيد التنظيف"
 
 msgctxt "#32483"
 msgid "Remove {0} textures older than {1} days?"
-msgstr ""
+msgstr "إزالة {0} نسيج أقدم من {1} يوم؟"
 
 msgctxt "#32484"
 msgid "Total: {0} | Oldest: {1}"
-msgstr ""
+msgstr "الإجمالي: {0} | الأقدم: {1}"
 
 msgctxt "#32485"
 msgid "Cleanup by Usage"
-msgstr ""
+msgstr "التنظيف حسب الاستخدام"
 
 msgctxt "#32486"
 msgid "Feature coming soon!"
-msgstr ""
+msgstr "الميزة قادمة قريباً!"
 
 msgctxt "#32487"
 msgid "Force Re-Cache by Pattern"
-msgstr ""
+msgstr "فرض إعادة التخزين المؤقت حسب النمط"
 
 msgctxt "#32488"
 msgid "Texture Cache - Last Run"
-msgstr ""
+msgstr "ذاكرة تخزين النسيج المؤقتة - آخر تشغيل"
 
 msgctxt "#32489"
 msgid "No previous operations found."
-msgstr ""
+msgstr "لم يُعثر على عمليات سابقة."
 
 msgctxt "#32490"
 msgid "Fetching texture database..."
-msgstr ""
+msgstr "جارٍ جلب قاعدة بيانات النسيج..."
 
 msgctxt "#32492"
 msgid "Removing {0} old textures..."
-msgstr ""
+msgstr "جارٍ إزالة {0} نسيج قديم..."
 
 msgctxt "#32493"
 msgid "Checked: {0} textures"
-msgstr ""
+msgstr "تم فحص: {0} نسيج"
 
 msgctxt "#32494"
 msgid "Older than {0} days: {1}"
-msgstr ""
+msgstr "أقدم من {0} يوم: {1}"
 
 msgctxt "#32495"
 msgid "Removed: {0}"
-msgstr ""
+msgstr "تمت الإزالة: {0}"
 
 msgctxt "#32496"
 msgid "Total Cached: {0} | Library: {1}"
-msgstr ""
+msgstr "إجمالي المخزَّن مؤقتاً: {0} | المكتبة: {1}"
 
 msgctxt "#32497"
 msgid "Orphaned Found: {0} | Removed: {1}"
-msgstr ""
+msgstr "اليتيمة الموجودة: {0} | المُزالة: {1}"
 
 msgctxt "#32498"
 msgid "{0} artwork files not found on disk.[CR]These are stale library entries pointing to missing files.[CR][CR]View the list?"
-msgstr ""
+msgstr "{0} ملف صور فنية غير موجود على القرص.[CR]هذه إدخالات مكتبة قديمة تشير إلى ملفات مفقودة.[CR][CR]عرض القائمة؟"
 
 msgctxt "#32499"
 msgid "Missing Artwork Files"
-msgstr ""
+msgstr "ملفات الصور الفنية المفقودة"
 
 msgctxt "#32500"
 msgid "Session Report"
-msgstr ""
+msgstr "تقرير الجلسة"
 
 msgctxt "#32501"
 msgid "Continue Selection ({0} pending)"
-msgstr ""
+msgstr "متابعة الاختيار ({0} معلّق)"
 
 msgctxt "#32502"
 msgid "Select Missing Artwork"
-msgstr ""
+msgstr "اختيار الصور الفنية المفقودة"
 
 msgctxt "#32503"
 msgid "Select + Download Missing Artwork"
-msgstr ""
+msgstr "اختيار + تنزيل الصور الفنية المفقودة"
 
 msgctxt "#32504"
 msgid "Auto-Apply Missing Artwork"
-msgstr ""
+msgstr "تطبيق تلقائي للصور الفنية المفقودة"
 
 msgctxt "#32505"
 msgid "View Session History"
-msgstr ""
+msgstr "عرض سجل الجلسات"
 
 msgctxt "#32507"
 msgid "Browse & Choose Artwork - Select Library"
-msgstr ""
+msgstr "تصفّح واختر الصور الفنية - اختر المكتبة"
 
 msgctxt "#32508"
 msgid "Browse & Choose + Download - Select Library"
-msgstr ""
+msgstr "تصفّح واختر + تنزيل - اختر المكتبة"
 
 msgctxt "#32509"
 msgid "Auto-Fill Missing Artwork - Select Library"
-msgstr ""
+msgstr "تعبئة تلقائية للصور الفنية المفقودة - اختر المكتبة"
 
 msgctxt "#32510"
 msgid "Last Session (any library)"
-msgstr ""
+msgstr "آخر جلسة (أي مكتبة)"
 
 msgctxt "#32511"
 msgid "Current Queue Status"
-msgstr ""
+msgstr "حالة قائمة الانتظار الحالية"
 
 msgctxt "#32512"
 msgid "Session History"
-msgstr ""
+msgstr "سجل الجلسات"
 
 msgctxt "#32513"
 msgid "Missing Artwork - Queue Status"
-msgstr ""
+msgstr "الصور الفنية المفقودة - حالة قائمة الانتظار"
 
 msgctxt "#32514"
 msgid "Start new scan (clears queue)"
-msgstr ""
+msgstr "بدء فحص جديد (يمسح قائمة الانتظار)"
 
 msgctxt "#32515"
 msgid "View last report"
-msgstr ""
+msgstr "عرض آخر تقرير"
 
 msgctxt "#32516"
 msgid "Start new scan"
-msgstr ""
+msgstr "بدء فحص جديد"
 
 msgctxt "#32520"
 msgid "Artwork Download Report"
-msgstr ""
+msgstr "تقرير تنزيل الصور الفنية"
 
 msgctxt "#32522"
 msgid "Download Artwork to Filesystem"
-msgstr ""
+msgstr "تنزيل الصور الفنية إلى نظام الملفات"
 
 msgctxt "#32523"
 msgid "Download Artwork - Select Scope"
-msgstr ""
+msgstr "تنزيل الصور الفنية - اختر النطاق"
 
 msgctxt "#32530"
 msgid "Tools"
-msgstr ""
+msgstr "الأدوات"
 
 msgctxt "#32532"
 msgid "Add/Fix IMDb & TMDB IDs"
-msgstr ""
+msgstr "إضافة/إصلاح معرّفات IMDb وTMDB"
 
 msgctxt "#32540"
 msgid "Scan for Animated Posters"
-msgstr ""
+msgstr "فحص بحثاً عن الملصقات المتحركة"
 
 msgctxt "#32541"
 msgid "View Cache Statistics"
-msgstr ""
+msgstr "عرض إحصائيات ذاكرة التخزين المؤقت"
 
 msgctxt "#32542"
 msgid "Reset GIF Cache"
-msgstr ""
+msgstr "إعادة تعيين ذاكرة تخزين GIF المؤقتة"
 
 msgctxt "#32543"
 msgid "GIF Scanner - Last Run"
-msgstr ""
+msgstr "فاحص GIF - آخر تشغيل"
 
 msgctxt "#32544"
 msgid "GIF Cache Statistics"
-msgstr ""
+msgstr "إحصائيات ذاكرة تخزين GIF المؤقتة"
 
 msgctxt "#32546"
 msgid "Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
-msgstr ""
+msgstr "مسح {0} إدخال GIF مخزَّن مؤقتاً؟[CR][CR]استخدم هذا لاستكشاف مشكلات ذاكرة التخزين المؤقت.[CR][CR]نصيحة: استخدم وضع 'إعادة فحص كامل' بدلاً من ذلك لإعادة معالجة GIF."
 
 msgctxt "#32547"
 msgid "GIF Cache"
-msgstr ""
+msgstr "ذاكرة تخزين GIF المؤقتة"
 
 msgctxt "#32548"
 msgid "Reset complete - cleared {0} entries"
-msgstr ""
+msgstr "اكتملت إعادة التعيين - تم مسح {0} إدخال"
 
 msgctxt "#32549"
 msgid "Cache is already empty"
-msgstr ""
+msgstr "ذاكرة التخزين المؤقت فارغة بالفعل"
 
 msgctxt "#32550"
 msgid "Auto-Applied Artwork Report"
-msgstr ""
+msgstr "تقرير الصور الفنية المطبَّقة تلقائياً"
 
 msgctxt "#32551"
 msgid "Skipped Items Report"
-msgstr ""
+msgstr "تقرير العناصر المتخطّاة"
 
 msgctxt "#32552"
 msgid "Scan for GIF Posters"
-msgstr ""
+msgstr "فحص بحثاً عن ملصقات GIF"
 
 msgctxt "#32553"
 msgid "Select scan mode"
-msgstr ""
+msgstr "اختر وضع الفحص"
 
 msgctxt "#32554"
 msgid "Select Language"
-msgstr ""
+msgstr "اختر اللغة"
 
 msgctxt "#32555"
 msgid "Select Artwork Type - {0}"
-msgstr ""
+msgstr "اختر نوع الصورة الفنية - {0}"
 
 msgctxt "#32556"
 msgid "Select {0}"
-msgstr ""
+msgstr "اختر {0}"
 
 msgctxt "#32557"
 msgid "Edit {0}"
-msgstr ""
+msgstr "تحرير {0}"
 
 msgctxt "#32560"
 msgid "Edit: {0}"
-msgstr ""
+msgstr "تحرير: {0}"
 
 msgctxt "#32561"
 msgid "Dialog Error"
-msgstr ""
+msgstr "خطأ في مربّع الحوار"
 
 msgctxt "#32562"
 msgid "File not found: {0}"
-msgstr ""
+msgstr "الملف غير موجود: {0}"
 
 msgctxt "#32563"
 msgid "Failed to read file: {0}"
-msgstr ""
+msgstr "تعذّر قراءة الملف: {0}"
 
 msgctxt "#32564"
 msgid "Rating source '{0}' already exists."
-msgstr ""
+msgstr "مصدر التقييم '{0}' موجود بالفعل."
 
 msgctxt "#32565"
 msgid "Rating (0-10)"
-msgstr ""
+msgstr "التقييم (0-10)"
 
 msgctxt "#32566"
 msgid "Continue"
-msgstr ""
+msgstr "متابعة"
 
 msgctxt "#32567"
 msgid "Auto-Fill"
-msgstr ""
+msgstr "تعبئة تلقائية"
 
 msgctxt "#32568"
 msgid "Resume in Background"
-msgstr ""
+msgstr "المتابعة في الخلفية"
 
 msgctxt "#32569"
 msgid "Yes, Cancel It"
-msgstr ""
+msgstr "نعم، ألغِها"
 
 msgctxt "#32570"
 msgid "No, Keep Running"
-msgstr ""
+msgstr "لا، أبقِها قيد التشغيل"
 
 msgctxt "#32571"
 msgid "Cancel Running Task?"
-msgstr ""
+msgstr "إلغاء المهمة قيد التشغيل؟"
 
 msgctxt "#32572"
 msgid "Scan Cancelled"
-msgstr ""
+msgstr "أُلغي الفحص"
 
 msgctxt "#32573"
 msgid "Scan paused. Resume in background?"
-msgstr ""
+msgstr "تم إيقاف الفحص مؤقتاً. المتابعة في الخلفية؟"
 
 msgctxt "#32574"
 msgid "Cancel to resume later"
-msgstr ""
+msgstr "ألغِ للمتابعة لاحقاً"
 
 msgctxt "#32575"
 msgid "Invalid scope: {0}"
-msgstr ""
+msgstr "نطاق غير صالح: {0}"
 
 msgctxt "#32576"
 msgid "Invalid scan mode: {0}"
-msgstr ""
+msgstr "وضع فحص غير صالح: {0}"
 
 msgctxt "#32577"
 msgid "Resuming scan..."
-msgstr ""
+msgstr "جارٍ استئناف الفحص..."
 
 msgctxt "#32578"
 msgid "Background scan complete"
-msgstr ""
+msgstr "اكتمل الفحص في الخلفية"
 
 msgctxt "#32579"
 msgid "All (Movies + TV Shows)"
-msgstr ""
+msgstr "الكل (أفلام + مسلسلات)"
 
 msgctxt "#32580"
 msgid "Movies Only"
-msgstr ""
+msgstr "الأفلام فقط"
 
 msgctxt "#32581"
 msgid "TV Shows Only"
-msgstr ""
+msgstr "المسلسلات فقط"
 
 msgctxt "#32582"
 msgid "Incremental Scan"
-msgstr ""
+msgstr "فحص تزايدي"
 
 msgctxt "#32583"
 msgid "Skip unchanged GIFs, detect new/modified ones"
-msgstr ""
+msgstr "تخطّي ملفات GIF غير المتغيّرة، وكشف الجديدة/المعدّلة"
 
 msgctxt "#32584"
 msgid "Full Rescan"
-msgstr ""
+msgstr "إعادة فحص كامل"
 
 msgctxt "#32585"
 msgid "Rescan all items, rebuild cache from scratch"
-msgstr ""
+msgstr "إعادة فحص جميع العناصر، وإعادة بناء ذاكرة التخزين المؤقت من الصفر"
 
 msgctxt "#32586"
 msgid "{0} GIFs cached"
-msgstr ""
+msgstr "تم تخزين {0} ملف GIF مؤقتاً"
 
 msgctxt "#32587"
 msgid "no cache"
-msgstr ""
+msgstr "لا ذاكرة تخزين مؤقت"
 
 msgctxt "#32588"
 msgid "Total Cached GIFs: {0}"
-msgstr ""
+msgstr "إجمالي ملفات GIF المخزَّنة مؤقتاً: {0}"
 
 msgctxt "#32589"
 msgid "Recently Scanned (Last {0}):"
-msgstr ""
+msgstr "المفحوص حديثاً (آخر {0}):"
 
 msgctxt "#32590"
 msgid "... and {0} more"
-msgstr ""
+msgstr "... و{0} إضافي"
 
 msgctxt "#32591"
 msgid "Cannot resume in background."
-msgstr ""
+msgstr "لا يمكن المتابعة في الخلفية."
 
 msgctxt "#32592"
 msgid "Cancel it and start {0}?"
-msgstr ""
+msgstr "إلغاؤها وبدء {0}؟"
 
 msgctxt "#32593"
 msgid "Scan cancelled. Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "أُلغي الفحص. عُثر على: {0} | مخزَّن مؤقتاً: {1} | موجود: {2}"
 
 msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "اكتمل الفحص! عُثر على: {0} | مخزَّن مؤقتاً: {1} | موجود: {2}"
 
 msgctxt "#32600"
 msgid "IMDb Top 250"
-msgstr ""
+msgstr "أفضل 250 على IMDb"
 
 msgctxt "#32601"
 msgid "Fetching Top 250 from Trakt..."
-msgstr ""
+msgstr "جارٍ جلب أفضل 250 من Trakt..."
 
 msgctxt "#32602"
 msgid "Loading library..."
-msgstr ""
+msgstr "جارٍ تحميل المكتبة..."
 
 msgctxt "#32603"
 msgid "Matching movies..."
-msgstr ""
+msgstr "جارٍ مطابقة الأفلام..."
 
 msgctxt "#32604"
 msgid "Updating: {0}/{1}"
-msgstr ""
+msgstr "جارٍ التحديث: {0}/{1}"
 
 msgctxt "#32605"
 msgid "Top 250 Update Complete"
-msgstr ""
+msgstr "اكتمل تحديث أفضل 250"
 
 msgctxt "#32606"
 msgid "Updated: {0} | Cleared: {1} | Already correct: {2}"
-msgstr ""
+msgstr "تم التحديث: {0} | تم المسح: {1} | صحيح بالفعل: {2}"
 
 msgctxt "#32607"
 msgid "Failed to fetch Top 250 list from Trakt."
-msgstr ""
+msgstr "تعذّر جلب قائمة أفضل 250 من Trakt."
 
 msgctxt "#32608"
 msgid "No movies found in library."
-msgstr ""
+msgstr "لم يُعثر على أفلام في المكتبة."
 
 msgctxt "#32609"
 msgid "Update IMDb Top 250?"
-msgstr ""
+msgstr "تحديث أفضل 250 على IMDb؟"
 
 msgctxt "#32610"
 msgid "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
-msgstr ""
+msgstr "تعيين/تحديث: {0} فيلم[CR]مسح: {1} فيلم[CR]صحيح بالفعل: {2} فيلم[CR][CR]سيؤدي هذا إلى استبدال قيم أفضل 250 الحالية."
 
 msgctxt "#32611"
 msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
-msgstr ""
+msgstr "أُلغي. تم التحديث: {0} | تم المسح: {1} قبل الإلغاء."
 
 msgctxt "#32612"
 msgid "Trakt Not Signed In"
-msgstr ""
+msgstr "لم يتم تسجيل الدخول إلى Trakt"
 
 msgctxt "#32613"
 msgid "Sign in to Trakt or remove this widget"
-msgstr ""
+msgstr "سجّل الدخول إلى Trakt أو أزل هذه الأداة"
 
 msgctxt "#32614"
 msgid "Search"
-msgstr ""
+msgstr "بحث"
 
 msgctxt "#32615"
 msgid "Widgets"
-msgstr ""
+msgstr "الأدوات المصغّرة"
 
 msgctxt "#32616"
 msgid "Search Movies"
-msgstr ""
+msgstr "البحث عن أفلام"
 
 msgctxt "#32617"
 msgid "Search TV Shows"
-msgstr ""
+msgstr "البحث عن مسلسلات"
 
 msgctxt "#32618"
 msgid "Search People"
-msgstr ""
+msgstr "البحث عن أشخاص"
 
 msgctxt "#32619"
 msgid "Discover"
-msgstr ""
+msgstr "اكتشاف"
 
 msgctxt "#32620"
 msgid "Next Up"
-msgstr ""
+msgstr "التالي"
 
 msgctxt "#32621"
 msgid "Recent Episodes"
-msgstr ""
+msgstr "الحلقات الأخيرة"
 
 msgctxt "#32622"
 msgid "Seasonal"
-msgstr ""
+msgstr "موسمي"
 
 msgctxt "#32623"
 msgid "Recommended Movies"
-msgstr ""
+msgstr "أفلام موصى بها"
 
 msgctxt "#32624"
 msgid "Recommended TV Shows"
-msgstr ""
+msgstr "مسلسلات موصى بها"
 
 msgctxt "#32625"
 msgid "Movies"
-msgstr ""
+msgstr "أفلام"
 
 msgctxt "#32626"
 msgid "TV Shows"
-msgstr ""
+msgstr "مسلسلات"
 
 msgctxt "#32627"
 msgid "TMDB Trending"
-msgstr ""
+msgstr "الرائج على TMDB"
 
 msgctxt "#32628"
 msgid "TMDB Popular"
-msgstr ""
+msgstr "الشائع على TMDB"
 
 msgctxt "#32629"
 msgid "TMDB Top Rated"
-msgstr ""
+msgstr "الأعلى تقييماً على TMDB"
 
 msgctxt "#32630"
 msgid "TMDB Now Playing"
-msgstr ""
+msgstr "يُعرض الآن على TMDB"
 
 msgctxt "#32631"
 msgid "TMDB Upcoming"
-msgstr ""
+msgstr "القادم على TMDB"
 
 msgctxt "#32632"
 msgid "TMDB Airing Today"
-msgstr ""
+msgstr "يُبثّ اليوم على TMDB"
 
 msgctxt "#32633"
 msgid "TMDB On The Air"
-msgstr ""
+msgstr "على الهواء على TMDB"
 
 msgctxt "#32634"
 msgid "Trakt Trending"
-msgstr ""
+msgstr "الرائج على Trakt"
 
 msgctxt "#32635"
 msgid "Trakt Popular"
-msgstr ""
+msgstr "الشائع على Trakt"
 
 msgctxt "#32636"
 msgid "Trakt Anticipated"
-msgstr ""
+msgstr "المنتظَر على Trakt"
 
 msgctxt "#32637"
 msgid "Trakt Most Watched"
-msgstr ""
+msgstr "الأكثر مشاهدة على Trakt"
 
 msgctxt "#32638"
 msgid "Trakt Most Collected"
-msgstr ""
+msgstr "الأكثر تجميعاً على Trakt"
 
 msgctxt "#32639"
 msgid "Trakt Box Office"
-msgstr ""
+msgstr "إيرادات شبّاك التذاكر على Trakt"
 
 msgctxt "#32640"
 msgid "Trakt Recommendations"
-msgstr ""
+msgstr "توصيات Trakt"
 
 msgctxt "#32641"
 msgid "(OAuth)"
-msgstr ""
+msgstr "(OAuth)"
 
 msgctxt "#32642"
 msgid "Christmas"
-msgstr ""
+msgstr "عيد الميلاد"
 
 msgctxt "#32643"
 msgid "Halloween"
-msgstr ""
+msgstr "الهالوين"
 
 msgctxt "#32644"
 msgid "Valentine's Day"
-msgstr ""
+msgstr "عيد الحب"
 
 msgctxt "#32645"
 msgid "Thanksgiving"
-msgstr ""
+msgstr "عيد الشكر"
 
 msgctxt "#32646"
 msgid "Star Wars Day"
-msgstr ""
+msgstr "يوم حرب النجوم"
 
 msgctxt "#32647"
 msgid "Star Trek"
-msgstr ""
+msgstr "ستار تريك"
 
 msgctxt "#32648"
 msgid "New Year"
-msgstr ""
+msgstr "رأس السنة"
 
 msgctxt "#32649"
 msgid "Easter"
-msgstr ""
+msgstr "عيد الفصح"
 
 msgctxt "#32650"
 msgid "Independence Day"
-msgstr ""
+msgstr "عيد الاستقلال"
 
 # Recommended widget label, single-seed mode. {0} = seed title -> "Recommended based on Avatar"
 msgctxt "#32651"
 msgid "Recommended based on {0}"
-msgstr ""
+msgstr "موصى به بناءً على {0}"
 
 msgctxt "#32652"
 msgid "Recommended based on recent watches"
-msgstr ""
+msgstr "موصى به بناءً على المشاهدات الأخيرة"
 
 # Artwork selection dialogs
 msgctxt "#32653"
 msgid "Current Extra Art (Click to Remove)"
-msgstr ""
+msgstr "الصور الفنية الإضافية الحالية (انقر للإزالة)"
 
 msgctxt "#32654"
 msgid "Available Art (Click to Add)"
-msgstr ""
+msgstr "الصور الفنية المتاحة (انقر للإضافة)"
 
 msgctxt "#32655"
 msgid "Clear Selection"
-msgstr ""
+msgstr "مسح الاختيار"
 
 msgctxt "#32656"
 msgid "Apply"
-msgstr ""
+msgstr "تطبيق"
 
 msgctxt "#32657"
 msgid "Sort: Popularity"
-msgstr ""
+msgstr "الفرز: الشعبية"
 
 msgctxt "#32658"
 msgid "Sort: Resolution"
-msgstr ""
+msgstr "الفرز: الدقة"
 
 # Colour picker dialog
 msgctxt "#32659"
 msgid "Colour Manager"
-msgstr ""
+msgstr "مدير الألوان"
 
 msgctxt "#32660"
 msgid "Alpha"
-msgstr ""
+msgstr "الشفافية"
 
 msgctxt "#32661"
 msgid "Enter Hex"
-msgstr ""
+msgstr "أدخل القيمة الست عشرية"
 
 # Metadata editor, unique IDs
 msgctxt "#32663"
 msgid "Add ID"
-msgstr ""
+msgstr "إضافة معرّف"
 
 msgctxt "#32664"
 msgid "ID type (imdb, tmdb, tvdb...)"
-msgstr ""
+msgstr "نوع المعرّف (imdb، tmdb، tvdb...)"
 
 # {0} = id type, e.g. tmdb -> "tmdb ID (leave empty to remove)"
 msgctxt "#32665"
 msgid "{0} ID (leave empty to remove)"
-msgstr ""
+msgstr "معرّف {0} (اتركه فارغاً للإزالة)"
 
 msgctxt "#32666"
 msgid "Kodi won't remove the default ID. Change its value, or set another ID as default first."
-msgstr ""
+msgstr "لن يزيل Kodi المعرّف الافتراضي. غيّر قيمته، أو عيّن معرّفاً آخر كافتراضي أولاً."
 
 # {0} = id type, e.g. tmdb -> "Remove the tmdb ID?"
 msgctxt "#32667"
 msgid "Remove the {0} ID?"
-msgstr ""
+msgstr "إزالة معرّف {0}؟"
 
 msgctxt "#32668"
 msgid "User Rating"
-msgstr ""
+msgstr "تقييم المستخدم"
 
 msgctxt "#32669"
 msgid "External Ratings"
-msgstr ""
+msgstr "التقييمات الخارجية"
 
 msgctxt "#32670"
 msgid "Display Artist"
-msgstr ""
+msgstr "الفنان المعروض"
 
 msgctxt "#32671"
 msgid "Sort Artist"
-msgstr ""
+msgstr "فنان الفرز"
 
 msgctxt "#32672"
 msgid "Record Label"
-msgstr ""
+msgstr "شركة التسجيل"
 
 msgctxt "#32673"
 msgid "Album Type"
-msgstr ""
+msgstr "نوع الألبوم"
 
 msgctxt "#32674"
 msgid "Sort Name"
-msgstr ""
+msgstr "اسم الفرز"
 
 # Info dialog section headers with no Kodi core string
 msgctxt "#32675"
 msgid "Top Movies"
-msgstr ""
+msgstr "أفضل الأفلام"
 
 msgctxt "#32676"
 msgid "Top TV Shows"
-msgstr ""
+msgstr "أفضل المسلسلات"
 
 msgctxt "#32677"
 msgid "In Your Library - Movies"
-msgstr ""
+msgstr "في مكتبتك - أفلام"
 
 msgctxt "#32678"
 msgid "In Your Library - TV Shows"
-msgstr ""
+msgstr "في مكتبتك - مسلسلات"
 
 msgctxt "#32679"
 msgid "All Credits"
-msgstr ""
+msgstr "جميع الأسماء"
 
 msgctxt "#32680"
 msgid "Crew Credits"
-msgstr ""
+msgstr "أسماء الطاقم"
 
 msgctxt "#32681"
 msgid "Images"
-msgstr ""
+msgstr "الصور"
 
 msgctxt "#32682"
 msgid "Recommendations"
-msgstr ""
+msgstr "التوصيات"
 
 msgctxt "#32683"
 msgid "Similar in Library"
-msgstr ""
+msgstr "مشابه في المكتبة"
 
 msgctxt "#32684"
 msgid "Crew"
-msgstr ""
+msgstr "الطاقم"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"
-msgstr ""
+msgstr "تفعيل مخرجات التصحيح"
 
 msgctxt "#32930"
 msgid "English"
-msgstr ""
+msgstr "الإنجليزية"
 
 msgctxt "#32931"
 msgid "Spanish"
-msgstr ""
+msgstr "الإسبانية"
 
 msgctxt "#32932"
 msgid "Portuguese (Brazil)"
-msgstr ""
+msgstr "البرتغالية (البرازيل)"
 
 msgctxt "#32933"
 msgid "Portuguese (Portugal)"
-msgstr ""
+msgstr "البرتغالية (البرتغال)"
 
 msgctxt "#32934"
 msgid "French"
-msgstr ""
+msgstr "الفرنسية"
 
 msgctxt "#32935"
 msgid "German"
-msgstr ""
+msgstr "الألمانية"
 
 msgctxt "#32936"
 msgid "Chinese (Simplified)"
-msgstr ""
+msgstr "الصينية (المبسّطة)"
 
 msgctxt "#32937"
 msgid "Chinese (Traditional)"
-msgstr ""
+msgstr "الصينية (التقليدية)"
 
 msgctxt "#32938"
 msgid "Italian"
-msgstr ""
+msgstr "الإيطالية"
 
 msgctxt "#32939"
 msgid "Polish"
-msgstr ""
+msgstr "البولندية"
 
 msgctxt "#32940"
 msgid "Russian"
-msgstr ""
+msgstr "الروسية"
 
 msgctxt "#32941"
 msgid "Dutch"
-msgstr ""
+msgstr "الهولندية"
 
 msgctxt "#32942"
 msgid "Swedish"
-msgstr ""
+msgstr "السويدية"
 
 msgctxt "#32943"
 msgid "Korean"
-msgstr ""
+msgstr "الكورية"
 
 msgctxt "#32944"
 msgid "Japanese"
-msgstr ""
+msgstr "اليابانية"
 
 msgctxt "#32950"
 msgid "Advanced API Configuration"
-msgstr ""
+msgstr "إعدادات API المتقدمة"
 
 msgctxt "#32951"
 msgid "Use Custom TMDb API Key"
-msgstr ""
+msgstr "استخدام مفتاح TMDb API مخصّص"
 
 msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
-msgstr ""
+msgstr "يتوفّر مفتاح TMDb API مدمج يعمل لمعظم المستخدمين. فعّل هذا فقط إذا كنت بحاجة إلى حدود معدّل أعلى أو ترغب في استخدام حصّتك المخصّصة."
 
 msgctxt "#32960"
 msgid "Missing Artwork Types"
-msgstr ""
+msgstr "أنواع الصور الفنية المفقودة"
 
 msgctxt "#32963"
 msgid "Clearlogo"
-msgstr ""
+msgstr "شعار واضح (Clearlogo)"
 
 msgctxt "#32964"
 msgid "Clearart"
-msgstr ""
+msgstr "فن واضح (Clearart)"
 
 msgctxt "#32966"
 msgid "Landscape"
-msgstr ""
+msgstr "أفقي (Landscape)"
 
 msgctxt "#32967"
 msgid "Discart"
-msgstr ""
+msgstr "صورة القرص (Discart)"
 
 msgctxt "#32968"
 msgid "Keyart"
-msgstr ""
+msgstr "الفن الرئيسي (Keyart)"
 
 msgctxt "#32969"
 msgid "Characterart"
-msgstr ""
+msgstr "فن الشخصيات (Characterart)"
 
 msgctxt "#32970"
 msgid "Auto-download after Manage Artwork"
-msgstr ""
+msgstr "تنزيل تلقائي بعد إدارة الصور الفنية"
 
 msgctxt "#32971"
 msgid "Automatically download selected artwork to filesystem after selection in Manage Artwork"
-msgstr ""
+msgstr "تنزيل الصور الفنية المختارة تلقائياً إلى نظام الملفات بعد الاختيار في إدارة الصور الفنية"
 
 msgctxt "#32974"
 msgid "Download Settings"
-msgstr ""
+msgstr "إعدادات التنزيل"
 
 #. Settings group - language for data from online APIs (TMDb titles, plots, etc.)
 msgctxt "#32976"
 msgid "Online Service"
-msgstr ""
+msgstr "الخدمة عبر الإنترنت"
 
 msgctxt "#32977"
 msgid "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
-msgstr ""
+msgstr "لغة البيانات الوصفية عبر الإنترنت من TMDb وLast.fm وTheAudioDB"
 
 #. Actor image download feature (context menu)
 msgctxt "#32981"
 msgid "Downloading actor images..."
-msgstr ""
+msgstr "جارٍ تنزيل صور الممثلين..."
 
 msgctxt "#32982"
 msgid "{0} actors"
-msgstr ""
+msgstr "{0} ممثل"
 
 msgctxt "#32983"
 msgid "Include TV Episode Guest Stars"
-msgstr ""
+msgstr "تضمين ضيوف شرف حلقات المسلسلات"
 
 msgctxt "#32984"
 msgid "Download guest star images from TV show episodes (increases API calls)"
-msgstr ""
+msgstr "تنزيل صور ضيوف الشرف من حلقات المسلسلات (يزيد من طلبات API)"
 
 msgctxt "#32985"
 msgid "Include Episode Thumbnails"
-msgstr ""
+msgstr "تضمين صور الحلقات المصغّرة"
 
 msgctxt "#32986"
 msgid "Download episode thumbnail artwork during bulk operations"
-msgstr ""
+msgstr "تنزيل الصور المصغّرة للحلقات أثناء العمليات المجمّعة"
 
 msgctxt "#32987"
 msgid "Text too long to fully display"
-msgstr ""
+msgstr "النص طويل جداً بحيث يتعذّر عرضه بالكامل"
 
 msgctxt "#32988"
 msgid "Sync TV Show Metadata"
-msgstr ""
+msgstr "مزامنة بيانات المسلسلات الوصفية"
 
 msgctxt "#32989"
 msgid "Updates online metadata for every TV show in your library. Large libraries may take significantly longer."
-msgstr ""
+msgstr "يحدّث البيانات الوصفية عبر الإنترنت لكل مسلسل في مكتبتك. قد تستغرق المكتبات الكبيرة وقتاً أطول بكثير."
 
 msgctxt "#32990"
 msgid "Fetching {0:d} of {1:d}"
-msgstr ""
+msgstr "جارٍ الجلب {0:d} من {1:d}"
 
 msgctxt "#32991"
 msgid "Updated: {0:d}[CR]Skipped: {1:d}[CR]Failed: {2:d}"
-msgstr ""
+msgstr "محدَّث: {0:d}[CR]متخطّى: {1:d}[CR]فاشل: {2:d}"
 
 msgctxt "#32992"
 msgid "Library Maintenance"
-msgstr ""
+msgstr "صيانة المكتبة"
 
 msgctxt "#32993"
 msgid "NFO Files"
-msgstr ""
+msgstr "ملفات NFO"
 
 msgctxt "#32994"
 msgid "Write metadata changes to NFO files"
-msgstr ""
+msgstr "كتابة تغييرات البيانات الوصفية إلى ملفات NFO"
 
 msgctxt "#32995"
 msgid "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
-msgstr ""
+msgstr "عند تحرير البيانات الوصفية، اكتب التغيير أيضاً إلى ملف NFO المحلي للعنصر ليبقى بعد تحديث المكتبة أو إعادة الجمع."
 
 msgctxt "#32996"
 msgid "Create an NFO file when none exists"
-msgstr ""
+msgstr "إنشاء ملف NFO عند عدم وجوده"
 
 msgctxt "#32997"
 msgid "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
-msgstr ""
+msgstr "إذا لم يكن للعنصر ملف NFO بعد، أنشئ واحداً. عند الإيقاف، تُحدَّث ملفات NFO الموجودة فقط."
 
 msgctxt "#32998"
 msgid "Include watched state in NFO files"
-msgstr ""
+msgstr "تضمين حالة المشاهدة في ملفات NFO"
 
 msgctxt "#32999"
 msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
-msgstr ""
+msgstr "كتابة عدد مرات التشغيل وتاريخ آخر تشغيل إلى ملفات NFO. أوقفه لإبقاء حالة المشاهدة خارج ملفات NFO."
