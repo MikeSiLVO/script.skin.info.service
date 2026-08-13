@@ -58,11 +58,15 @@ def _items_by_file(media_type: str, paths: list, properties: list) -> dict:
 
 def _tvshows_by_id(tvshowids: set, properties: list) -> dict:
     """Library shows for the given DBIDs, keyed by DBID."""
-    if not tvshowids:
-        return {}
-    result = request('VideoLibrary.GetTVShows', {'properties': properties})
-    return {show['tvshowid']: show for show in extract_result(result, 'tvshows', [])
-            if show['tvshowid'] in tvshowids}
+    from lib.kodi.client import get_item_details
+
+    shows = {}
+    for tvshowid in tvshowids:
+        details = get_item_details('tvshow', tvshowid, properties)
+        if details:
+            details['tvshowid'] = tvshowid
+            shows[tvshowid] = details
+    return shows
 
 
 def handle_favourites(handle: int, params: dict) -> None:
@@ -99,15 +103,21 @@ def handle_favourites(handle: int, params: dict) -> None:
             media[media_type] = _items_by_file(media_type, wanted_paths, properties[media_type])
 
     added = 0
+    seen_shows = set()
     for favourite in favourites:
         if limit and added >= limit:
             break
 
         match = _WINDOW_TVSHOW.search(favourite.get('windowparameter') or '')
         if match:
-            show = shows.get(int(match.group(1)))
+            # a favourited season carries the show id too, so it would list the show twice
+            show_id = int(match.group(1))
+            if show_id in seen_shows:
+                continue
+            show = shows.get(show_id)
             if not show:
                 continue
+            seen_shows.add(show_id)
             listitem = _create_tvshow_listitem(show)
             xbmcplugin.addDirectoryItem(
                 handle, f"videodb://tvshows/titles/{show['tvshowid']}/", listitem, True)
@@ -132,4 +142,5 @@ def handle_favourites(handle: int, params: dict) -> None:
             break
 
     xbmcplugin.setContent(handle, _CONTENT.get(dbtype, 'videos'))
-    xbmcplugin.endOfDirectory(handle)
+    # favourites change without a library event, so a cached listing would go stale
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

@@ -153,11 +153,12 @@ def handle_favourite_episodes(handle: int, params: dict) -> None:
     limit = int(params.get('limit', ['25'])[0])
 
     favourite_ids = _favourite_tvshow_ids()
-    if favourite_ids:
-        result = request('VideoLibrary.GetTVShows', {'properties': _SHOW_PROPERTIES})
-        shows = {show['tvshowid']: show for show in extract_result(result, 'tvshows', [])}
-    else:
-        shows = {}
+    shows = {}
+    for tvshowid in favourite_ids:
+        details = get_item_details('tvshow', tvshowid, _SHOW_PROPERTIES)
+        if details:
+            details['tvshowid'] = tvshowid
+            shows[tvshowid] = details
 
     added = 0
     for tvshowid in favourite_ids:
@@ -177,7 +178,8 @@ def handle_favourite_episodes(handle: int, params: dict) -> None:
         added += 1
 
     xbmcplugin.setContent(handle, 'episodes')
-    xbmcplugin.endOfDirectory(handle)
+    # favourites change without a library event, so a cached listing would go stale
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
 def _recently_added(method: str, result_key: str, properties: list, limit: int) -> list:
