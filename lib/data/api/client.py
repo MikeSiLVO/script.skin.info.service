@@ -236,72 +236,56 @@ def _unregister_conn(conn) -> None:
         _OPEN_CONNS.discard(conn)
 
 
-class _TrackedHTTPConnection(HTTPConnection):
+class _TrackedConnection(HTTPConnection):
+    """Registers the connection so the watcher can close its socket for abort."""
+
+    def request(self, *args, **kwargs):
+        """Retag with the current request's token (covers keep-alive reuse), then send."""
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
+        _register_conn(self)
+        return super().request(*args, **kwargs)
+
+    def connect(self) -> None:
+        """Register the socket, tagged with this request's cancel token."""
+        super().connect()
+        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
+        _register_conn(self)
+
+    def close(self) -> None:
+        """Untrack the connection, then close it."""
+        _unregister_conn(self)
+        super().close()
+
+
+class _TrackedHTTPConnection(_TrackedConnection):
     """HTTP connection that registers its socket for abort-closing."""
 
-    def request(self, *args, **kwargs):
-        """Retag with the current request's token (covers keep-alive reuse), then send."""
-        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
-        self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
-        _register_conn(self)
-        return super().request(*args, **kwargs)
 
-    def connect(self) -> None:
-        """Register the socket, tagged with this request's cancel token."""
-        super().connect()
-        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
-        _register_conn(self)
-
-    def close(self) -> None:
-        """Untrack the connection, then close it."""
-        _unregister_conn(self)
-        super().close()
-
-
-class _TrackedHTTPSConnection(HTTPSConnection):
+class _TrackedHTTPSConnection(_TrackedConnection, HTTPSConnection):
     """HTTPS connection that registers its socket for abort-closing."""
 
-    def request(self, *args, **kwargs):
-        """Retag with the current request's token (covers keep-alive reuse), then send."""
-        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
-        self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
-        _register_conn(self)
-        return super().request(*args, **kwargs)
 
-    def connect(self) -> None:
-        """Register the socket, tagged with this request's cancel token."""
-        super().connect()
-        self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
-        _register_conn(self)
+class _TrackedPool(HTTPConnectionPool):
+    """Pool that untracks a connection when it goes back in the pool."""
 
-    def close(self) -> None:
-        """Untrack the connection, then close it."""
-        _unregister_conn(self)
-        super().close()
+    def _put_conn(self, conn) -> None:
+        """Untrack on return to the pool: an idle pooled socket has no blocked read to break."""
+        if conn is not None:
+            _unregister_conn(conn)
+        return super()._put_conn(conn)
 
 
-class _TrackedHTTPConnectionPool(HTTPConnectionPool):
+class _TrackedHTTPConnectionPool(_TrackedPool):
     """Pool that hands out tracked HTTP connections."""
 
     ConnectionCls = _TrackedHTTPConnection  # type: ignore[assignment]
 
-    def _put_conn(self, conn) -> None:
-        """Untrack on return to the pool: an idle pooled socket has no blocked read to break."""
-        if conn is not None:
-            _unregister_conn(conn)
-        return super()._put_conn(conn)
 
-
-class _TrackedHTTPSConnectionPool(HTTPSConnectionPool):
+class _TrackedHTTPSConnectionPool(_TrackedPool, HTTPSConnectionPool):
     """Pool that hands out tracked HTTPS connections."""
 
     ConnectionCls = _TrackedHTTPSConnection  # type: ignore[assignment]
-
-    def _put_conn(self, conn) -> None:
-        """Untrack on return to the pool: an idle pooled socket has no blocked read to break."""
-        if conn is not None:
-            _unregister_conn(conn)
-        return super()._put_conn(conn)
 
 
 class _TrackedAdapter(HTTPAdapter):
