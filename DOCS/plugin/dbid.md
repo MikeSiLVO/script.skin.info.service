@@ -19,6 +19,7 @@ Query media details for any library item using its database ID.
 - [Albums](#albums)
 - [Music Videos](#music-videos)
 - [Music Video Nodes](#music-video-nodes)
+- [TMDB Details](#tmdb-details)
 
 ---
 
@@ -580,6 +581,59 @@ For music video artist and album navigation nodes (which have `DBType=actor` and
 | `Artist.Clearlogo` | Artist found in music library         |
 | `Artist.Banner`    | Artist found in music library         |
 | `Album.Thumb`      | `musicvideo_album` only, matched by title |
+
+---
+
+## TMDB Details
+
+Everything above keys off a library DBID. For something that is not in the library, ask by TMDB ID
+instead and get the same single-item listing back.
+
+```xml
+<content>plugin://script.skin.info.service/?action=tmdb_details&amp;type=movie&amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]</content>
+```
+
+### Parameters
+
+| Parameter | Required | Values                  | Description                    |
+|-----------|----------|-------------------------|--------------------------------|
+| `type`    | No       | `movie`, `tv`, `person` | Defaults to `movie`            |
+| `tmdb_id` | Yes      | Number                  | The item's TMDB ID             |
+
+This is the path [TMDB Search](../skin-utilities.md#tmdb-search) hands back after the user picks a
+result, so binding a container to that property and building the URL yourself reach the same
+listing.
+
+Discovery widgets set `tmdb_id` on every item, so this pairs directly with them:
+
+```xml
+<content>plugin://script.skin.info.service/?action=tmdb_details&amp;type=tv&amp;tmdb_id=$INFO[Container(9000).ListItem.Property(tmdb_id)]</content>
+```
+
+### What comes back
+
+One item, with the info tag filled in as far as TMDB has data:
+
+| Filled                | Notes                                          |
+|-----------------------|------------------------------------------------|
+| Title, original title |                                                |
+| Plot, tagline         |                                                |
+| Year, premiered       | First air date for `tv`                        |
+| Duration              | `movie` only                                   |
+| Rating, votes         |                                                |
+| Genres, studios, countries |                                           |
+| Certification         | US rating                                      |
+| Cast                  | First 20, with character and thumb             |
+| Directors, writers    |                                                |
+| IMDb number           |                                                |
+| Trailer               | YouTube add-on path, when a trailer exists     |
+| Tags                  | TMDB keywords                                  |
+| Poster, fanart, clearlogo | Clearlogo when an English logo exists      |
+
+`tmdb_id` is also set as an item property.
+
+With `type=person` the item is the person instead, carrying the same properties as
+[Person Info](person.md).
 
 ---
 

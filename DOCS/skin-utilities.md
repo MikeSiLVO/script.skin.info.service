@@ -1559,6 +1559,8 @@ Auto-increment properties on fixed time intervals for periodic widget refresh.
 
 Opens a keyboard for a search query, fetches matches from TMDB, and shows a picker dialog. Sets a Window property with a plugin URL pointing to the picked item's details, ready to bind to a container.
 
+The URL it sets is a [TMDB Details](plugin/dbid.md#tmdb-details) path, so the same listing is available for any TMDB ID you already have.
+
 Append `:YYYY` to the query to restrict by year (movies/TV only).
 
 ```xml

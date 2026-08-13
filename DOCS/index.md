@@ -34,7 +34,7 @@ Window properties and plugin paths for Kodi skins.
 | [Discovery Widgets](plugin/widgets-discovery.md) | Trending, Popular, Upcoming from TMDB/Trakt |
 | [Navigation](plugin/navigation.md) | Letter jump for alphabetical lists   |
 | [Cast](plugin/cast.md)             | Cast lists for items and player      |
-| [DBID Queries](plugin/dbid.md)     | Fetch full metadata by database ID   |
+| [DBID Queries](plugin/dbid.md)     | Fetch full metadata by database or TMDB ID |
 | [Online Data](plugin/online.md)    | Ratings and metadata from APIs       |
 | [Path Statistics](plugin/stats.md) | Counts and totals for library paths  |
 | [Person Info](plugin/person.md)    | Actor/director biography, filmography|
