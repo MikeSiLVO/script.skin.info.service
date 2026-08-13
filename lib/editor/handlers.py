@@ -95,19 +95,19 @@ def handle_integer(
     return value, False
 
 
-def handle_runtime(
-    field_name: str, current_value: int | None
+def _handle_seconds(
+    field_name: str, current_value: int | None, *, unit: str, fmt, parse,
+    input_type: int = xbmcgui.INPUT_ALPHANUM,
 ) -> tuple[int | None, bool]:
-    """Handle runtime input (edit in minutes, store in seconds)."""
-    heading = f"{_edit_heading(field_name)} (minutes)"
-    default = format_runtime_for_edit(current_value or 0)
+    """Prompt for a seconds-backed field in its display unit, storing the parsed seconds."""
+    heading = f"{_edit_heading(field_name)} ({unit})"
 
-    result = xbmcgui.Dialog().input(heading, default, type=xbmcgui.INPUT_NUMERIC)
+    result = xbmcgui.Dialog().input(heading, fmt(current_value or 0), type=input_type)
 
     if not result:
         return None, True
 
-    seconds = parse_runtime_from_edit(result)
+    seconds = parse(result)
 
     valid, error = validate_runtime(seconds)
     if not valid:
@@ -115,66 +115,57 @@ def handle_runtime(
         return None, True
 
     return seconds, False
+
+
+def handle_runtime(
+    field_name: str, current_value: int | None
+) -> tuple[int | None, bool]:
+    """Handle runtime input (edit in minutes, store in seconds)."""
+    return _handle_seconds(
+        field_name, current_value, unit="minutes", fmt=format_runtime_for_edit,
+        parse=parse_runtime_from_edit, input_type=xbmcgui.INPUT_NUMERIC)
 
 
 def handle_duration(
     field_name: str, current_value: int | None
 ) -> tuple[int | None, bool]:
     """Handle duration input (edit in MM:SS format, store in seconds)."""
-    heading = f"{_edit_heading(field_name)} (MM:SS)"
-    default = format_duration_for_edit(current_value or 0)
+    return _handle_seconds(
+        field_name, current_value, unit="MM:SS", fmt=format_duration_for_edit,
+        parse=parse_duration_from_edit)
 
-    result = xbmcgui.Dialog().input(heading, default)
 
-    if not result:
-        return None, True
+def _handle_date_input(
+    field_name: str, value: str, store=lambda date: date
+) -> tuple[str | None, bool]:
+    """Prompt for a date, reopening with the entry kept until it validates or is cancelled."""
+    heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
 
-    seconds = parse_duration_from_edit(result)
-
-    valid, error = validate_runtime(seconds)
-    if not valid:
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
-        return None, True
-
-    return seconds, False
+    while True:
+        result = xbmcgui.Dialog().input(heading, value)
+        if not result:
+            return None, True
+        normalized = normalize_date(result)
+        valid, error = validate_date(normalized)
+        if valid:
+            return store(normalized), False
+        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
+        value = result
 
 
 def handle_date(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
     """Handle date input (YYYY-MM-DD); reopens with the entry kept on a bad value."""
-    heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
-    value = current_value or ""
-
-    while True:
-        result = xbmcgui.Dialog().input(heading, value)
-        if not result:
-            return None, True
-        normalized = normalize_date(result)
-        valid, error = validate_date(normalized)
-        if valid:
-            return normalized, False
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
-        value = result
+    return _handle_date_input(field_name, current_value or "")
 
 
 def handle_lastplayed(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
     """Edit last-played as a date; store midnight since Kodi renders LastPlayed date-only."""
-    heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
-    value = (current_value or "").split(" ")[0]
-
-    while True:
-        result = xbmcgui.Dialog().input(heading, value)
-        if not result:
-            return None, True
-        normalized = normalize_date(result)
-        valid, error = validate_date(normalized)
-        if valid:
-            return f"{normalized} 00:00:00", False
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
-        value = result
+    return _handle_date_input(
+        field_name, (current_value or "").split(" ")[0], lambda date: f"{date} 00:00:00")
 
 
 def handle_userrating(
