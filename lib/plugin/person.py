@@ -250,9 +250,8 @@ def _sort_credits(credits: list, params: dict) -> list:
 def handle_person_library(handle: int, params: dict) -> None:
     """Plugin entry for library items featuring an actor. `info_type` is `movies` or `tvshows`.
 
-    With `person_id` the filmography is matched to the library by TMDB id, which also finds
-    guest work and items whose cast Kodi never linked. `person_name` alone falls back to
-    Kodi's actor link.
+    Both sources are merged: the TMDB filmography reaches guest work and items whose cast Kodi
+    never linked, Kodi's actor link reaches items carrying no TMDB id.
     """
     try:
         info_type = params.get('info_type', [''])[0]
@@ -271,9 +270,15 @@ def handle_person_library(handle: int, params: dict) -> None:
 
         dbtype = 'movie' if info_type == 'movies' else 'tvshow'
 
+        from lib.kodi.client import KODI_ID_KEYS
+        id_key = KODI_ID_KEYS[dbtype]
+
         items = _library_from_filmography(person_id, dbtype) if person_id else []
-        if not items and person_name:
-            items = _library_from_actor_link(person_name, dbtype)
+        if person_name:
+            seen = {item.get(id_key) for item in items}
+            for item in _library_from_actor_link(person_name, dbtype):
+                if item.get(id_key) not in seen:
+                    items.append(item)
 
         items.sort(key=lambda item: (-(item.get('year') or 0),
                                      (item.get('title') or '').lower()))
