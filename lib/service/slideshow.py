@@ -187,26 +187,26 @@ def refresh_pool_item(media_type: str, dbid: int) -> None:
                                   int(time.time()), artist)
 
 
-def _get_movies_with_fanart() -> Optional[list]:
-    """Movies with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
-    response = request("VideoLibrary.GetMovies", {
-        "properties": ["title", "art", "year", "plot"]
+def _video_items_with_fanart(method: str, result_key: str,
+                             extra_properties: tuple = ()) -> Optional[list]:
+    """Video library items carrying fanart; None means the fetch failed, [] means none have it."""
+    response = request(method, {
+        "properties": ["title", "art", "year", "plot", *extra_properties]
     })
     if response is None:
         return None
-    return [m for m in response.get('result', {}).get('movies', [])
-            if m.get('art', {}).get('fanart', '').strip()]
+    return [item for item in response.get('result', {}).get(result_key, [])
+            if item.get('art', {}).get('fanart', '').strip()]
+
+
+def _get_movies_with_fanart() -> Optional[list]:
+    """Movies with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
+    return _video_items_with_fanart("VideoLibrary.GetMovies", "movies")
 
 
 def _get_tvshows_with_fanart() -> Optional[list]:
     """TV shows with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
-    response = request("VideoLibrary.GetTVShows", {
-        "properties": ["title", "art", "year", "plot"]
-    })
-    if response is None:
-        return None
-    return [s for s in response.get('result', {}).get('tvshows', [])
-            if s.get('art', {}).get('fanart', '').strip()]
+    return _video_items_with_fanart("VideoLibrary.GetTVShows", "tvshows")
 
 
 def _get_artists_with_fanart() -> Optional[list]:
@@ -243,13 +243,8 @@ def _get_musicvideos_with_fanart() -> Optional[list]:
     Fanart is the music video's own art, not the artist's: core gives musicvideo items no artist
     art fallback (`VideoThumbLoader::FillLibraryArt`), so these reach art the artist pool cannot.
     """
-    response = request("VideoLibrary.GetMusicVideos", {
-        "properties": ["title", "art", "year", "plot", "artist"]
-    })
-    if response is None:
-        return None
-    return [m for m in response.get('result', {}).get('musicvideos', [])
-            if m.get('art', {}).get('fanart', '').strip()]
+    return _video_items_with_fanart(
+        "VideoLibrary.GetMusicVideos", "musicvideos", ("artist",))
 
 
 def is_pool_populated() -> bool:
