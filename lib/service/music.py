@@ -227,6 +227,22 @@ class MusicOnlineResult:
         self.artist_art = artist_art
 
 
+def _fetch_source(label: str, fetch, *, skip: bool = False) -> Optional[dict]:
+    """Run one provider call; a failure must not cost the other providers their results."""
+    if skip:
+        return None
+    try:
+        return fetch()
+    except Exception as e:
+        log("Service", f"{label} fetch error: {e}", xbmc.LOGDEBUG)
+        return None
+
+
+def _as_summary(text: Optional[str]) -> Optional[dict]:
+    """Wikipedia answers with bare text, the cache stores dicts."""
+    return {'summary': text} if text else None
+
+
 def _fetch_and_cache_artist_metadata(
     mbid: str,
     name: str,
@@ -241,26 +257,16 @@ def _fetch_and_cache_artist_metadata(
     from lib.data.api.lastfm import ApiLastfm
 
     lang = KodiSettings.online_metadata_language()
-    def _fetch_audiodb() -> Optional[dict]:
-        if not mbid:
-            return None
-        try:
-            return ApiAudioDb().get_artist(mbid, abort_flag)
-        except Exception as e:
-            log("Service", f"AudioDB artist metadata fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
-    def _fetch_lastfm() -> Optional[dict]:
-        try:
-            return ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang,
-                                               abort_flag=abort_flag)
-        except Exception as e:
-            log("Service", f"Last.fm artist metadata fetch error: {e}", xbmc.LOGDEBUG)
-            return None
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        audiodb_future = executor.submit(_fetch_audiodb)
-        lastfm_future = executor.submit(_fetch_lastfm)
+        audiodb_future = executor.submit(
+            _fetch_source, "AudioDB artist metadata",
+            lambda: ApiAudioDb().get_artist(mbid, abort_flag),
+            skip=not mbid)
+        lastfm_future = executor.submit(
+            _fetch_source, "Last.fm artist metadata",
+            lambda: ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang,
+                                                abort_flag=abort_flag))
         audiodb_data = audiodb_future.result()
         lastfm_data = lastfm_future.result()
 
@@ -356,39 +362,20 @@ def fetch_track_online_data(
     from lib.data.api.audiodb import ApiAudioDb
     from lib.data.api.wikipedia import ApiWikipedia
 
-    def _fetch_lastfm() -> Optional[dict]:
-        if cached_lastfm is not None:
-            return None
-        try:
-            return ApiLastfm().get_track_info(artist, track, lang=lang, abort_flag=abort_flag)
-        except Exception as e:
-            log("Service", f"Last.fm track fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
-    def _fetch_wikipedia() -> Optional[dict]:
-        if cached_wiki is not None:
-            return None
-        try:
-            summary = ApiWikipedia().get_track_summary(artist, track, lang=lang,
-                                                       abort_flag=abort_flag)
-            return {'summary': summary} if summary else None
-        except Exception as e:
-            log("Service", f"Wikipedia track fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
-    def _fetch_audiodb() -> Optional[dict]:
-        if cached_audiodb is not None:
-            return None
-        try:
-            return ApiAudioDb().search_track(artist, track, abort_flag)
-        except Exception as e:
-            log("Service", f"AudioDB track fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
     with ThreadPoolExecutor(max_workers=3) as executor:
-        lastfm_future = executor.submit(_fetch_lastfm)
-        wiki_future = executor.submit(_fetch_wikipedia)
-        audiodb_future = executor.submit(_fetch_audiodb)
+        lastfm_future = executor.submit(
+            _fetch_source, "Last.fm track",
+            lambda: ApiLastfm().get_track_info(artist, track, lang=lang, abort_flag=abort_flag),
+            skip=cached_lastfm is not None)
+        wiki_future = executor.submit(
+            _fetch_source, "Wikipedia track",
+            lambda: _as_summary(ApiWikipedia().get_track_summary(artist, track, lang=lang,
+                                                                 abort_flag=abort_flag)),
+            skip=cached_wiki is not None)
+        audiodb_future = executor.submit(
+            _fetch_source, "AudioDB track",
+            lambda: ApiAudioDb().search_track(artist, track, abort_flag),
+            skip=cached_audiodb is not None)
         lastfm_data = lastfm_future.result()
         wiki_data = wiki_future.result()
         audiodb_data = audiodb_future.result()
@@ -430,41 +417,21 @@ def fetch_album_online_data(
     from lib.data.api.audiodb import ApiAudioDb
     from lib.data.api.wikipedia import ApiWikipedia
 
-    def _fetch_lastfm() -> Optional[dict]:
-        if cached_lastfm is not None:
-            return None
-        try:
-            return ApiLastfm().get_album_info(artist, album, lang=lang, abort_flag=abort_flag)
-        except Exception as e:
-            log("Service", f"Last.fm album fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
-    def _fetch_wikipedia() -> Optional[dict]:
-        if cached_wiki is not None:
-            return None
-        try:
-            summary = ApiWikipedia().get_album_summary(artist, album, lang=lang,
-                                                       abort_flag=abort_flag)
-            return {'summary': summary} if summary else None
-        except Exception as e:
-            log("Service", f"Wikipedia album fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
-    def _fetch_audiodb() -> Optional[dict]:
-        if cached_audiodb is not None:
-            return None
-        try:
-            api = ApiAudioDb()
-            return (api.get_album(mbid, abort_flag) if mbid
-                    else api.search_album(artist, album, abort_flag))
-        except Exception as e:
-            log("Service", f"AudioDB album fetch error: {e}", xbmc.LOGDEBUG)
-            return None
-
     with ThreadPoolExecutor(max_workers=3) as executor:
-        lastfm_future = executor.submit(_fetch_lastfm)
-        wiki_future = executor.submit(_fetch_wikipedia)
-        audiodb_future = executor.submit(_fetch_audiodb)
+        lastfm_future = executor.submit(
+            _fetch_source, "Last.fm album",
+            lambda: ApiLastfm().get_album_info(artist, album, lang=lang, abort_flag=abort_flag),
+            skip=cached_lastfm is not None)
+        wiki_future = executor.submit(
+            _fetch_source, "Wikipedia album",
+            lambda: _as_summary(ApiWikipedia().get_album_summary(artist, album, lang=lang,
+                                                                 abort_flag=abort_flag)),
+            skip=cached_wiki is not None)
+        audiodb_future = executor.submit(
+            _fetch_source, "AudioDB album",
+            lambda: (ApiAudioDb().get_album(mbid, abort_flag) if mbid
+                     else ApiAudioDb().search_album(artist, album, abort_flag)),
+            skip=cached_audiodb is not None)
         lastfm_data = lastfm_future.result()
         wiki_data = wiki_future.result()
         audiodb_data = audiodb_future.result()
