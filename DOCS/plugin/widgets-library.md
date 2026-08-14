@@ -9,7 +9,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 ## Table of Contents
 
 - [Next Up](#next-up)
-- [Favourite Episodes](#favourite-episodes)
+- [Next Up (Favourites)](#next-up-favourites)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
 - [Recent Videos](#recent-videos)
 - [Favourites](#favourites)
@@ -28,6 +28,9 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 ## Next Up
 
 Returns the next unwatched episode for each in-progress TV show.
+
+For the same thing over your favourited shows instead, see
+[Next Up (Favourites)](#next-up-favourites).
 
 ### Usage
 
@@ -73,12 +76,14 @@ Returns the next unwatched episode for each in-progress TV show.
 
 ---
 
-## Favourite Episodes
+## Next Up (Favourites)
 
-Returns the next unwatched episode for each TV show in your Kodi favourites.
+[Next Up](#next-up) restricted to the TV shows in your Kodi favourites. Episode picking is
+identical, only the source list differs.
 
-Where [Next Up](#next-up) only covers shows you have already started, this covers every
-favourited show, so one you have never watched appears at its first episode.
+Next Up covers shows you have already started, ordered by when you last watched them. This covers
+every favourited show in the order you favourited them, so one you have never watched appears at
+its first episode.
 
 ### Usage
 

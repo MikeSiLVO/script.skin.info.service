@@ -2040,7 +2040,7 @@ msgid "Crew"
 msgstr "Troupe"
 
 msgctxt "#32685"
-msgid "Favourite Episodes"
+msgid "Next Up (Favourites)"
 msgstr ""
 
 msgctxt "#32686"
