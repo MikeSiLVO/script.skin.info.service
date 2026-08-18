@@ -9,11 +9,16 @@ Provides:
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Any, Optional, List, Dict
 
 from lib.data.api.client import ApiSession
 from lib.data.api.utilities import decode_key
 from lib.kodi.settings import KodiSettings
+
+# TV blobs run larger, so the TV cache is smaller.
+_MUSIC_BLOB_CACHE_SIZE = 32
+_TV_BLOB_CACHE_SIZE = 4
 
 
 class ApiFanarttv:
@@ -35,17 +40,36 @@ class ApiFanarttv:
                 "Accept": "application/json"
             }
         )
-        self._tv_blob_cache: Dict[int, Optional[dict]] = {}
+        self._tv_blob_cache: "OrderedDict[int, Optional[dict]]" = OrderedDict()
+        self._music_blob_cache: "OrderedDict[str, Optional[dict]]" = OrderedDict()
+
+    @staticmethod
+    def _blob_cache_get(cache: OrderedDict, key, fetch, limit: int) -> Optional[dict]:
+        """Memoize a fetch result, evicting the least recently used past the size limit."""
+        if key in cache:
+            cache.move_to_end(key)
+            return cache[key]
+
+        cache[key] = fetch()
+        if len(cache) > limit:
+            cache.popitem(last=False)
+        return cache[key]
+
+    def _get_music_blob(self, musicbrainz_id: str, abort_flag=None) -> Optional[dict]:
+        """Fetch and memoize /music/{mbid}; artist, album and music video art share it."""
+        return self._blob_cache_get(
+            self._music_blob_cache, musicbrainz_id,
+            lambda: self._make_request(f"/music/{musicbrainz_id}", abort_flag),
+            _MUSIC_BLOB_CACHE_SIZE,
+        )
 
     def _get_tv_blob(self, tvdb_id: int, abort_flag=None) -> Optional[dict]:
-        """Fetch and memoize the /tv/{tvdb_id} response for this fetcher's lifetime.
-
-        Show and season artwork both derive from the same response, so a season batch reuses one
-        request instead of re-fetching the whole show blob per season.
-        """
-        if tvdb_id not in self._tv_blob_cache:
-            self._tv_blob_cache[tvdb_id] = self._make_request(f"/tv/{tvdb_id}", abort_flag)
-        return self._tv_blob_cache[tvdb_id]
+        """Fetch and memoize /tv/{tvdb_id}; show and season art share it."""
+        return self._blob_cache_get(
+            self._tv_blob_cache, tvdb_id,
+            lambda: self._make_request(f"/tv/{tvdb_id}", abort_flag),
+            _TV_BLOB_CACHE_SIZE,
+        )
 
     def get_api_key(self) -> str:
         """Get fanart.tv project API key."""
@@ -245,7 +269,7 @@ class ApiFanarttv:
         Album types (under 'albums'): thumb (1000x1000, square unlike video 16:9 thumb),
         discart (1000x1000).
         """
-        data = self._make_request(f"/music/{musicbrainz_id}", abort_flag)
+        data = self._get_music_blob(musicbrainz_id, abort_flag)
 
         if not data:
             return {}
