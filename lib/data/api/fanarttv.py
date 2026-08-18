@@ -105,6 +105,14 @@ class ApiFanarttv:
         if disc_type:
             artwork['disc_type'] = disc_type
 
+        size = item.get('size')
+        if size:
+            artwork['size'] = size
+
+        added = item.get('added')
+        if added:
+            artwork['added'] = added
+
         return artwork
 
     def get_movie_artwork(self, tmdb_id: int, abort_flag=None) -> dict:
