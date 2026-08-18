@@ -202,6 +202,22 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
     ''')
 
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS fanarttv_feed (
+            feed TEXT PRIMARY KEY,
+            checked_at INTEGER NOT NULL
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS fanarttv_recheck (
+            feed TEXT NOT NULL,
+            item_id TEXT NOT NULL,
+            recheck_after INTEGER NOT NULL,
+            PRIMARY KEY (feed, item_id)
+        )
+    ''')
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS artwork_cache (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_type TEXT NOT NULL,
