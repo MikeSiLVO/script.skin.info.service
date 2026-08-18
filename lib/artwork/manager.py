@@ -23,6 +23,7 @@ from lib.kodi.client import (
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
+from lib.kodi.utilities import parse_pipe_list
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.infrastructure.dialogs import (
     show_ok, show_yesno, show_textviewer, show_select, show_notification, DialogProgress)
@@ -642,11 +643,9 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
 
 
-def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """Open artwork selection dialog for a single item.
-
-    Falls back to ListItem.DBID/DBType if args are None.
-    """
+def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
+                           art_type_filter: Optional[str] = None) -> None:
+    """Open artwork selection dialog for a single item, optionally limited to given art types."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
     if not dbtype:
@@ -695,6 +694,23 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
             3000
         )
         return
+
+    requested = [art_type.lower() for art_type in parse_pipe_list(art_type_filter or "")]
+    if requested:
+        unsupported = [art_type for art_type in requested if art_type not in art_types]
+        if unsupported:
+            log("Artwork", f"Art types not valid for {dbtype_lower}: {', '.join(unsupported)}",
+                xbmc.LOGWARNING)
+        requested = [art_type for art_type in art_types if art_type in requested]
+        if not requested:
+            show_notification(
+                "Artwork",
+                f"No art type for {dbtype_lower}: {art_type_filter}",
+                xbmcgui.NOTIFICATION_WARNING,
+                3000
+            )
+            return
+        art_types = requested
 
     method_name, id_key, result_key = method_info
 
@@ -793,7 +809,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
     if not available_by_type:
         show_notification(
             "Artwork",
-            "No artwork found",
+            f"No {', '.join(requested)} artwork found" if requested else "No artwork found",
             xbmcgui.NOTIFICATION_INFO,
             3000
         )
@@ -805,18 +821,25 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     from lib.artwork.utilities import filter_artwork_by_language
 
+    skip_picker = bool(requested) and len(available_art_types) == 1
+
     last_selected = 0
     while True:
-        selected = show_select(
-            ADDON.getLocalizedString(32555).format(title), art_type_labels, preselect=last_selected
-        )
+        if skip_picker:
+            selected_art_type = available_art_types[0]
+        else:
+            selected = show_select(
+                ADDON.getLocalizedString(32555).format(title), art_type_labels,
+                preselect=last_selected
+            )
 
-        if selected < 0:
-            return
+            if selected < 0:
+                return
 
-        last_selected = selected
+            last_selected = selected
 
-        selected_art_type = available_art_types[selected]
+            selected_art_type = available_art_types[selected]
+
         full_artwork_list = available_by_type[selected_art_type]
 
         filtered_art = filter_artwork_by_language(full_artwork_list, art_type=selected_art_type)
@@ -861,6 +884,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str]) -> None:
             )
             if refreshed_details and isinstance(refreshed_details, dict):
                 current_art = refreshed_details.get("art", {})
+
+        if skip_picker:
+            return
 
         if action == "cancel":
             if not queued_multiart:

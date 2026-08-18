@@ -234,7 +234,7 @@ def _handle_tools(_args: dict) -> None:
 
 def _handle_review_artwork(args: dict) -> None:
     from lib.artwork.manager import run_art_fetcher_single
-    run_art_fetcher_single(args.get('dbid'), args.get('dbtype'))
+    run_art_fetcher_single(args.get('dbid'), args.get('dbtype'), args.get('art_type'))
 
 
 def _handle_download_artwork(args: dict) -> None:
