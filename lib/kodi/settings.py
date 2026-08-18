@@ -105,6 +105,7 @@ class KodiSettings:
             ('art_type_fanart', 'fanart'),
             ('art_type_clearlogo', 'clearlogo'),
             ('art_type_clearart', 'clearart'),
+            ('art_type_thumb', 'thumb'),
             ('art_type_banner', 'banner'),
             ('art_type_landscape', 'landscape'),
             ('art_type_discart', 'discart'),

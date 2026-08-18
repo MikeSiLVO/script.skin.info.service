@@ -413,6 +413,10 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
+				<setting id="art_type_thumb" type="boolean" label="32965">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
 				<setting id="art_type_banner" type="boolean" label="20020">
 					<default>true</default>
 					<control type="toggle" />

@@ -2078,6 +2078,10 @@ msgctxt "#32964"
 msgid "Clearart"
 msgstr ""
 
+msgctxt "#32965"
+msgid "Thumb"
+msgstr ""
+
 msgctxt "#32966"
 msgid "Landscape"
 msgstr ""

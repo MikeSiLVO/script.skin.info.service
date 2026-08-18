@@ -428,6 +428,7 @@ def get_library_items(media_types: List[str], properties: List[str], *,
                       filter_func: Optional[Callable[[Dict[str, Any]], bool]] = None,
                       progress_callback: Optional[Callable[[str, int, int], None]] = None,
                       abort_check: Optional[Callable[[], bool]] = None,
+                      sort: Optional[Dict[str, str]] = None,
                       page_size: int = 2000) -> List[Dict[str, Any]]:
     """Fetch library items across `media_types`, optionally decoding art and folding in seasons."""
     all_items: List[Dict[str, Any]] = []
@@ -444,10 +445,13 @@ def get_library_items(media_types: List[str], properties: List[str], *,
         done = 0
 
         while True:
-            resp = request(method, {
+            params: Dict[str, Any] = {
                 "properties": properties,
                 "limits": {"start": start, "end": start + page_size},
-            })
+            }
+            if sort:
+                params["sort"] = sort
+            resp = request(method, params)
             if not resp:
                 log("General", f"Failed to fetch {media_type} from library", xbmc.LOGWARNING)
                 break
