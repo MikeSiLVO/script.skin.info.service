@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-07-27 03:33+0000\n"
+"PO-Revision-Date: 2026-08-18 05:41+0000\n"
 "Last-Translator: 3vtv <90260969+3vtv@users.noreply.github.com>\n"
 "Language-Team: Polish <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/pl_pl/>\n"
 "Language: pl_pl\n"
@@ -11,7 +11,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 2026.7.1\n"
+"X-Generator: Weblate 2026.8.1\n"
 
 msgctxt "Addon Summary"
 msgid "Provides rich media info and artwork to skins."
@@ -24,6 +24,10 @@ msgstr "Skin Info Service dostarcza skórkom bogate metadane i grafikę, wykracz
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr "Animowane grafiki"
+
+msgctxt "#32001"
+msgid "Key was not saved, please try again"
+msgstr ""
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
@@ -172,15 +176,15 @@ msgstr "Anulowano"
 
 msgctxt "#32043"
 msgid "No valid media types to download."
-msgstr "Brak prawidłowych typów multimediów do pobrania."
-
-msgctxt "#32045"
-msgid "Downloaded:"
-msgstr "Pobrano:"
+msgstr "Brak prawidłowych typów mediów do pobrania."
 
 msgctxt "#32044"
 msgid "API Keys"
 msgstr "Klucze API"
+
+msgctxt "#32045"
+msgid "Downloaded:"
+msgstr "Pobrano:"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
@@ -567,7 +571,7 @@ msgstr "Zakres"
 
 msgctxt "#32143"
 msgid "Which media types to include in auto-updates"
-msgstr "Jakie typy multimediów uwzględnić w automatycznych aktualizacjach"
+msgstr "Jakie typy mediów uwzględnić w automatycznych aktualizacjach"
 
 msgctxt "#32144"
 msgid "All (Movies, TV Shows, Episodes)"
@@ -2045,6 +2049,39 @@ msgstr ""
 
 msgctxt "#32686"
 msgid "Recent Videos"
+msgstr "Ostatnie pozycje wideo"
+
+msgctxt "#32687"
+msgid "Favourite Movies"
+msgstr ""
+
+msgctxt "#32688"
+msgid "Favourite TV Shows"
+msgstr ""
+
+msgctxt "#32689"
+msgid "Favourite Episodes"
+msgstr ""
+
+msgctxt "#32690"
+msgid "Favourite Music Videos"
+msgstr ""
+
+msgctxt "#32691"
+msgid "Music video thumb source"
+msgstr ""
+
+#. Options for which image fills an empty music video thumb during automatic fetching
+msgctxt "#32692"
+msgid "Video screenshots"
+msgstr ""
+
+msgctxt "#32693"
+msgid "Album cover"
+msgstr ""
+
+msgctxt "#32694"
+msgid "Artist thumb"
 msgstr ""
 
 msgctxt "#32901"
@@ -2134,6 +2171,10 @@ msgstr "Clearlogo"
 msgctxt "#32964"
 msgid "Clearart"
 msgstr "Clearart"
+
+msgctxt "#32965"
+msgid "Thumb"
+msgstr ""
 
 msgctxt "#32966"
 msgid "Landscape"

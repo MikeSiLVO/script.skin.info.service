@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-08-12 02:18+0000\n"
-"Last-Translator: Massimo Pissarello <mapi68@gmail.com>\n"
+"PO-Revision-Date: 2026-08-18 05:51+0000\n"
+"Last-Translator: Automatic translation add-on <noreply-addon-autotranslate@weblate.org>\n"
 "Language-Team: Italian <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/it_it/>\n"
 "Language: it_it\n"
 "MIME-Version: 1.0\n"
@@ -19,11 +19,15 @@ msgstr "Fornisce informazioni sui media e artwork di alta qualità alle skin."
 
 msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
-msgstr "Skin Info Service fornisce alle skin metadati e artwork avanzati, oltre a quanto Kodi espone di default. Aggiunge proprietà extra come le valutazioni da più fonti, artwork, dettagli del flusso e informazioni su cast e trama per film, serie TV, episodi, saghe cinematografiche, video musicali, artisti e album, attingendo sia dalla libreria che dai dati online. Include anche uno strumento per trovare e aggiungere poster GIF animati alla libreria."
+msgstr "Skin Info Service fornisce alle skin metadati e artwork avanzati, oltre a quanto Kodi mostra di default. Aggiunge proprietà extra come le valutazioni da più fonti, artwork, dettagli del flusso e informazioni su cast e trama per film, serie TV, episodi, saghe cinematografiche, video musicali, artisti e album, attingendo sia dalla libreria che dai dati online. Include anche uno strumento per trovare e aggiungere poster GIF animati alla libreria."
 
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr "Immagini animate"
+
+msgctxt "#32001"
+msgid "Key was not saved, please try again"
+msgstr ""
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
@@ -174,13 +178,13 @@ msgctxt "#32043"
 msgid "No valid media types to download."
 msgstr "Nessun tipo di media valido da scaricare."
 
-msgctxt "#32045"
-msgid "Downloaded:"
-msgstr "Scaricati:"
-
 msgctxt "#32044"
 msgid "API Keys"
 msgstr "Chiavi API"
+
+msgctxt "#32045"
+msgid "Downloaded:"
+msgstr "Scaricati:"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
@@ -2045,6 +2049,39 @@ msgstr ""
 
 msgctxt "#32686"
 msgid "Recent Videos"
+msgstr "Video recenti"
+
+msgctxt "#32687"
+msgid "Favourite Movies"
+msgstr ""
+
+msgctxt "#32688"
+msgid "Favourite TV Shows"
+msgstr ""
+
+msgctxt "#32689"
+msgid "Favourite Episodes"
+msgstr ""
+
+msgctxt "#32690"
+msgid "Favourite Music Videos"
+msgstr ""
+
+msgctxt "#32691"
+msgid "Music video thumb source"
+msgstr ""
+
+#. Options for which image fills an empty music video thumb during automatic fetching
+msgctxt "#32692"
+msgid "Video screenshots"
+msgstr ""
+
+msgctxt "#32693"
+msgid "Album cover"
+msgstr ""
+
+msgctxt "#32694"
+msgid "Artist thumb"
 msgstr ""
 
 msgctxt "#32901"
@@ -2134,6 +2171,10 @@ msgstr "Clearlogo"
 msgctxt "#32964"
 msgid "Clearart"
 msgstr "Clearart"
+
+msgctxt "#32965"
+msgid "Thumb"
+msgstr ""
 
 msgctxt "#32966"
 msgid "Landscape"
