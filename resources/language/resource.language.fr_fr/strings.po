@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-08-09 22:44+0000\n"
+"PO-Revision-Date: 2026-08-18 05:41+0000\n"
 "Last-Translator: Nanomani <nicolas.pouliquen@gmail.com>\n"
 "Language-Team: French (France) <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/fr_fr/>\n"
 "Language: fr_fr\n"
@@ -24,6 +24,10 @@ msgstr "Skin Info Service fournit des informations supplémentaires telles que l
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr "Illustration animé"
+
+msgctxt "#32001"
+msgid "Key was not saved, please try again"
+msgstr ""
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
@@ -174,13 +178,13 @@ msgctxt "#32043"
 msgid "No valid media types to download."
 msgstr "Aucun type de média valide à télécharger."
 
-msgctxt "#32045"
-msgid "Downloaded:"
-msgstr "Téléchargé :"
-
 msgctxt "#32044"
 msgid "API Keys"
 msgstr "Clés API"
+
+msgctxt "#32045"
+msgid "Downloaded:"
+msgstr "Téléchargé :"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
@@ -2047,6 +2051,39 @@ msgctxt "#32686"
 msgid "Recent Videos"
 msgstr ""
 
+msgctxt "#32687"
+msgid "Favourite Movies"
+msgstr ""
+
+msgctxt "#32688"
+msgid "Favourite TV Shows"
+msgstr ""
+
+msgctxt "#32689"
+msgid "Favourite Episodes"
+msgstr ""
+
+msgctxt "#32690"
+msgid "Favourite Music Videos"
+msgstr ""
+
+msgctxt "#32691"
+msgid "Music video thumb source"
+msgstr ""
+
+#. Options for which image fills an empty music video thumb during automatic fetching
+msgctxt "#32692"
+msgid "Video screenshots"
+msgstr ""
+
+msgctxt "#32693"
+msgid "Album cover"
+msgstr ""
+
+msgctxt "#32694"
+msgid "Artist thumb"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr "Activer le journal de débogage"
@@ -2134,6 +2171,10 @@ msgstr "Clearlogo"
 msgctxt "#32964"
 msgid "Clearart"
 msgstr "Clearart"
+
+msgctxt "#32965"
+msgid "Thumb"
+msgstr ""
 
 msgctxt "#32966"
 msgid "Landscape"
