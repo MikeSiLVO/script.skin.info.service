@@ -119,11 +119,11 @@ class ApiFanarttv:
         type_map = {
             'movieposter': 'poster',
             'moviebackground': 'fanart',
-            'moviebackground4k': 'fanart',
+            'movie4kbackground': 'fanart',
             'hdmovielogo': 'clearlogo',
             'movielogo': 'clearlogo',
             'hdmovieclearart': 'clearart',
-            'movieclearart': 'clearart',
+            'movieart': 'clearart',
             'moviebanner': 'banner',
             'moviedisc': 'discart',
             'moviethumb': 'landscape'
@@ -159,7 +159,7 @@ class ApiFanarttv:
         show_type_map = {
             'tvposter': 'poster',
             'showbackground': 'fanart',
-            'showbackground4k': 'fanart',
+            'show4kbackground': 'fanart',
             'hdtvlogo': 'clearlogo',
             'clearlogo': 'clearlogo',
             'hdclearart': 'clearart',
