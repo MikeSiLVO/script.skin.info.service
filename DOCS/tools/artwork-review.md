@@ -91,8 +91,9 @@ RunScript(script.skin.info.service,action=tools)
 Choose which media types to review:
 
 - **Movies** - Review movie artwork only
-- **TV Shows** - Review TV show artwork only
-- **Music** - Review music artwork only
+- **TV Shows** - Review TV show, season and episode artwork
+- **Music Videos** - Review music video artwork only
+- **Music** - Review artist and album artwork
 - **All** - Review all media types
 
 #### Action Menu
@@ -123,7 +124,8 @@ RunScript(script.skin.info.service,action=review_artwork,dbid=$INFO[ListItem.DBI
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `dbid` | Yes | Database ID of the item |
-| `dbtype` | Yes | Database type: `movie`, `tvshow`, `season`, `episode`, `musicvideo`, `set` |
+| `dbtype` | Yes | Database type: `movie`, `tvshow`, `season`, `episode`, `musicvideo`, `set`, `artist`, `album` |
+| `art_type` | No | Limit the art types offered, pipe-separated (`poster`, `poster\|fanart`) |
 
 **Example - Context Menu:**
 
@@ -135,6 +137,26 @@ RunScript(script.skin.info.service,action=review_artwork,dbid=$INFO[ListItem.DBI
 ```
 
 This launches the artwork review dialog for the focused item, showing all available artwork from TMDB and fanart.tv.
+
+**Example - Straight to one art type:**
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=review_artwork,dbid=$INFO[ListItem.DBID],dbtype=season,art_type=poster)</onclick>
+```
+
+With `art_type` set, the art type menu is skipped when a single type is left, and the dialog closes on cancel instead of returning to that menu. If nothing is available for the requested types, a notification says so and nothing opens. Art types that the media type does not support are ignored.
+
+Art types accepted per media type:
+
+| Media type | Art types |
+|------------|-----------|
+| `movie`, `set` | `poster`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `discart`, `keyart` |
+| `tvshow` | `poster`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `characterart`, `keyart` |
+| `season` | `poster`, `banner`, `landscape`, `keyart` |
+| `episode` | `thumb` |
+| `musicvideo` | `thumb`, `fanart` |
+| `artist` | `thumb`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `cutout` |
+| `album` | `thumb`, `discart`, `back`, `spine`, `3dcase`, `3dflat`, `3dface`, `3dthumb` |
 
 ---
 
@@ -211,11 +233,41 @@ Toggle which art types to scan for:
 | Fanart | Background artwork |
 | Clearlogo | Transparent logo |
 | Clearart | Transparent artwork |
+| Thumb | Episode, music video, artist and album thumbs |
 | Discart | Disc artwork |
 | Banner | Wide banner artwork |
 | Landscape | Landscape/thumb |
 | Keyart | Key art/poster variant |
 | Characterart | Character artwork |
+
+Each scan checks only the types a media type can hold, so enabling Poster has no effect on
+episodes and enabling Characterart has no effect on movies.
+
+Library scans and auto-apply work through TMDB and fanart.tv only. TheAudioDB is reserved for
+single item review, where one item at a time stays inside its rate limit. The art types it alone
+carries are therefore not scanned for and not auto-applied:
+
+| Media type | Single item review only |
+|------------|-------------------------|
+| `artist` | `clearart`, `landscape`, `cutout` |
+| `album` | `back`, `spine`, `3dcase`, `3dflat`, `3dface`, `3dthumb` |
+| `musicvideo` | `thumb` |
+
+### Music video thumb source
+
+Settings > Artwork > Missing Artwork Types
+
+Music videos have no single correct thumb, the same way TV episodes don't. This setting picks
+what automatic fetching puts in an empty music video thumb slot:
+
+| Option | Source | Notes |
+|--------|--------|-------|
+| Video screenshots | TheAudioDB | Default. Matches Kodi's music video scraper |
+| Album cover | Fanart.tv | No extra API calls |
+| Artist thumb | Fanart.tv | No extra API calls |
+
+It applies to automatic fetching only. Single item review always offers every image it can find,
+whatever this is set to, so you can pick something else for an individual video.
 
 Not all art types are available for all items - availability depends on scraper sources.
 
