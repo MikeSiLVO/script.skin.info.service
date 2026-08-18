@@ -97,6 +97,11 @@ class KodiSettings:
         return cls.get_string('preferred_language')
 
     @classmethod
+    def musicvideo_thumb_source(cls) -> str:
+        """Which image auto-apply puts in an empty music video thumb slot."""
+        return cls.get_string('musicvideo_thumb_source') or 'screenshots'
+
+    @classmethod
     def art_types_to_check(cls) -> str:
         """Get enabled art types from individual boolean settings."""
         art_types = []

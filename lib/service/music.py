@@ -30,6 +30,30 @@ from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
+def library_artist_mbid(artist_name: str) -> Optional[str]:
+    """MusicBrainz ID for `artist_name` from Kodi's music library, or None if not there."""
+    from lib.kodi.client import request, extract_result
+
+    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
+    if not primary_name:
+        return None
+
+    artists = extract_result(
+        request("AudioLibrary.GetArtists", {
+            "properties": ["musicbrainzartistid"],
+            "filter": {"field": "artist", "operator": "is", "value": primary_name},
+        }),
+        "artists",
+    )
+    if not artists:
+        return None
+
+    mbid = artists[0].get("musicbrainzartistid")
+    if isinstance(mbid, list):
+        mbid = mbid[0] if mbid else None
+    return mbid or None
+
+
 def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
                          album: Optional[str] = None, track: Optional[str] = None,
                          abort_flag=None) -> Tuple[List[str], Optional[dict]]:
@@ -45,8 +69,8 @@ def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
     if not primary_name:
         return [], None
 
-    from lib.data.api.audiodb import ApiAudioDb
-    audiodb = ApiAudioDb()
+    from lib.data.api.audiodb import get_audiodb
+    audiodb = get_audiodb()
 
     if album:
         if abort_flag and abort_flag.is_requested():
@@ -155,12 +179,12 @@ def fetch_and_cache_artist_artwork(
     Returns AudioDB artist data dict if available (for bio extraction).
     """
     from lib.data.api.fanarttv import ApiFanarttv
-    from lib.data.api.audiodb import ApiAudioDb
+    from lib.data.api.audiodb import get_audiodb
     from lib.data.database import cache as db_cache
 
     ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
     fanart_api = ApiFanarttv()
-    audiodb = ApiAudioDb()
+    audiodb = get_audiodb()
     artist_data = cached_artist_data
 
     for mbid in mbids:
@@ -253,7 +277,7 @@ def _fetch_and_cache_artist_metadata(
 
     Returns best available bio string.
     """
-    from lib.data.api.audiodb import ApiAudioDb
+    from lib.data.api.audiodb import get_audiodb
     from lib.data.api.lastfm import ApiLastfm
 
     lang = KodiSettings.online_metadata_language()
@@ -261,7 +285,7 @@ def _fetch_and_cache_artist_metadata(
     with ThreadPoolExecutor(max_workers=2) as executor:
         audiodb_future = executor.submit(
             _fetch_source, "AudioDB artist metadata",
-            lambda: ApiAudioDb().get_artist(mbid, abort_flag),
+            lambda: get_audiodb().get_artist(mbid, abort_flag),
             skip=not mbid)
         lastfm_future = executor.submit(
             _fetch_source, "Last.fm artist metadata",
@@ -359,7 +383,7 @@ def fetch_track_online_data(
         return cached_lastfm or cached_wiki or cached_audiodb or None
 
     from lib.data.api.lastfm import ApiLastfm
-    from lib.data.api.audiodb import ApiAudioDb
+    from lib.data.api.audiodb import get_audiodb
     from lib.data.api.wikipedia import ApiWikipedia
 
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -374,7 +398,7 @@ def fetch_track_online_data(
             skip=cached_wiki is not None)
         audiodb_future = executor.submit(
             _fetch_source, "AudioDB track",
-            lambda: ApiAudioDb().search_track(artist, track, abort_flag),
+            lambda: get_audiodb().search_track(artist, track, abort_flag),
             skip=cached_audiodb is not None)
         lastfm_data = lastfm_future.result()
         wiki_data = wiki_future.result()
@@ -414,7 +438,7 @@ def fetch_album_online_data(
         return cached_lastfm or cached_wiki or cached_audiodb or None
 
     from lib.data.api.lastfm import ApiLastfm
-    from lib.data.api.audiodb import ApiAudioDb
+    from lib.data.api.audiodb import get_audiodb
     from lib.data.api.wikipedia import ApiWikipedia
 
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -429,8 +453,8 @@ def fetch_album_online_data(
             skip=cached_wiki is not None)
         audiodb_future = executor.submit(
             _fetch_source, "AudioDB album",
-            lambda: (ApiAudioDb().get_album(mbid, abort_flag) if mbid
-                     else ApiAudioDb().search_album(artist, album, abort_flag)),
+            lambda: (get_audiodb().get_album(mbid, abort_flag) if mbid
+                     else get_audiodb().search_album(artist, album, abort_flag)),
             skip=cached_audiodb is not None)
         lastfm_data = lastfm_future.result()
         wiki_data = wiki_future.result()

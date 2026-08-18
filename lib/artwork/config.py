@@ -45,12 +45,11 @@ ART_TYPES_BY_MEDIA = {
 AUDIODB_ONLY_ART_TYPES = {
     'artist': ('clearart', 'landscape', 'cutout'),
     'album': ('back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'),
-    'musicvideo': ('thumb',),
 }
 
 
 def bulk_art_types(media_type: str) -> list:
-    """Art types a scan or auto-apply can fill without calling TheAudioDB."""
+    """Art types a scan or auto-apply can fill."""
     excluded = AUDIODB_ONLY_ART_TYPES.get(media_type, ())
     return [art_type for art_type in ART_TYPES_BY_MEDIA.get(media_type, [])
             if art_type not in excluded]

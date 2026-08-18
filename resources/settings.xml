@@ -437,6 +437,19 @@
 					<default>true</default>
 					<control type="toggle" />
 				</setting>
+				<setting id="musicvideo_thumb_source" type="string" label="32691">
+					<default>screenshots</default>
+					<constraints>
+						<options>
+							<option label="32692">screenshots</option>
+							<option label="32693">album_cover</option>
+							<option label="32694">artist_thumb</option>
+						</options>
+					</constraints>
+					<control type="list" format="string">
+						<heading>32691</heading>
+					</control>
+				</setting>
 			</group>
 		</category>
 		<category id="advanced" label="10038">

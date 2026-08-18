@@ -10,9 +10,11 @@ Free tier: API key '123', 30 requests/minute
 """
 from __future__ import annotations
 
+import threading
 from typing import Optional, List, Dict
 
 from lib.data.api.client import ApiSession
+
 
 class ApiAudioDb:
     """TheAudioDB API client with rate limiting."""
@@ -60,6 +62,18 @@ class ApiAudioDb:
             return None
 
         return albums[0] if albums else None
+
+    def get_track(self, track_id: str, abort_flag=None) -> Optional[dict]:
+        """Get track data by TheAudioDB track ID, as stored in a music video's uniqueid."""
+        data = self._make_request(f"/track.php?h={track_id}", abort_flag)
+        if not data:
+            return None
+
+        tracks = data.get('track')
+        if not tracks or not isinstance(tracks, list):
+            return None
+
+        return tracks[0] if tracks else None
 
     def search_album(self, artist_name: str, album_name: str, abort_flag=None) -> Optional[dict]:
         """Search for an album by artist and album name.
@@ -219,3 +233,17 @@ class ApiAudioDb:
     def get_attribution() -> str:
         """Get required TheAudioDB attribution text."""
         return "Metadata provided by TheAudioDB.com"
+
+
+_SHARED: Optional[ApiAudioDb] = None
+_SHARED_LOCK = threading.Lock()
+
+
+def get_audiodb() -> ApiAudioDb:
+    """Shared client, so its 30/min limiter keeps one window instead of resetting per call."""
+    global _SHARED
+    if _SHARED is None:
+        with _SHARED_LOCK:
+            if _SHARED is None:
+                _SHARED = ApiAudioDb()
+    return _SHARED

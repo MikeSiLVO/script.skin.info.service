@@ -177,7 +177,7 @@ class ArtworkAuto:
 
             art_items = db.get_art_items_for_queue(queue_item.id)
 
-            all_available_art = self.source_fetcher.fetch_all(media_type, dbid)
+            all_available_art = self.source_fetcher.fetch_all(media_type, dbid, bulk=True)
 
             applied_any = False
             no_art_available = False
