@@ -10,6 +10,7 @@ from lib.kodi.utilities import validate_media_type, validate_dbid  # noqa: F401 
 REVIEW_SCOPE_OPTIONS = [
     ('movies', 'Movies'),
     ('tvshows', 'TV Shows'),
+    ('musicvideos', 'Music Videos'),
     ('music', 'Music'),
     ('all', 'All Types'),
 ]
@@ -18,11 +19,41 @@ REVIEW_SCOPE_LABELS = {scope: label for scope, label in REVIEW_SCOPE_OPTIONS}
 
 REVIEW_MEDIA_FILTERS = {
     'movies': ['movie'],
-    'tvshows': ['tvshow', 'episode'],
+    'tvshows': ['tvshow', 'season', 'episode'],
+    'musicvideos': ['musicvideo'],
     'music': ['artist', 'album'],
 }
 
 REVIEW_MODE_MISSING = 'missing_only'
+
+# Art types each media type can actually receive, per what the providers return.
+ART_TYPES_BY_MEDIA = {
+    'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart',
+              'keyart'],
+    'set': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart',
+            'keyart'],
+    'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart',
+               'keyart'],
+    'season': ['poster', 'banner', 'landscape', 'keyart'],
+    'episode': ['thumb'],
+    'musicvideo': ['thumb', 'fanart'],
+    'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
+    'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],
+}
+
+# Kept out of bulk paths; TheAudioDB's rate limit can't sustain a library pass.
+AUDIODB_ONLY_ART_TYPES = {
+    'artist': ('clearart', 'landscape', 'cutout'),
+    'album': ('back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'),
+    'musicvideo': ('thumb',),
+}
+
+
+def bulk_art_types(media_type: str) -> list:
+    """Art types a scan or auto-apply can fill without calling TheAudioDB."""
+    excluded = AUDIODB_ONLY_ART_TYPES.get(media_type, ())
+    return [art_type for art_type in ART_TYPES_BY_MEDIA.get(media_type, [])
+            if art_type not in excluded]
 
 
 FANART_DIMENSIONS_VARIANTS = {

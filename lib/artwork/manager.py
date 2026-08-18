@@ -31,6 +31,7 @@ from lib.actor.downloader import download_actor_images
 
 # Import from new artwork package
 from lib.artwork.config import (
+    ART_TYPES_BY_MEDIA,
     REVIEW_SCOPE_OPTIONS,
     REVIEW_SCOPE_LABELS,
     REVIEW_MEDIA_FILTERS,
@@ -665,25 +666,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     dbtype_lower = dbtype.lower()
     dbid_int = int(dbid)
 
-    art_type_options = {
-        'movie': [
-            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'
-        ],
-        'tvshow': [
-            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart',
-            'keyart',
-        ],
-        'season': ['poster', 'banner', 'landscape', 'fanart'],
-        'episode': ['thumb'],
-        'musicvideo': ['thumb', 'fanart'],
-        'set': [
-            'poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart', 'keyart'
-        ],
-        'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
-        'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],
-    }
-
-    art_types = art_type_options.get(dbtype_lower)
+    art_types = ART_TYPES_BY_MEDIA.get(dbtype_lower)
     method_info = KODI_GET_DETAILS_METHODS.get(dbtype_lower)
 
     if not art_types or not method_info:
