@@ -68,7 +68,7 @@ def _handle_widgets_menu(handle: int) -> None:
          "plugin://script.skin.info.service/?action=recent_videos",
          "DefaultVideo.png", True),
         (xbmc.getLocalizedString(1036),
-         "plugin://script.skin.info.service/?action=favourites",
+         "plugin://script.skin.info.service/?action=menu_favourites",
          "DefaultFavourites.png", True),
         (ADDON.getLocalizedString(32622), "plugin://script.skin.info.service/?action=menu_seasonal",
          "DefaultYear.png", True),
@@ -103,6 +103,30 @@ def _handle_seasonal_menu(handle: int) -> None:
         xbmcplugin.addDirectoryItem(
             handle, f"plugin://script.skin.info.service/?action=seasonal&season={key}",
             li, isFolder=True)
+
+    xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
+_FAVOURITES_MENU = [
+    (None, "", "DefaultFavourites.png"),
+    (32687, "movie", "DefaultMovies.png"),
+    (32688, "tvshow", "DefaultTVShows.png"),
+    (32689, "episode", "DefaultTVShows.png"),
+    (32690, "musicvideo", "DefaultMusicVideos.png"),
+]
+
+
+def _handle_favourites_menu(handle: int) -> None:
+    """Show favourites submenu: everything, then one entry per media type."""
+    for string_id, dbtype, icon in _FAVOURITES_MENU:
+        label = (xbmc.getLocalizedString(1036) if string_id is None
+                 else ADDON.getLocalizedString(string_id))
+        li = xbmcgui.ListItem(label, offscreen=True)
+        li.setArt({'icon': icon, 'thumb': icon})
+        url = "plugin://script.skin.info.service/?action=favourites"
+        if dbtype:
+            url += f"&dbtype={dbtype}"
+        xbmcplugin.addDirectoryItem(handle, url, li, isFolder=True)
 
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
@@ -289,6 +313,7 @@ _HANDLERS = {
     'menu_search': _wrap_menu(_handle_search_menu),
     'menu_widgets': _wrap_menu(_handle_widgets_menu),
     'menu_seasonal': _wrap_menu(_handle_seasonal_menu),
+    'menu_favourites': _wrap_menu(_handle_favourites_menu),
     'exec_tools': _handle_exec_tools,
     'exec_search': _handle_exec_search,
     'get_cast': _handle_get_cast,

@@ -8,6 +8,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 
 ## Table of Contents
 
+- [Localized Labels](#localized-labels)
 - [Next Up](#next-up)
 - [Next Up (Favourites)](#next-up-favourites)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
@@ -22,6 +23,43 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 - [Artist Albums](#artist-albums)
 - [Artist Music Videos](#artist-music-videos)
 - [Genre Artists](#genre-artists)
+
+---
+
+## Localized Labels
+
+Each widget has a translated label you can reuse, so your widget heading follows the user's
+language instead of hardcoded English:
+
+```xml
+<label>$ADDON[script.skin.info.service 32620]</label>
+```
+
+| Widget | Action | Label |
+|--------|--------|-------|
+| Next Up | `next_up` | 32620 |
+| Next Up (Favourites) | `next_up_favourites` | 32685 |
+| Recent Episodes Grouped | `recent_episodes_grouped` | 32621, renders "Recent Episodes" |
+| Recent Videos | `recent_videos` | 32686 |
+| Favourites | `favourites` | Kodi 1036 |
+| Favourite Movies | `favourites&dbtype=movie` | 32687 |
+| Favourite TV Shows | `favourites&dbtype=tvshow` | 32688 |
+| Favourite Episodes | `favourites&dbtype=episode` | 32689 |
+| Favourite Music Videos | `favourites&dbtype=musicvideo` | 32690 |
+| Recommended (movies) | `recommended&dbtype=movie` | 32623, renders "Recommended Movies" |
+| Recommended (TV shows) | `recommended&dbtype=tvshow` | 32624, renders "Recommended TV Shows" |
+| Seasonal (christmas) | `seasonal&season=christmas` | 32642 |
+| Seasonal (halloween) | `seasonal&season=halloween` | 32643 |
+| Seasonal (valentines) | `seasonal&season=valentines` | 32644 |
+| Seasonal (thanksgiving) | `seasonal&season=thanksgiving` | 32645 |
+| Seasonal (starwars) | `seasonal&season=starwars` | 32646 |
+| Seasonal (startrek) | `seasonal&season=startrek` | 32647 |
+| Seasonal (newyear) | `seasonal&season=newyear` | 32648 |
+| Seasonal (easter) | `seasonal&season=easter` | 32649 |
+| Seasonal (independence) | `seasonal&season=independence` | 32650 |
+
+Kodi core strings are marked as such and come from `$LOCALIZE[1036]` rather than the addon.
+Widgets with no row have no label of their own, so name them yourself.
 
 ---
 
