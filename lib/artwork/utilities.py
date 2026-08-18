@@ -277,3 +277,66 @@ def parse_art_slot_index(slot_name: str) -> int:
         except (ValueError, IndexError):
             return -1
     return -1
+
+
+FEED_FOR_MEDIA = {
+    'movie': 'movies',
+    'set': 'movies',
+    'tvshow': 'tv',
+    'season': 'tv',
+    'episode': 'tv',
+    'artist': 'music',
+    'album': 'music',
+    'musicvideo': 'music',
+}
+
+
+def _feed_item_ids(entries: List[dict]) -> set:
+    """Ids from a fanart.tv latest response; movies carry both tmdb and imdb."""
+    ids = set()
+    for entry in entries:
+        for key in ('id', 'tmdb_id', 'imdb_id'):
+            value = entry.get(key)
+            if value:
+                ids.add(str(value))
+    return ids
+
+
+def sync_feed_changes(fanart_api, feeds: List[str]) -> dict:
+    """Queue rechecks for items each fanart.tv feed reports changed since its checkpoint."""
+    import time
+
+    from lib.data import database as db
+    from lib.kodi.client import log
+    import xbmc
+
+    delay_hours = db.get_fanarttv_cache_ttl_hours()
+    now = int(time.time())
+    outcome = {}
+
+    for feed in feeds:
+        since = db.get_feed_checkpoint(feed)
+        if not since:
+            db.set_feed_checkpoint(feed, now)
+            outcome[feed] = 'synced'
+            continue
+
+        entries = fanart_api.get_latest(feed, since)
+        if entries is None:
+            outcome[feed] = 'unavailable'
+            continue
+
+        item_ids = sorted(_feed_item_ids(entries))
+        db.add_rechecks(feed, item_ids, now + delay_hours * 3600)
+        db.set_feed_checkpoint(feed, now)
+        outcome[feed] = 'synced'
+        log("Artwork", f"Feed '{feed}': {len(item_ids)} changed since last scan", xbmc.LOGDEBUG)
+
+    for feed in feeds:
+        due = db.take_due_rechecks(feed, now)
+        if due:
+            cleared = db.clear_artwork_for_ids(due)
+            log("Artwork", f"Feed '{feed}': cleared {cleared} cached rows for {len(due)} items",
+                xbmc.LOGDEBUG)
+
+    return outcome

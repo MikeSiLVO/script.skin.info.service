@@ -124,6 +124,8 @@ class ArtworkScanner:
         if media_type in ("music", "all"):
             media_types.extend(["artist", "album"])
 
+        self._sync_feed_changes(media_types)
+
         art_types_by_type = {mt: self._get_art_types_to_check(mt) for mt in media_types}
         all_art_types = sorted({at for types in art_types_by_type.values() for at in types})
         session_id = db.create_scan_session("missing_art", media_types, all_art_types)
@@ -290,6 +292,19 @@ class ArtworkScanner:
             f"({len(art_items)} art types)")
 
         return not self.cancelled
+
+    def _sync_feed_changes(self, media_types: List[str]) -> None:
+        """Ask fanart.tv what changed since the last scan so only those items are rechecked."""
+        from lib.artwork.utilities import FEED_FOR_MEDIA, sync_feed_changes
+
+        feeds = sorted({FEED_FOR_MEDIA[mt] for mt in media_types if mt in FEED_FOR_MEDIA})
+        if not feeds:
+            return
+
+        try:
+            sync_feed_changes(self.fetcher.fanart_api, feeds)
+        except Exception as e:
+            log("Artwork", f"Feed sync failed, scanning without it: {e}", xbmc.LOGWARNING)
 
     def _get_art_types_to_check(self, media_type: Optional[str] = None) -> List[str]:
         """Get art types to check from settings, filtered to those the media type can hold."""

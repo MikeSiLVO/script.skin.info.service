@@ -71,6 +71,13 @@ class ApiFanarttv:
             _TV_BLOB_CACHE_SIZE,
         )
 
+    def get_latest(self, feed: str, since: int) -> Optional[List[dict]]:
+        """Items with new images on `feed` since a unix timestamp, or None if unreachable."""
+        data = self._make_request(f"/{feed}/latest?date={since}")
+        if data is None:
+            return None
+        return data if isinstance(data, list) else []
+
     def get_api_key(self) -> str:
         """Get fanart.tv project API key."""
         return self.API_KEY.strip()

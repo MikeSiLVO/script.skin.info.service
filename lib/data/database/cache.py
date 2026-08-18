@@ -542,3 +542,69 @@ def cache_online_properties(item_key: str, props: Dict[str, str], ttl_hours: int
             (item_key, data, expires_at)
             VALUES (?, ?, ?)
         ''', (item_key, compressed, expires_at.isoformat()))
+
+
+def get_feed_checkpoint(feed: str) -> int:
+    """Unix time the fanart.tv feed was last read, or 0 if never."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('SELECT checked_at FROM fanarttv_feed WHERE feed = ?', (feed,))
+        row = cursor.fetchone()
+        return int(row['checked_at']) if row else 0
+
+
+def set_feed_checkpoint(feed: str, checked_at: int) -> None:
+    """Record how far through the fanart.tv feed we have read."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            'INSERT OR REPLACE INTO fanarttv_feed (feed, checked_at) VALUES (?, ?)',
+            (feed, int(checked_at))
+        )
+
+
+def add_rechecks(feed: str, item_ids: List[str], recheck_after: int) -> None:
+    """Mark items the feed reported as changed, due once the provider's key delay has passed."""
+    if not item_ids:
+        return
+    with get_db(DB_PATH) as cursor:
+        cursor.executemany(
+            'INSERT OR REPLACE INTO fanarttv_recheck (feed, item_id, recheck_after) '
+            'VALUES (?, ?, ?)',
+            [(feed, item_id, int(recheck_after)) for item_id in item_ids]
+        )
+
+
+def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
+    """Item ids whose recheck is due, removing them so they are handled once."""
+    stamp = int(time.time()) if now is None else int(now)
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            'SELECT item_id FROM fanarttv_recheck WHERE feed = ? AND recheck_after <= ?',
+            (feed, stamp)
+        )
+        due = [row['item_id'] for row in cursor.fetchall()]
+        if due:
+            cursor.execute(
+                f'DELETE FROM fanarttv_recheck WHERE feed = ? AND item_id IN '
+                f'({sql_placeholders(len(due))})',
+                (feed, *due)
+            )
+        return due
+
+
+def has_pending_recheck(item_id: str) -> bool:
+    """True while an item is waiting on a feed recheck, so no empty result is recorded for it."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute('SELECT 1 FROM fanarttv_recheck WHERE item_id = ? LIMIT 1', (item_id,))
+        return cursor.fetchone() is not None
+
+
+def clear_artwork_for_ids(media_ids: List[str]) -> int:
+    """Drop cached artwork and its completion marker for the given provider ids."""
+    if not media_ids:
+        return 0
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            f'DELETE FROM artwork_cache WHERE media_id IN ({sql_placeholders(len(media_ids))})',
+            tuple(media_ids)
+        )
+        return cursor.rowcount or 0
