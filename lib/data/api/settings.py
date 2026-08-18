@@ -4,8 +4,8 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import ADDON
-from lib.infrastructure.dialogs import DialogProgress
+from lib.kodi.client import ADDON, log
+from lib.infrastructure.dialogs import DialogProgress, show_notification
 
 
 def edit_api_key(provider: str) -> None:
@@ -34,6 +34,12 @@ def edit_api_key(provider: str) -> None:
         ADDON.setSetting(config["setting_path"], keyboard)
         ADDON.setSetting(f"{provider}_configured", "true")
         ADDON.setSetting(f"{provider}_api_key_display", keyboard)
+
+        if ADDON.getSetting(config["setting_path"]) != keyboard:
+            log("API", f"{config['name']} key did not persist to {config['setting_path']}",
+                xbmc.LOGERROR)
+            show_notification(config['name'], ADDON.getLocalizedString(32001),
+                              xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
 def clear_api_key(provider: str) -> None:

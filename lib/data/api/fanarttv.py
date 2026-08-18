@@ -337,9 +337,12 @@ class ApiFanarttv:
         return result
 
     def test_connection(self) -> bool:
-        """Test fanart.tv API connection."""
+        """Test the user's personal key."""
+        client_key = self.get_client_key()
+        if not client_key:
+            return False
         try:
-            data = self._make_request("/movies/11")
+            data = self.session.get("/movies/11", headers={"client-key": client_key})
             return data is not None and data.get('name') is not None
         except Exception:
             return False
