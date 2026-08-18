@@ -148,7 +148,7 @@ def _favourite_tvshow_ids() -> list:
     return ids
 
 
-def handle_favourite_episodes(handle: int, params: dict) -> None:
+def handle_next_up_favourites(handle: int, params: dict) -> None:
     """Plugin entry: next unwatched episode for each favourited TV show (`limit`, default 25)."""
     limit = int(params.get('limit', ['25'])[0])
 

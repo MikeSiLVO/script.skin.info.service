@@ -88,7 +88,7 @@ its first episode.
 ### Usage
 
 ```xml
-<content>plugin://script.skin.info.service/?action=favourite_episodes</content>
+<content>plugin://script.skin.info.service/?action=next_up_favourites</content>
 ```
 
 ### Parameters
@@ -101,13 +101,13 @@ its first episode.
 
 ```xml
 <!-- Basic -->
-<content>plugin://script.skin.info.service/?action=favourite_episodes</content>
+<content>plugin://script.skin.info.service/?action=next_up_favourites</content>
 
 <!-- Custom limit -->
-<content>plugin://script.skin.info.service/?action=favourite_episodes&amp;limit=10</content>
+<content>plugin://script.skin.info.service/?action=next_up_favourites&amp;limit=10</content>
 
 <!-- With auto-refresh -->
-<content>plugin://script.skin.info.service/?action=favourite_episodes&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
+<content>plugin://script.skin.info.service/?action=next_up_favourites&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Behavior
