@@ -244,6 +244,14 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
         credits = complete_data['credits'].get('cast', [])
 
+        if media_type == 'tvshow':
+            aggregate = complete_data.get('aggregate_credits', {}).get('cast', [])
+            if aggregate:
+                credits = [
+                    dict(actor, character=(actor.get('roles') or [{}])[0].get('character', ''))
+                    for actor in aggregate
+                ]
+
     match = exact_match(credits, actor_name, actor_role)
     if match:
         log("Person", f"Matched '{actor_name}' via exact match (person_id={match['id']})",
