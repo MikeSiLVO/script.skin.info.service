@@ -72,7 +72,7 @@ class ApiFanarttv:
         )
 
     def get_latest(self, feed: str, since: int) -> Optional[List[dict]]:
-        """Items with new images on `feed` since a unix timestamp, or None if unreachable."""
+        """Items with new images since a unix timestamp, or None if the feed is unreachable."""
         data = self._make_request(f"/{feed}/latest?date={since}")
         if data is None:
             return None

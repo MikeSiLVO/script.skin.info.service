@@ -25,7 +25,7 @@ def _clear_window_prop(key: str, window: str) -> None:
 
 
 def _clear_blur_properties(blur_key: str, orig_key: str, window: str) -> None:
-    """Clear both blur properties on `window`."""
+    """Clear both blur properties on the target window."""
     _clear_window_prop(blur_key, window)
     _clear_window_prop(orig_key, window)
 
@@ -33,8 +33,8 @@ def _clear_blur_properties(blur_key: str, orig_key: str, window: str) -> None:
 def _blur_image_and_set_property(source: str, prefix: str = "",
                                  radius: Optional[int] = None,
                                  window: str = "home") -> None:
-    """Blur `source` and set `SkinInfo.[prefix.]BlurredImage`/`.Original` on `window`;
-    empty `source` clears them."""
+    """Blur an image into `SkinInfo.[prefix.]BlurredImage`/`.Original`; an empty source
+    clears them."""
     prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
     blur_key = f"{prop_base}BlurredImage"
     orig_key = f"{prop_base}BlurredImage.Original"

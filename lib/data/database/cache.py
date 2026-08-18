@@ -100,17 +100,7 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
 def get_cache_ttl_hours(
     release_date: Optional[str], hints: Optional[Dict[str, Any]] = None
 ) -> int:
-    """Dynamic cache TTL (hours) based on content status and metadata hints.
-
-    Movies age-tiered off `release_date`:
-      <90d random 24-48h, <1y random 3-6d, <2y random 7-14d, >2y random 14-30d,
-      unknown random 24-48h.
-    TV shows ignore `release_date` and route through `_tv_show_ttl(hints)`.
-
-    Recognised `hints` keys: status, next_episode_air_date,
-    next_episode_air_date_incomplete, last_air_date, aired_data_complete,
-    is_library_item (False forces 24h).
-    """
+    """Cache TTL in hours, age-tiered for movies and status-driven for TV shows."""
 
     hints = hints or {}
 
@@ -179,7 +169,7 @@ def get_cached_artwork_batch(
     media_ids: Dict[str, str],
     art_types: List[str]
 ) -> Dict[Tuple[str, str], list]:
-    """Batch artwork lookup. `media_ids` is source -> id; returns (source, art_type) -> list."""
+    """Batch artwork lookup, source -> id in, (source, art_type) -> list out."""
     if not media_ids or not art_types:
         return {}
 
@@ -229,7 +219,7 @@ def cache_artwork(
     media_type: str, media_id: str, source: str, art_type: str, data: list,
     release_date: Optional[str] = None, ttl_hours: Optional[int] = None,
 ) -> None:
-    """Cache artwork list. TTL derived from `release_date` unless `ttl_hours` is given."""
+    """Cache an artwork list, with a TTL derived from the release date unless one is given."""
     if ttl_hours is None:
         ttl_hours = get_cache_ttl_hours(release_date)
 

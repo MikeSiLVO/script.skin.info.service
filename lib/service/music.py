@@ -31,7 +31,7 @@ from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
 def library_artist_mbid(artist_name: str) -> Optional[str]:
-    """MusicBrainz ID for `artist_name` from Kodi's music library, or None if not there."""
+    """MusicBrainz ID for an artist from Kodi's music library, or None if not there."""
     from lib.kodi.client import request, extract_result
 
     primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()

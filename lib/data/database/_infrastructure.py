@@ -53,13 +53,7 @@ def chunked_in_query(
     values: list,
     chunk_size: int = SQL_PARAM_CHUNK_SIZE,
 ):
-    """Execute an IN-list query in chunks, yielding rows.
-
-    `sql_template` must contain `{placeholders}`.
-
-    Use for SELECT/DELETE patterns where the IN-list size could exceed SQLite's parameter limit.
-    `fixed_params` come before the chunk; the chunk values are appended for each batch.
-    """
+    """Execute an IN-list query in {placeholders} chunks under SQLite's parameter limit."""
     for start in range(0, len(values), chunk_size):
         chunk = values[start:start + chunk_size]
         sql = sql_template.format(placeholders=sql_placeholders(len(chunk)))

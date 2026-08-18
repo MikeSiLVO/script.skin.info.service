@@ -46,7 +46,7 @@ def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
 
 
 def _earliest_unwatched(tvshowid: int, season: Optional[int] = None) -> list:
-    """Lowest-numbered unwatched episode of a show, restricted to `season` when given."""
+    """Lowest-numbered unwatched episode of a show, restricted to one season when given."""
     params = {
         'tvshowid': tvshowid,
         'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
@@ -978,7 +978,7 @@ def handle_similar(handle: int, params: dict) -> None:
 
 
 def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
-    """Unwatched movies/shows matching `genre_filter`, each tagged with `_mtype`."""
+    """Unwatched movies and shows for a genre, each tagged with its media type."""
     candidates = []
     if dbtype in ('movie', 'both'):
         result = request('VideoLibrary.GetMovies', {
@@ -1002,8 +1002,8 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
 
 
 def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
-    """Top-rated unwatched titles for padding a sparse single-seed widget; `mpaa` restricts to
-    the seed's tone so padding stays related to it."""
+    """Top-rated unwatched titles for padding a sparse single-seed widget, certificate-matched
+    to the seed so padding stays related to it."""
     def _filter(field: str) -> dict:
         unwatched = {'field': field, 'operator': 'is', 'value': '0'}
         if mpaa:
@@ -1422,7 +1422,7 @@ def _sort_movies(movies: list, method: str) -> None:
 
 
 def _library_movies_by_tmdb(tmdb_ids: set) -> list:
-    """Full movie dicts for library movies whose uniqueid.tmdb is in `tmdb_ids`."""
+    """Full movie dicts for library movies matching the given TMDB ids."""
     from lib.data.database.rollcall import get_dbids_by_tmdb
 
     out = []

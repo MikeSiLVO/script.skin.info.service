@@ -191,11 +191,7 @@ def _call_jsonrpc(payload: Any, error_context: str) -> Any:
 
 def request(method: str, params: Optional[Dict[str, Any]] = None,
             cache_key: Optional[str] = None, ttl_seconds: Optional[int] = None) -> Optional[dict]:
-    """Make a JSON-RPC request with optional in-memory caching.
-
-    `cache_key` enables read-through caching with `ttl_seconds` (default 30s).
-    Returns None on network, JSON, or JSON-RPC error.
-    """
+    """Make a JSON-RPC request with optional read-through caching; None on any error."""
     global _request_count
     ttl = CACHE_DEFAULT_TTL if ttl_seconds is None else max(1, int(ttl_seconds))
 
@@ -330,7 +326,7 @@ def batch_request(calls: List[Dict[str, Any]],
 
 def get_item_details(media_type: str, dbid: int, properties: List[str], cache_key: str = "",
                      ttl_seconds: Optional[int] = None, **extra_params: Any) -> Any:
-    """Fetch item details for `media_type` via the right `GetXDetails` method and result key."""
+    """Fetch item details via the right GetXDetails method and result key for the media type."""
     method_info = KODI_GET_DETAILS_METHODS.get(media_type)
     if not method_info:
         log("API", f"Unknown media type: {media_type}", xbmc.LOGERROR)
@@ -430,7 +426,7 @@ def get_library_items(media_types: List[str], properties: List[str], *,
                       abort_check: Optional[Callable[[], bool]] = None,
                       sort: Optional[Dict[str, str]] = None,
                       page_size: int = 2000) -> List[Dict[str, Any]]:
-    """Fetch library items across `media_types`, optionally decoding art and folding in seasons."""
+    """Fetch library items, optionally decoding art and folding in seasons."""
     all_items: List[Dict[str, Any]] = []
 
     for media_type in media_types:
@@ -608,11 +604,7 @@ def _is_debug_enabled() -> bool:
 
 
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
-    """Log `[category] message` at `level`, prefixed with the addon id.
-
-    With the debug setting on, DEBUG escalates to INFO so skinners see diagnostics without
-    Kodi debug mode.
-    """
+    """Log a categorised message; DEBUG escalates to INFO when the debug setting is on."""
     if level == xbmc.LOGDEBUG and _is_debug_enabled():
         level = xbmc.LOGINFO
     xbmc.log(f"script.skin.info.service: [{category}] {message}", level)

@@ -237,11 +237,8 @@ class ArtworkAuto:
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
                    artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:
-        """Apply artwork to library item and optionally download to filesystem.
-
-        `defer_pool_refresh` skips the per-item slideshow-pool update (the bulk auto-apply path
-        does one batched reconcile at the end instead).
-        """
+        """Apply artwork to a library item, optionally downloading it and deferring the
+        slideshow-pool refresh."""
         if media_type not in KODI_SET_DETAILS_METHODS:
             return False
 
