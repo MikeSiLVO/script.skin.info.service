@@ -116,12 +116,10 @@ For the same thing over your favourited shows instead, see
 
 ## Next Up (Favourites)
 
-[Next Up](#next-up) restricted to the TV shows in your Kodi favourites. Episode picking is
-identical, only the source list differs.
+[Next Up](#next-up) restricted to the TV shows in your Kodi favourites.
 
-Next Up covers shows you have already started, ordered by when you last watched them. This covers
-every favourited show in the order you favourited them, so one you have never watched appears at
-its first episode.
+Shows appear in the order you favourited them, and one you have never started appears at its
+first episode. Fully watched shows are skipped.
 
 ### Usage
 

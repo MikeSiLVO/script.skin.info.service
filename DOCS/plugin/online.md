@@ -10,9 +10,11 @@ Fetch ratings, awards, and metadata from external APIs via plugin container.
 
 - [Overview](#overview)
 - [Usage](#usage)
+- [RunScript Trigger](#runscript-trigger)
 - [Two-Container Pattern](#two-container-pattern)
 - [Available Properties](#available-properties)
 - [Music Video Properties](#music-video-properties)
+- [Notes](#notes)
 
 ---
 

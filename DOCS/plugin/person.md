@@ -17,6 +17,9 @@ TMDB person information including biography, filmography, images, and crew.
 - [Filmography Container](#filmography-container)
 - [Crew Container](#crew-container)
 - [Crew Lists](#crew-lists)
+- [Library Containers (LibraryMovies / LibraryTVShows)](#library-containers-librarymovies--librarytvshows)
+- [Example Implementation](#example-implementation)
+- [Caching](#caching)
 
 ---
 
@@ -196,7 +199,7 @@ filter params (e.g. `&sort=date_desc&job=Director` on the Crew URL — see Plugi
 Single ListItem with biography and metadata.
 
 ```xml
-<content target="videos">
+<content>
   $INFO[Window(Home).Property(SkinInfo.Person.Details)]
 </content>
 ```
@@ -236,7 +239,7 @@ Single ListItem with biography and metadata.
 Multiple ListItems for profile images.
 
 ```xml
-<content target="images">
+<content target="pictures">
   $INFO[Window(Home).Property(SkinInfo.Person.Images)]
 </content>
 ```
@@ -478,14 +481,22 @@ returns 48.
 <control type="group">
     <visible>!String.IsEmpty(Window(Home).Property(SkinInfo.person_id))</visible>
 
+    <!-- Details -->
+    <control type="list" id="9000">
+        <content>
+          $INFO[Window(Home).Property(SkinInfo.Person.Details)]
+        </content>
+        <itemlayout />
+    </control>
+
     <!-- Biography -->
     <control type="textbox">
-        <label>$INFO[Container(PersonDetails).ListItem.Property(Biography)]</label>
+        <label>$INFO[Container(9000).ListItem.Property(Biography)]</label>
     </control>
 
     <!-- Profile Images -->
-    <control type="fixedlist" id="PersonImages">
-        <content target="images">
+    <control type="fixedlist" id="9001">
+        <content target="pictures">
           $INFO[Window(Home).Property(SkinInfo.Person.Images)]
         </content>
         <itemlayout>
@@ -496,7 +507,7 @@ returns 48.
     </control>
 
     <!-- Filmography -->
-    <control type="list" id="PersonFilmography">
+    <control type="list" id="9002">
         <content target="videos">
           plugin://script.skin.info.service/
             ?action=person_info

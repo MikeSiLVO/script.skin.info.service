@@ -9,7 +9,7 @@ Basic setup for integrating Skin Info Service into your skin.
 ## Table of Contents
 
 - [Overview](#overview)
-- [Starting the Service](#starting-the-service)
+- [Enabling the Service](#enabling-the-service)
 - [Service Properties](#service-properties)
 - [Integration Types](#integration-types)
 - [Plugin Paths](#plugin-paths)

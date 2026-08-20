@@ -18,7 +18,6 @@ Scan library for missing artwork and fetch from TMDB and fanart.tv.
   - [Visual Dialog](#visual-dialog)
   - [User Actions](#user-actions)
   - [Multi-Art Dialog](#multi-art-dialog)
-  - [Auto Fetch Prompt](#auto-fetch-prompt)
 - [Processing Modes](#processing-modes)
 - [Session Reports](#session-reports)
 - [Configuration](#configuration)
@@ -27,7 +26,6 @@ Scan library for missing artwork and fetch from TMDB and fanart.tv.
   - [Multi-Art Dialog Skinning](#multi-art-dialog-skinning)
   - [Testing Your Dialog XML](#testing-your-dialog-xml)
 - [Troubleshooting](#troubleshooting)
-- [Advanced Tips](#advanced-tips)
 
 ## Requirements
 

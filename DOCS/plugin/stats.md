@@ -152,12 +152,12 @@ All properties via `Window(Home).Property(SkinInfo.PathStats.*)`
 **Conditional visibility:**
 
 ```xml
-<control type="image" id="new_badge">
+<control type="image">
     <texture>badges/new.png</texture>
     <visible>Integer.IsGreater(Window(Home).Property(SkinInfo.PathStats.Unwatched),0)</visible>
 </control>
 
-<control type="group" id="widget_container">
+<control type="group">
     <visible>Integer.IsGreater(Window(Home).Property(SkinInfo.PathStats.Count),0)</visible>
 </control>
 ```

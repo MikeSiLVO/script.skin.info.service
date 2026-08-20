@@ -19,6 +19,7 @@ All actions use `action=name` or `dialog=type` syntax.
 
 ## Table of Contents
 
+- [RunScript Syntax](#runscript-syntax)
 - [Dialog Utilities](#dialog-utilities)
   - [dialog=yesno](#dialogyesno)
   - [dialog=yesnocustom](#dialogyesnocustom)
@@ -57,9 +58,11 @@ All actions use `action=name` or `dialog=type` syntax.
   - [Check File Exists](#check-file-exists)
 - [JSON-RPC Utilities](#json-rpc-utilities)
   - [JSON-RPC Wrapper](#json-rpc-wrapper)
+- [Automatic Refresh Properties](#automatic-refresh-properties)
 - [Search Utilities](#search-utilities)
   - [TMDB Search](#tmdb-search)
   - [Library Person Search](#library-person-search)
+- [Notes](#notes)
 
 ---
 
