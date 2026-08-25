@@ -199,6 +199,10 @@ MEDIA_TYPE_FIELDS: dict[str, list[str]] = {
         "userrating",
         "uniqueid",
     ],
+    "set": [
+        "title",
+        "plot",
+    ],
     "artist": [
         "artist",
         "sortname",
