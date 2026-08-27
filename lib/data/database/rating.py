@@ -40,23 +40,33 @@ def get_provider_cache(provider: str, media_id: str) -> Optional[dict]:
 
 def _get_provider_ttl_hints(media_id: str) -> Optional[dict]:
     """Try to derive TTL hints from the mapping + metadata cache."""
-    if not media_id or not media_id.startswith("tt"):
+    if not media_id:
+        return None
+
+    if media_id.startswith("tmdb_"):
+        tmdb_id, imdb_id = media_id[5:], None
+    elif media_id.startswith("imdb_"):
+        tmdb_id, imdb_id = None, media_id[5:]
+    elif media_id.startswith("tt"):
+        tmdb_id, imdb_id = None, media_id
+    else:
         return None
 
     for media_type in ("movie", "tvshow"):
-        tmdb_id = get_tmdb_id_by_imdb(media_id, media_type)
-        if tmdb_id:
-            meta = get_cached_metadata(media_type, tmdb_id)
-            if not meta:
-                return None
-            hints: dict = {}
-            status = meta.get("status") or ""
-            if status:
-                hints["status"] = status
-            release = meta.get("release_date") or meta.get("first_air_date")
-            if release:
-                hints[_RELEASE_DATE_HINT_KEY] = release
-            return hints
+        resolved = tmdb_id or (get_tmdb_id_by_imdb(imdb_id, media_type) if imdb_id else None)
+        if not resolved:
+            continue
+        meta = get_cached_metadata(media_type, resolved)
+        if not meta:
+            continue
+        hints: dict = {}
+        status = meta.get("status") or ""
+        if status:
+            hints["status"] = status
+        release = meta.get("release_date") or meta.get("first_air_date")
+        if release:
+            hints[_RELEASE_DATE_HINT_KEY] = release
+        return hints
     return None
 
 
