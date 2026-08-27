@@ -127,7 +127,7 @@ def handle_next_up(handle: int, params: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, episode['file'], listitem, False)
 
     xbmcplugin.setContent(handle, 'episodes')
-    xbmcplugin.endOfDirectory(handle)
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
 def _favourite_tvshow_ids() -> list:
@@ -419,7 +419,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
     xbmcplugin.setContent(handle, 'tvshows')
-    xbmcplugin.endOfDirectory(handle)
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
 def _create_tvshow_listitem(show: dict) -> xbmcgui.ListItem:
@@ -1077,7 +1077,7 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
         xbmcplugin.setContent(handle, 'tvshows')
     else:
         xbmcplugin.setContent(handle, 'videos')
-    xbmcplugin.endOfDirectory(handle)
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
 def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
@@ -1095,7 +1095,7 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
             seed, seed_set = entry, frozenset(eg)
             break
     if seed is None:
-        xbmcplugin.endOfDirectory(handle)
+        xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
         return
     seed_title = seed.get('title', '')
 
@@ -1202,7 +1202,7 @@ def handle_recommended(handle: int, params: dict) -> None:
         history.extend(shows)
 
     if not history:
-        xbmcplugin.endOfDirectory(handle)
+        xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
         return
 
     history.sort(key=lambda x: x.get('lastplayed', ''), reverse=True)
@@ -1245,7 +1245,7 @@ def handle_recommended(handle: int, params: dict) -> None:
                 directors[director] = directors.get(director, 0) + weight
 
     if not watched_sets:
-        xbmcplugin.endOfDirectory(handle)
+        xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
         return
 
     total_weight = sum(w for _, w, _ in watched_sets)
