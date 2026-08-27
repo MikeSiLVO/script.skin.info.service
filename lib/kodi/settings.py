@@ -52,6 +52,26 @@ class KodiSettings:
         return cls.get_bool('enable_debug')
 
     @classmethod
+    def ratings_source_tmdb(cls) -> bool:
+        """Whether TMDB takes part in a ratings update."""
+        return cls.get_bool('ratings_source_tmdb')
+
+    @classmethod
+    def ratings_source_mdblist(cls) -> bool:
+        """Whether MDBList takes part in a ratings update."""
+        return cls.get_bool('ratings_source_mdblist')
+
+    @classmethod
+    def ratings_source_omdb(cls) -> bool:
+        """Whether OMDb takes part in a ratings update."""
+        return cls.get_bool('ratings_source_omdb')
+
+    @classmethod
+    def ratings_source_trakt(cls) -> bool:
+        """Whether Trakt takes part in a ratings update."""
+        return cls.get_bool('ratings_source_trakt')
+
+    @classmethod
     def prefer_fanart_language(cls) -> bool:
         """Check if fanart language preference is enabled."""
         return cls.get_bool('prefer_fanart_language')

@@ -279,6 +279,30 @@
 					<control type="list" format="string" />
 				</setting>
 			</group>
+			<group id="3" label="32695">
+				<setting id="ratings_source_tmdb" type="boolean" label="32077">
+					<default>true</default>
+					<control type="toggle" />
+				</setting>
+				<setting id="ratings_source_mdblist" type="boolean" label="32050">
+					<default>true</default>
+					<control type="toggle" />
+					<dependencies>
+						<dependency type="enable" setting="mdblist_configured">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="ratings_source_omdb" type="boolean" label="32053">
+					<default>true</default>
+					<control type="toggle" />
+					<dependencies>
+						<dependency type="enable" setting="omdb_configured">true</dependency>
+					</dependencies>
+				</setting>
+				<setting id="ratings_source_trakt" type="boolean" label="32059">
+					<default>false</default>
+					<control type="toggle" />
+				</setting>
+			</group>
 			<group id="2" label="32135">
 				<setting id="imdb_auto_update" type="string" label="32136" help="32137">
 					<default>off</default>
