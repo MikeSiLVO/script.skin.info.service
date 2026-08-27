@@ -203,13 +203,17 @@ def _handle_reset_setting(args: dict) -> None:
 
 
 def _handle_update_library_ratings(args: dict) -> None:
+    from lib.infrastructure import tasks as task_manager
     from lib.rating.menu import initialize_sources
     from lib.rating.updater import update_library_ratings
     media_type = args.get('dbtype', 'movie').lower()
     if media_type not in ("movie", "tvshow", "episode"):
         media_type = "movie"
     use_background = args.get('background', 'true').lower() == 'true'
-    update_library_ratings(media_type, initialize_sources(), use_background=use_background)
+    if not task_manager.acquire_task_slot("Update Library Ratings", use_background):
+        return
+    update_library_ratings(
+        media_type, initialize_sources(), use_background=use_background)
 
 
 def _handle_sync_tvshows(_args: dict) -> None:

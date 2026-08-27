@@ -137,21 +137,13 @@ class ApiMdblist(RatingSource):
         ids: Dict[str, str],
         abort_flag=None,
         force_refresh: bool = False,
-        pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """Fetch ratings from MDBList (RatingSource interface).
+        """Fetch ratings from MDBList (RatingSource interface)."""
+        data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
+        if not data:
+            return None
 
-        force_refresh bypasses cache read but still writes to cache.
-        """
-        self.session.set_pause_context(pause_reporter, self.provider_name)
-        try:
-            data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
-            if not data:
-                return None
-
-            return self._extract_ratings(data, media_type)
-        finally:
-            self.session.clear_pause_context()
+        return self._extract_ratings(data, media_type)
 
     def _extract_ratings(self, data: dict, media_type: str) -> Dict[str, Dict[str, float]]:
         """Extract ratings from MDBList response. Converts 0-100 scores to 0-10 for Kodi."""

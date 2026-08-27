@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict
 
 from lib.data.database.rating import get_provider_cache, save_provider_cache
-from lib.data.api.client import PauseReporter
 
 
 class RatingSource(ABC):
@@ -21,7 +20,6 @@ class RatingSource(ABC):
         ids: Dict[str, str],
         abort_flag=None,
         force_refresh: bool = False,
-        pause_reporter: Optional[PauseReporter] = None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
         pass
 

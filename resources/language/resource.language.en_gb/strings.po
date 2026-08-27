@@ -924,6 +924,18 @@ msgctxt "#32320"
 msgid "IMDb ratings up to date"
 msgstr ""
 
+msgctxt "#32321"
+msgid "Issue fetching {0}, waiting to retry..."
+msgstr ""
+
+msgctxt "#32322"
+msgid "Fetching: {0}"
+msgstr ""
+
+msgctxt "#32323"
+msgid "Stopped: no sources reachable"
+msgstr ""
+
 msgctxt "#32330"
 msgid "Analyzing Textures"
 msgstr ""

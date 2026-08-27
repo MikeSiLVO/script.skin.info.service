@@ -20,6 +20,7 @@ HEARTBEAT_INTERVAL = 5
 STALE_TIMEOUT = 15
 STUCK_TIMEOUT = 60
 ABORT_POLL_INTERVAL = 1.0
+MAX_REQUEST_SECONDS = 8.0
 
 _lock = threading.RLock()
 # Window 10000 is the Kodi Home window; properties survive across script invocations.
@@ -52,7 +53,8 @@ class ShutdownAbortFlag:
     Lets `RunScript` work pass a flag down into the API layer without registering a task.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, max_request_seconds: Optional[float] = None) -> None:
+        self.max_request_seconds = max_request_seconds
         self._monitor = xbmc.Monitor()
         self._requested = False
 
@@ -72,8 +74,9 @@ class AbortFlag:
     `is_requested()` returns True only for the matching task (plus Kodi shutdown).
     """
 
-    def __init__(self, task_id: str) -> None:
+    def __init__(self, task_id: str, max_request_seconds: Optional[float] = None) -> None:
         self.task_id = task_id
+        self.max_request_seconds = max_request_seconds
         self._monitor = xbmc.Monitor()
         self._poll_lock = threading.Lock()
         self._last_poll = 0.0
@@ -117,10 +120,10 @@ class TaskContext:
     can distinguish "process alive but stalled" from "process dead".
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, max_request_seconds: Optional[float] = None) -> None:
         self.name = name
         task_id = str(uuid.uuid4())
-        self.abort_flag = AbortFlag(task_id)
+        self.abort_flag = AbortFlag(task_id, max_request_seconds=max_request_seconds)
         self._heartbeat_thread: Optional[threading.Thread] = None
         self._stop_heartbeat = threading.Event()
         self._progress_lock = threading.Lock()

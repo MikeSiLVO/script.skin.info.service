@@ -579,10 +579,13 @@ def get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
     return {}
 
 
-def build_external_ids(ids: Dict) -> Dict[str, str]:
+def build_external_ids(ids: Dict, media_type: str = "") -> Dict[str, str]:
     """Build the external_ids dict for database sync from a resolved ids dict."""
     external_ids: Dict[str, str] = {}
-    imdb_id = ids.get("imdb_episode") or ids.get("imdb")
+    if media_type == "episode":
+        imdb_id = ids.get("imdb_episode")
+    else:
+        imdb_id = ids.get("imdb_episode") or ids.get("imdb")
     if imdb_id:
         external_ids["imdb"] = str(imdb_id)
     tmdb_id = ids.get("tmdb")

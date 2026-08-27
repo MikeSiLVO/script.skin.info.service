@@ -9,6 +9,7 @@ import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import request, get_library_items, log, ADDON
+from lib.kodi.settings import KodiSettings
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
@@ -24,7 +25,9 @@ from lib.rating.imdb import (
     ensure_episode_dataset,
     prompt_imdb_corrections,
 )
-from lib.rating.batch import MdblistBatchFetcher, run_multi_source_batch
+from lib.rating.batch import (
+    MdblistBatchFetcher, TmdbSeasonFetcher, run_multi_source_batch,
+)
 from lib.rating.retry import prompt_and_process_retries
 
 
@@ -44,13 +47,15 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
 
     log("Ratings", f"Updating ratings for {len(episodes)} episodes", xbmc.LOGINFO)
 
-    abort_flag = task_manager.ShutdownAbortFlag()
+    abort_flag = task_manager.ShutdownAbortFlag(task_manager.MAX_REQUEST_SECONDS)
     updated_count = 0
     total = len(episodes)
     progress = ProgressDialog(heading=ADDON.getLocalizedString(32300))
     progress.create(ADDON.getLocalizedString(32402))
     try:
         for idx, episode in enumerate(episodes):
+            if usage_tracker.is_batch_cancelled():
+                break
             if progress.is_cancelled():
                 abort_flag.request()
                 break
@@ -147,34 +152,46 @@ def update_library_ratings(
                 log("Ratings", f"New IMDb dataset detected, starting fresh for {media_type}")
 
     mdblist_fetcher: MdblistBatchFetcher | None = None
-    if source_mode == "multi_source" and media_type in ("movie", "tvshow"):
+    if (source_mode == "multi_source" and media_type in ("movie", "tvshow")
+            and KodiSettings.ratings_source_mdblist()):
         mdblist_fetcher = MdblistBatchFetcher(items, media_type)
 
+    tmdb_fetcher: TmdbSeasonFetcher | None = None
     if media_type == "episode":
         ensure_episode_dataset(progress)
         prefetch_tvshow_uniqueids()
+        # built after the uniqueid prefetch, it maps shows to seasons from that cache
+        if source_mode == "multi_source" and KodiSettings.ratings_source_tmdb():
+            tmdb_fetcher = TmdbSeasonFetcher(items)
 
     monitor = xbmc.Monitor()
 
-    with task_manager.TaskContext("Update Library Ratings") as ctx:
-        if source_mode == "imdb":
-            run_imdb_batch(
-                media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids
-            )
-        else:
-            run_multi_source_batch(
-                media_type, items, sources, progress, results, retry_queue, ctx, mdblist_fetcher
-            )
+    try:
+        with task_manager.TaskContext(
+            "Update Library Ratings",
+            max_request_seconds=task_manager.MAX_REQUEST_SECONDS) as ctx:
+            if source_mode == "imdb":
+                run_imdb_batch(
+                    media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids
+                )
+            else:
+                run_multi_source_batch(
+                    media_type, items, sources, progress, results, retry_queue, ctx,
+                    mdblist_fetcher, tmdb_fetcher
+                )
+    finally:
+        if progress:
+            progress.close()
 
-    if progress:
-        progress.close()
-
-    if retry_queue and not use_background and not results.get("cancelled"):
+    # the user asked for this run, so the retry offer belongs at its end
+    if retry_queue and not results.get("cancelled") and not results.get("all_sources_down"):
         retry_count = prompt_and_process_retries(
             retry_queue, media_type, sources, source_mode
         )
         if retry_count > 0:
             results["retried"] = retry_count
+
+    results["pending_retries"] = sum(1 for entry in retry_queue if entry.missing_sources)
 
     elapsed_time = time.time() - start_time
     results["elapsed_time"] = elapsed_time
@@ -195,6 +212,9 @@ def update_library_ratings(
 
     if not use_background:
         cancelled_text = " (Cancelled)" if results.get("cancelled") else ""
+        stopped_text = (
+            f"\n{ADDON.getLocalizedString(32323)}" if results.get("all_sources_down") else ""
+        )
         imdb_ids_text = (
             f"\nIMDb IDs added: {results['imdb_ids_added']}"
             if results["imdb_ids_added"] > 0
@@ -208,9 +228,18 @@ def update_library_ratings(
         message = (
             f"Updated: {results['updated']}\n"
             f"Failed: {results['failed']}\n"
-            f"Skipped: {results['skipped']}{cancelled_text}{imdb_ids_text}{imdb_ids_corrected_text}"
+            f"Skipped: {results['skipped']}{cancelled_text}{stopped_text}"
+            f"{imdb_ids_text}{imdb_ids_corrected_text}"
         )
         show_ok(ADDON.getLocalizedString(32317), message)
+    elif results.get("all_sources_down"):
+        # a background run has no summary dialog, and stopping early otherwise looks like success
+        show_notification(
+            ADDON.getLocalizedString(32300),
+            ADDON.getLocalizedString(32323),
+            xbmcgui.NOTIFICATION_WARNING,
+            4000,
+        )
 
     xbmc.executebuiltin("Container.Refresh")
 

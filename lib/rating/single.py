@@ -67,7 +67,7 @@ def resolve_item_ids(item: Dict, media_type: str) -> Optional[Dict]:
             "tvdb": uniqueid.get("tvdb"),
         }
 
-    if not ids.get("tmdb") and not ids.get("imdb"):
+    if not ids.get("tmdb") and not ids.get("imdb") and not ids.get("imdb_episode"):
         return None
 
     return ids
@@ -156,7 +156,8 @@ def merge_and_apply_ratings(
         log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
     if not added_ratings and not updated_ratings:
-        db.update_synced_ratings(media_type, dbid, final_ratings, build_external_ids(ids))
+        db.update_synced_ratings(
+            media_type, dbid, final_ratings, build_external_ids(ids, media_type))
         return True, {
             "title": title, "year": year,
             "sources_used": sources_used, "ratings_added": 0, "ratings_updated": 0,
@@ -173,7 +174,8 @@ def merge_and_apply_ratings(
     response = request(method, {id_key: dbid, "ratings": kodi_ratings})
 
     if response is not None:
-        db.update_synced_ratings(media_type, dbid, final_ratings, build_external_ids(ids))
+        db.update_synced_ratings(
+            media_type, dbid, final_ratings, build_external_ids(ids, media_type))
 
     item_stats = {
         "title": title, "year": year,
@@ -221,6 +223,13 @@ def update_single_item(
 
     retryable_failures: list[dict] = []
 
+    if not sources:
+        return merge_and_apply_ratings(
+            media_type=media_type, dbid=dbid, title=title, year=year, ids=ids,
+            all_ratings=all_ratings, sources_used=sources_used,
+            existing_ratings=existing_ratings, retryable_failures=retryable_failures,
+        )
+
     MAX_TOTAL_WAIT = 30.0
     start_time = time.time()
 
@@ -250,9 +259,8 @@ def update_single_item(
                 break
 
             try:
-                done = set()
                 for future in as_completed(pending, timeout=1.0):
-                    done.add(future)
+                    pending.discard(future)
                     source = futures[future]
                     source_name = source.provider_name
 
@@ -283,8 +291,6 @@ def update_single_item(
                         retryable_failures.append({"source": source_name, "reason": e.reason})
                     except Exception as e:
                         log("Ratings", f"   {source_name}: Failed: {str(e)}", xbmc.LOGDEBUG)
-
-                pending -= done
 
             except FuturesTimeoutError:
                 continue

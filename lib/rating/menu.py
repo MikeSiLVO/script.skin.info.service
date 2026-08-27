@@ -6,11 +6,13 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import request, get_api_key, log, KODI_GET_DETAILS_METHODS, ADDON
+from lib.kodi.settings import KodiSettings
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource
 from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
 from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
 from lib.data.api.imdb import get_imdb_dataset
+from lib.data.api import tracker as usage_tracker
 from lib.infrastructure.dialogs import (
     show_ok, show_textviewer, show_notification, BackgroundNotice, ProgressDialog)
 from lib.infrastructure.menus import Menu, MenuItem
@@ -51,15 +53,16 @@ def _notify(message_id: int, level: str = xbmcgui.NOTIFICATION_INFO,
 
 
 def initialize_sources() -> List:
-    """Initialize available rating sources, in priority order (TMDB, then MDBList/OMDb if keyed,
-    then Trakt) for multi_source updates."""
+    """Enabled rating sources, in priority order."""
     sources = []
-    sources.append(TMDBRatingsSource())
-    if get_api_key("mdblist_api_key"):
+    if KodiSettings.ratings_source_tmdb():
+        sources.append(TMDBRatingsSource())
+    if get_api_key("mdblist_api_key") and KodiSettings.ratings_source_mdblist():
         sources.append(MDBListRatingsSource())
-    if get_api_key("omdb_api_key"):
+    if get_api_key("omdb_api_key") and KodiSettings.ratings_source_omdb():
         sources.append(OMDbRatingsSource())
-    sources.append(TraktRatingsSource())
+    if KodiSettings.ratings_source_trakt():
+        sources.append(TraktRatingsSource())
     return sources
 
 
@@ -83,12 +86,14 @@ def run_ratings_menu() -> None:
 
 def _run_update(media_type: str) -> None:
     """Run ratings update for a media type."""
-    _select_mode_and_run([media_type], initialize_sources(), "multi_source")
+    _select_mode_and_run(
+        [media_type], initialize_sources(), "multi_source")
 
 
 def _run_update_all() -> None:
     """Run ratings update for all media types."""
-    _select_mode_and_run(["movie", "tvshow", "episode"], initialize_sources(), "multi_source")
+    _select_mode_and_run(
+        ["movie", "tvshow", "episode"], initialize_sources(), "multi_source")
 
 
 def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str) -> None:
@@ -184,13 +189,15 @@ def _update_movieset_ratings(setid: int, sources: List) -> None:
         _notify(32401, xbmcgui.NOTIFICATION_WARNING, 3000, "Set")
         return
 
-    abort_flag = task_manager.ShutdownAbortFlag()
+    abort_flag = task_manager.ShutdownAbortFlag(task_manager.MAX_REQUEST_SECONDS)
     updated_titles: List[str] = []
     total = len(movies)
     progress = ProgressDialog(heading=ADDON.getLocalizedString(_RATINGS_HEADING_ID))
     progress.create(ADDON.getLocalizedString(32402))
     try:
         for idx, movie in enumerate(movies):
+            if usage_tracker.is_batch_cancelled():
+                break
             if progress.is_cancelled():
                 abort_flag.request()
                 break
@@ -277,6 +284,7 @@ def show_ratings_report() -> None:
     elapsed_time = stats.get('elapsed_time', 0)
     cancelled = stats.get('cancelled', False)
     source_stats = stats.get('source_stats', {})
+    pending_retries = stats.get('pending_retries', 0)
     item_details = stats.get('item_details', [])
     source_mode = stats.get('source_mode', 'multi_source')
 
@@ -316,6 +324,13 @@ def show_ratings_report() -> None:
             lines.append(f"{source_name.upper()}: {fetched} items fetched")
 
         lines.append("")
+
+    if pending_retries:
+        lines.extend([
+            "[B]Awaiting Retry[/B]",
+            f"Items with a missing source: {pending_retries}",
+            ""
+        ])
 
     total_ratings_added = stats.get('total_ratings_added', 0)
     total_ratings_updated = stats.get('total_ratings_updated', 0)

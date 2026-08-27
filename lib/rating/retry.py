@@ -2,30 +2,54 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 import xbmc
 import xbmcgui
 
 from lib.kodi.client import request, log, KODI_SET_DETAILS_METHODS, ADDON
 from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api.source import RatingSource
 from lib.data.database import workflow as db
+from lib.infrastructure.tasks import ShutdownAbortFlag, MAX_REQUEST_SECONDS
 from lib.infrastructure.dialogs import (
     show_textviewer, show_notification, show_yesnocustom, DialogProgress)
 from lib.rating.merger import merge_ratings, prepare_kodi_ratings
-from lib.rating.executor import RetryPoolEntry
+from lib.rating.executor import (
+    RetryPoolEntry, MAX_CONSECUTIVE_FAILURES, SHORT_HOLD,
+)
 from lib.rating.ids import build_external_ids
 from lib.rating.imdb import update_single_item_imdb
 
 
-def retry_targeted(entry: RetryPoolEntry, sources: List, paused_until: Dict[str, float],
-                   abort_flag=None) -> bool:
-    """Fetch only the missing sources for one entry; merge into Kodi.
+MAX_PAUSE_WAIT = SHORT_HOLD[1]
 
-    Skips sources still inside their `paused_until` window (set by prior 429s in
-    this retry pass). On 429, records a new pause and keeps the source in
-    missing_sources for a subsequent pass. Returns True iff all missing resolved.
-    """
+
+def _note_retry_failure(source_name: str, failures: Dict[str, int],
+                        refused: Set[str]) -> None:
+    """Count a source's consecutive retry failures, dropping it for the pass at the cap."""
+    hits = failures.get(source_name, 0) + 1
+    failures[source_name] = hits
+    if hits == MAX_CONSECUTIVE_FAILURES:
+        refused.add(source_name)
+        log("Ratings",
+            f"   {source_name}: {hits} retry failures in a row, dropped for this pass",
+            xbmc.LOGINFO)
+
+
+def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
+                   paused_until: Dict[str, float],
+                   abort_flag=None, is_cancelled=None,
+                   refused: Optional[Set[str]] = None,
+                   waited_for: Optional[Set[str]] = None,
+                   failures: Optional[Dict[str, int]] = None) -> bool:
+    """Fetch one entry's missing sources and merge into Kodi; True if all resolved."""
+    if refused is None:
+        refused = set()
+    if waited_for is None:
+        waited_for = set()
+    if failures is None:
+        failures = {}
     target_sources = [
         s for s in sources
         if s.provider_name in entry.missing_sources
@@ -36,31 +60,66 @@ def retry_targeted(entry: RetryPoolEntry, sources: List, paused_until: Dict[str,
     new_ratings: List[Dict] = []
     still_missing: Set[str] = set()
 
-    for source in target_sources:
+    for index, source in enumerate(target_sources):
         source_name = source.provider_name
 
-        if time.time() < paused_until.get(source_name, 0.0):
+        if source_name in refused:
             still_missing.add(source_name)
             continue
+
+        remaining = paused_until.get(source_name, 0.0) - time.time()
+        if remaining > 0:
+            if remaining > MAX_PAUSE_WAIT or (
+                    abort_flag and abort_flag.is_requested()):
+                still_missing.add(source_name)
+                continue
+            monitor = xbmc.Monitor()
+            waited = 0.0
+            interrupted = False
+            while waited < remaining:
+                if monitor.waitForAbort(1.0) or (abort_flag and abort_flag.is_requested()):
+                    interrupted = True
+                    break
+                if is_cancelled and is_cancelled():
+                    interrupted = True
+                    break
+                waited += 1.0
+            if interrupted:
+                still_missing.update(
+                    s.provider_name for s in target_sources[index:]
+                )
+                break
+
+            waited_for.add(source_name)
 
         try:
             result = source.fetch_ratings(entry.media_type, entry.ids, abort_flag)
         except RateLimitHit as e:
-            wait = e.retry_after_seconds if e.retry_after_seconds else 60.0
-            paused_until[source_name] = time.time() + wait
+            wait = e.retry_after_seconds
+            if wait:
+                paused_until[source_name] = time.time() + wait
+            if not wait or source_name in waited_for:
+                refused.add(source_name)
             still_missing.add(source_name)
-            log("Ratings", f"   {source_name}: 429 in retry, deferring {wait:.1f}s", xbmc.LOGDEBUG)
+            log("Ratings",
+                f"   {source_name}: 429 in retry, "
+                f"{f'deferring {wait:.1f}s' if wait else 'dropped for this pass'}",
+                xbmc.LOGDEBUG)
             continue
         except RetryableError as e:
             still_missing.add(source_name)
             seen = {f.get("source") for f in entry.failures}
             if source_name not in seen:
                 entry.failures.append({"source": source_name, "reason": e.reason})
+            _note_retry_failure(source_name, failures, refused)
             continue
         except Exception as e:
             log("Ratings", f"   {source_name}: Retry failed: {e}", xbmc.LOGDEBUG)
             still_missing.add(source_name)
+            _note_retry_failure(source_name, failures, refused)
             continue
+
+        failures[source_name] = 0
 
         if result:
             new_ratings.append(result)
@@ -97,7 +156,8 @@ def retry_targeted(entry: RetryPoolEntry, sources: List, paused_until: Dict[str,
         return False
 
     db.update_synced_ratings(
-        entry.media_type, entry.dbid, final_ratings, build_external_ids(entry.ids)
+        entry.media_type, entry.dbid, final_ratings,
+        build_external_ids(entry.ids, entry.media_type)
     )
     entry.applied_ratings = final_ratings
     entry.missing_sources = still_missing
@@ -172,6 +232,10 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
     success_count = 0
     total = len(retry_queue)
     paused_until: Dict[str, float] = {}
+    refused: Set[str] = set()
+    waited_for: Set[str] = set()
+    failures: Dict[str, int] = {}
+    abort_flag = ShutdownAbortFlag(MAX_REQUEST_SECONDS)
 
     for i, entry in enumerate(retry_queue):
         if progress.iscanceled():
@@ -186,7 +250,10 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
         if source_mode == "imdb":
             success, _ = update_single_item_imdb(entry.item, media_type)
         else:
-            success = retry_targeted(entry, sources, paused_until)
+            success = retry_targeted(
+                entry, sources, paused_until, abort_flag=abort_flag,
+                is_cancelled=progress.iscanceled, refused=refused,
+                waited_for=waited_for, failures=failures)
 
         if success:
             success_count += 1

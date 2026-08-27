@@ -39,9 +39,10 @@ class ApiTrakt(RatingSource):
         self.session = ApiSession(
             service_name="Trakt",
             base_url=self.BASE_URL,
-            timeout=(5.0, 10.0),
+            timeout=(3.0, 3.0),
             max_retries=2,
             backoff_factor=1.0,
+            rate_limit=(3, 1.0),
             default_headers={
                 "Content-Type": "application/json",
                 "trakt-api-key": TRAKT_CLIENT_ID,
@@ -159,7 +160,7 @@ class ApiTrakt(RatingSource):
                 return cached
 
         try:
-            headers = self._auth_headers(abort_flag)
+            headers: Dict[str, str] = {}
 
             if trakt_id:
                 if media_type == "episode":
@@ -285,18 +286,13 @@ class ApiTrakt(RatingSource):
         ids: Dict[str, str],
         abort_flag=None,
         force_refresh: bool = False,
-        pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """Fetch ratings from Trakt (RatingSource interface)."""
-        self.session.set_pause_context(pause_reporter, self.provider_name)
-        try:
-            data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
-            if not data:
-                return None
+        data = self.fetch_data(media_type, ids, abort_flag, force_refresh=force_refresh)
+        if not data:
+            return None
 
-            return self._extract_ratings(data)
-        finally:
-            self.session.clear_pause_context()
+        return self._extract_ratings(data)
 
     def _extract_ratings(self, data: dict) -> Optional[Dict[str, Dict[str, float]]]:
         """Extract ratings dict from full Trakt response."""

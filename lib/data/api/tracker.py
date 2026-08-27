@@ -9,6 +9,13 @@ from lib.infrastructure.dialogs import DialogProgress
 
 
 _session_skip_providers = set()
+_session_batch_cancelled = False
+
+
+def _cancel_batch() -> None:
+    """Mark this run cancelled so item loops stop instead of re-prompting."""
+    global _session_batch_cancelled
+    _session_batch_cancelled = True
 
 
 def handle_rate_limit_error(provider: str) -> str:
@@ -36,27 +43,37 @@ def handle_rate_limit_error(provider: str) -> str:
         for i in range(60):
             if progress.iscanceled() or monitor.abortRequested():
                 progress.close()
+                _cancel_batch()
                 return "cancel_batch"
             progress.update(int((i / 60) * 100), ADDON.getLocalizedString(32315).format(60 - i))
             monitor.waitForAbort(1)
         progress.close()
         return "retry"
     elif choice == 1:
+        _cancel_batch()
         return "cancel_batch"
     elif choice == 2:
         return "cancel_all"
     elif choice == 3:
-        _session_skip_providers.add(provider)
+        _session_skip_providers.add(provider.lower())
         return "skip"
 
+    _cancel_batch()
     return "cancel_batch"
+
+
+def is_batch_cancelled() -> bool:
+    """True once the user chose to stop this run at a rate-limit prompt."""
+    return _session_batch_cancelled
 
 
 def is_provider_skipped(provider: str) -> bool:
     """Check if provider is skipped for this session."""
-    return provider in _session_skip_providers
+    return provider.lower() in _session_skip_providers
 
 
 def reset_session_skip() -> None:
     """Clear session skip flags."""
+    global _session_batch_cancelled
+    _session_batch_cancelled = False
     _session_skip_providers.clear()

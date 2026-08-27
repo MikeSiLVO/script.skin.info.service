@@ -81,24 +81,19 @@ class ApiOmdb(RatingSource):
         ids: Dict[str, str],
         abort_flag=None,
         force_refresh: bool = False,
-        pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """Fetch ratings from OMDb (RatingSource interface). ids must contain 'imdb'."""
+        """Fetch ratings from OMDb (RatingSource interface); needs an IMDb id."""
         if media_type == "episode":
             return None
         imdb_id = ids.get("imdb")
         if not imdb_id:
             return None
 
-        self.session.set_pause_context(pause_reporter, self.provider_name)
-        try:
-            data = self.fetch_data(imdb_id, abort_flag, force_refresh=force_refresh)
-            if not data:
-                return None
+        data = self.fetch_data(imdb_id, abort_flag, force_refresh=force_refresh)
+        if not data:
+            return None
 
-            return self._extract_ratings(data)
-        finally:
-            self.session.clear_pause_context()
+        return self._extract_ratings(data)
 
     def get_awards(self, imdb_id: str, abort_flag=None) -> Optional[dict]:
         """Extract awards data from OMDb (fetches if not cached)."""

@@ -10,6 +10,7 @@ import xbmc
 from typing import Optional, Dict, List
 
 from lib.data.api.client import ApiSession
+from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api.utilities import tmdb_image_url, is_valid_tmdb_id, decode_key
 from lib.kodi.client import log
 from lib.data.api.source import RatingSource
@@ -147,6 +148,7 @@ class ApiTmdb(RatingSource):
     BASE_URL = "https://api.themoviedb.org/3"
 
     API_KEY = decode_key("MDE0MmEyMmM1NjBjZTNlZmIxY2ZkNmYzYjJmYWFiNzc=")
+    MAX_APPEND_SEASONS = 20
 
     def __init__(self):
         super().__init__("tmdb")
@@ -256,10 +258,8 @@ class ApiTmdb(RatingSource):
         ids: Dict[str, str],
         abort_flag=None,
         force_refresh: bool = False,
-        pause_reporter=None,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """Fetch ratings from TMDB via get_complete_data; one API call returns everything
-        needed."""
+        """Fetch ratings from TMDB via get_complete_data."""
         if abort_flag and abort_flag.is_requested():
             return None
 
@@ -270,7 +270,9 @@ class ApiTmdb(RatingSource):
         if not is_valid_tmdb_id(tmdb_id_str):
             return None
 
-        self.session.set_pause_context(pause_reporter, self.provider_name)
+        if media_type == "episode":
+            return self._episode_ratings(int(tmdb_id_str), ids)
+
         try:
             complete_data = self.get_complete_data(
                 media_type, int(tmdb_id_str), abort_flag=abort_flag, force_refresh=force_refresh
@@ -296,11 +298,11 @@ class ApiTmdb(RatingSource):
 
             return result
 
+        except (RateLimitHit, RetryableError):
+            raise
         except Exception as e:
             log("Ratings", f"TMDB fetch error: {str(e)}", xbmc.LOGWARNING)
             return None
-        finally:
-            self.session.clear_pause_context()
 
     def test_connection(self) -> bool:
         """Test TMDB API connection."""
@@ -414,6 +416,57 @@ class ApiTmdb(RatingSource):
         self._cache_components(media_type, tmdb_id, data, release_date, hints)
 
         return data
+
+    @staticmethod
+    def _episode_rating_key(tmdb_id, season, episode) -> str:
+        """Provider-cache key for one episode's TMDB rating."""
+        return f"{tmdb_id}_s{season}e{episode}"
+
+    def _episode_ratings(self, tmdb_id: int, ids: Dict[str, str]) -> Optional[Dict]:
+        """Episode rating from cache; `prefetch_episode_ratings` is what fills it."""
+        season, episode = ids.get("season"), ids.get("episode")
+        if not season or not episode:
+            return None
+
+        cached = self.get_cached_data(self._episode_rating_key(tmdb_id, season, episode))
+        if not cached:
+            return None
+
+        return {
+            "tmdb": {"rating": cached["rating"], "votes": cached["votes"]},
+            "_source": "tmdb",
+        }
+
+    def prefetch_episode_ratings(self, tmdb_id: int, seasons: List[int], abort_flag=None) -> int:
+        """Cache every episode rating for these seasons, MAX_APPEND_SEASONS per call."""
+        stored = 0
+        ordered = sorted(seasons)
+        for start in range(0, len(ordered), self.MAX_APPEND_SEASONS):
+            if abort_flag and abort_flag.is_requested():
+                break
+            chunk = ordered[start:start + self.MAX_APPEND_SEASONS]
+            data = self._fetch_details_extended(
+                f"/tv/{tmdb_id}",
+                ",".join(f"season/{n}" for n in chunk),
+                abort_flag=abort_flag,
+            )
+            if not data:
+                continue
+            for number in chunk:
+                season = data.get(f"season/{number}")
+                if not isinstance(season, dict):
+                    continue
+                for ep in season.get("episodes") or []:
+                    rating, votes = ep.get("vote_average"), ep.get("vote_count")
+                    if rating is None or not votes:
+                        continue
+                    self.cache_data(
+                        self._episode_rating_key(tmdb_id, number, ep.get("episode_number")),
+                        {"rating": float(rating), "votes": float(votes)},
+                        ep.get("air_date") or None,
+                    )
+                    stored += 1
+        return stored
 
     def _extract_release_date(self, data: dict, media_type: str) -> Optional[str]:
         """Extract appropriate date field from TMDb response."""
