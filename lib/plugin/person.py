@@ -71,6 +71,7 @@ def _handle_person_details(handle: int, person_data: dict) -> None:
         item.setProperty(key, value)
 
     xbmcplugin.addDirectoryItem(handle, '', item, False)
+    xbmcplugin.setContent(handle, 'actors')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
