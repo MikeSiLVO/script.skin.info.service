@@ -42,7 +42,7 @@ class ApiTrakt(RatingSource):
             timeout=(3.0, 3.0),
             max_retries=2,
             backoff_factor=1.0,
-            rate_limit=(3, 1.0),
+            rate_limit=(3, 2.0),
             default_headers={
                 "Content-Type": "application/json",
                 "trakt-api-key": TRAKT_CLIENT_ID,
