@@ -428,7 +428,8 @@ class ApiTmdb(RatingSource):
         if not season or not episode:
             return None
 
-        cached = self.get_cached_data(self._episode_rating_key(tmdb_id, season, episode))
+        cached = self.get_cached_data(
+            "episode", self._episode_rating_key(tmdb_id, season, episode))
         if not cached:
             return None
 
@@ -461,6 +462,7 @@ class ApiTmdb(RatingSource):
                     if rating is None or not votes:
                         continue
                     self.cache_data(
+                        "episode",
                         self._episode_rating_key(tmdb_id, number, ep.get("episode_number")),
                         {"rating": float(rating), "votes": float(votes)},
                         ep.get("air_date") or None,

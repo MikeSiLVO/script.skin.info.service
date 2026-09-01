@@ -15,13 +15,13 @@ from lib.data.database.mapping import get_tmdb_id_by_imdb
 _RELEASE_DATE_HINT_KEY = "_release_date"
 
 
-def get_provider_cache(provider: str, media_id: str) -> Optional[dict]:
+def get_provider_cache(provider: str, media_type: str, media_id: str) -> Optional[dict]:
     """Get cached provider data if not expired based on smart TTL."""
     with get_db() as cursor:
         cursor.execute(
             "SELECT data, release_date, cached_at FROM provider_cache "
-            "WHERE provider = ? AND media_id = ?",
-            (provider, media_id)
+            "WHERE provider = ? AND media_type = ? AND media_id = ?",
+            (provider, media_type, media_id)
         )
         row = cursor.fetchone()
         if not row:
@@ -70,21 +70,22 @@ def _get_provider_ttl_hints(media_id: str) -> Optional[dict]:
     return None
 
 
-def cached_provider_keys(provider: str) -> Set[str]:
+def cached_provider_keys(provider: str, media_type: str) -> Set[str]:
     """Every cache key held for a provider, for callers sizing work across a whole library."""
     with get_db() as cursor:
         cursor.execute(
-            "SELECT media_id FROM provider_cache WHERE provider = ?", (provider,))
+            "SELECT media_id FROM provider_cache WHERE provider = ? AND media_type = ?",
+            (provider, media_type))
         return {row["media_id"] for row in cursor.fetchall()}
 
 
-def save_provider_cache(provider: str, media_id: str, data: dict,
+def save_provider_cache(provider: str, media_type: str, media_id: str, data: dict,
                         release_date: Optional[str] = None) -> None:
     """Upsert a compressed provider response into `provider_cache`."""
     with get_db() as cursor:
         cursor.execute(
-            "\n            INSERT OR REPLACE INTO provider_cache "
-            "(provider, media_id, data, release_date, cached_at)\n"
-            "            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)\n            ",
-            (provider, media_id, _compress_data(data), release_date)
+            "INSERT OR REPLACE INTO provider_cache "
+            "(provider, media_type, media_id, data, release_date, cached_at) "
+            "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (provider, media_type, media_id, _compress_data(data), release_date)
         )

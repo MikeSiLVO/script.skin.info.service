@@ -28,7 +28,7 @@ from lib.rating.single import (
 
 def count_trakt_requests(media_type: str, items: List[Dict]) -> int:
     """Requests a Trakt pass would make; an episode season costs one call, not one per episode."""
-    cached = cached_provider_keys("trakt")
+    cached = cached_provider_keys("trakt", media_type)
 
     if media_type == "episode":
         seasons: Set[Tuple[str, int]] = set()

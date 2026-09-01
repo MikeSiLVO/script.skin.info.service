@@ -111,7 +111,7 @@ class ApiMdblist(RatingSource):
         cache_key = self._get_cache_key(provider, str(media_id))
 
         if not force_refresh:
-            cached = self.get_cached_data(cache_key)
+            cached = self.get_cached_data(media_type, cache_key)
             if cached:
                 return cached
 
@@ -125,7 +125,7 @@ class ApiMdblist(RatingSource):
             result_id = str(ids_obj.get(provider, ""))
 
             if result_id == str(media_id):
-                self.cache_data(cache_key, item_data)
+                self.cache_data(media_type, cache_key, item_data)
                 return item_data
 
         return None
@@ -144,7 +144,7 @@ class ApiMdblist(RatingSource):
                 return None
             cache_key = self._get_cache_key("imdb", str(media_id))
 
-        return self.get_cached_data(cache_key)
+        return self.get_cached_data(media_type, cache_key)
 
     def fetch_ratings(
         self,
@@ -377,7 +377,7 @@ class ApiMdblist(RatingSource):
                     continue
 
                 cache_key = self._get_cache_key(provider, str(item_id))
-                cached = self.get_cached_data(cache_key)
+                cached = self.get_cached_data(media_type, cache_key)
                 if cached:
                     results[str(item_id)] = cached
                 else:
@@ -395,7 +395,7 @@ class ApiMdblist(RatingSource):
                     item_id = str(ids_obj.get(provider, ""))
 
                     if item_id and item_id in id_map:
-                        self.cache_data(id_map[item_id], item_data)
+                        self.cache_data(media_type, id_map[item_id], item_data)
                         results[item_id] = item_data
 
                 fetched_count = len([r for r in ids_to_fetch if r in results])

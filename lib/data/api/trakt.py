@@ -155,7 +155,7 @@ class ApiTrakt(RatingSource):
 
         cache_key = self._get_cache_key(media_type, ids)
         if not force_refresh:
-            cached = self.get_cached_data(cache_key)
+            cached = self.get_cached_data(media_type, cache_key)
             if cached:
                 return cached
 
@@ -200,7 +200,7 @@ class ApiTrakt(RatingSource):
                 data = raw[0].get(search_type)
 
             if data:
-                self.cache_data(cache_key, data)
+                self.cache_data(media_type, cache_key, data)
 
             return data
 
@@ -234,7 +234,7 @@ class ApiTrakt(RatingSource):
         season_key = f"{trakt_id}_s{season}"
         with self._get_season_lock(season_key):
             if not (force_refresh and season_key not in self._refreshed_seasons):
-                cached = self.get_cached_data(cache_key)
+                cached = self.get_cached_data("episode", cache_key)
                 if cached:
                     return cached
 
@@ -259,12 +259,12 @@ class ApiTrakt(RatingSource):
                     "season": str(season),
                     "episode": str(ep_num),
                 })
-                self.cache_data(ep_key, ep)
+                self.cache_data("episode", ep_key, ep)
 
             self._refreshed_seasons.add(season_key)
             log("Trakt", f"Fetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
 
-        return self.get_cached_data(cache_key)
+        return self.get_cached_data("episode", cache_key)
 
     def _get_cache_key(self, media_type: str, ids: Dict[str, str]) -> str:
         """Generate cache key for Trakt data."""
@@ -278,7 +278,7 @@ class ApiTrakt(RatingSource):
     def get_trakt_data(self, media_type: str, ids: Dict[str, str]) -> Optional[dict]:
         """Return the full cached Trakt response, or None if not cached."""
         cache_key = self._get_cache_key(media_type, ids)
-        return self.get_cached_data(cache_key)
+        return self.get_cached_data(media_type, cache_key)
 
     def fetch_ratings(
         self,

@@ -31,7 +31,7 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
 
     try:
         omdb = ApiOmdb()
-        awards_data = omdb.get_awards(imdb_id, abort_flag=abort_flag)
+        awards_data = omdb.get_awards(media_type, imdb_id, abort_flag=abort_flag)
         if awards_data:
             props["Awards.Oscar.Wins"] = str(awards_data.get("oscar_wins", 0))
             props["Awards.Oscar.Nominations"] = str(awards_data.get("oscar_nominations", 0))

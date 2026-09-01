@@ -32,8 +32,9 @@ class RatingSource(ABC):
             return round(float(value), 1)
         return round(float(value) / float(scale_max) * 10.0, 1)
 
-    def get_cached_data(self, media_id: str) -> Optional[dict]:
-        return get_provider_cache(self.provider_name, media_id)
+    def get_cached_data(self, media_type: str, media_id: str) -> Optional[dict]:
+        return get_provider_cache(self.provider_name, media_type, media_id)
 
-    def cache_data(self, media_id: str, data: dict, release_date: Optional[str] = None) -> None:
-        save_provider_cache(self.provider_name, media_id, data, release_date)
+    def cache_data(self, media_type: str, media_id: str, data: dict,
+                   release_date: Optional[str] = None) -> None:
+        save_provider_cache(self.provider_name, media_type, media_id, data, release_date)

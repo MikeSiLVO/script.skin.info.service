@@ -15,7 +15,7 @@ from typing import Any, Generator
 from lib.kodi.client import log
 
 DB_VERSION = 4
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def compress_data(data: Any) -> bytes:
@@ -123,6 +123,19 @@ def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
         raise
     finally:
         conn.close()
+
+
+_PROVIDER_CACHE_SCHEMA = '''
+    CREATE TABLE IF NOT EXISTS provider_cache (
+        provider TEXT NOT NULL,
+        media_type TEXT NOT NULL,
+        media_id TEXT NOT NULL,
+        data BLOB NOT NULL,
+        release_date TEXT,
+        cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (provider, media_type, media_id)
+    )
+'''
 
 
 def _create_base_schema(cursor: sqlite3.Cursor) -> None:
@@ -327,16 +340,7 @@ def _create_base_schema(cursor: sqlite3.Cursor) -> None:
         'ON operation_history(operation, timestamp DESC)'
     )
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS provider_cache (
-            provider TEXT NOT NULL,
-            media_id TEXT NOT NULL,
-            data BLOB NOT NULL,
-            release_date TEXT,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (provider, media_id)
-        )
-    ''')
+    cursor.execute(_PROVIDER_CACHE_SCHEMA)
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS id_corrections (
@@ -576,6 +580,16 @@ def _migrate_schema(cursor: sqlite3.Cursor) -> None:
     if version < 2:
         if _add_column(cursor, 'slideshow_pool', 'artist', 'TEXT'):
             log("Database", "Schema migration 2: added slideshow_pool.artist", xbmc.LOGINFO)
+
+    if version < 3:
+        # TMDB ids repeat across media types, so the key needs all three parts
+        cursor.execute('DROP TABLE IF EXISTS provider_cache')
+        cursor.execute(_PROVIDER_CACHE_SCHEMA)
+        cursor.execute(
+            'CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)'
+        )
+        log("Database", "Schema migration 3: rebuilt provider_cache with media_type",
+            xbmc.LOGINFO)
 
     cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
 
