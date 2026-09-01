@@ -348,7 +348,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
 
     if missing_imdb_episodes and not progress.iscanceled():
         total_imdb_fixed += _fix_missing_episode_ids(
-            missing_imdb_episodes, user_show_ids, progress
+            missing_imdb_episodes, user_show_ids, progress, len(episodes)
         )
 
     progress.close()
@@ -451,7 +451,7 @@ def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
 
 
 def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
-                             progress: xbmcgui.DialogProgress) -> int:
+                             progress: xbmcgui.DialogProgress, library_ep_count: int) -> int:
     """Fill episode IMDb IDs via IMDb dataset bulk lookup, then per-episode TMDB fallback."""
     progress.update(0, ADDON.getLocalizedString(32354))
 
@@ -459,7 +459,8 @@ def _fix_missing_episode_ids(episodes: List[Dict], user_show_ids: Set[str],
         progress.update(50, status)
 
     dataset = get_imdb_dataset()
-    result = dataset.refresh_episode_dataset(user_show_ids, progress_callback=progress_callback)
+    result = dataset.refresh_episode_dataset(user_show_ids, library_ep_count,
+                                             progress_callback=progress_callback)
 
     fixed = 0
     unmatched: List[Dict] = []

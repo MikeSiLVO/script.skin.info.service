@@ -229,7 +229,7 @@ class ApiImdbDataset:
     def refresh_episode_dataset(
         self,
         user_show_ids: set[str],
-        library_episode_count: int = 0,
+        library_episode_count: Optional[int] = None,
         progress_callback=None,
         abort_flag=None
     ) -> int:

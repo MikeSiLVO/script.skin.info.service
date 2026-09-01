@@ -160,22 +160,20 @@ def save_meta(
     entry_count: int = 0,
     library_episode_count: Optional[int] = None
 ) -> None:
-    """Upsert dataset metadata (last-modified, downloaded-at, counts)."""
+    """Upsert dataset metadata; an omitted library count keeps the stored one."""
     with get_db() as cursor:
-        if library_episode_count is not None:
+        if library_episode_count is None:
             cursor.execute(
-                """INSERT OR REPLACE INTO imdb_meta
-                   (dataset, last_modified, downloaded_at, entry_count, library_episode_count)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (dataset, last_mod, datetime.now().isoformat(), entry_count, library_episode_count)
-            )
-        else:
-            cursor.execute(
-                """INSERT OR REPLACE INTO imdb_meta
-                   (dataset, last_modified, downloaded_at, entry_count)
-                   VALUES (?, ?, ?, ?)""",
-                (dataset, last_mod, datetime.now().isoformat(), entry_count)
-            )
+                "SELECT library_episode_count FROM imdb_meta WHERE dataset = ?", (dataset,))
+            row = cursor.fetchone()
+            library_episode_count = (row["library_episode_count"] if row else 0) or 0
+
+        cursor.execute(
+            """INSERT OR REPLACE INTO imdb_meta
+               (dataset, last_modified, downloaded_at, entry_count, library_episode_count)
+               VALUES (?, ?, ?, ?, ?)""",
+            (dataset, last_mod, datetime.now().isoformat(), entry_count, library_episode_count)
+        )
 
 
 def get_episode_meta() -> Tuple[Optional[str], int]:
