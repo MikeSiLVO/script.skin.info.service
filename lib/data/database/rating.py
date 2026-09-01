@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Set
 
 from lib.data.database._infrastructure import (
     get_db,
@@ -68,6 +68,14 @@ def _get_provider_ttl_hints(media_id: str) -> Optional[dict]:
             hints[_RELEASE_DATE_HINT_KEY] = release
         return hints
     return None
+
+
+def cached_provider_keys(provider: str) -> Set[str]:
+    """Every cache key held for a provider, for callers sizing work across a whole library."""
+    with get_db() as cursor:
+        cursor.execute(
+            "SELECT media_id FROM provider_cache WHERE provider = ?", (provider,))
+        return {row["media_id"] for row in cursor.fetchall()}
 
 
 def save_provider_cache(provider: str, media_id: str, data: dict,

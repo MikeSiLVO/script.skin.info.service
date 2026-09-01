@@ -14,6 +14,7 @@ from lib.data.api.mdblist import (
     BATCH_SIZE as MDBLIST_BATCH_SIZE,
 )
 from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.database.rating import cached_provider_keys
 from lib.rating.executor import (
     RatingBatchExecutor, ItemState, RetryPoolEntry, MAX_SOURCE_BACKLOG,
 )
@@ -23,6 +24,29 @@ from lib.rating.single import (
     get_imdb_dataset_rating,
     merge_and_apply_ratings,
 )
+
+
+def count_trakt_requests(media_type: str, items: List[Dict]) -> int:
+    """Requests a Trakt pass would make; an episode season costs one call, not one per episode."""
+    cached = cached_provider_keys("trakt")
+
+    if media_type == "episode":
+        seasons: Set[Tuple[str, int]] = set()
+        for item in items:
+            show_imdb = (get_tvshow_uniqueid(item.get("tvshowid", 0)) or {}).get("imdb")
+            season = item.get("season")
+            if not show_imdb or season is None:
+                continue
+            if f"{show_imdb}_s{season}e{item.get('episode')}" not in cached:
+                seasons.add((show_imdb, int(season)))
+        return len(seasons)
+
+    pending = 0
+    for item in items:
+        imdb_id = item.get("uniqueid", {}).get("imdb")
+        if imdb_id and imdb_id not in cached:
+            pending += 1
+    return pending
 
 
 def normalize_existing_ratings(existing_ratings: Dict) -> Dict[str, Dict[str, float]]:

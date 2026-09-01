@@ -1,7 +1,7 @@
 """Ratings updater orchestrator: full-library update, per-show update, batch coordination."""
 from __future__ import annotations
 
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 import time
 
 import xbmc
@@ -13,7 +13,9 @@ from lib.kodi.settings import KodiSettings
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
-from lib.infrastructure.dialogs import show_ok, show_notification, ProgressDialog, DialogProgress
+from lib.infrastructure.dialogs import (
+    show_ok, show_notification, show_yesnocustom, ProgressDialog, DialogProgress,
+)
 from lib.rating.executor import RetryPoolEntry
 from lib.rating.ids import (
     clear_tvshow_uniqueid_cache,
@@ -26,7 +28,7 @@ from lib.rating.imdb import (
     prompt_imdb_corrections,
 )
 from lib.rating.batch import (
-    MdblistBatchFetcher, TmdbSeasonFetcher, run_multi_source_batch,
+    MdblistBatchFetcher, TmdbSeasonFetcher, count_trakt_requests, run_multi_source_batch,
 )
 from lib.rating.retry import prompt_and_process_retries
 
@@ -70,6 +72,46 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
     return updated_count
 
 
+# one full Trakt rate-limit window
+TRAKT_PROMPT_THRESHOLD = 500
+
+
+def _confirm_trakt(media_type: str, items: List[Dict], sources: List) -> Optional[List]:
+    """Offer to drop Trakt when a run would outgrow one rate-limit window; None means cancel."""
+    trakt = next((s for s in sources if s.provider_name == "trakt"), None)
+    if trakt is None:
+        return sources
+
+    if media_type == "episode":
+        prefetch_tvshow_uniqueids()
+
+    pending = count_trakt_requests(media_type, items)
+    if pending <= TRAKT_PROMPT_THRESHOLD:
+        return sources
+
+    counted = {"episode": 32325, "tvshow": 32326}.get(media_type, 32324)
+    message = "\n".join([
+        ADDON.getLocalizedString(counted).format(f"{pending:,}"),
+        ADDON.getLocalizedString(32327),
+        "",
+        ADDON.getLocalizedString(32328),
+    ])
+    choice = show_yesnocustom(
+        ADDON.getLocalizedString(32300),
+        message,
+        customlabel=xbmc.getLocalizedString(222),
+        nolabel=ADDON.getLocalizedString(32128),
+        yeslabel=ADDON.getLocalizedString(32329),
+    )
+
+    if choice == 1:
+        return sources
+    if choice == 0:
+        log("Ratings", f"Trakt skipped for this run ({pending:,} requests)", xbmc.LOGINFO)
+        return [s for s in sources if s is not trakt]
+    return None
+
+
 def update_library_ratings(
     media_type: str,
     sources: List,
@@ -106,6 +148,14 @@ def update_library_ratings(
             3000
         )
         return {"updated": 0, "failed": 0, "skipped": 0}
+
+    if source_mode == "multi_source" and not use_background:
+        confirmed = _confirm_trakt(media_type, items, sources)
+        if confirmed is None:
+            if progress:
+                progress.close()
+            return {"updated": 0, "failed": 0, "skipped": 0, "cancelled": True}
+        sources = confirmed
 
     if isinstance(progress, xbmcgui.DialogProgressBG):
         progress.update(0, heading, ADDON.getLocalizedString(32304).format(len(items), media_type))

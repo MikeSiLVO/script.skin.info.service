@@ -936,6 +936,30 @@ msgctxt "#32323"
 msgid "Stopped: no sources reachable"
 msgstr ""
 
+msgctxt "#32324"
+msgid "Trakt will fetch {0} movies."
+msgstr ""
+
+msgctxt "#32325"
+msgid "Trakt will fetch {0} seasons."
+msgstr ""
+
+msgctxt "#32326"
+msgid "Trakt will fetch {0} shows."
+msgstr ""
+
+msgctxt "#32327"
+msgid "Trakt allows 500 requests every 5 minutes."
+msgstr ""
+
+msgctxt "#32328"
+msgid "Include Trakt in this update?"
+msgstr ""
+
+msgctxt "#32329"
+msgid "Include"
+msgstr ""
+
 msgctxt "#32330"
 msgid "Analyzing Textures"
 msgstr ""
