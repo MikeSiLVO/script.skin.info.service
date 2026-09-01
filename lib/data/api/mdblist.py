@@ -13,6 +13,18 @@ from lib.kodi.formatters import RATING_SOURCE_NORMALIZE, RT_SOURCE_TOMATOES, RT_
 
 
 BATCH_SIZE = 100
+RT_KEYWORDS = frozenset({"certified-fresh", "certified-hot", "fresh", "rotten"})
+
+
+def _keep_rt_keywords(item: dict) -> None:
+    """Strip the keyword list to the RT flags, the rest is bulk nothing reads."""
+    keywords = item.get("keywords")
+    if not isinstance(keywords, list):
+        return
+    item["keywords"] = [
+        k for k in keywords
+        if isinstance(k, dict) and k.get("name", "").lower() in RT_KEYWORDS
+    ]
 
 
 class ApiMdblist(RatingSource):
@@ -60,12 +72,15 @@ class ApiMdblist(RatingSource):
 
         data = self.session.post(
             endpoint,
-            json_data={"ids": ids},
+            json_data={"ids": ids, "append_to_response": ["keyword"]},
             params={"apikey": self.api_key},
             abort_flag=abort_flag
         )
 
         if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    _keep_rt_keywords(item)
             return data
         return []
 
