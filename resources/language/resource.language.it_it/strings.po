@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-08-18 05:51+0000\n"
-"Last-Translator: Automatic translation add-on <noreply-addon-autotranslate@weblate.org>\n"
+"PO-Revision-Date: 2026-08-21 10:16+0000\n"
+"Last-Translator: Massimo Pissarello <mapi68@gmail.com>\n"
 "Language-Team: Italian <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/it_it/>\n"
 "Language: it_it\n"
 "MIME-Version: 1.0\n"
@@ -27,7 +27,7 @@ msgstr "Immagini animate"
 
 msgctxt "#32001"
 msgid "Key was not saved, please try again"
-msgstr ""
+msgstr "Chiave non salvata, riprova"
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
@@ -40,6 +40,11 @@ msgstr "Elenco separato da virgole di pattern per i nomi dei file gif. Corrispon
 msgctxt "#32004"
 msgid "Artwork"
 msgstr "Artwork"
+
+#. Error shown when an edited rating is not a number in range; 7.3 is an example value
+msgctxt "#32005"
+msgid "Rating must be a number from 0 to 10, such as 7.3"
+msgstr ""
 
 #. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
@@ -90,6 +95,11 @@ msgctxt "#32017"
 msgid "{0} episodes"
 msgstr "{0} episodi"
 
+#. Error shown when an edited year falls outside the accepted range
+msgctxt "#32018"
+msgid "Year must be between 1800 and 2100"
+msgstr ""
+
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
 msgstr "Aggiungi l'opzione 'Scarica' agli artwork mancanti e alla pre-cache"
@@ -97,6 +107,11 @@ msgstr "Aggiungi l'opzione 'Scarica' agli artwork mancanti e alla pre-cache"
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
 msgstr "Mostra opzioni di menu aggiuntive per scaricare l'artwork sul filesystem durante la revisione e le operazioni di pre-cache"
+
+#. Error shown when an edited runtime is not a whole number of minutes in range
+msgctxt "#32021"
+msgid "Runtime must be 0 to 10080 minutes"
+msgstr ""
 
 msgctxt "#32022"
 msgid "When File Already Exists"
@@ -113,6 +128,11 @@ msgstr "Salta (non scaricare)"
 msgctxt "#32025"
 msgid "Overwrite existing file"
 msgstr "Sovrascrivi il file esistente"
+
+#. Error shown when an edited Top 250 position falls outside the accepted range
+msgctxt "#32026"
+msgid "Top 250 must be 0-250"
+msgstr ""
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
@@ -141,6 +161,11 @@ msgstr "Elaborazione annullata"
 msgctxt "#32033"
 msgid "Art Fetcher - Cancelled"
 msgstr "Recupero artwork - Annullato"
+
+#. Error shown when an edited duration is not a MM:SS time
+msgctxt "#32034"
+msgid "Duration must be in MM:SS format"
+msgstr ""
 
 msgctxt "#32035"
 msgid "Always Ask"
@@ -981,6 +1006,38 @@ msgctxt "#32320"
 msgid "IMDb ratings up to date"
 msgstr "Valutazioni IMDb aggiornate"
 
+msgctxt "#32321"
+msgid "{0} rate limited, resuming in {1}s"
+msgstr ""
+
+msgctxt "#32323"
+msgid "Stopped: no sources reachable"
+msgstr ""
+
+msgctxt "#32324"
+msgid "Trakt will fetch {0} movies."
+msgstr ""
+
+msgctxt "#32325"
+msgid "Trakt will fetch {0} seasons."
+msgstr ""
+
+msgctxt "#32326"
+msgid "Trakt will fetch {0} shows."
+msgstr ""
+
+msgctxt "#32327"
+msgid "Trakt allows 500 requests every 5 minutes."
+msgstr ""
+
+msgctxt "#32328"
+msgid "Include Trakt in this update?"
+msgstr ""
+
+msgctxt "#32329"
+msgid "Include"
+msgstr ""
+
 msgctxt "#32330"
 msgid "Analyzing Textures"
 msgstr "Analisi texture"
@@ -1026,12 +1083,12 @@ msgid "Analyzing library..."
 msgstr "Analisi libreria..."
 
 msgctxt "#32354"
-msgid "Downloading episode data..."
-msgstr "Download dati episodio..."
+msgid "Downloading IMDb episode data..."
+msgstr ""
 
 msgctxt "#32355"
-msgid "Matching episodes (dataset)... {0}/{1}"
-msgstr "Corrispondenza episodi (dataset)... {0}/{1}"
+msgid "Matching episodes (IMDb dataset)... {0}/{1}"
+msgstr ""
 
 msgctxt "#32356"
 msgid "Fetching episodes (TMDB)... {0}/{1}"
@@ -2045,7 +2102,7 @@ msgstr "Troupe"
 
 msgctxt "#32685"
 msgid "Next Up (Favourites)"
-msgstr ""
+msgstr "Prossimo episodio (preferiti)"
 
 msgctxt "#32686"
 msgid "Recent Videos"
@@ -2053,35 +2110,39 @@ msgstr "Video recenti"
 
 msgctxt "#32687"
 msgid "Favourite Movies"
-msgstr ""
+msgstr "Film preferiti"
 
 msgctxt "#32688"
 msgid "Favourite TV Shows"
-msgstr ""
+msgstr "Serie TV preferite"
 
 msgctxt "#32689"
 msgid "Favourite Episodes"
-msgstr ""
+msgstr "Episodi preferiti"
 
 msgctxt "#32690"
 msgid "Favourite Music Videos"
-msgstr ""
+msgstr "Video musicali preferiti"
 
 msgctxt "#32691"
 msgid "Music video thumb source"
-msgstr ""
+msgstr "Fonte miniature video musicali"
 
 #. Options for which image fills an empty music video thumb during automatic fetching
 msgctxt "#32692"
 msgid "Video screenshots"
-msgstr ""
+msgstr "Screenshot del video"
 
 msgctxt "#32693"
 msgid "Album cover"
-msgstr ""
+msgstr "Copertina album"
 
 msgctxt "#32694"
 msgid "Artist thumb"
+msgstr "Miniatura artista"
+
+msgctxt "#32695"
+msgid "Ratings sources to check (IMDb always on)"
 msgstr ""
 
 msgctxt "#32901"
@@ -2174,7 +2235,7 @@ msgstr "Clearart"
 
 msgctxt "#32965"
 msgid "Thumb"
-msgstr ""
+msgstr "Miniatura"
 
 msgctxt "#32966"
 msgid "Landscape"
@@ -2289,3 +2350,11 @@ msgstr "Includi lo stato di visione nei file NFO"
 msgctxt "#32999"
 msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
 msgstr "Scrive il conteggio delle riproduzioni e la data dell'ultima riproduzione nei file NFO. Disattiva per escludere lo stato di visione dai file NFO."
+
+#~ msgctxt "#32354"
+#~ msgid "Downloading episode data..."
+#~ msgstr "Download dati episodio..."
+
+#~ msgctxt "#32355"
+#~ msgid "Matching episodes (dataset)... {0}/{1}"
+#~ msgstr "Corrispondenza episodi (dataset)... {0}/{1}"
