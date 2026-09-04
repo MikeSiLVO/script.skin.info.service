@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta2"
+	   version="2.0.1~beta3"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,17 +32,23 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta2
-- Breaking: Favourite Episodes widget is now Next Up (Favourites), action is next_up_favourites
-- Artwork can open straight to one type, action=review_artwork with art_type=poster
-- Artwork review scans episodes and music videos, with Music Videos as its own scope
-- Fanart.tv 4K backgrounds and older clearart now show up in artwork options
-- Seasons offer keyart, and no longer list types no source provides
-- New setting chooses what fills an empty music video thumb
-- Thumb added to the artwork types a scan can look for
-- Fanart.tv key test now checks your own key instead of the built-in one
-- An API key that fails to save is reported instead of looking configured
-- Favourites widget gets its own menu, with an entry per media type
+2.0.1~beta3
+- The database is rebuilt on a new layout, so online data is fetched again on first run
+- The separate music cache file is gone, folded into the main database
+- Ratings sources can each be turned on or off, with IMDb always on
+- A bulk ratings run can skip Trakt, and shows Trakt's request limit so you can decide
+- The ratings dialog reports items done and names the source that is behind
+- Roger Ebert ratings are no longer missing
+- Movie sets can be edited in the metadata editor
+- Edited ratings and votes are saved instead of being dropped
+- Ratings accept a decimal point or comma, and a bad entry is rejected instead of saved as zero
+- New properties for HDR type, audio language, subtitle language and stereo mode
+- MDBList award tags, aggregate score and Metacritic Must-See are available as properties
+- Online cast fills in for seasons and episodes
+- Editing or rescraping an item updates its properties straight away
+- Person details set actors content so skins can style the list
+- Playback widgets refresh instead of serving a cached page
+- Ratings and awards no longer show on the wrong item when a movie and a show share a TMDB id
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
