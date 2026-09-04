@@ -9,7 +9,9 @@ import xbmc
 from lib.kodi.client import (
     request, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, decode_image_url,
 )
-from lib.kodi.utilities import batch_set_props, clear_group, MULTI_VALUE_SEP
+from lib.kodi.utilities import (
+    batch_set_props, clear_group, playing_media_type, MULTI_VALUE_SEP,
+)
 from lib.service.properties import set_ratings_properties
 
 if TYPE_CHECKING:
@@ -23,10 +25,11 @@ class PlayerVideoTracker:
         self._service = service
         self._last_player_id: Optional[str] = None
         self._last_player_type: Optional[str] = None
+        self._player = xbmc.Player()
 
     def handle(self) -> None:
         """Update Player props for the currently playing video."""
-        if not xbmc.getCondVisibility("Player.HasVideo"):
+        if not self._player.isPlayingVideo():
             if self._last_player_id:
                 self._service._clear_media_type("player")
                 self._last_player_id = None
@@ -41,17 +44,8 @@ class PlayerVideoTracker:
                 self._last_player_type = None
             return
 
-        is_movie = xbmc.getCondVisibility("VideoPlayer.Content(movies)")
-        is_episode = xbmc.getCondVisibility("VideoPlayer.Content(episodes)")
-        is_musicvideo = xbmc.getCondVisibility("VideoPlayer.Content(musicvideos)")
-
-        if is_movie:
-            player_type = "movie"
-        elif is_episode:
-            player_type = "episode"
-        elif is_musicvideo:
-            player_type = "musicvideo"
-        else:
+        player_type = playing_media_type(self._player)
+        if player_type not in ("movie", "episode", "musicvideo"):
             return
 
         if player_dbid == self._last_player_id and player_type == self._last_player_type:
@@ -150,10 +144,11 @@ class PlayerMusicTracker:
 
     def __init__(self):
         self._last_music_artist: Optional[str] = None
+        self._player = xbmc.Player()
 
     def handle(self) -> None:
         """Update Player.Music props for the currently playing audio."""
-        if not xbmc.getCondVisibility("Player.HasAudio"):
+        if not self._player.isPlayingAudio():
             if self._last_music_artist:
                 clear_group("SkinInfo.Player.Music.")
                 self._last_music_artist = None

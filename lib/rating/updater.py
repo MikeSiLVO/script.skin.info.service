@@ -174,17 +174,17 @@ def update_library_ratings(
     dataset_date: str = ""
     processed_ids: Set[int] = set()
 
-    if source_mode == "imdb":
-        dataset = get_imdb_dataset()
-        if not dataset.is_dataset_available():
-            def _show_downloading() -> None:
-                """Surface the dataset-download message on the active progress dialog."""
-                if isinstance(progress, xbmcgui.DialogProgressBG):
-                    progress.update(0, heading, ADDON.getLocalizedString(32305))
-                elif isinstance(progress, xbmcgui.DialogProgress):
-                    progress.update(0, ADDON.getLocalizedString(32305))
-            dataset.force_download(on_download_start=_show_downloading)
+    dataset = get_imdb_dataset()
+    if not dataset.is_dataset_available():
+        def _show_downloading() -> None:
+            """Surface the dataset-download message on the active progress dialog."""
+            if isinstance(progress, xbmcgui.DialogProgressBG):
+                progress.update(0, heading, ADDON.getLocalizedString(32305))
+            elif isinstance(progress, xbmcgui.DialogProgress):
+                progress.update(0, ADDON.getLocalizedString(32305))
+        dataset.force_download(on_download_start=_show_downloading)
 
+    if source_mode == "imdb":
         stats = dataset.get_stats()
         dataset_date = str(stats.get("last_modified") or "")
 

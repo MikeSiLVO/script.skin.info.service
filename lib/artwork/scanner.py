@@ -264,22 +264,19 @@ class ArtworkScanner:
                 'dbid': dbid_value,
                 'title': title,
                 'year': year,
-                'scope': scope_label,
-                'scan_session_id': session_id,
                 'art_requests': art_requests,
             })
 
             self._processed_items += 1
 
         if queue_items:
-            queue_ids = db.add_to_queue_batch(queue_items)
-            for queue_id, item in zip(queue_ids, queue_items):
+            db.add_to_queue_batch(queue_items)
+            for item in queue_items:
                 for art_request in item['art_requests']:
                     art_items.append({
-                        'queue_id': queue_id,
+                        'media_type': item['media_type'],
+                        'dbid': item['dbid'],
                         'art_type': art_request['art_type'],
-                        'requires_manual': art_request.get('requires_manual', False),
-                        'scan_session_id': session_id,
                     })
 
             if art_items:

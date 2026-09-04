@@ -102,13 +102,7 @@ class DownloadArtwork:
         abort_flag=None,
         progress_callback: Optional[Callable[[int], None]] = None
     ) -> Tuple[bool, Optional[str], int, Optional[str]]:
-        """Download one artwork file. `local_path` is extension-less; actual extension
-        comes from Content-Type.
-
-        `existing_file_mode` is `skip`/`overwrite`/`use_existing`. `progress_callback` is
-        invoked with each chunk's byte count during streaming so callers can detect live activity.
-        Returns `(success, error_or_None, bytes_written, error_category_or_None)`.
-        """
+        """Download one artwork file, taking its extension from the response Content-Type."""
         if not url:
             log("Download", "Empty URL provided", xbmc.LOGERROR)
             return False, "Empty URL", 0, self.ERROR_INPUT
@@ -213,7 +207,7 @@ class DownloadArtwork:
         return self.listing.find_with_extension(base_path, self.CONTENT_TYPE_MAP.values())
 
     def _get_extension(self, response) -> Optional[str]:
-        """Extract file extension from the response's Content-Type, or None if unrecognised."""
+        """Extract file extension from the response's Content-Type, or None if unrecognized."""
         content_type = response.headers.get('Content-Type', '').split(';')[0].strip()
         return self.CONTENT_TYPE_MAP.get(content_type)
 

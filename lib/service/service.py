@@ -6,7 +6,7 @@ import threading
 import xbmc
 
 from lib.kodi.client import ADDON, log
-from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready
+from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready, skin_bool
 from lib.kodi.utilities import kodi_build_version
 
 SKIN_BOOL = "SkinInfo.Service"
@@ -40,11 +40,9 @@ class Orchestrator:
 
     def run(self) -> None:
         from lib.data.database._infrastructure import init_database
-        from lib.data.database.music import init_music_database
         from lib.service.slideshow import SlideshowMonitor
 
         init_database()
-        init_music_database()
 
         if not wait_for_kodi_ready(self.monitor):
             return
@@ -65,6 +63,8 @@ class Orchestrator:
         finally:
             self._stop_all()
             del slideshow_monitor
+            from lib.data.database._infrastructure import close_connections
+            close_connections()
             log("Service", "Orchestrator stopped", xbmc.LOGINFO)
 
     def _start_housekeeping(self) -> None:
@@ -74,11 +74,9 @@ class Orchestrator:
             if self.monitor.waitForAbort(30):
                 return
             from lib.data.database.cache import clear_expired_cache
-            from lib.data.database.music import clear_expired_music_cache
             from lib.data.database.rollcall import needs_id_backfill, sync_dbids
             from lib.data.database.slideshow import pool_predates_artist
             clear_expired_cache()
-            clear_expired_music_cache()
             if self.monitor.abortRequested():
                 return
             if needs_id_backfill():
@@ -92,12 +90,9 @@ class Orchestrator:
         threading.Thread(target=_run, daemon=True).start()
 
     def _evaluate(self) -> None:
-        library_enabled = xbmc.getCondVisibility(
-            f'Skin.HasSetting({SKIN_BOOL}) | Skin.HasSetting({SKIN_BOOL_LIBRARY})'
-        )
-        online_enabled = xbmc.getCondVisibility(
-            f'Skin.HasSetting({SKIN_BOOL}) | Skin.HasSetting({SKIN_BOOL_ONLINE})'
-        )
+        any_enabled = skin_bool(SKIN_BOOL)
+        library_enabled = any_enabled or skin_bool(SKIN_BOOL_LIBRARY)
+        online_enabled = any_enabled or skin_bool(SKIN_BOOL_ONLINE)
         self._manage_skin_services(library_enabled, online_enabled)
 
         if self.monitor.settings_dirty:

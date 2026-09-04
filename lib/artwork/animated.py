@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import time
 import xbmc
 import xbmcvfs
 from lib.infrastructure.dialogs import show_textviewer, show_select, show_notification, show_yesno
@@ -105,11 +106,13 @@ def _view_cache_stats() -> None:
     lines.append("")
 
     if cache:
-        sorted_gifs = sorted(cache.items(), key=lambda x: x[1].get('scanned_at', ''), reverse=True)
+        sorted_gifs = sorted(cache.items(), key=lambda x: x[1].get('scanned_at') or 0, reverse=True)
 
         lines.append(f"[B]{ADDON.getLocalizedString(32589).format(20)}[/B]")
         for path, metadata in sorted_gifs[:20]:
-            scanned_at = metadata.get('scanned_at', xbmc.getLocalizedString(13205))
+            stamp = metadata.get('scanned_at')
+            scanned_at = (datetime.fromtimestamp(float(stamp)).strftime("%Y-%m-%d %H:%M:%S")
+                          if stamp else xbmc.getLocalizedString(13205))
             filename = (
                 path.split('/')[-1] if '/' in path
                 else path.split('\\')[-1] if '\\' in path
@@ -576,8 +579,7 @@ class ArtworkAnimated:
         """Update cache entry for a GIF file."""
         try:
             mtime = os.path.getmtime(gif_path)
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            gif_db.update_gif_cache(gif_path, mtime, current_time)
+            gif_db.update_gif_cache(gif_path, mtime, int(time.time()))
         except OSError:
             pass
 

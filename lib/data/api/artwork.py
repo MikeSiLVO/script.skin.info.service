@@ -1,8 +1,4 @@
-"""External API fetching and caching for artwork.
-
-Centralizes retrieval of artwork from TMDB and fanart.tv APIs.
-Handles caching, batch fetching, and dimension normalization.
-"""
+"""Artwork retrieval and caching for TMDB and fanart.tv."""
 from __future__ import annotations
 
 import xbmc
@@ -38,11 +34,7 @@ def _resolve_musicvideo_artist_mbid(
 
 
 class ApiArtworkFetcher:
-    """Retrieves and caches artwork from TMDB and fanart.tv.
-
-    Caches results with dynamic TTL based on media age. Batch-fetches to
-    minimize API calls.
-    """
+    """Retrieves and caches artwork from TMDB and fanart.tv."""
 
     def __init__(self, tmdb_api: ApiTmdb, fanart_api: ApiFanarttv):
         self.tmdb_api = tmdb_api
@@ -50,11 +42,7 @@ class ApiArtworkFetcher:
         self._external_ids: "OrderedDict[Tuple[str, int], dict]" = OrderedDict()
 
     def get_external_ids(self, media_type: str, dbid: int) -> dict:
-        """Get external IDs and release date from Kodi library.
-
-        Returns:
-            Dict with keys: tmdb_id (int), tvdb_id (int), release_date (str, YYYY-MM-DD).
-        """
+        """TMDB id, TVDB id and release date for a library item."""
         if media_type not in KODI_GET_DETAILS_METHODS:
             return {}
 
@@ -109,12 +97,7 @@ class ApiArtworkFetcher:
         episode_number: Optional[int] = None, bypass_cache: bool = False,
         bulk: bool = False,
     ) -> Dict[str, List[dict]]:
-        """Fetch ALL artwork types for an item in a single operation.
-
-        Performance-critical: minimizes API calls by checking cache first
-        (with completion marker), fetching all art types from TMDB + fanart.tv
-        in one pass, and caching with dynamic TTL (24hr/3day/7day based on age).
-        """
+        """Every artwork type for an item; a cache marker stops an art-less item refetching."""
         if media_type == 'season':
             return self._fetch_season_artwork(dbid, season_number)
         elif media_type == 'episode':
@@ -148,7 +131,7 @@ class ApiArtworkFetcher:
 
             if cached_marker is not None:
                 cached_art = self._load_cached_artwork(media_type, tmdb_id, tvdb_id)
-                return self._finalise_artwork(media_type, cached_art)
+                return self._finalize_artwork(media_type, cached_art)
 
         all_art: Dict[str, List[dict]] = {}
 
@@ -177,17 +160,17 @@ class ApiArtworkFetcher:
                 [{'marker': 'complete'}], release_date, ttl_hours,
             )
 
-        finalised = self._finalise_artwork(media_type, all_art)
+        finalized = self._finalize_artwork(media_type, all_art)
 
-        total_items = sum(len(v) for v in finalised.values())
-        source_summary = [f"{key}:{len(values)}" for key, values in finalised.items()]
+        total_items = sum(len(v) for v in finalized.values())
+        source_summary = [f"{key}:{len(values)}" for key, values in finalized.items()]
         log(
             "Artwork",
             f"Fetched {media_type}:{dbid} - {total_items} art items "
             f"({', '.join(source_summary)})",
         )
 
-        return finalised
+        return finalized
 
     def _load_cached_artwork(
         self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]
@@ -229,7 +212,7 @@ class ApiArtworkFetcher:
             art = self.fanart_api.get_movie_artwork(tmdb_id)
         return art or {}
 
-    def _finalise_artwork(
+    def _finalize_artwork(
         self, _media_type: str, artwork: Dict[str, List[dict]]
     ) -> Dict[str, List[dict]]:
         """Finalize artwork: sort each type's list by popularity."""
@@ -275,7 +258,7 @@ class ApiArtworkFetcher:
             for art_type, artworks in fanart_art.items():
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        return self._finalise_artwork('season', all_art)
+        return self._finalize_artwork('season', all_art)
 
     def _fetch_episode_artwork(
         self, episode_dbid: int, season_number: Optional[int] = None,
@@ -303,7 +286,7 @@ class ApiArtworkFetcher:
 
         tmdb_art = self.tmdb_api.get_episode_images(tmdb_id, season_number, episode_number)
 
-        return self._finalise_artwork('episode', tmdb_art)
+        return self._finalize_artwork('episode', tmdb_art)
 
     def _fetch_movieset_artwork(self, set_dbid: int) -> Dict[str, List[dict]]:
         """Fetch artwork for a movie set (collection)."""
@@ -357,7 +340,7 @@ class ApiArtworkFetcher:
             if artworks:
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        return self._finalise_artwork('set', all_art)
+        return self._finalize_artwork('set', all_art)
 
     def _fetch_artist_artwork(
         self, artist_dbid: int, bypass_cache: bool = False, bulk: bool = False
@@ -384,7 +367,7 @@ class ApiArtworkFetcher:
             cached_marker = db.get_cached_artwork('artist', mbid, 'system', cache_marker_type)
             if cached_marker is not None:
                 cached_art = self._load_music_cached_artwork('artist', mbid)
-                return self._finalise_artwork('artist', cached_art)
+                return self._finalize_artwork('artist', cached_art)
 
         all_art: Dict[str, List[dict]] = {}
 
@@ -410,7 +393,7 @@ class ApiArtworkFetcher:
                 [{'marker': 'complete'}], None, ttl_hours,
             )
 
-        return self._finalise_artwork('artist', all_art)
+        return self._finalize_artwork('artist', all_art)
 
     def _fetch_musicvideo_artwork(
         self, musicvideo_dbid: int, bypass_cache: bool = False, bulk: bool = False
@@ -444,7 +427,7 @@ class ApiArtworkFetcher:
                 'musicvideo', cache_key, 'system', '_full_fetch_complete'
             )
             if marker is not None:
-                return self._finalise_artwork(
+                return self._finalize_artwork(
                     'musicvideo', self._load_musicvideo_cached_artwork(cache_key)
                 )
 
@@ -527,7 +510,7 @@ class ApiArtworkFetcher:
                 'musicvideo', cache_key, 'system', '_full_fetch_complete',
                 [{'marker': 'complete'}], None, ttl_hours,
             )
-        return self._finalise_artwork('musicvideo', all_art)
+        return self._finalize_artwork('musicvideo', all_art)
 
     def _load_musicvideo_cached_artwork(self, cache_key: str) -> Dict[str, List[dict]]:
         art_types = ['thumb', 'fanart', 'clearlogo', 'banner', 'clearart', 'landscape']
@@ -582,7 +565,7 @@ class ApiArtworkFetcher:
             )
             if cached_marker is not None:
                 cached_art = self._load_music_cached_artwork('album', release_group_id)
-                return self._finalise_artwork('album', cached_art)
+                return self._finalize_artwork('album', cached_art)
 
         all_art: Dict[str, List[dict]] = {}
 
@@ -623,7 +606,7 @@ class ApiArtworkFetcher:
                 all_art.setdefault(art_type, []).extend(artworks)
 
         if bulk:
-            return self._finalise_artwork('album', all_art)
+            return self._finalize_artwork('album', all_art)
 
         from lib.data.api.audiodb import get_audiodb
         audiodb = get_audiodb()
@@ -659,7 +642,7 @@ class ApiArtworkFetcher:
             [{'marker': 'complete'}], None, ttl_hours,
         )
 
-        return self._finalise_artwork('album', all_art)
+        return self._finalize_artwork('album', all_art)
 
     def _resolve_album_id_mismatch(
         self,
@@ -668,12 +651,9 @@ class ApiArtworkFetcher:
         fanart_albums: Dict[str, Any],
         album_details: dict
     ) -> tuple:
-        """Resolve stale MusicBrainz release group ID via cached mapping or TheAudioDB name search.
-
-        Returns (old_id or None, audiodb_search_result or None).
-        """
+        """Resolve a MusicBrainz release group id the artwork services have not caught up to."""
         # Check cached mapping first
-        cached_old_ids = db.get_mb_id_mappings_by_canonical(canonical_id)
+        cached_old_ids = db.get_mb_id_aliases(canonical_id)
         for old_id in cached_old_ids:
             if old_id in fanart_albums:
                 log(

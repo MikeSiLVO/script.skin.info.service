@@ -1,7 +1,7 @@
 """Field type handlers for metadata editor."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 import xbmc
 import xbmcgui
@@ -14,18 +14,21 @@ from lib.editor.utilities import (
     format_duration_for_edit,
     format_runtime_for_edit,
     parse_duration_from_edit,
+    parse_rating,
     parse_runtime_from_edit,
     normalize_date,
     validate_date,
+    validate_duration,
     validate_rating,
     validate_runtime,
     validate_top250,
     validate_year,
 )
 
-# `xbmc.Keyboard` truncates the pre-filled `default` text past 100 chars (verified).
-# We warn the user before opening the keyboard so long fields aren't silently clipped.
+# xbmc.Keyboard truncates the pre-filled default past 100 chars
 MAX_KEYBOARD_DEFAULT_LEN = 100
+
+_T = TypeVar("_T")
 
 
 def _edit_heading(field_name: str) -> str:
@@ -63,7 +66,6 @@ def handle_text(
 
 _INTEGER_VALIDATORS = {
     "year": validate_year,
-    "runtime": validate_runtime,
     "top250": validate_top250,
 }
 
@@ -96,25 +98,13 @@ def handle_integer(
 
 
 def _handle_seconds(
-    field_name: str, current_value: int | None, *, unit: str, fmt, parse,
+    field_name: str, current_value: int | None, *, unit: str, fmt, parse, validate,
     input_type: int = xbmcgui.INPUT_ALPHANUM,
 ) -> tuple[int | None, bool]:
     """Prompt for a seconds-backed field in its display unit, storing the parsed seconds."""
     heading = f"{_edit_heading(field_name)} ({unit})"
-
-    result = xbmcgui.Dialog().input(heading, fmt(current_value or 0), type=input_type)
-
-    if not result:
-        return None, True
-
-    seconds = parse(result)
-
-    valid, error = validate_runtime(seconds)
-    if not valid:
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
-        return None, True
-
-    return seconds, False
+    return _prompt_until_valid(
+        heading, fmt(current_value or 0), parse, validate, 32254, input_type)
 
 
 def handle_runtime(
@@ -123,7 +113,8 @@ def handle_runtime(
     """Handle runtime input (edit in minutes, store in seconds)."""
     return _handle_seconds(
         field_name, current_value, unit="minutes", fmt=format_runtime_for_edit,
-        parse=parse_runtime_from_edit, input_type=xbmcgui.INPUT_NUMERIC)
+        parse=parse_runtime_from_edit, validate=validate_runtime,
+        input_type=xbmcgui.INPUT_NUMERIC)
 
 
 def handle_duration(
@@ -132,7 +123,25 @@ def handle_duration(
     """Handle duration input (edit in MM:SS format, store in seconds)."""
     return _handle_seconds(
         field_name, current_value, unit="MM:SS", fmt=format_duration_for_edit,
-        parse=parse_duration_from_edit)
+        parse=parse_duration_from_edit, validate=validate_duration)
+
+
+def _prompt_until_valid(
+    heading: str, value: str, parse: Callable[[str], _T],
+    validate: Callable[[_T], tuple[bool, str]], error_heading: int,
+    input_type: int = xbmcgui.INPUT_ALPHANUM
+) -> tuple[_T | None, bool]:
+    """Prompt, reopening with the entry kept, until the value validates or is cancelled."""
+    while True:
+        result = xbmcgui.Dialog().input(heading, value, type=input_type)
+        if not result:
+            return None, True
+        parsed = parse(result)
+        valid, error = validate(parsed)
+        if valid:
+            return parsed, False
+        xbmcgui.Dialog().ok(ADDON.getLocalizedString(error_heading), error)
+        value = result
 
 
 def _handle_date_input(
@@ -140,17 +149,14 @@ def _handle_date_input(
 ) -> tuple[str | None, bool]:
     """Prompt for a date, reopening with the entry kept until it validates or is cancelled."""
     heading = f"{_edit_heading(field_name)} (YYYY-MM-DD)"
+    date, cancelled = _prompt_until_valid(
+        heading, value, normalize_date, validate_date, 32255)
+    return (None, True) if cancelled or date is None else (store(date), False)
 
-    while True:
-        result = xbmcgui.Dialog().input(heading, value)
-        if not result:
-            return None, True
-        normalized = normalize_date(result)
-        valid, error = validate_date(normalized)
-        if valid:
-            return store(normalized), False
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32255), error)
-        value = result
+
+def _handle_rating_input(heading: str, value: str) -> tuple[float | None, bool]:
+    """Prompt for a 0-10 rating, decimal point or comma both accepted."""
+    return _prompt_until_valid(heading, value, parse_rating, validate_rating, 32256)
 
 
 def handle_date(
@@ -329,7 +335,9 @@ def handle_ratings(
     field_name: str, current_ratings: dict[str, Any] | None
 ) -> tuple[dict[str, Any] | None, bool]:
     """Handle external ratings editing. Returns updated ratings after each change."""
-    ratings = dict(current_ratings) if current_ratings else {}
+    # shared nested dicts would read as unchanged in _edit_field's equality check
+    ratings = {source: dict(data) if isinstance(data, dict) else data
+               for source, data in (current_ratings or {}).items()}
     modified = False
     monitor = xbmc.Monitor()
 
@@ -471,20 +479,8 @@ def _add_rating_source(ratings: dict[str, Any]) -> bool:
         )
         return False
 
-    rating_str = xbmcgui.Dialog().input(
-        ADDON.getLocalizedString(32565), "0", type=xbmcgui.INPUT_NUMERIC
-    )
-    if not rating_str:
-        return False
-
-    try:
-        rating = float(rating_str)
-    except ValueError:
-        return False
-
-    valid, error = validate_rating(rating)
-    if not valid:
-        xbmcgui.Dialog().ok(ADDON.getLocalizedString(32256), error)
+    rating, cancelled = _handle_rating_input(ADDON.getLocalizedString(32565), "0")
+    if cancelled or rating is None:
         return False
 
     votes_str = xbmcgui.Dialog().input(
@@ -518,20 +514,11 @@ def _edit_single_rating(ratings: dict[str, Any], source: str) -> bool:
 
     if choice == 0:
         current = data.get("rating", 0)
-        result = xbmcgui.Dialog().input(
-            "Rating (0-10)", f"{current:.1f}", type=xbmcgui.INPUT_NUMERIC
-        )
-        if result:
-            try:
-                new_rating = float(result)
-                valid, error = validate_rating(new_rating)
-                if valid:
-                    data["rating"] = new_rating
-                    return True
-                else:
-                    xbmcgui.Dialog().ok(ADDON.getLocalizedString(32256), error)
-            except ValueError:
-                pass
+        new_rating, cancelled = _handle_rating_input(
+            ADDON.getLocalizedString(32565), f"{current:.1f}")
+        if not cancelled and new_rating is not None:
+            data["rating"] = new_rating
+            return True
 
     elif choice == 1:
         current = data.get("votes", 0)

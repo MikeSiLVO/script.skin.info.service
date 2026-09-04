@@ -4,7 +4,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from lib.kodi.client import ADDON
 from lib.editor.config import FieldType
+
+
+_INVALID = -1  # below every range check's lower bound
 
 
 def _range_check(value: float, lo: float, hi: float, error: str) -> tuple[bool, str]:
@@ -55,22 +59,35 @@ def validate_year(value: int) -> tuple[bool, str]:
     """Validate year value (0 means unset and is allowed)."""
     if value == 0:
         return True, ""
-    return _range_check(value, 1800, 2100, "Year must be between 1800 and 2100")
+    return _range_check(value, 1800, 2100, ADDON.getLocalizedString(32018))
 
 
 def validate_runtime(value: int) -> tuple[bool, str]:
     """Validate runtime in seconds."""
-    return _range_check(value, 0, 86400 * 7, "Runtime must be 0 to 7 days")
+    return _range_check(value, 0, 86400 * 7, ADDON.getLocalizedString(32021))
+
+
+def validate_duration(value: int) -> tuple[bool, str]:
+    """Validate duration in seconds."""
+    return _range_check(value, 0, 86400 * 7, ADDON.getLocalizedString(32034))
+
+
+def parse_rating(text: str) -> float:
+    """Rating text as a float, comma decimal separator accepted."""
+    try:
+        return float(text.strip().replace(",", "."))
+    except ValueError:
+        return _INVALID
 
 
 def validate_rating(value: float) -> tuple[bool, str]:
     """Validate rating 0-10."""
-    return _range_check(value, 0, 10, "Rating must be 0-10")
+    return _range_check(value, 0, 10, ADDON.getLocalizedString(32005))
 
 
 def validate_top250(value: int) -> tuple[bool, str]:
     """Validate top 250 position."""
-    return _range_check(value, 0, 250, "Top 250 must be 0-250")
+    return _range_check(value, 0, 250, ADDON.getLocalizedString(32026))
 
 
 def format_runtime_display(seconds: int) -> str:
@@ -94,14 +111,13 @@ def format_runtime_for_edit(seconds: int) -> str:
 
 
 def parse_runtime_from_edit(minutes_str: str) -> int:
-    """Parse minutes string to runtime seconds."""
+    """Minutes string as runtime seconds."""
     if not minutes_str:
         return 0
     try:
-        minutes = int(minutes_str)
-        return minutes * 60
+        return int(minutes_str) * 60
     except ValueError:
-        return 0
+        return _INVALID
 
 
 def format_duration_for_edit(seconds: int) -> str:
@@ -114,7 +130,7 @@ def format_duration_for_edit(seconds: int) -> str:
 
 
 def parse_duration_from_edit(text: str) -> int:
-    """Parse MM:SS or plain seconds string to duration seconds."""
+    """MM:SS or plain seconds as duration seconds."""
     if not text:
         return 0
     text = text.strip()
@@ -127,7 +143,7 @@ def parse_duration_from_edit(text: str) -> int:
                 return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
         return int(text)
     except ValueError:
-        return 0
+        return _INVALID
 
 
 def format_list_display(values: list[str] | None, max_items: int = 3) -> str:

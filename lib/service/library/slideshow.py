@@ -7,6 +7,7 @@ from typing import Optional
 
 import xbmc
 
+from lib.kodi.utilities import skin_bool
 from lib.kodi.client import log
 
 # Idle catch-all reconcile: runs at most once per interval, only after the box has been idle a
@@ -52,7 +53,7 @@ class SlideshowDriver:
 
     def update(self) -> None:
         """Refresh slideshow props if the skin opted in and the interval has elapsed."""
-        if not xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.EnableSlideshow)'):
+        if not skin_bool('SkinInfo.EnableSlideshow'):
             return
 
         interval_str = xbmc.getInfoLabel('Skin.String(SkinInfo.SlideshowRefreshInterval)') or '10'
@@ -90,7 +91,7 @@ class SlideshowDriver:
         Runs at most once per interval, only when the box has been idle and the slideshow is in
         use. The reconcile diffs the pool against the library and no-ops when nothing changed.
         """
-        if not xbmc.getCondVisibility('Skin.HasSetting(SkinInfo.EnableSlideshow)'):
+        if not skin_bool('SkinInfo.EnableSlideshow'):
             return
         if (time.time() - self._last_reconcile) < _RECONCILE_INTERVAL_S:
             return

@@ -59,6 +59,11 @@ def _scan_scope(scope: str, use_background: bool = False,
     return scanner
 
 
+def _stamp(epoch: Optional[int]) -> str:
+    """A stored epoch as a readable local timestamp, empty when the column is unset."""
+    return datetime.fromtimestamp(epoch).strftime('%Y-%m-%d %H:%M:%S') if epoch else ''
+
+
 def _show_session_report(session_row) -> None:
     """Display a report for a review session."""
     stats = json.loads(session_row['stats']) if session_row['stats'] else {}
@@ -73,10 +78,9 @@ def _show_session_report(session_row) -> None:
     if not isinstance(auto_runs, list):
         auto_runs = []
 
-    started = session_row['started']
-    last_activity = session_row['last_activity']
+    started = _stamp(session_row['started'])
     status = session_row['status']
-    completed = session_row['completed']
+    completed = _stamp(session_row['completed'])
 
     def _shorten(value: Optional[str], max_len: int = 80) -> str:
         if not value:
@@ -162,11 +166,10 @@ def _show_session_report(session_row) -> None:
     lines.append("")
     lines.append(f"Status: {status.upper()}")
     lines.append(f"Started: {started}")
-    lines.append(f"Last Activity: {last_activity}")
     if status == 'completed' and completed:
         lines.append(f"Completed: {completed}")
     elif status == 'cancelled':
-        lines.append(f"Cancelled: {last_activity}")
+        lines.append(f"Cancelled: {completed}")
     lines.append(f"Art Types: {art_types_str}")
     lines.append("")
     lines.append("Statistics:")
@@ -978,15 +981,16 @@ class ArtworkSelection:
                 if not queue_batch:
                     break
 
-                queue_ids = [entry.id for entry in queue_batch]
-                art_items_by_queue = db.get_art_items_for_queue_batch(queue_ids)
+                keys = [(entry.media_type, entry.dbid) for entry in queue_batch]
+                art_items_by_queue = db.get_art_items_for_queue_batch(keys)
 
                 for queue_entry in queue_batch:
                     if self.loading_progress.is_cancelled():
                         cancelled = True
                         break
 
-                    art_items = art_items_by_queue.get(queue_entry.id, [])
+                    art_items = art_items_by_queue.get(
+                        (queue_entry.media_type, queue_entry.dbid), [])
                     pending_art, current_art = self._collect_pending_art_items(
                         queue_entry, art_items
                     )
@@ -1081,7 +1085,7 @@ class ArtworkSelection:
     ) -> Tuple[List[ArtItemEntry], Dict[str, Any]]:
         """Return pending art items plus current artwork state for validation."""
         if art_items is None:
-            art_items = db.get_art_items_for_queue(queue_entry.id)
+            art_items = db.get_art_items_for_queue(queue_entry.media_type, queue_entry.dbid)
         current_art = self._get_current_artwork(queue_entry.media_type, queue_entry.dbid)
 
         pending_items: List[ArtItemEntry] = []
@@ -1092,7 +1096,8 @@ class ArtworkSelection:
                 continue
 
             if current_art.get(art_item.art_type):
-                db.update_art_item_status(art_item.id, 'stale')
+                db.update_art_item_status(art_item.media_type, art_item.dbid,
+                                          art_item.art_type, 'stale')
                 stale_reasons.append((art_item.art_type, "Artwork already set"))
                 continue
 
@@ -1100,7 +1105,7 @@ class ArtworkSelection:
 
         if not pending_items:
             if stale_reasons:
-                db.update_queue_status(queue_entry.id, 'completed')
+                db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return [], current_art
 
         return pending_items, current_art
@@ -1160,10 +1165,10 @@ class ArtworkSelection:
     def _handle_user_cancel(self, queue_entry: QueueEntry, applied_any: bool) -> str:
         """Handle user cancellation during review."""
         if applied_any:
-            db.update_queue_status(queue_entry.id, 'completed')
+            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return 'applied'
         else:
-            db.update_queue_status(queue_entry.id, 'pending')
+            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'pending')
             return 'cancel'
 
     def _apply_selected_artwork(
@@ -1179,13 +1184,12 @@ class ArtworkSelection:
 
         latest_art = self._get_current_artwork(queue_entry.media_type, queue_entry.dbid)
         if latest_art.get(art_type):
-            db.update_art_item_status(art_item.id, 'stale')
+            db.update_art_item_status(media_type, dbid, art_type, 'stale')
             self._log_review_event('stale', {
                 'title': queue_entry.title,
                 'art_type': art_type,
                 'media_type': media_type,
                 'dbid': dbid,
-                'guid': queue_entry.guid,
                 'reason': 'artwork_no_longer_missing',
             })
             return False
@@ -1196,13 +1200,12 @@ class ArtworkSelection:
         if cache_key in self._current_art_cache:
             del self._current_art_cache[cache_key]
 
-        db.update_art_item(art_item.id, selected_art['url'], auto_applied=False)
+        db.update_art_item(media_type, dbid, art_type, selected_art['url'])
         self._log_review_event('manual_applied', {
             'title': queue_entry.title,
             'art_type': art_type,
             'media_type': media_type,
             'dbid': dbid,
-            'guid': queue_entry.guid,
             'url': selected_art.get('url', ''),
             'source': selected_art.get('source', ''),
         })
@@ -1215,7 +1218,6 @@ class ArtworkSelection:
             'art_type': art_type,
             'media_type': queue_entry.media_type,
             'dbid': queue_entry.dbid,
-            'guid': queue_entry.guid,
             'reason': 'no_options',
         })
 
@@ -1236,13 +1238,13 @@ class ArtworkSelection:
             return ('cancel', applied_any)
 
         if action == 'skip':
-            db.update_art_item_status(art_item.id, 'skipped')
+            db.update_art_item_status(art_item.media_type, art_item.dbid,
+                                      art_item.art_type, 'skipped')
             self._log_review_event('manual_skipped', {
                 'title': queue_entry.title,
                 'art_type': art_item.art_type,
                 'media_type': queue_entry.media_type,
                 'dbid': queue_entry.dbid,
-                'guid': queue_entry.guid,
                 'reason': 'user_skip',
             })
             return ('continue', applied_any)
@@ -1263,10 +1265,10 @@ class ArtworkSelection:
     ) -> str:
         """Finalize queue status and return result after reviewing all art items."""
         if applied_any:
-            db.update_queue_status(queue_entry.id, 'completed')
+            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return 'applied'
 
-        db.update_queue_status(queue_entry.id, 'skipped')
+        db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'skipped')
         if not had_options and not auto_logged:
             for art_item in art_items:
                 self._log_review_event('manual_auto', {
@@ -1274,8 +1276,7 @@ class ArtworkSelection:
                     'art_type': art_item.art_type,
                     'media_type': queue_entry.media_type,
                     'dbid': queue_entry.dbid,
-                    'guid': queue_entry.guid,
-                    'reason': 'all_art_types_missing',
+                        'reason': 'all_art_types_missing',
                 })
         return 'skipped' if had_options else 'auto'
 

@@ -37,14 +37,14 @@ def count_trakt_requests(media_type: str, items: List[Dict]) -> int:
             season = item.get("season")
             if not show_imdb or season is None:
                 continue
-            if f"{show_imdb}_s{season}e{item.get('episode')}" not in cached:
+            if (show_imdb, int(season), int(item.get("episode") or -1)) not in cached:
                 seasons.add((show_imdb, int(season)))
         return len(seasons)
 
     pending = 0
     for item in items:
         imdb_id = item.get("uniqueid", {}).get("imdb")
-        if imdb_id and imdb_id not in cached:
+        if imdb_id and (imdb_id, -1, -1) not in cached:
             pending += 1
     return pending
 
@@ -136,25 +136,36 @@ def finalize_item_ratings(
     )
 
 
+def render_progress(
+    progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG,
+    finalized: int,
+    total: int,
+    detail: str,
+) -> None:
+    """Update the modal or background progress dialog."""
+    percent = int((finalized / total) * 100) if total else 0
+    if isinstance(progress, xbmcgui.DialogProgressBG):
+        progress.update(percent, ADDON.getLocalizedString(32300),
+                        ADDON.getLocalizedString(32306).format(finalized, total, detail))
+    elif isinstance(progress, xbmcgui.DialogProgress):
+        progress.update(
+            percent,
+            f"{ADDON.getLocalizedString(32307).format(finalized, total)}\n{detail}")
+
+
 def report_source_wait(
     progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG,
     executor: RatingBatchExecutor,
-    percent: int,
+    finalized: int,
+    total: int,
+    title: str,
 ) -> None:
-    """Name the paused or in-flight sources, so a hold does not read as a frozen dialog."""
+    """Update the dialog while work is in flight, naming a rate-limited source if there is one."""
     paused = executor.paused_sources()
     if paused:
-        text = ADDON.getLocalizedString(32321).format(", ".join(paused))
-    else:
-        active = executor.active_sources()
-        if not active:
-            return
-        text = ADDON.getLocalizedString(32322).format(", ".join(active))
-
-    if isinstance(progress, xbmcgui.DialogProgressBG):
-        progress.update(percent, ADDON.getLocalizedString(32300), text)
-    elif isinstance(progress, xbmcgui.DialogProgress):
-        progress.update(percent, text)
+        seconds = max((executor.pause_remaining(name) for name in paused), default=0)
+        title = ADDON.getLocalizedString(32321).format(", ".join(paused), seconds)
+    render_progress(progress, finalized, total, title)
 
 
 class TmdbSeasonFetcher:
@@ -381,7 +392,7 @@ def run_multi_source_batch(
                     break
                 ctx.mark_progress()
                 report_source_wait(
-                    progress, executor, int((items_finalized / len(items)) * 100))
+                    progress, executor, items_finalized, len(items), title)
                 for result_dbid, source_name, result in executor.collect_results(timeout=0.5):
                     executor.process_result(result_dbid, source_name, result)
                 for check_dbid in executor.get_unfinalized_items():
@@ -409,19 +420,7 @@ def run_multi_source_batch(
             for check_dbid in executor.get_unfinalized_items():
                 items_finalized = _try_finalize(executor, check_dbid, items_finalized)
 
-            # percent tracks finalized, not submission index, or the bar races then snaps back
-            percent = int((items_finalized / len(items)) * 100)
-            if isinstance(progress, xbmcgui.DialogProgressBG):
-                progress.update(
-                    percent,
-                    ADDON.getLocalizedString(32300),
-                    ADDON.getLocalizedString(32306).format(i+1, len(items), title),
-                )
-            elif isinstance(progress, xbmcgui.DialogProgress):
-                progress.update(
-                    percent,
-                    f"{ADDON.getLocalizedString(32307).format(i+1, len(items))}\n{title}",
-                )
+            render_progress(progress, items_finalized, len(items), title)
 
         while executor.get_unfinalized_items():
             if executor.is_cancelled():

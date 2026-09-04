@@ -89,7 +89,10 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
 
     api = ApiTmdb()
 
-    if not tmdb_id and dbid:
+    if dbid and dbtype in ('season', 'episode'):
+        # a skin can only reach the episode's own id here, and TMDB needs the show's
+        tmdb_id = resolve_tmdb_id(dbtype, dbid) or tmdb_id
+    elif not tmdb_id and dbid:
         tmdb_id = resolve_tmdb_id(dbtype, dbid) or 0
     if not tmdb_id and imdb_id:
         find_type = 'movie' if dbtype == 'movie' else 'tvshow'

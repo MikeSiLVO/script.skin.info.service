@@ -8,7 +8,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import log
-from lib.kodi.utilities import set_prop, clear_prop
+from lib.kodi.utilities import set_prop, clear_prop, skin_bool
 
 
 class BlurHandler:
@@ -19,10 +19,11 @@ class BlurHandler:
         self._focus_last_source: Optional[str] = None
         self._player_thread: Optional[threading.Thread] = None
         self._player_last_source: Optional[str] = None
+        self._player = xbmc.Player()
 
     def handle_focus(self) -> None:
         """Run a blur pass for the focused item's background."""
-        if not xbmc.getCondVisibility("Skin.HasSetting(SkinInfo.Blur)"):
+        if not skin_bool("SkinInfo.Blur"):
             if self._focus_last_source is not None:
                 self._clear_props("SkinInfo.")
                 self._focus_last_source = None
@@ -32,7 +33,7 @@ class BlurHandler:
         prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
 
         self._process(
-            setting_check="Skin.HasSetting(SkinInfo.Blur)",
+            setting="SkinInfo.Blur",
             source_property="SkinInfo.BlurSource",
             slot="focus",
             prop_base=prop_base,
@@ -40,7 +41,7 @@ class BlurHandler:
 
     def handle_player(self) -> None:
         """Player blur runs only during audio playback."""
-        if not xbmc.getCondVisibility("Player.HasAudio"):
+        if not self._player.isPlayingAudio():
             if self._player_last_source is not None:
                 self._clear_props("SkinInfo.Player.")
                 self._player_last_source = None
@@ -49,16 +50,16 @@ class BlurHandler:
         current_file = xbmc.getInfoLabel("Player.Filenameandpath")
 
         self._process(
-            setting_check="Skin.HasSetting(SkinInfo.Player.Blur)",
+            setting="SkinInfo.Player.Blur",
             source_property="SkinInfo.Player.BlurSource",
             slot="player",
             prop_base="SkinInfo.Player.",
             cache_key_suffix=f"|{current_file}",
         )
 
-    def _process(self, setting_check: str, source_property: str, slot: str,
+    def _process(self, setting: str, source_property: str, slot: str,
                  prop_base: str, cache_key_suffix: str = "") -> None:
-        if not xbmc.getCondVisibility(setting_check):
+        if not skin_bool(setting):
             if self._get_last(slot) is not None:
                 self._clear_props(prop_base)
                 self._set_last(slot, None)

@@ -28,7 +28,7 @@ Returns deduplicated cast list for movies, TV shows, seasons, movie sets, or epi
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `dbid` | Conditional | Library ID of the item. Required when `online=false`. Omit for non-library (add-on) items. |
-| `tmdb_id` | Conditional | TMDB ID. With `online=true`, used directly and takes precedence over `dbid`/`imdb_id`. |
+| `tmdb_id` | Conditional | TMDB ID. With `online=true`, used directly and takes precedence over `dbid`/`imdb_id` for `movie`, `tvshow` and `set`. For `episode` and `season` a `dbid` wins, because TMDB needs the show's ID rather than the episode's. |
 | `imdb_id` | Conditional | IMDb ID (`tt…`). With `online=true`, resolved to a TMDB ID when `tmdb_id` is absent. |
 | `dbtype` | Yes | Media type: `movie`, `tvshow`, `season`, `set`, `episode` |
 | `season` | Conditional | Season number. Needed for `episode`/`season` in `online` mode when there is no `dbid`. |

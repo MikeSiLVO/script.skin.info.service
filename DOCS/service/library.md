@@ -181,6 +181,10 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Aspect` | Aspect ratio (1.33, 1.78, 2.35, etc.) |
 | `AudioCodec` | Audio codec |
 | `AudioChannels` | Audio channel count |
+| `AudioLanguage` | Language of the audio track shown |
+| `HDRType` | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount` | Number of subtitle tracks |
 
 ### Artwork
 
@@ -303,6 +307,7 @@ Use `%d` as placeholder for index (1-based):
 | `Movie.%d.StudioPrimary` | First studio only |
 | `Movie.%d.Country` | Country(ies) |
 | `Movie.%d.VideoResolution` | Video resolution |
+| `Movie.%d.HDRType` | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
 | `Movie.%d.MPAA` | Content rating |
 | `Movie.%d.Art(poster)` | Poster |
 | `Movie.%d.Art(fanart)` | Fanart |
@@ -486,6 +491,10 @@ Use `%d` as placeholder for index (1-based):
 | `Aspect` | Aspect ratio |
 | `AudioCodec` | Audio codec |
 | `AudioChannels` | Audio channel count |
+| `AudioLanguage` | Language of the audio track shown |
+| `HDRType` | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount` | Number of subtitle tracks |
 
 ### Artwork
 
@@ -555,6 +564,10 @@ Use `%d` as placeholder for index (1-based):
 | `Aspect` | Aspect ratio |
 | `AudioCodec` | Audio codec |
 | `AudioChannels` | Audio channel count |
+| `AudioLanguage` | Language of the audio track shown |
+| `HDRType` | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount` | Number of subtitle tracks |
 
 ### Artwork
 

@@ -9,14 +9,41 @@ Data is stored in SQLite for minimal RAM usage on low-end devices.
 from __future__ import annotations
 
 import gzip
+import time
+from contextlib import contextmanager
 from enum import Enum
 import xbmc
-from typing import Optional
+import xbmcgui
+from typing import Generator, Optional
 
 from lib.data.api.client import ApiSession
 from lib.kodi.client import log
-from lib.data.database._infrastructure import get_db
+from lib.data.database._infrastructure import get_bulk_db
 from lib.data.database import imdb as db_imdb
+
+_IMPORT_SLOT_PROP = "SkinInfo.ImdbImportRunning"
+_IMPORT_SLOT_STALE_S = 1800
+
+
+@contextmanager
+def _import_slot() -> Generator[bool, None, None]:
+    """Cross-process guard; the service and the script process both import this dataset."""
+    window = xbmcgui.Window(10000)
+    held = window.getProperty(_IMPORT_SLOT_PROP)
+    if held:
+        try:
+            stale = (time.time() - float(held)) >= _IMPORT_SLOT_STALE_S
+        except ValueError:
+            stale = True
+        if not stale:
+            yield False
+            return
+    window.setProperty(_IMPORT_SLOT_PROP, str(time.time()))
+    try:
+        yield True
+    finally:
+        window.clearProperty(_IMPORT_SLOT_PROP)
+
 
 DATASET_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 EPISODE_DATASET_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
@@ -106,6 +133,14 @@ class ApiImdbDataset:
         `on_download_start` fires once the server returns fresh data, right before the
         multi-second stream+import, so callers can show progress for a real download only.
         """
+        with _import_slot() as acquired:
+            if not acquired:
+                log("IMDb", "Dataset import already running elsewhere, skipping")
+                return False
+            return self._download_and_import_locked(abort_flag, force, on_download_start)
+
+    def _download_and_import_locked(self, abort_flag, force, on_download_start) -> bool:
+        """Body of `_download_and_import`, run only while the import slot is held."""
         try:
             log("IMDb", f"Downloading dataset from {DATASET_URL}...")
 
@@ -159,32 +194,36 @@ class ApiImdbDataset:
         count = 0
         batch: list[tuple[str, float, int]] = []
 
-        with get_db() as cursor:
+        with get_bulk_db() as cursor:
             db_imdb.import_ratings_begin(cursor)
 
-            with gzip.open(response.raw, "rt", encoding="utf-8") as f:
-                next(f)
-                for line in f:
-                    if abort_flag and abort_flag.is_requested():
-                        log("IMDb", "Ratings import aborted by user")
-                        raise _ImportAborted()
+        # a concurrent write must not wait on the download
+        with gzip.open(response.raw, "rt", encoding="utf-8") as f:
+            next(f)
+            for line in f:
+                if abort_flag and abort_flag.is_requested():
+                    log("IMDb", "Ratings import aborted by user")
+                    raise _ImportAborted()
 
-                    parts = line.strip().split("\t")
-                    if len(parts) >= 3:
-                        try:
-                            batch.append((parts[0], float(parts[1]), int(parts[2])))
-                            count += 1
+                parts = line.strip().split("\t")
+                if len(parts) >= 3:
+                    try:
+                        batch.append((parts[0], float(parts[1]), int(parts[2])))
+                        count += 1
+                    except ValueError:
+                        continue
 
-                            if len(batch) >= BATCH_SIZE:
-                                db_imdb.import_ratings_batch(cursor, batch)
-                                batch = []
-                        except ValueError:
-                            continue
+                    if len(batch) >= BATCH_SIZE:
+                        with get_bulk_db() as cursor:
+                            db_imdb.import_ratings_batch(cursor, batch)
+                        batch = []
 
-            if batch:
+        if batch:
+            with get_bulk_db() as cursor:
                 db_imdb.import_ratings_batch(cursor, batch)
 
-            if count > 0:
+        if count > 0:
+            with get_bulk_db() as cursor:
                 db_imdb.import_ratings_commit(cursor)
 
         return count
@@ -241,6 +280,17 @@ class ApiImdbDataset:
         if not user_show_ids:
             return 0
 
+        with _import_slot() as acquired:
+            if not acquired:
+                log("IMDb", "Dataset import already running elsewhere, skipping")
+                return -1
+            return self._refresh_episode_dataset_locked(
+                user_show_ids, library_episode_count, progress_callback, abort_flag)
+
+    def _refresh_episode_dataset_locked(
+        self, user_show_ids, library_episode_count, progress_callback, abort_flag
+    ) -> int:
+        """Body of `refresh_episode_dataset`, run only while the import slot is held."""
         try:
             if progress_callback:
                 progress_callback("Downloading episode data...")
@@ -288,39 +338,42 @@ class ApiImdbDataset:
         count = 0
         batch: list[tuple[str, int, int, str]] = []
 
-        with get_db() as cursor:
+        with get_bulk_db() as cursor:
             db_imdb.import_episodes_begin(cursor)
 
-            with gzip.open(response.raw, "rt", encoding="utf-8") as f:
-                next(f)
+        with gzip.open(response.raw, "rt", encoding="utf-8") as f:
+            next(f)
 
-                for line in f:
-                    if abort_flag and abort_flag.is_requested():
-                        log("IMDb", "Episode import aborted by user")
-                        raise _ImportAborted()
+            for line in f:
+                if abort_flag and abort_flag.is_requested():
+                    log("IMDb", "Episode import aborted by user")
+                    raise _ImportAborted()
 
-                    parts = line.strip().split("\t")
-                    if len(parts) >= 4:
-                        ep_id, parent_id, season_str, episode_str = (
-                            parts[0], parts[1], parts[2], parts[3])
+                parts = line.strip().split("\t")
+                if len(parts) >= 4:
+                    ep_id, parent_id, season_str, episode_str = (
+                        parts[0], parts[1], parts[2], parts[3])
 
-                        if (parent_id in user_show_ids and season_str != "\\N"
-                                and episode_str != "\\N"):
-                            try:
-                                season = int(season_str)
-                                episode = int(episode_str)
-                                batch.append((parent_id, season, episode, ep_id))
-                                count += 1
+                    if (parent_id in user_show_ids and season_str != "\\N"
+                            and episode_str != "\\N"):
+                        try:
+                            season = int(season_str)
+                            episode = int(episode_str)
+                            batch.append((parent_id, season, episode, ep_id))
+                            count += 1
+                        except ValueError:
+                            continue
 
-                                if len(batch) >= BATCH_SIZE:
-                                    db_imdb.import_episodes_batch(cursor, batch)
-                                    batch = []
-                            except ValueError:
-                                continue
+                        if len(batch) >= BATCH_SIZE:
+                            with get_bulk_db() as cursor:
+                                db_imdb.import_episodes_batch(cursor, batch)
+                            batch = []
 
-            if batch:
+        if batch:
+            with get_bulk_db() as cursor:
                 db_imdb.import_episodes_batch(cursor, batch)
 
+        with get_bulk_db() as cursor:
             db_imdb.import_episodes_commit(cursor)
 
         return count

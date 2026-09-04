@@ -309,6 +309,19 @@ def kodi_build_version() -> str:
     return _build_version
 
 
+def skin_bool(setting: str) -> bool:
+    """True when a skin bool is set, read without the GUI lock."""
+    return bool(xbmc.getInfoLabel(f"Skin.HasSetting({setting})"))
+
+
+def playing_media_type(player: xbmc.Player) -> str:
+    """Media type of the playing item; empty when playback ends mid-read."""
+    try:
+        return player.getVideoInfoTag().getMediaType() or ""
+    except Exception:
+        return ""
+
+
 def is_kodi_piers_or_later() -> bool:
     """True on Kodi v22 (Piers, build 21.90+) or newer. Cached; build can't change mid-session."""
     global _piers_or_later

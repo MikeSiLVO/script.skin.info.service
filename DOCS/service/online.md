@@ -376,6 +376,9 @@ Ratings from multiple sources. Each source provides three properties.
 | RT Audience | `Rating.Popcorn` | MDBList |
 | Roger Ebert | `Rating.rogerebert` | MDBList |
 | MyAnimeList | `Rating.myanimelist` | MDBList |
+| MDBList aggregate | `Rating.mdblistscore` | MDBList |
+
+`Rating.mdblistscore` is MDBList's own aggregate of the other sources, not a rating their users gave. It carries no vote count.
 
 ### Example
 
@@ -393,6 +396,7 @@ Ratings from multiple sources. Each source provides three properties.
 |----------|--------|-------------|
 | `Tomatometer` | "Certified", "Fresh", "Rotten" | Critics status |
 | `Popcornmeter` | "Hot", "Fresh", "Spilled" | Audience status |
+| `Metacritic` | "MustSee" | Metacritic Must-See (MDBList) |
 
 ### Example
 
@@ -426,6 +430,22 @@ Awards data from OMDb. Requires OMDb API key.
 | `Awards.Emmy.Nominations` | Number of Emmy nominations |
 | `Awards.Other.Wins` | Other award wins |
 | `Awards.Other.Nominations` | Other award nominations |
+
+#### Awards (MDBList)
+
+MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
+counts above, which come from OMDb. Each is `"true"` when it applies and absent otherwise.
+
+| Property | Description |
+|----------|-------------|
+| `Awards.Oscar.Won` / `Awards.Oscar.Nominated` | Academy Award |
+| `Awards.BestPicture.Won` / `Awards.BestPicture.Nominated` | Best Picture |
+| `Awards.BestDirector.Won` / `Awards.BestDirector.Nominated` | Best Director |
+| `Awards.GoldenGlobe.Won` / `Awards.GoldenGlobe.Nominated` | Golden Globe |
+| `Awards.Razzie.Won` / `Awards.Razzie.Nominated` | Golden Raspberry |
+| `Awards.Emmy.Nominated` | Emmy |
+| `Awards.Festival.Cannes` / `.Venice` / `.Sundance` / `.Toronto` | Festival top prize |
+| `Awards.FilmRegistry` | US National Film Registry |
 
 ### Example
 

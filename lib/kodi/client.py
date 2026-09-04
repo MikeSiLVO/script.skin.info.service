@@ -127,6 +127,13 @@ def _cleanup_expired_cache(force: bool = False) -> None:
                 _L1.pop(k, None)
 
 
+def drop_cached(prefix: str) -> None:
+    """Forget every cached response under a key prefix, after Kodi wrote to that item."""
+    with _CACHE_LOCK:
+        for key in [k for k in _L1 if k.startswith(prefix)]:
+            _L1.pop(key, None)
+
+
 def get_cache_only(cache_key: str) -> Optional[dict]:
     """Read from the in-memory cache without making a JSON-RPC call. None on miss/expired."""
     now = monotonic()
@@ -144,10 +151,7 @@ def extract_result(resp: Optional[dict], result_key: str, default: dict) -> dict
 @overload
 def extract_result(resp: Optional[dict], result_key: str, default: None = None) -> Any: ...
 def extract_result(resp: Optional[dict], result_key: str, default=None):
-    """Extract `resp['result'][result_key]`.
-
-    `default=None` auto-picks `[]` for plural keys (ending in `s` except `details`), else `{}`.
-    """
+    """Extract `resp['result'][result_key]`, defaulting to the shape the key implies."""
     if default is None:
         default = [] if result_key.endswith("s") and result_key != "details" else {}
 
@@ -604,7 +608,7 @@ def _is_debug_enabled() -> bool:
 
 
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
-    """Log a categorised message; DEBUG escalates to INFO when the debug setting is on."""
+    """Log a categorized message; DEBUG escalates to INFO when the debug setting is on."""
     if level == xbmc.LOGDEBUG and _is_debug_enabled():
         level = xbmc.LOGINFO
     xbmc.log(f"script.skin.info.service: [{category}] {message}", level)

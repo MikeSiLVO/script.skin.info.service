@@ -20,7 +20,7 @@ def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
     return None
 
 
-def update_gif_cache(gif_path: str, mtime: float, scanned_at: str) -> None:
+def update_gif_cache(gif_path: str, mtime: float, scanned_at: int) -> None:
     """Upsert a GIF cache entry."""
     with get_db() as cursor:
         cursor.execute('''

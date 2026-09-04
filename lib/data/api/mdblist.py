@@ -1,7 +1,7 @@
 """MDBList API - always uses batch endpoint for consistent data format."""
 from __future__ import annotations
 
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Set
 import xbmc
 
 from lib.data.api.client import ApiSession
@@ -13,17 +13,33 @@ from lib.kodi.formatters import RATING_SOURCE_NORMALIZE, RT_SOURCE_TOMATOES, RT_
 
 
 BATCH_SIZE = 100
-RT_KEYWORDS = frozenset({"certified-fresh", "certified-hot", "fresh", "rotten"})
+STATUS_KEYWORDS = frozenset({
+    "certified-fresh", "certified-hot", "fresh", "rotten", "metacritic-must-see",
+})
+
+AWARD_KEYWORDS = frozenset({
+    "oscar-winner", "oscar-nominated",
+    "best-picture-winner", "best-picture-nominated",
+    "oscar-best-director-winner", "oscar-best-director-nominee",
+    "golden-globe-winner", "golden-globe-nominated",
+    "razzie-winner", "razzie-nominee",
+    "emmy-award-nominated",
+    "festival-cannes-winner", "festival-venice-winner",
+    "festival-sundance-winner", "festival-toronto-winner",
+    "national-film-preservation-board-winner", "national-film-registry",
+})
+
+_KEPT_KEYWORDS = STATUS_KEYWORDS | AWARD_KEYWORDS
 
 
-def _keep_rt_keywords(item: dict) -> None:
-    """Strip the keyword list to the RT flags, the rest is bulk nothing reads."""
+def _keep_status_keywords(item: dict) -> None:
+    """Strip the keyword list to the status tags."""
     keywords = item.get("keywords")
     if not isinstance(keywords, list):
         return
     item["keywords"] = [
         k for k in keywords
-        if isinstance(k, dict) and k.get("name", "").lower() in RT_KEYWORDS
+        if isinstance(k, dict) and k.get("name", "").lower() in _KEPT_KEYWORDS
     ]
 
 
@@ -80,7 +96,7 @@ class ApiMdblist(RatingSource):
         if isinstance(data, list):
             for item in data:
                 if isinstance(item, dict):
-                    _keep_rt_keywords(item)
+                    _keep_status_keywords(item)
             return data
         return []
 
@@ -176,7 +192,19 @@ class ApiMdblist(RatingSource):
             score = rating_entry.get("score")
             votes = rating_entry.get("votes") or 0
 
-            if not source or score is None:
+            if not source:
+                continue
+
+            if source == "rogerebert":
+                value = rating_entry.get("value")
+                if value is not None:
+                    result["rogerebert"] = {
+                        "rating": self.normalize_rating(float(value), 4),
+                        "votes": float(votes)
+                    }
+                continue
+
+            if score is None:
                 continue
 
             rating = float(score) / 10.0
@@ -198,14 +226,6 @@ class ApiMdblist(RatingSource):
                 result[RT_SOURCE_TOMATOES] = {"rating": rating, "votes": float(votes)}
             elif RATING_SOURCE_NORMALIZE.get(source, source) == RT_SOURCE_POPCORN:
                 result[RT_SOURCE_POPCORN] = {"rating": rating, "votes": float(votes)}
-            elif source == "rogerebert":
-                # rogerebert score may be null, use value field (0-4 scale)
-                value = rating_entry.get("value")
-                if value is not None:
-                    result["rogerebert"] = {
-                        "rating": self.normalize_rating(float(value), 4),
-                        "votes": float(votes)
-                    }
             elif source == "myanimelist":
                 result["myanimelist"] = {"rating": rating, "votes": float(votes)}
 
@@ -267,31 +287,23 @@ class ApiMdblist(RatingSource):
         if age is None:
             return None
 
+        # the sub-scores arrive present but null when only an overall age is rated
         return {
             "age": int(age),
-            "selection": bool(cs.get("common_sense_selection", False)),
-            "violence": int(cs.get("parental_violence", 0)),
-            "nudity": int(cs.get("parental_nudity", 0)),
-            "language": int(cs.get("parental_language", 0)),
-            "drinking": int(cs.get("parental_drinking", 0))
+            "selection": bool(cs.get("common_sense_selection")),
+            "violence": int(cs.get("parental_violence") or 0),
+            "nudity": int(cs.get("parental_nudity") or 0),
+            "language": int(cs.get("parental_language") or 0),
+            "drinking": int(cs.get("parental_drinking") or 0)
         }
 
-    def get_rt_status(
+    def get_rating_status(
         self,
         media_type: str,
         ids: Dict[str, str],
         abort_flag=None
-    ) -> Optional[dict]:
-        """Get Rotten Tomatoes status from MDBList keywords.
-
-        Returns dict with RT flags:
-        - certified: True if Certified Fresh (critics)
-        - hot: True if Verified Hot (audience)
-        - fresh: True if critics >= 60%
-        - rotten: True if critics < 60%
-        - popcorn: True if audience >= 60%
-        - stale: True if audience < 60%
-        """
+    ) -> Optional[Dict[str, str]]:
+        """The status each rating source reports, keyed by source."""
         data = self._get_or_fetch(media_type, ids, abort_flag)
         if not data:
             return None
@@ -299,34 +311,61 @@ class ApiMdblist(RatingSource):
         keywords = {
             k.get("name", "").lower() for k in data.get("keywords", []) if isinstance(k, dict)}
 
-        result: dict = {}
+        result: Dict[str, str] = {}
 
-        # From keywords (authoritative from RT)
         if "certified-fresh" in keywords:
-            result["certified"] = True
+            result[RT_SOURCE_TOMATOES] = "certified"
+        elif "fresh" in keywords:
+            result[RT_SOURCE_TOMATOES] = "fresh"
+        elif "rotten" in keywords:
+            result[RT_SOURCE_TOMATOES] = "rotten"
+
+        if "metacritic-must-see" in keywords:
+            result["metacritic"] = "mustsee"
+
         if "certified-hot" in keywords:
-            result["hot"] = True
-        if "fresh" in keywords:
-            result["fresh"] = True
-        if "rotten" in keywords:
-            result["rotten"] = True
+            result[RT_SOURCE_POPCORN] = "hot"
+        else:
+            # certified-hot is the only audience keyword
+            for r in data.get("ratings", []):
+                if not isinstance(r, dict):
+                    continue
+                source = r.get("source", "").lower()
+                if RATING_SOURCE_NORMALIZE.get(source, source) == RT_SOURCE_POPCORN:
+                    score = r.get("score")
+                    if score is not None:
+                        result[RT_SOURCE_POPCORN] = "fresh" if score >= 60 else "spilled"
+                    break
 
-        # Calculate audience status from score (no keyword for stale)
-        ratings = data.get("ratings", [])
-        for r in ratings:
-            if not isinstance(r, dict):
-                continue
-            source = r.get("source", "").lower()
-            if RATING_SOURCE_NORMALIZE.get(source, source) == RT_SOURCE_POPCORN:
-                score = r.get("score")
-                if score is not None:
-                    if score >= 60:
-                        result["popcorn"] = True
-                    else:
-                        result["stale"] = True
-                break
+        return result or None
 
-        return result if result else None
+    def get_score(
+        self,
+        media_type: str,
+        ids: Dict[str, str],
+        abort_flag=None
+    ) -> Optional[float]:
+        """MDBList's own aggregate on a 0-10 scale, their plain mean when they have no aggregate."""
+        data = self._get_or_fetch(media_type, ids, abort_flag)
+        if not data:
+            return None
+        score = data.get("score") or data.get("score_average")
+        return float(score) / 10.0 if score else None
+
+    def get_award_tags(
+        self,
+        media_type: str,
+        ids: Dict[str, str],
+        abort_flag=None
+    ) -> Set[str]:
+        """The award tags MDBList carries for a title; booleans, never counts."""
+        data = self._get_or_fetch(media_type, ids, abort_flag)
+        if not data:
+            return set()
+        return {
+            k.get("name", "").lower() for k in data.get("keywords", [])
+            if isinstance(k, dict) and k.get("name", "").lower() in AWARD_KEYWORDS
+        }
 
     def get_service_ratings(
         self,

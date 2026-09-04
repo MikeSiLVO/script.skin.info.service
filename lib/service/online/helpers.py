@@ -1,61 +1,18 @@
 """Online service helpers: cache key, TTL derivation, ID resolution."""
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Optional, Tuple
 
 import xbmc
 
-from lib.kodi.utilities import get_prop
-from lib.data.database.cache import invalidate_online_properties
-
-
-SKININFO_PREFIX_MAP = {
-    "movie": "SkinInfo.Movie",
-    "tvshow": "SkinInfo.TVShow",
-    "episode": "SkinInfo.Episode",
-}
-
-PLAYER_SKININFO_PREFIX_MAP = {
-    "movie": "SkinInfo.Player",
-    "episode": "SkinInfo.Player",
-}
+from lib.data.database.cache import CacheKey, invalidate_online_properties
 
 
 def get_online_ttl(media_type: str, tmdb_id: str) -> int:
     """Derive smart TTL from cached TMDB metadata for online properties cache."""
-    from lib.data.database.cache import get_cached_metadata, get_cache_ttl_hours
+    from lib.data.database.cache import get_title_ttl_hours
 
-    tmdb_data = get_cached_metadata(media_type, tmdb_id)
-    if not tmdb_data:
-        return 72
-
-    hints: Dict[str, str] = {}
-    status = tmdb_data.get("status") or ""
-    if status:
-        hints["status"] = status
-
-    next_ep = tmdb_data.get("next_episode_to_air")
-    if isinstance(next_ep, dict) and next_ep.get("air_date"):
-        next_ep_complete = bool(next_ep.get("name") and next_ep.get("overview"))
-        if next_ep_complete:
-            hints["next_episode_air_date"] = next_ep["air_date"]
-        else:
-            hints["next_episode_air_date_incomplete"] = next_ep["air_date"]
-
-    if media_type == "tvshow":
-        has_overview = bool(tmdb_data.get("overview"))
-        has_cast = len(tmdb_data.get("credits", {}).get("cast", [])) > 0
-        has_imdb = bool((tmdb_data.get("external_ids") or {}).get("imdb_id"))
-        has_content_ratings = len(tmdb_data.get("content_ratings", {}).get("results", [])) > 0
-        last_ep = tmdb_data.get("last_episode_to_air")
-        has_last_ep = bool(last_ep and last_ep.get("overview"))
-        if has_overview and has_cast and has_imdb and has_content_ratings and has_last_ep:
-            hints["aired_data_complete"] = "true"
-        if isinstance(last_ep, dict) and last_ep.get("air_date"):
-            hints["last_air_date"] = last_ep["air_date"]
-
-    release_date = tmdb_data.get("release_date") or tmdb_data.get("first_air_date")
-    return get_cache_ttl_hours(release_date, hints)
+    return get_title_ttl_hours(media_type, tmdb_id) or 72
 
 
 def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> None:
@@ -71,18 +28,15 @@ def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
         invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
 
 
-def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str) -> str:
+def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str,
+                   scope: str = '') -> Optional[CacheKey]:
     """Build a stable cache key. TMDB preferred (earlier-resolved, consistent), IMDb fallback."""
-    if tmdb_id:
-        return f"{media_type}:tmdb:{tmdb_id}"
-    if imdb_id:
-        return f"{media_type}:imdb:{imdb_id}"
-    return ""
+    item_id = tmdb_id or imdb_id
+    return CacheKey(media_type, item_id, scope) if item_id else None
 
 
-def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str,
-                     prefix_map: Dict[str, str]) -> Tuple[str, str]:
-    """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> SkinInfo props -> ID map -> JSON-RPC fallback."""
+def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
+    """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> ID map -> JSON-RPC fallback."""
     imdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(imdb)") or ""
     tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
 
@@ -90,14 +44,6 @@ def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str,
         imdbnumber = xbmc.getInfoLabel(f"{info_prefix}.IMDBNumber") or ""
         if imdbnumber.startswith("tt"):
             imdb_id = imdbnumber
-
-    if not imdb_id or not tmdb_id:
-        prefix = prefix_map.get(dbtype, "")
-        if prefix:
-            if not imdb_id:
-                imdb_id = get_prop(f"{prefix}.UniqueID.IMDB") or ""
-            if not tmdb_id:
-                tmdb_id = get_prop(f"{prefix}.UniqueID.TMDB") or ""
 
     if not imdb_id and tmdb_id:
         from lib.data.database.mapping import get_imdb_id

@@ -2,7 +2,7 @@
 
 Provides a single resolution chain for MusicBrainz artist IDs from any entry point
 (audio playback, music video playback, music video focus). Fetches artist bio, fanart,
-and artwork URLs from AudioDB and Fanart.tv, with persistent caching in music_metadata.db.
+and artwork URLs from AudioDB and Fanart.tv, cached in `blob_cache`.
 """
 from __future__ import annotations
 

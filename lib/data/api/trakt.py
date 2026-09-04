@@ -1,7 +1,7 @@
 """Trakt ratings source with OAuth support."""
 from __future__ import annotations
 
-from typing import Any, Optional, Dict, Set
+from typing import Any, Optional, Dict, Set, Tuple
 from datetime import datetime, timedelta
 import json
 import threading
@@ -14,6 +14,14 @@ from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api.utilities import decode_key
 from lib.data.api import tracker as usage_tracker
 from lib.kodi.client import log
+
+
+def _as_part(value) -> int:
+    """Season or episode number as an int; -1 stands for a row that has neither."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return -1
 
 
 TRAKT_CLIENT_ID = decode_key(
@@ -155,7 +163,7 @@ class ApiTrakt(RatingSource):
 
         cache_key = self._get_cache_key(media_type, ids)
         if not force_refresh:
-            cached = self.get_cached_data(media_type, cache_key)
+            cached = self.get_cached_data(media_type, *cache_key)
             if cached:
                 return cached
 
@@ -200,7 +208,8 @@ class ApiTrakt(RatingSource):
                 data = raw[0].get(search_type)
 
             if data:
-                self.cache_data(media_type, cache_key, data)
+                self.cache_data(media_type, cache_key[0], data,
+                                season=cache_key[1], episode=cache_key[2])
 
             return data
 
@@ -222,7 +231,7 @@ class ApiTrakt(RatingSource):
             return lock
 
     def _fetch_episode_via_season(
-        self, trakt_id: str, season: str, cache_key: str,
+        self, trakt_id: str, season: str, cache_key: Tuple[str, int, int],
         headers: Dict[str, str], abort_flag=None, force_refresh: bool = False,
     ) -> Optional[dict]:
         """Fetch the episode's whole season in one call, caching every episode so only the
@@ -234,7 +243,7 @@ class ApiTrakt(RatingSource):
         season_key = f"{trakt_id}_s{season}"
         with self._get_season_lock(season_key):
             if not (force_refresh and season_key not in self._refreshed_seasons):
-                cached = self.get_cached_data("episode", cache_key)
+                cached = self.get_cached_data("episode", *cache_key)
                 if cached:
                     return cached
 
@@ -254,31 +263,25 @@ class ApiTrakt(RatingSource):
                 ep_num = ep.get("number")
                 if ep_num is None:
                     continue
-                ep_key = self._get_cache_key("episode", {
-                    "imdb": trakt_id,
-                    "season": str(season),
-                    "episode": str(ep_num),
-                })
-                self.cache_data("episode", ep_key, ep)
+                self.cache_data("episode", trakt_id, ep,
+                                season=_as_part(season), episode=_as_part(ep_num))
 
             self._refreshed_seasons.add(season_key)
             log("Trakt", f"Fetched {len(data)} episodes for season {season}", xbmc.LOGDEBUG)
 
-        return self.get_cached_data("episode", cache_key)
+        return self.get_cached_data("episode", *cache_key)
 
-    def _get_cache_key(self, media_type: str, ids: Dict[str, str]) -> str:
-        """Generate cache key for Trakt data."""
-        trakt_id = ids.get("trakt_slug") or ids.get("imdb") or ids.get("tmdb")
-        if media_type == "episode":
-            season = ids.get("season", "")
-            episode = ids.get("episode", "")
-            return f"{trakt_id}_s{season}e{episode}"
-        return str(trakt_id)
+    @staticmethod
+    def _get_cache_key(media_type: str, ids: Dict[str, str]) -> Tuple[str, int, int]:
+        """Cache identity for Trakt data: the id, plus season and episode for an episode row."""
+        trakt_id = str(ids.get("trakt_slug") or ids.get("imdb") or ids.get("tmdb"))
+        if media_type != "episode":
+            return trakt_id, -1, -1
+        return trakt_id, _as_part(ids.get("season")), _as_part(ids.get("episode"))
 
     def get_trakt_data(self, media_type: str, ids: Dict[str, str]) -> Optional[dict]:
         """Return the full cached Trakt response, or None if not cached."""
-        cache_key = self._get_cache_key(media_type, ids)
-        return self.get_cached_data(media_type, cache_key)
+        return self.get_cached_data(media_type, *self._get_cache_key(media_type, ids))
 
     def fetch_ratings(
         self,

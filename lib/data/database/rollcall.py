@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
-from typing import Dict, Iterable, Optional, Set, Tuple
+import time
+from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 import xbmc
 
@@ -19,15 +19,25 @@ from lib.kodi.client import log
 _DEPENDENT_TABLES: Dict[str, Tuple[Optional[str], str]] = {
     "art_queue": ("media_type", "dbid"),
     "slideshow_pool": ("media_type", "dbid"),
-    "ratings_synced": ("media_type", "dbid"),
-    "tv_schedule": (None, "tvshowid"),
+    "imdb_sync": ("media_type", "dbid"),
+    "tvshow_runtime": (None, "tvshowid"),
 }
 
-def _build_content_id(uniqueid: dict) -> str:
-    """Build a content_id string from Kodi uniqueid dict.
+class _Item(NamedTuple):
+    """One library row as Kodi reports it."""
+    title: str
+    content_key: str
+    imdb_id: Optional[str]
+    tmdb_id: Optional[int]
+    tvdb_id: Optional[int]
+    mbid: Optional[str]
+    parent_dbid: Optional[int]
+    season: Optional[int]
+    episode: Optional[int]
 
-    Priority: imdb > tmdb > tvdb > first available.
-    """
+
+def _build_content_key(uniqueid: dict) -> str:
+    """Reuse detector: the first id Kodi offers, prefixed by its source."""
     for source in ("imdb", "tmdb", "tvdb"):
         val = uniqueid.get(source)
         if val:
@@ -36,6 +46,14 @@ def _build_content_id(uniqueid: dict) -> str:
         if val:
             return f"{source}:{val}"
     return ""
+
+
+def _as_int(value) -> Optional[int]:
+    """Kodi hands ids back as strings or ints; the column is INTEGER."""
+    try:
+        return int(value) if value else None
+    except (TypeError, ValueError):
+        return None
 
 
 _PAGE_SIZE = 5000
@@ -71,20 +89,22 @@ def _fetch_paginated(method: str, result_key: str,
 
 
 _LIBRARY_SOURCES = [
-    # (media_type, method, result_key, id_field, has_uniqueid)
-    ("movie",   "VideoLibrary.GetMovies",   "movies",   "movieid",   True),
-    ("tvshow",  "VideoLibrary.GetTVShows",  "tvshows",  "tvshowid",  True),
-    ("episode", "VideoLibrary.GetEpisodes", "episodes", "episodeid", True),
-    ("artist",  "AudioLibrary.GetArtists",  "artists",  "artistid",  False),
+    ("movie",   "VideoLibrary.GetMovies",   "movies",   "movieid",
+     ["title", "uniqueid"]),
+    ("tvshow",  "VideoLibrary.GetTVShows",  "tvshows",  "tvshowid",
+     ["title", "uniqueid"]),
+    ("episode", "VideoLibrary.GetEpisodes", "episodes", "episodeid",
+     ["title", "uniqueid", "season", "episode", "tvshowid"]),
+    ("artist",  "AudioLibrary.GetArtists",  "artists",  "artistid",
+     ["musicbrainzartistid"]),
 ]
 
 
-def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str, str]]]:
-    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: (title, content_id, tmdb_id)}`."""
-    snapshot: Dict[str, Dict[int, Tuple[str, str, str]]] = {}
+def _fetch_library_dbids() -> Dict[str, Dict[int, _Item]]:
+    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: _Item}`."""
+    snapshot: Dict[str, Dict[int, _Item]] = {}
 
-    for media_type, method, result_key, id_field, has_uniqueid in _LIBRARY_SOURCES:
-        properties = ["title", "uniqueid"] if has_uniqueid else None
+    for media_type, method, result_key, id_field, properties in _LIBRARY_SOURCES:
         items = _fetch_paginated(method, result_key, properties)
         if items is None:
             log("Database", f"DBID sync: {media_type} fetch failed, leaving its rows alone",
@@ -92,16 +112,27 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, Tuple[str, str, str]]]:
             continue
         snapshot[media_type] = {}
         for item in items:
-            if has_uniqueid:
-                uniqueid = item.get("uniqueid") or {}
-                title = item.get("title", "")
-                content_id = _build_content_id(uniqueid)
-                tmdb_id = str(uniqueid.get("tmdb") or "")
-            else:
+            if media_type == "artist":
                 title = item.get("label") or ""
-                content_id = f"name:{title}"
-                tmdb_id = ""
-            snapshot[media_type][item[id_field]] = (title, content_id, tmdb_id)
+                mbid = item.get("musicbrainzartistid") or None
+                if isinstance(mbid, list):
+                    mbid = mbid[0] if mbid else None
+                record = _Item(title, f"name:{title}", None, None, None, mbid, None, None, None)
+            else:
+                uniqueid = item.get("uniqueid") or {}
+                record = _Item(
+                    item.get("title", ""),
+                    _build_content_key(uniqueid),
+                    uniqueid.get("imdb") or None,
+                    _as_int(uniqueid.get("tmdb")),
+                    _as_int(uniqueid.get("tvdb")),
+                    None,
+                    # a tvshow item carries its own id in tvshowid
+                    _as_int(item.get("tvshowid")) if media_type == "episode" else None,
+                    item.get("season") if media_type == "episode" else None,
+                    item.get("episode") if media_type == "episode" else None,
+                )
+            snapshot[media_type][item[id_field]] = record
 
     return snapshot
 
@@ -126,23 +157,85 @@ def _cleanup_stale_dbids(
     return {k: v for k, v in stats.items() if v > 0}
 
 
+def _cleanup_stale_titles(cursor, media_type: str, tmdb_ids: Set[int]) -> None:
+    """Drop the provider rows of departed items, sparing ids another library row still uses."""
+    if media_type not in ("movie", "tvshow") or not tmdb_ids:
+        return
+    # a survivor can reach the same title through its imdb or tvdb id instead
+    still_used = {
+        row["tmdb_id"] for row in chunked_in_query(
+            cursor,
+            "SELECT t.tmdb_id FROM tmdb_title t JOIN library_item li "
+            "ON li.media_type = t.media_type AND (li.tmdb_id = t.tmdb_id "
+            "OR li.imdb_id = t.imdb_id OR li.tvdb_id = t.tvdb_id) "
+            "WHERE t.media_type = ? AND t.tmdb_id IN ({placeholders})",
+            [media_type], sorted(tmdb_ids))
+    }
+    ids = sorted(tmdb_ids - still_used)
+    if not ids:
+        return
+    _chunked_delete(
+        cursor,
+        "DELETE FROM tmdb_title WHERE media_type = ? AND tmdb_id IN ({placeholders})",
+        [media_type], ids)
+    _chunked_delete(
+        cursor,
+        "DELETE FROM online_props WHERE media_type = ? AND item_id IN ({placeholders})",
+        [media_type], [str(i) for i in ids])
+
+
+def get_airing_shows() -> List[Dict]:
+    """Library TV shows with the schedule columns of their cached TMDB title."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            # a show scraped from TVDB or IMDb has no tmdb_id to join on
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "li.dbid AS tvshowid FROM library_item li "
+            "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tmdb_id = li.tmdb_id "
+            "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NOT NULL "
+            "UNION "
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "li.dbid AS tvshowid FROM library_item li "
+            "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.imdb_id = li.imdb_id "
+            "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NOT NULL "
+            "UNION "
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "li.dbid AS tvshowid FROM library_item li "
+            "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tvdb_id = li.tvdb_id "
+            "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NULL "
+            "AND li.tvdb_id IS NOT NULL "
+            "ORDER BY next_air_date"
+        )
+        return [
+            {
+                "tmdb_id": str(row["tmdb_id"]),
+                "imdb_id": row["imdb_id"] or "",
+                "title": row["title"] or "",
+                "status": row["status"] or "",
+                "next_air_date": row["next_air_date"] or "",
+                "tvshowid": row["tvshowid"],
+            }
+            for row in cursor.fetchall()
+        ]
+
+
 def sync_dbids() -> Dict[str, Dict[str, int]]:
     """Sync DBID registry with Kodi library.
 
     Returns `media_type -> {added, removed, reused}`. Empty dict when no changes.
     """
     snapshot = _fetch_library_dbids()
-    now = datetime.now().isoformat()
+    now = int(time.time())
     results: Dict[str, Dict[str, int]] = {}
 
     with get_db(DB_PATH) as cursor:
         for media_type, library_items in snapshot.items():
             cursor.execute(
-                "SELECT dbid, title, content_id, tmdb_id FROM dbid_registry WHERE media_type = ?",
+                "SELECT dbid, content_key, tmdb_id FROM library_item WHERE media_type = ?",
                 (media_type,),
             )
             existing = {
-                row["dbid"]: (row["title"], row["content_id"] or "", row["tmdb_id"])
+                row["dbid"]: (row["content_key"] or "", row["tmdb_id"])
                 for row in cursor.fetchall()
             }
 
@@ -155,12 +248,13 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
 
             reused: Set[int] = set()
             for dbid in common:
-                old_content_id = existing[dbid][1]
-                new_content_id = library_items[dbid][1]
-                if old_content_id and new_content_id and old_content_id != new_content_id:
+                old_key = existing[dbid][0]
+                new_key = library_items[dbid].content_key
+                if old_key and new_key and old_key != new_key:
                     reused.add(dbid)
 
             stale = gone | reused
+            departed_tmdb_ids = {existing[dbid][1] for dbid in stale if existing[dbid][1]}
             if stale:
                 cleanup = _cleanup_stale_dbids(cursor, media_type, stale)
                 if cleanup:
@@ -169,42 +263,37 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
             if gone:
                 _chunked_delete(
                     cursor,
-                    "DELETE FROM dbid_registry WHERE media_type = ? AND dbid IN ({placeholders})",
+                    "DELETE FROM library_item WHERE media_type = ? AND dbid IN ({placeholders})",
                     [media_type],
                     sorted(gone),
                 )
 
-            for dbid in reused:
-                title, content_id, tmdb_id = library_items[dbid]
-                cursor.execute(
-                    "UPDATE dbid_registry SET title = ?, content_id = ?, tmdb_id = ?, "
-                    "updated_at = ? WHERE media_type = ? AND dbid = ?",
-                    (title, content_id, tmdb_id, now, media_type, dbid),
-                )
+            _UPSERT = (
+                "INSERT INTO library_item (media_type, dbid, title, imdb_id, tmdb_id, tvdb_id, "
+                "mbid, parent_dbid, season, episode, content_key, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT (media_type, dbid) DO UPDATE SET "
+                "title = excluded.title, imdb_id = excluded.imdb_id, tmdb_id = excluded.tmdb_id, "
+                "tvdb_id = excluded.tvdb_id, mbid = excluded.mbid, "
+                "parent_dbid = excluded.parent_dbid, season = excluded.season, "
+                "episode = excluded.episode, content_key = excluded.content_key, "
+                "updated_at = excluded.updated_at"
+            )
 
             drifted = [
-                (library_items[dbid][2], now, media_type, dbid)
-                for dbid in common - reused
-                if existing[dbid][2] != library_items[dbid][2]
+                dbid for dbid in common - reused
+                if existing[dbid][1] != library_items[dbid].tmdb_id
             ]
-            if drifted:
-                cursor.executemany(
-                    "UPDATE dbid_registry SET tmdb_id = ?, updated_at = ? "
-                    "WHERE media_type = ? AND dbid = ?",
-                    drifted,
-                )
+            write = sorted(new) + sorted(reused) + sorted(drifted)
+            if write:
+                cursor.executemany(_UPSERT, [
+                    (media_type, dbid, i.title, i.imdb_id, i.tmdb_id, i.tvdb_id, i.mbid,
+                     i.parent_dbid, i.season, i.episode, i.content_key, now)
+                    for dbid, i in ((d, library_items[d]) for d in write)
+                ])
 
-            if new:
-                rows = [
-                    (media_type, dbid) + library_items[dbid] + (now,)
-                    for dbid in new
-                ]
-                cursor.executemany(
-                    "INSERT INTO dbid_registry "
-                    "(media_type, dbid, title, content_id, tmdb_id, updated_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
-                    rows,
-                )
+            # after the upsert, when a re-scraped id is present again
+            _cleanup_stale_titles(cursor, media_type, departed_tmdb_ids)
 
             stats = {
                 "added": len(new),
@@ -227,41 +316,34 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
     return results
 
 
-def get_valid_dbids(media_type: str) -> Set[int]:
-    """Get all valid DBIDs for a media type from the registry."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute(
-            "SELECT dbid FROM dbid_registry WHERE media_type = ?",
-            (media_type,),
-        )
-        return {row["dbid"] for row in cursor.fetchall()}
-
-
 def needs_id_backfill() -> bool:
-    """True when the registry is empty or predates the tmdb_id column, so a new install or an
-    upgrade seeds it without waiting for a library scan."""
+    """True when the registry is empty, so a new install seeds it without waiting for a scan."""
     with get_db(DB_PATH) as cursor:
-        cursor.execute("SELECT 1 FROM dbid_registry WHERE tmdb_id IS NULL LIMIT 1")
-        if cursor.fetchone() is not None:
-            return True
-        cursor.execute("SELECT 1 FROM dbid_registry LIMIT 1")
+        cursor.execute("SELECT 1 FROM library_item LIMIT 1")
         return cursor.fetchone() is None
 
 
 def get_dbids_by_tmdb(media_type: str, tmdb_ids: Iterable) -> Dict[str, int]:
     """Map TMDB ids to library DBIDs for one media type; ids not in the library are left out."""
-    wanted = {str(tmdb_id) for tmdb_id in tmdb_ids if tmdb_id}
+    wanted = set()
+    for tmdb_id in tmdb_ids:
+        try:
+            if tmdb_id:
+                wanted.add(int(tmdb_id))
+        except (TypeError, ValueError):
+            continue
     if not wanted:
         return {}
 
     sql = (
-        "SELECT tmdb_id, dbid FROM dbid_registry "
+        "SELECT tmdb_id, dbid FROM library_item "
         "WHERE media_type = ? AND tmdb_id IN ({placeholders})"
     )
     try:
         with get_db(DB_PATH) as cursor:
+            # the column is INTEGER; callers key on the string form
             return {
-                row["tmdb_id"]: row["dbid"]
+                str(row["tmdb_id"]): row["dbid"]
                 for row in chunked_in_query(cursor, sql, [media_type], sorted(wanted))
             }
     except sqlite3.OperationalError as e:
@@ -287,7 +369,7 @@ def remove_dbid(media_type: str, dbid: int) -> None:
                     (media_type, dbid),
                 )
         cursor.execute(
-            "DELETE FROM dbid_registry WHERE media_type = ? AND dbid = ?",
+            "DELETE FROM library_item WHERE media_type = ? AND dbid = ?",
             (media_type, dbid),
         )
 

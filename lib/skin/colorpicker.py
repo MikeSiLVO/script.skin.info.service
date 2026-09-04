@@ -163,7 +163,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
             palette_list.reset()  # type: ignore[attr-defined]
 
             for color_info in self.palette_colors:
-                item = xbmcgui.ListItem(color_info['name'])
+                item = xbmcgui.ListItem(color_info['name'], offscreen=True)
                 item.setProperty('color', color_info['value'])
                 palette_list.addItem(item)  # type: ignore[attr-defined]
         except Exception as e:

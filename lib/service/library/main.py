@@ -80,11 +80,12 @@ class LibraryMonitor(xbmc.Monitor):
             info = json.loads(data)
         except Exception:
             return
-        if 'playcount' in info:
-            return
         media_type = info.get('type', '')
         dbid = info.get('id')
         if not dbid:
+            return
+        self.service_main.focus.invalidate_item(media_type, dbid)
+        if 'playcount' in info:
             return
         if media_type == 'musicvideo':
             self.service_main.musicvideo.invalidate_for(int(dbid))

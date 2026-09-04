@@ -94,11 +94,7 @@ def vfs_join(base: str, *parts: str) -> str:
 
 def build_actors_folder_path(media_type: str, file_path: str,
                              show_path: Optional[str] = None) -> Optional[str]:
-    """Build `.actors` folder path matching Kodi's VideoInfoScanner/VideoDatabase conventions.
-
-    Movie: parent of movie file. TV/Episode: show root (shared).
-    `show_path` is required for episodes.
-    """
+    """The `.actors` folder Kodi's VideoInfoScanner expects; an episode's sits at the show root."""
     if media_type == "movie":
         if not file_path:
             return None
@@ -156,7 +152,7 @@ def get_album_folders(album_ids: List[int]) -> Dict[int, str]:
 class DirectoryListing:
     """Per-directory filename cache, so existence checks cost one listing instead of a stat each.
 
-    Every stat is a network round trip serialised behind Kodi's global NFS/SMB lock.
+    Every stat is a network round trip serialized behind Kodi's global NFS/SMB lock.
     """
 
     def __init__(self, max_dirs: int = 4096):
@@ -434,12 +430,7 @@ class PathBuilder:
     def build_path(media_type: str, media_file: str, artwork_type: str,
                    season_number: Optional[int] = None,
                    use_basename: bool = True, mbid: Optional[str] = None) -> Optional[str]:
-        """Build an extensionless artwork path for `media_type`.
-
-        `media_file` is the media file path, or a title/name for `set`/`artist`.
-        `use_basename=True` gives `Movie-poster`; False gives `poster` in the folder.
-        `mbid` disambiguates duplicate artist names. Returns None if the path can't be built.
-        """
+        """Build an extensionless artwork path, or None when the item has nothing to build from."""
         if not media_file:
             return None
 

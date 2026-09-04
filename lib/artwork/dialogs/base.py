@@ -104,7 +104,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
 
         label = f"Option {index + 1}"
 
-        item = xbmcgui.ListItem(label=label)
+        item = xbmcgui.ListItem(label=label, offscreen=True)
         item.setArt({'thumb': preview, 'icon': preview})
         item.setProperty('fullurl', url)
         item.setProperty('index', str(index))

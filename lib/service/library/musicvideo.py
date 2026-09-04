@@ -13,6 +13,9 @@ from lib.kodi.utilities import batch_set_props
 class MusicVideoArt:
     """Sets local musicvideo artist/album art from the Kodi music library."""
 
+    def __init__(self):
+        self._art_generation = 0
+
     def set_artist_node(self) -> None:
         """Set art for an artist musicvideo node (DBID-less, name from ListItem.Label)."""
         artist_name = xbmc.getInfoLabel("ListItem.Label") or ""
@@ -75,18 +78,22 @@ class MusicVideoArt:
         """Set local artist art plus deferred album thumb."""
         from lib.plugin.dbid import get_musicvideo_artist_art
 
+        self._art_generation += 1
         artist_art, artist_id = get_musicvideo_artist_art(details)
         artist_keys = ("Artist.Fanart", "Artist.Thumb", "Artist.Clearlogo", "Artist.Banner")
         props: dict = {f"{prefix}{k}": artist_art.get(k, "") for k in artist_keys}
         batch_set_props(props)
-        self._defer_album_thumb(details, artist_id, prefix)
+        self._defer_album_thumb(details, artist_id, prefix, self._art_generation)
 
-    @staticmethod
-    def _defer_album_thumb(details: dict, artist_id: object, prefix: str) -> None:
+    def _defer_album_thumb(self, details: dict, artist_id: object, prefix: str,
+                           generation: int) -> None:
         def _worker() -> None:
             try:
                 from lib.plugin.dbid import get_musicvideo_album_art
                 album_thumb = get_musicvideo_album_art(details, artist_id)
+                # focus can move while the lookup runs; a late write lands on the wrong item
+                if generation != self._art_generation:
+                    return
                 props: Dict[str, Optional[str]] = {f"{prefix}Album.Thumb": album_thumb}
                 batch_set_props(props)
             except Exception as e:

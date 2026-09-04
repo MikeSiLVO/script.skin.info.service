@@ -384,7 +384,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
     items = []
     for result in results[:10]:
-        item = xbmcgui.ListItem(result['name'])
+        item = xbmcgui.ListItem(result['name'], offscreen=True)
 
         known_for = result.get('known_for_department', '')
         if known_for:

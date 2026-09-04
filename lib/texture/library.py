@@ -20,7 +20,7 @@ _cached_urls_set: Optional[Set[str]] = None
 
 
 def get_cached_textures(url_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Return cached textures from `Textures13.db`. `url_filter` does a partial-match filter."""
+    """Kodi's texture cache entries via JSON-RPC; the filter is a partial URL match."""
     params: Dict[str, Any] = {
         "properties": ["url", "cachedurl", "lasthashcheck", "imagehash", "sizes"]
     }

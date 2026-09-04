@@ -1,33 +1,5 @@
-"""Database package for queue management, API caching, and data operations.
-
-Unified database containing:
-- Queue management for artwork review workflow
-- API response caching (TMDB, fanart.tv)
-- Workflow tracking for sessions and operations
-- IMDb dataset storage and lookups
-- Ratings provider caching and API usage tracking
-- Slideshow pool management
-- ID correction cache
-
-Modules:
-- _infrastructure: Database connections and schema
-- cache: API response caching and TTL management
-- correction: TMDB/IMDB ID correction cache
-- gif: GIF scan cache
-- imdb: IMDb dataset operations (ratings, episodes, metadata)
-- music: Music metadata cache (AudioDB/Last.fm, separate DB)
-- queue: Queue CRUD operations for artwork workflow
-- rating: Ratings API usage tracking and provider caching
-- slideshow: Slideshow pool operations
-- workflow: Session and operation history tracking
-"""
-from lib.data.database._infrastructure import (
-    DB_PATH,
-    DB_VERSION,
-    get_connection,
-    get_db,
-    init_database,
-)
+"""SQLite accessors; the root re-exports the artwork path, everything else imports by module."""
+from lib.data.database._infrastructure import init_database
 
 from lib.data.database.cache import (
     get_cache_ttl_hours,
@@ -37,7 +9,6 @@ from lib.data.database.cache import (
     set_feed_checkpoint,
     add_rechecks,
     take_due_rechecks,
-    has_pending_recheck,
     get_cached_artwork,
     get_cached_artwork_batch,
     cache_artwork,
@@ -49,9 +20,7 @@ from lib.data.database.cache import (
     cache_tmdb_genre_list,
     cache_person_data,
     get_cached_person_data,
-    clear_expired_cache,
-    get_mb_id_mapping,
-    get_mb_id_mappings_by_canonical,
+    get_mb_id_aliases,
     save_mb_id_mapping,
 )
 
@@ -59,8 +28,6 @@ from lib.data.database.queue import (
     ARTITEM_REVIEW_MISSING,
     clear_queue_and_sessions,
     clear_queue_for_media,
-    add_to_queue,
-    add_art_item,
     add_to_queue_batch,
     add_art_items_batch,
     get_next_batch,
@@ -82,26 +49,12 @@ from lib.data.database.workflow import (
     update_session_stats,
     complete_session,
     cancel_session,
-    get_session,
     get_last_manual_review_session,
     save_operation_stats,
     get_last_operation_stats,
 )
 
-# New modules exported as namespaces (callers use e.g. `from lib.data.database import imdb`)
-from lib.data.database import correction  # noqa: F401
-from lib.data.database import gif  # noqa: F401
-from lib.data.database import imdb  # noqa: F401
-from lib.data.database import music  # noqa: F401
-from lib.data.database import rating  # noqa: F401
-from lib.data.database import runtime  # noqa: F401
-from lib.data.database import slideshow  # noqa: F401
-
 __all__ = [
-    'DB_PATH',
-    'DB_VERSION',
-    'get_connection',
-    'get_db',
     'init_database',
     'get_cache_ttl_hours',
     'get_fanarttv_cache_ttl_hours',
@@ -110,7 +63,6 @@ __all__ = [
     'set_feed_checkpoint',
     'add_rechecks',
     'take_due_rechecks',
-    'has_pending_recheck',
     'get_cached_artwork',
     'get_cached_artwork_batch',
     'cache_artwork',
@@ -122,15 +74,11 @@ __all__ = [
     'cache_tmdb_genre_list',
     'cache_person_data',
     'get_cached_person_data',
-    'clear_expired_cache',
-    'get_mb_id_mapping',
-    'get_mb_id_mappings_by_canonical',
+    'get_mb_id_aliases',
     'save_mb_id_mapping',
     'ARTITEM_REVIEW_MISSING',
     'clear_queue_and_sessions',
     'clear_queue_for_media',
-    'add_to_queue',
-    'add_art_item',
     'add_to_queue_batch',
     'add_art_items_batch',
     'get_next_batch',
@@ -149,15 +97,7 @@ __all__ = [
     'update_session_stats',
     'complete_session',
     'cancel_session',
-    'get_session',
     'get_last_manual_review_session',
     'save_operation_stats',
     'get_last_operation_stats',
-    'correction',
-    'gif',
-    'imdb',
-    'music',
-    'rating',
-    'runtime',
-    'slideshow',
 ]

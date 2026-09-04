@@ -116,29 +116,24 @@ def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -
     if not imdb_id:
         return None
 
-    from lib.data.database.mapping import get_tmdb_id_by_imdb, save_id_mapping
+    from lib.data.database.mapping import (
+        get_tmdb_id_by_imdb, is_known_find_miss, save_find_miss, save_id_mapping,
+    )
     mapped = get_tmdb_id_by_imdb(imdb_id, media_type)
     if mapped:
         return mapped
 
-    from lib.data.database.correction import get_corrected_tmdb_id, save_corrected_tmdb_id
-    corrected = get_corrected_tmdb_id(imdb_id)
-    if corrected is not None:
-        if corrected > 0:
-            save_id_mapping(str(corrected), media_type, imdb_id=imdb_id)
-            return str(corrected)
+    if is_known_find_miss(imdb_id, media_type):
         return None
 
     api = ApiTmdb()
     found_id = api.find_by_imdb(imdb_id, media_type)
     if found_id:
-        save_corrected_tmdb_id(imdb_id, found_id, media_type)
         save_id_mapping(str(found_id), media_type, imdb_id=imdb_id)
         log("TMDB", f"Corrected invalid TMDB ID for {imdb_id} -> {found_id}", xbmc.LOGDEBUG)
         return str(found_id)
 
-    # Cache the miss so we don't retry
-    save_corrected_tmdb_id(imdb_id, 0, media_type)
+    save_find_miss(imdb_id, media_type)
     return None
 
 

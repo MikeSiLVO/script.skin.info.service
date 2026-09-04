@@ -56,7 +56,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                 is_library_item
             )] = "tmdb"
 
-        if imdb_id:
+        if imdb_id and not is_episode:
             futures[executor.submit(
                 fetch_omdb_data,
                 media_type,
@@ -64,7 +64,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                 abort_flag
             )] = "omdb"
 
-        if imdb_id or resolved_tmdb_id:
+        if (imdb_id or resolved_tmdb_id) and not is_episode:
             futures[executor.submit(
                 fetch_mdblist_data,
                 media_type,
@@ -74,6 +74,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                 abort_flag
             )] = "mdblist"
 
+        if imdb_id or resolved_tmdb_id:
             futures[executor.submit(
                 fetch_trakt_data,
                 media_type,

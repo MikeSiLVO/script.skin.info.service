@@ -116,7 +116,7 @@ class ImdbUpdateService(threading.Thread):
             self._consecutive_failures = 0
             self._next_retry_at = 0.0
 
-            if db.get_synced_items_count() == 0:
+            if not db.has_synced_ratings():
                 self._run_full_update()
             else:
                 self._run_incremental(monitor)

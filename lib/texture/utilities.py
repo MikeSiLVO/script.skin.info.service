@@ -49,11 +49,7 @@ _LIBRARY_DRIVE_RE = re.compile(r'^[D-Z]:', re.IGNORECASE)
 
 
 def is_library_artwork_url(url: str) -> bool:
-    """True if URL points at library artwork; False for addon icons, system files,
-    or special folders.
-
-    Recognised library: HTTP/HTTPS, `image://video@`/`music@`, drive-letter paths, SMB/NFS shares.
-    """
+    """True if URL is library artwork; False for addon icons, system files or special folders."""
     if not url:
         return False
 

@@ -1,7 +1,4 @@
-"""Slideshow functionality for rotating fanart backgrounds.
-
-Provides window properties with random fanart from library for skin slideshows.
-"""
+"""Rotating fanart backgrounds, published as window properties for the skin."""
 from __future__ import annotations
 
 import random
@@ -39,7 +36,7 @@ def _cache_image_url(url: str) -> bool:
 
 
 def _build_pool_records(media_type: str, items: list, id_key: str, title_key: str,
-                        fanart_key: str, description_key: str, current_time: int) -> List[tuple]:
+                        fanart_key: str, plot_key: str) -> List[tuple]:
     records = []
     for item in items:
         dbid = item.get(id_key)
@@ -53,15 +50,12 @@ def _build_pool_records(media_type: str, items: list, id_key: str, title_key: st
             year = item.get('year')
 
         records.append((
-            dbid,
             media_type,
+            dbid,
             item.get(title_key, ''),
             fanart,
-            item.get(description_key, ''),
+            item.get(plot_key, ''),
             year,
-            None,
-            None,
-            current_time,
             _joined_artist(item.get('artist')) if media_type == 'musicvideo' else ''
         ))
     return records
@@ -76,8 +70,6 @@ def _joined_artist(artist: Any) -> str:
 
 def populate_slideshow_pool() -> None:
     """Rebuild slideshow_pool from the library (movies/tvshows/artists/music videos with fanart)."""
-    current_time = int(time.time())
-
     movies = _get_movies_with_fanart()
     tvshows = _get_tvshows_with_fanart()
     artists = _get_artists_with_fanart()
@@ -87,18 +79,12 @@ def populate_slideshow_pool() -> None:
             xbmc.LOGWARNING)
         return
 
-    movie_records = _build_pool_records(
-        'movie', movies, 'movieid', 'title', 'fanart', 'plot', current_time
-    )
-    tvshow_records = _build_pool_records(
-        'tvshow', tvshows, 'tvshowid', 'title', 'fanart', 'plot', current_time
-    )
+    movie_records = _build_pool_records('movie', movies, 'movieid', 'title', 'fanart', 'plot')
+    tvshow_records = _build_pool_records('tvshow', tvshows, 'tvshowid', 'title', 'fanart', 'plot')
     artist_records = _build_pool_records(
-        'artist', artists, 'artistid', 'artist', 'fanart', 'description', current_time
-    )
+        'artist', artists, 'artistid', 'artist', 'fanart', 'description')
     musicvideo_records = _build_pool_records(
-        'musicvideo', musicvideos, 'musicvideoid', 'title', 'fanart', 'plot', current_time
-    )
+        'musicvideo', musicvideos, 'musicvideoid', 'title', 'fanart', 'plot')
 
     db_slideshow.populate_pool(movie_records, tvshow_records, artist_records, musicvideo_records)
 
@@ -111,14 +97,7 @@ _RECONCILE_LOCK = threading.Lock()
 
 
 def reconcile_pool(scope: tuple) -> None:
-    """Diff the pool against the current library for `scope` media types; apply only changes.
-
-    Bumps the pool generation only when something differs, so an unchanged pass causes no cursor
-    reshuffle. A scope whose library fetch fails is left untouched (its rows are NOT deleted), so a
-    transient JSON-RPC failure can't wipe the pool. Serialised so the scan and idle reconcile
-    paths never run concurrently. `scope` is e.g. ('movie','tvshow'), ('artist',), or all of
-    `POOL_MEDIA_TYPES`.
-    """
+    """Diff the pool against the library, apply only changes; a failed fetch skips its scope."""
     with _RECONCILE_LOCK:
         fetchers = {
             'movie':      (_get_movies_with_fanart,      'movieid',      'title',  'plot'),
@@ -126,22 +105,20 @@ def reconcile_pool(scope: tuple) -> None:
             'artist':     (_get_artists_with_fanart,     'artistid',     'artist', 'description'),
             'musicvideo': (_get_musicvideos_with_fanart, 'musicvideoid', 'title',  'plot'),
         }
-        current_time = int(time.time())
         desired = {}
         fetched = set()
         for mtype in scope:
-            getter, id_key, title_key, desc_key = fetchers[mtype]
+            getter, id_key, title_key, plot_key = fetchers[mtype]
             items = getter()
             if items is None:  # fetch failed - keep this type's rows, don't diff/delete them
                 continue
             fetched.add(mtype)
-            for rec in _build_pool_records(mtype, items, id_key, title_key, 'fanart', desc_key,
-                                           current_time):
-                desired[(rec[1], rec[0])] = rec
+            for rec in _build_pool_records(mtype, items, id_key, title_key, 'fanart', plot_key):
+                desired[(rec[0], rec[1])] = rec
 
         existing = db_slideshow.get_pool_compare_fields(scope)
         upserts = [rec for key, rec in desired.items()
-                   if (rec[2], rec[3], rec[4], rec[5], rec[9]) != existing.get(key)]
+                   if rec[2:] != existing.get(key)]
         deletes = [key for key in existing if key not in desired and key[0] in fetched]
         db_slideshow.apply_pool_diff(upserts, deletes)
 
@@ -175,16 +152,15 @@ def refresh_pool_item(media_type: str, dbid: int) -> None:
 
     if media_type == 'artist':
         title = detail.get('label', '')
-        description = detail.get('description', '')
+        plot = detail.get('description', '')
         year = None
     else:
         title = detail.get('title', '')
-        description = detail.get('plot', '')
+        plot = detail.get('plot', '')
         year = detail.get('year')
 
     artist = _joined_artist(detail.get('artist')) if media_type == 'musicvideo' else ''
-    db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, description, year,
-                                  int(time.time()), artist)
+    db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, plot, year, artist)
 
 
 def _video_items_with_fanart(method: str, result_key: str,
@@ -255,13 +231,13 @@ def is_pool_populated() -> bool:
 # category -> ((skin property, pool row field), ...). Music takes the artist name from the row's
 # title column, MusicVideo from its own artist column.
 _CATEGORY_PROPS = {
-    'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
-    'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
-    'Video': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'description'), ('Year', 'year')),
-    'Music': (('Artist', 'title'), ('FanArt', 'fanart'), ('Description', 'description')),
+    'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
+    'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
+    'Video': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
+    'Music': (('Artist', 'title'), ('FanArt', 'fanart'), ('Description', 'plot')),
     'MusicVideo': (('Title', 'title'), ('Artist', 'artist'), ('FanArt', 'fanart'),
-                   ('Plot', 'description'), ('Year', 'year')),
-    'Global': (('Title', 'title'), ('FanArt', 'fanart'), ('Description', 'description')),
+                   ('Plot', 'plot'), ('Year', 'year')),
+    'Global': (('Title', 'title'), ('FanArt', 'fanart'), ('Description', 'plot')),
 }
 
 
@@ -333,7 +309,7 @@ def _year_of(detail: Dict[str, Any]) -> str:
 
 
 def _fetch_pool(path: str) -> list:
-    """Randomised items for `path` with the properties a background needs; id-less items dropped."""
+    """Randomized items for `path` with the properties a background needs; id-less items dropped."""
     response = request("Files.GetDirectory", {
         "directory": path,
         "media": "files",

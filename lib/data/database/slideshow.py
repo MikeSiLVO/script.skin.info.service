@@ -6,9 +6,11 @@ from typing import List, Optional
 from lib.data.database._infrastructure import get_db, sql_placeholders
 
 _POOL_INSERT_SQL = '''
-    INSERT OR REPLACE INTO slideshow_pool
-    (dbid, media_type, title, fanart, description, year, season, episode, last_synced, artist)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO slideshow_pool (media_type, dbid, title, fanart, plot, year, artist)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT (media_type, dbid) DO UPDATE SET
+        title = excluded.title, fanart = excluded.fanart, plot = excluded.plot,
+        year = excluded.year, artist = excluded.artist
 '''
 
 # Bumped after each repopulate (post-swap) so cursors rebuild against a whole pool, not a partial.
@@ -31,13 +33,11 @@ def populate_pool(*record_sets: List[tuple]) -> None:
 
 
 def upsert_pool_item(media_type: str, dbid: int, title: str, fanart: str,
-                     description: str, year: Optional[int], last_synced: int,
-                     artist: str = '') -> None:
+                     plot: str, year: Optional[int], artist: str = '') -> None:
     """Insert or replace one pool row (keyed on media_type+dbid), then bump generation."""
     with get_db() as cursor:
-        cursor.execute(
-            _POOL_INSERT_SQL,
-            (dbid, media_type, title, fanart, description, year, None, None, last_synced, artist))
+        cursor.execute(_POOL_INSERT_SQL,
+                       (media_type, dbid, title, fanart, plot, year, artist))
     _bump_generation()
 
 
@@ -52,16 +52,13 @@ def delete_pool_item(media_type: str, dbid: int) -> None:
 
 
 def get_pool_compare_fields(media_types: tuple) -> dict:
-    """Return {(media_type, dbid): (title, fanart, description, year, artist)} for the given types.
-
-    Used by the reconcile diff to spot rows that changed/vanished vs the live library.
-    """
+    """`(media_type, dbid) -> (title, fanart, plot, year, artist)`, for the reconcile diff."""
     if not media_types:
         return {}
     placeholders = sql_placeholders(len(media_types))
     with get_db() as cursor:
         cursor.execute(
-            'SELECT media_type, dbid, title, fanart, description, year, artist FROM slideshow_pool '
+            'SELECT media_type, dbid, title, fanart, plot, year, artist FROM slideshow_pool '
             f'WHERE media_type IN ({placeholders})',
             tuple(media_types))
         return {(r[0], r[1]): (r[2], r[3], r[4], r[5], r[6]) for r in cursor.fetchall()}
@@ -91,8 +88,7 @@ def pool_generation() -> int:
 def get_all_pool_rows() -> list:
     """Return every pool row (all types), for building in-memory rotation cursors."""
     with get_db() as cursor:
-        cursor.execute(
-            'SELECT media_type, title, fanart, description, year, artist FROM slideshow_pool')
+        cursor.execute('SELECT media_type, title, fanart, plot, year, artist FROM slideshow_pool')
         return cursor.fetchall()
 
 
@@ -100,7 +96,7 @@ def get_artist_description(dbid: int) -> str:
     """Cached artist bio, for a song/album background carrying no description of its own."""
     with get_db() as cursor:
         cursor.execute(
-            "SELECT description FROM slideshow_pool WHERE media_type = 'artist' AND dbid = ?",
+            "SELECT plot FROM slideshow_pool WHERE media_type = 'artist' AND dbid = ?",
             (dbid,))
         row = cursor.fetchone()
     return (row[0] or '') if row else ''

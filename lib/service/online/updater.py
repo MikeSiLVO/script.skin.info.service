@@ -9,6 +9,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.data.database.cache import (
+    CacheKey,
     get_cached_online_keys,
     get_cached_online_properties,
     cache_online_properties,
@@ -50,42 +51,20 @@ class UpdaterHandler:
             log("Service", f"Online updater error: {e}", xbmc.LOGWARNING)
 
     def _run(self) -> None:
-        from lib.data.database.cache import get_cached_metadata
-        from lib.data.database.schedule import (
-            get_all_schedule, upsert_schedule, remove_schedule,
-        )
-        from lib.data.database.mapping import get_imdb_ids_batch
+        from lib.data.database.rollcall import get_airing_shows
 
         monitor = xbmc.Monitor()
         abort = self._service.abort
 
         while not abort.is_set():
             self._restart = False
-            today = datetime.now().strftime("%Y-%m-%d")
 
-            schedule = get_all_schedule()
-            if not schedule:
+            shows = get_airing_shows()
+            if not shows:
                 self._idle_wait()
                 continue
 
-            self._prune_removed_shows(schedule, remove_schedule)
-            schedule = get_all_schedule()
-            if not schedule:
-                self._idle_wait()
-                continue
-
-            imdb_map = get_imdb_ids_batch({s["tmdb_id"] for s in schedule}, "tvshow")
-            shows = [
-                {
-                    "tmdb_id": s["tmdb_id"],
-                    "imdb_id": imdb_map.get(s["tmdb_id"], ""),
-                    "tvshowid": s["tvshowid"],
-                    "title": s["title"],
-                }
-                for s in schedule
-            ]
-
-            stale_keys, stale_tmdb_ids = self._get_stale_schedule_keys(schedule, shows)
+            stale_keys, stale_tmdb_ids = self._get_stale_schedule_keys(shows)
             if stale_keys:
                 from lib.data.database.cache import (
                     invalidate_online_properties_by_keys, expire_metadata,
@@ -97,7 +76,7 @@ class UpdaterHandler:
             cached_keys = get_cached_online_keys()
             expired = [
                 s for s in shows
-                if make_cache_key("tvshow", s.get("imdb_id") or "", s["tmdb_id"]) not in cached_keys
+                if make_cache_key("tvshow", s["imdb_id"], s["tmdb_id"]) not in cached_keys
             ]
 
             if not expired:
@@ -118,8 +97,10 @@ class UpdaterHandler:
                         return
 
                 tmdb_id = show["tmdb_id"]
-                imdb_id = show.get("imdb_id") or ""
+                imdb_id = show["imdb_id"]
                 cache_key = make_cache_key("tvshow", imdb_id, tmdb_id)
+                if not cache_key:
+                    continue
 
                 self._service.updater_in_progress.add(cache_key)
                 try:
@@ -134,18 +115,6 @@ class UpdaterHandler:
                         fetched += 1
                 finally:
                     self._service.updater_in_progress.discard(cache_key)
-
-                tmdb_data = get_cached_metadata("tvshow", tmdb_id)
-                if tmdb_data:
-                    next_ep = tmdb_data.get("next_episode_to_air")
-                    if next_ep and (next_ep.get("air_date") or "") < today:
-                        next_ep = None
-                    upsert_schedule(
-                        tmdb_id, show["tvshowid"], show["title"],
-                        tmdb_data.get("status") or "",
-                        next_ep,
-                        tmdb_data.get("last_episode_to_air"),
-                    )
 
                 if monitor.abortRequested():
                     break
@@ -167,39 +136,18 @@ class UpdaterHandler:
             elapsed += step
 
     @staticmethod
-    def _get_stale_schedule_keys(
-        schedule: List[Dict], shows: List[Dict]
-    ) -> Tuple[List[str], Set[str]]:
-        """Find cache keys for shows whose `next_episode_air_date` has passed."""
+    def _get_stale_schedule_keys(shows: List[Dict]) -> Tuple[List[CacheKey], Set[str]]:
+        """Find cache keys for shows whose `next_air_date` has passed."""
         today = datetime.now().strftime("%Y-%m-%d")
-        stale_tmdb_ids = set()
-        for entry in schedule:
-            next_air = entry.get("next_episode_air_date") or ""
-            if next_air and next_air < today:
-                stale_tmdb_ids.add(entry["tmdb_id"])
+        stale_tmdb_ids = {
+            s["tmdb_id"] for s in shows
+            if s["next_air_date"] and s["next_air_date"] < today
+        }
         if not stale_tmdb_ids:
             return [], set()
-        keys = []
-        for show in shows:
-            if show["tmdb_id"] in stale_tmdb_ids:
-                keys.append(make_cache_key(
-                    "tvshow", show.get("imdb_id") or "", show["tmdb_id"]
-                ))
+        keys = [
+            key for s in shows if s["tmdb_id"] in stale_tmdb_ids
+            for key in (make_cache_key("tvshow", s["imdb_id"], s["tmdb_id"]),)
+            if key
+        ]
         return keys, stale_tmdb_ids
-
-    @staticmethod
-    def _prune_removed_shows(schedule: List[Dict], remove_schedule) -> None:
-        """Remove schedule entries for shows no longer in the user's library."""
-        from lib.data.database.rollcall import get_valid_dbids
-        valid_dbids = get_valid_dbids("tvshow")
-        if not valid_dbids and schedule:
-            # Library appears empty, could be transient (DB rebuild, etc); skip pruning to be safe.
-            return
-        valid_set = set(valid_dbids)
-        stale = [s["tmdb_id"] for s in schedule if s.get("tvshowid") not in valid_set]
-        for tmdb_id in stale:
-            remove_schedule(tmdb_id)
-        if stale:
-            log("Service",
-                f"Online updater: pruned {len(stale)} schedule entries for removed shows",
-                xbmc.LOGDEBUG)

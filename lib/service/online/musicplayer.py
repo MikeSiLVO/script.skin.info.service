@@ -35,8 +35,9 @@ class _Mode:
 class _State:
     """Playback state for one mode."""
     key: Optional[str] = None
+    part_key: Optional[Tuple[str, str]] = None
     thread: Optional[threading.Thread] = None
-    thread_key: Optional[str] = None
+    thread_key: Optional[Tuple[str, Tuple[str, str]]] = None
 
 
 _MODES = (
@@ -114,36 +115,48 @@ class MusicPlayerHandler:
             self._reset(mode, state)
             return
 
-        if artist_name == state.key:
+        # the track and album props change per track, not per artist
+        part_key = (xbmc.getInfoLabel(f"{mode.player}.Album") or "",
+                    xbmc.getInfoLabel(f"{mode.player}.Title") or "")
+        artist_changed = artist_name != state.key
+        if not artist_changed and part_key == state.part_key:
             return
 
         state.key = artist_name
-        self._fanart_urls = []
-        self._fanart_index = 0
+        state.part_key = part_key
+        if artist_changed:
+            self._fanart_urls = []
+            self._fanart_index = 0
 
-        if state.thread and state.thread.is_alive() and state.thread_key == artist_name:
+        thread_key = (artist_name, part_key)
+        if state.thread and state.thread.is_alive() and state.thread_key == thread_key:
             return
 
-        state.thread_key = artist_name
+        state.thread_key = thread_key
         state.thread = threading.Thread(
             target=self._fetch_worker,
-            args=(mode, state, artist_name),
+            args=(mode, state, artist_name, part_key, artist_changed),
             daemon=True,
         )
         state.thread.start()
 
-    def _fetch_worker(self, mode: _Mode, state: _State, artist_name: str) -> None:
-        """Off-thread artist fetch, discarded if the artist changed while it ran."""
+    def _fetch_worker(self, mode: _Mode, state: _State, artist_name: str,
+                      part_key: Tuple[str, str], fetch_artist: bool) -> None:
+        """Off-thread fetch, discarded if the artist or track changed while it ran."""
         try:
             if self._service.abort_flag.is_requested():
+                return
+
+            album, title = part_key[0] or None, part_key[1] or None
+
+            if not fetch_artist:
+                if artist_name == state.key and part_key == state.part_key:
+                    self._apply_parts(mode, artist_name, title, album)
                 return
 
             from lib.service.music import fetch_artist_online_data
 
             mbids = get_playing_artist_mbids() if mode.fetch_mbids else None
-            album = xbmc.getInfoLabel(f"{mode.player}.Album") or None
-            title = xbmc.getInfoLabel(f"{mode.player}.Title") or None
-
             result = fetch_artist_online_data(
                 artist_name,
                 mbids=mbids or None,
@@ -163,11 +176,7 @@ class MusicPlayerHandler:
     def _apply(self, mode: _Mode, artist_name: str, result: 'MusicOnlineResult',
                track: Optional[str], album: Optional[str]) -> None:
         """Publish artist, track and album properties under this mode's prefix."""
-        from lib.service.music import (
-            fill_artist_online_props,
-            fill_track_online_props,
-            fill_album_online_props,
-        )
+        from lib.service.music import fill_artist_online_props
 
         self._fanart_urls = result.fanart_urls
         self._fanart_index = 0
@@ -177,6 +186,13 @@ class MusicPlayerHandler:
         artist_props: Dict[str, Optional[str]] = {}
         fill_artist_online_props(artist_props, mode.prefix, result, name=artist_name)
         batch_set_props(artist_props)
+
+        self._apply_parts(mode, artist_name, track, album)
+
+    def _apply_parts(self, mode: _Mode, artist_name: str,
+                     track: Optional[str], album: Optional[str]) -> None:
+        """Publish the track and album properties for whatever is playing now."""
+        from lib.service.music import fill_track_online_props, fill_album_online_props
 
         if track:
             track_props: Dict[str, Optional[str]] = {}
@@ -196,6 +212,7 @@ class MusicPlayerHandler:
         """Clear this player's properties once it stops."""
         if state.key:
             clear_group(mode.prefix)
+            state.part_key = None
             self._fanart_urls = []
             self._fanart_index = 0
             state.key = None

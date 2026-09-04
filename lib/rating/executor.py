@@ -397,8 +397,8 @@ class RatingBatchExecutor:
         state._failed_source_set.add(source_name)
         state.retryable_failures.append({"source": source_name, "reason": reason})
 
-    def max_source_backlog(self) -> int:
-        """Largest unfinished item count owed by any single source."""
+    def source_backlog(self) -> Dict[str, int]:
+        """Unfinished item count owed by each source."""
         with self._lock:
             states = list(self.item_states.values())
         counts: Dict[str, int] = {}
@@ -410,7 +410,18 @@ class RatingBatchExecutor:
             )
             for source_name in outstanding:
                 counts[source_name] = counts.get(source_name, 0) + 1
+        return counts
+
+    def max_source_backlog(self) -> int:
+        """Largest unfinished item count owed by any single source."""
+        counts = self.source_backlog()
         return max(counts.values()) if counts else 0
+
+    def pause_remaining(self, source_name: str) -> int:
+        """Seconds left on a source's rate-limit hold."""
+        with self._lock:
+            until = self.source_paused_until.get(source_name, 0.0)
+        return max(0, int(until - time.time()))
 
     def get_item_state(self, dbid: int) -> Optional[ItemState]:
         """Get the current state of an item."""

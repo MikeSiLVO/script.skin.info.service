@@ -52,16 +52,19 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
         if mapped_imdb:
             return mapped_imdb
 
+    if media_type == "episode" and season is not None and episode is not None:
+        from lib.data.database.mapping import is_known_episode_miss
+        if is_known_episode_miss(tmdb_id, season, episode):
+            return None
+
     cached = db_cache.get_cached_metadata(cache_media_type, tmdb_id)
 
     if cached:
         if media_type == "episode" and season is not None and episode is not None:
             pass
-        else:
-            external_ids = cached.get("external_ids", {})
-            imdb_id = external_ids.get("imdb_id")
-            if imdb_id:
-                return imdb_id
+        elif "external_ids" in cached:
+            # a live payload carrying the field has answered, empty or not
+            return (cached["external_ids"] or {}).get("imdb_id") or None
 
     try:
         if media_type == "movie":
@@ -83,6 +86,9 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
 
             if not imdb_id:
                 if media_type == "episode":
+                    if season is not None and episode is not None:
+                        from lib.data.database.mapping import save_episode_miss
+                        save_episode_miss(tmdb_id, season, episode, data.get("air_date"))
                     log(
                         "Ratings",
                         f"TMDB has no IMDb ID for episode "
@@ -96,7 +102,7 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
                         xbmc.LOGDEBUG,
                     )
 
-            return imdb_id
+            return imdb_id or None
 
         if media_type == "episode" and tvdb_id:
             log(

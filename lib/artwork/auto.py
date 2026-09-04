@@ -175,7 +175,7 @@ class ArtworkAuto:
             dbid = queue_item.dbid
             title = queue_item.title
 
-            art_items = db.get_art_items_for_queue(queue_item.id)
+            art_items = db.get_art_items_for_queue(media_type, dbid)
 
             all_available_art = self.source_fetcher.fetch_all(media_type, dbid, bulk=True)
 
@@ -210,15 +210,15 @@ class ArtworkAuto:
                 if best:
                     self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
                                     artwork_type=art_type, defer_pool_refresh=True)
-                    db.update_art_item(art_item.id, best['url'], auto_applied=True)
+                    db.update_art_item(media_type, dbid, art_type, best['url'])
                     applied_any = True
                     self.stats['auto_applied'] += 1
                     self.applied_items.append((title, art_type, best['url']))
 
             if applied_any:
-                db.update_queue_status(queue_item.id, 'completed')
+                db.update_queue_status(media_type, dbid, 'completed')
             else:
-                db.update_queue_status(queue_item.id, 'skipped')
+                db.update_queue_status(media_type, dbid, 'skipped')
                 if no_art_available:
                     self.skipped_items.append((title, ADDON.getLocalizedString(32009)))
                 elif blocked_by_policy:
@@ -233,7 +233,7 @@ class ArtworkAuto:
         except Exception as e:
             log("Artwork", f"Error processing item: {str(e)}", xbmc.LOGERROR)
             self.stats['errors'] += 1
-            db.update_queue_status(queue_item.id, 'error')
+            db.update_queue_status(queue_item.media_type, queue_item.dbid, 'error')
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
                    artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:

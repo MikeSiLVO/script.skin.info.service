@@ -1,21 +1,18 @@
-"""Database infrastructure for connections, migrations, and schema.
-
-Core infrastructure shared across all database modules.
-"""
+"""Connection handling and database creation, shared by every database module."""
 from __future__ import annotations
 
 import json
 import sqlite3
-import uuid
+import threading
 import zlib
 import xbmc
 import xbmcvfs
 from contextlib import contextmanager
 from typing import Any, Generator
+from lib.data.database.schema import create_schema
 from lib.kodi.client import log
 
-DB_VERSION = 4
-SCHEMA_VERSION = 3
+DB_VERSION = 5
 
 
 def compress_data(data: Any) -> bytes:
@@ -27,6 +24,14 @@ def compress_data(data: Any) -> bytes:
 def decompress_data(blob: bytes) -> Any:
     """Inverse of `compress_data`."""
     return json.loads(zlib.decompress(blob).decode('utf-8'))
+
+
+def as_int(value: Any) -> Any:
+    """Value as an int for an INTEGER key column, or None when a scraper handed us junk."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 # Kodi bundled SQLite has a parameter limit of 999; 900 leaves headroom
@@ -77,17 +82,19 @@ def chunked_in_modify(
         cursor.execute(sql, fixed_params + list(chunk))
         total += cursor.rowcount
     return total
+
+
 _DB_BASE = 'special://profile/addon_data/script.skin.info.service/skininfo'
 DB_PATH = xbmcvfs.translatePath(f'{_DB_BASE}_v{DB_VERSION}.db')
+
+# leftover pre-v5 music cache
+_MUSIC_DB_PATH = xbmcvfs.translatePath(
+    'special://profile/addon_data/script.skin.info.service/music_metadata.db')
 
 _OLD_DB_PATHS = [
     xbmcvfs.translatePath(f'{_DB_BASE}_v{v}.db')
     for v in range(1, DB_VERSION)
 ]
-
-
-def generate_guid() -> str:
-    return uuid.uuid4().hex
 
 
 def _ensure_addon_data_folder() -> None:
@@ -99,17 +106,24 @@ def _ensure_addon_data_folder() -> None:
 def get_connection(db_path: str = DB_PATH) -> sqlite3.Connection:
     """Open a SQLite connection with Row factory and per-connection pragmas."""
     _ensure_addon_data_folder()
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
     conn.execute('PRAGMA busy_timeout = 5000')
     conn.execute('PRAGMA synchronous = NORMAL')
+    conn.execute('PRAGMA cache_size = -16000')
+    conn.execute('PRAGMA journal_size_limit = 16777216')
     return conn
 
 
+_shared: dict = {}
+_shared_lock = threading.Lock()
+_reentry = threading.local()
+
+
 @contextmanager
-def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
-    """Context manager yielding a cursor; auto-commits on success, rolls back on exception."""
+def _own_db(db_path: str) -> Generator[sqlite3.Cursor, None, None]:
+    """Cursor on a private connection, closed on exit."""
     conn = get_connection(db_path)
     cursor = conn.cursor()
     try:
@@ -125,479 +139,62 @@ def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
         conn.close()
 
 
-_PROVIDER_CACHE_SCHEMA = '''
-    CREATE TABLE IF NOT EXISTS provider_cache (
-        provider TEXT NOT NULL,
-        media_type TEXT NOT NULL,
-        media_id TEXT NOT NULL,
-        data BLOB NOT NULL,
-        release_date TEXT,
-        cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (provider, media_type, media_id)
-    )
-'''
+@contextmanager
+def get_bulk_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
+    """Cursor on a private connection, so a long scan never sits in front of a poll tick."""
+    with _own_db(db_path) as cursor:
+        yield cursor
 
 
-def _create_base_schema(cursor: sqlite3.Cursor) -> None:
-    """Create all tables and indexes for the unified database."""
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS art_queue (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            media_type TEXT NOT NULL,
-            dbid INTEGER NOT NULL,
-            title TEXT,
-            year TEXT,
-            status TEXT DEFAULT 'pending',
-            priority INTEGER DEFAULT 5,
-            date_added TEXT DEFAULT CURRENT_TIMESTAMP,
-            date_processed TEXT,
-            scope TEXT DEFAULT '',
-            scan_session_id INTEGER,
-            guid TEXT,
-            FOREIGN KEY(scan_session_id) REFERENCES scan_sessions(id) ON DELETE SET NULL,
-            UNIQUE(media_type, dbid)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS art_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            queue_id INTEGER NOT NULL,
-            art_type TEXT NOT NULL,
-            selected_url TEXT,
-            auto_applied INTEGER DEFAULT 0,
-            review_mode TEXT DEFAULT 'missing',
-            requires_manual INTEGER DEFAULT 0,
-            status TEXT DEFAULT 'pending',
-            scan_session_id INTEGER,
-            date_processed TEXT,
-            FOREIGN KEY(queue_id) REFERENCES art_queue(id) ON DELETE CASCADE,
-            UNIQUE(queue_id, art_type)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS scan_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scan_type TEXT,
-            status TEXT DEFAULT 'in_progress',
-            started TEXT DEFAULT CURRENT_TIMESTAMP,
-            last_activity TEXT,
-            completed TEXT,
-            stats TEXT
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS session_media_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER NOT NULL,
-            media_type TEXT NOT NULL,
-            FOREIGN KEY(session_id) REFERENCES scan_sessions(id) ON DELETE CASCADE,
-            UNIQUE(session_id, media_type)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS session_art_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER NOT NULL,
-            art_type TEXT NOT NULL,
-            FOREIGN KEY(session_id) REFERENCES scan_sessions(id) ON DELETE CASCADE,
-            UNIQUE(session_id, art_type)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS fanarttv_feed (
-            feed TEXT PRIMARY KEY,
-            checked_at INTEGER NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS fanarttv_recheck (
-            feed TEXT NOT NULL,
-            item_id TEXT NOT NULL,
-            recheck_after INTEGER NOT NULL,
-            PRIMARY KEY (feed, item_id)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS artwork_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            media_type TEXT NOT NULL,
-            media_id TEXT NOT NULL,
-            source TEXT NOT NULL,
-            art_type TEXT NOT NULL,
-            data TEXT NOT NULL,
-            release_date TEXT,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT NOT NULL,
-            UNIQUE(media_type, media_id, source, art_type)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS metadata_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            media_type TEXT NOT NULL,
-            tmdb_id TEXT NOT NULL,
-            data BLOB NOT NULL,
-            release_date TEXT,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT NOT NULL,
-            UNIQUE(media_type, tmdb_id)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS person_cache (
-            person_id INTEGER PRIMARY KEY,
-            data BLOB NOT NULL,
-            cached_at INTEGER NOT NULL,
-            expires_at INTEGER NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS season_metadata_cache (
-            tmdb_id TEXT NOT NULL,
-            season_number INTEGER NOT NULL,
-            data BLOB NOT NULL,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT NOT NULL,
-            PRIMARY KEY (tmdb_id, season_number)
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tmdb_genre_cache (
-            tmdb_type TEXT PRIMARY KEY,
-            data BLOB NOT NULL,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS operation_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            operation TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            stats TEXT NOT NULL,
-            completed INTEGER DEFAULT 1,
-            scope TEXT
-        )
-    ''')
-
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_status ON art_queue(status, priority)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_media_type ON art_queue(media_type)')
-    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_queue_guid ON art_queue(guid)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_scope ON art_queue(scope)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_queue_session ON art_queue(scan_session_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_queue ON art_items(queue_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_status ON art_items(status)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_art_items_review_mode ON art_items(review_mode)')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_art_items_queue_status_review '
-        'ON art_items(queue_id, status, review_mode)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_person_cache_expires ON person_cache(expires_at)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_sessions_scan_type_activity '
-        'ON scan_sessions(scan_type, last_activity DESC)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_session_media_types_session '
-        'ON session_media_types(session_id)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_session_media_types_lookup '
-        'ON session_media_types(session_id, media_type)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_session_art_types_session '
-        'ON session_art_types(session_id)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_session_art_types_lookup '
-        'ON session_art_types(session_id, art_type)'
-    )
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_cache_expires ON artwork_cache(expires_at)')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_season_metadata_cache_expires '
-        'ON season_metadata_cache(expires_at)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_tmdb_genre_cache_expires ON tmdb_genre_cache(expires_at)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_operation_history_lookup '
-        'ON operation_history(operation, timestamp DESC)'
-    )
-
-    cursor.execute(_PROVIDER_CACHE_SCHEMA)
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS id_corrections (
-            imdb_id TEXT PRIMARY KEY,
-            tmdb_id INTEGER NOT NULL,
-            media_type TEXT NOT NULL,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS id_mappings (
-            tmdb_id TEXT NOT NULL,
-            media_type TEXT NOT NULL,
-            imdb_id TEXT,
-            tvdb_id TEXT,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (tmdb_id, media_type)
-        )
-    ''')
-
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_id_mappings_imdb '
-        'ON id_mappings(imdb_id) WHERE imdb_id IS NOT NULL'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_id_mappings_tvdb '
-        'ON id_mappings(tvdb_id) WHERE tvdb_id IS NOT NULL'
-    )
-
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)'
-    )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS slideshow_pool (
-            dbid INTEGER NOT NULL,
-            media_type TEXT NOT NULL,
-            title TEXT,
-            fanart TEXT NOT NULL,
-            description TEXT,
-            year INTEGER,
-            season INTEGER,
-            episode INTEGER,
-            last_synced INTEGER,
-            artist TEXT,
-            PRIMARY KEY (media_type, dbid)
-        )
-    ''')
-
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_slideshow_media ON slideshow_pool(media_type)')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_slideshow_fanart '
-        'ON slideshow_pool(fanart) WHERE fanart IS NOT NULL'
-    )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS gif_cache (
-            path TEXT PRIMARY KEY,
-            mtime REAL NOT NULL,
-            scanned_at TEXT NOT NULL
-        )
-    ''')
-
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_gif_cache_scanned ON gif_cache(scanned_at)')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS imdb_ratings (
-            imdb_id TEXT PRIMARY KEY,
-            rating REAL NOT NULL,
-            votes INTEGER NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS imdb_episodes (
-            parent_id TEXT NOT NULL,
-            season INTEGER NOT NULL,
-            episode INTEGER NOT NULL,
-            episode_id TEXT NOT NULL,
-            PRIMARY KEY (parent_id, season, episode)
-        )
-    ''')
-
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_imdb_episodes_parent ON imdb_episodes(parent_id)'
-    )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS imdb_meta (
-            dataset TEXT PRIMARY KEY,
-            last_modified TEXT,
-            downloaded_at TEXT,
-            entry_count INTEGER DEFAULT 0,
-            library_episode_count INTEGER DEFAULT 0
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS imdb_update_progress (
-            media_type TEXT PRIMARY KEY,
-            dataset_date TEXT NOT NULL,
-            processed_ids TEXT NOT NULL,
-            total_items INTEGER NOT NULL,
-            started_at TEXT NOT NULL,
-            last_updated TEXT NOT NULL
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ratings_synced (
-            media_type TEXT NOT NULL,
-            dbid INTEGER NOT NULL,
-            source TEXT NOT NULL,
-            external_id TEXT,
-            rating REAL NOT NULL,
-            votes INTEGER NOT NULL,
-            synced_at TEXT NOT NULL,
-            PRIMARY KEY (media_type, dbid, source)
-        )
-    ''')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_ratings_synced_lookup ON ratings_synced(media_type, dbid)'
-    )
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_ratings_synced_external '
-        'ON ratings_synced(source, external_id)'
-    )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS online_properties_cache (
-            item_key TEXT PRIMARY KEY,
-            data BLOB NOT NULL,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            expires_at TEXT NOT NULL
-        )
-    ''')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_online_cache_expires ON online_properties_cache(expires_at)'
-    )
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mb_id_mappings (
-            old_id TEXT PRIMARY KEY,
-            canonical_id TEXT NOT NULL,
-            cached_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_mb_id_canonical ON mb_id_mappings(canonical_id)')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tv_schedule (
-            tmdb_id TEXT NOT NULL,
-            tvshowid INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT '',
-            next_episode_air_date TEXT,
-            next_episode_title TEXT,
-            next_episode_season INTEGER,
-            next_episode_number INTEGER,
-            last_episode_air_date TEXT,
-            last_episode_title TEXT,
-            last_episode_season INTEGER,
-            last_episode_number INTEGER,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (tmdb_id)
-        )
-    ''')
-    cursor.execute(
-        'CREATE INDEX IF NOT EXISTS idx_tv_schedule_air_date ON tv_schedule(next_episode_air_date)'
-    )
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_tv_schedule_status ON tv_schedule(status)')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS dbid_registry (
-            media_type TEXT NOT NULL,
-            dbid INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            content_id TEXT,
-            tmdb_id TEXT,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY (media_type, dbid)
-        )
-    ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_dbid_registry_type ON dbid_registry(media_type)')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tvshow_runtime_cache (
-            tvshowid INTEGER NOT NULL,
-            season INTEGER NOT NULL DEFAULT 0,
-            total_runtime INTEGER NOT NULL,
-            avg_episode_runtime INTEGER NOT NULL DEFAULT 0,
-            episode_count INTEGER NOT NULL,
-            synced_at TEXT NOT NULL,
-            PRIMARY KEY (tvshowid, season)
-        )
-    ''')
-
-    # These lookup indexes duplicate the table's UNIQUE / PRIMARY KEY auto-index; drop the
-    # redundant copies so existing DBs stop paying the extra write on every cache insert.
-    cursor.execute('DROP INDEX IF EXISTS idx_cache_lookup')
-    cursor.execute('DROP INDEX IF EXISTS idx_metadata_cache_lookup')
-    cursor.execute('DROP INDEX IF EXISTS idx_provider_cache_lookup')
-
-
-def _add_column(cursor: sqlite3.Cursor, table: str, column: str, definition: str) -> bool:
-    """Add a column to an existing table; False when it is already there."""
-    cursor.execute(f'PRAGMA table_info({table})')
-    if column in {row[1] for row in cursor.fetchall()}:
-        return False
-    try:
-        cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
-    except sqlite3.OperationalError as e:
-        # Another Kodi process migrated between the check and here; both entry points init the DB.
-        if 'duplicate column name' not in str(e):
-            raise
-        return False
-    return True
-
-
-def _migrate_schema(cursor: sqlite3.Cursor) -> None:
-    """Apply additive changes an existing DB missed. Runs after the tables exist, because
-    `CREATE TABLE IF NOT EXISTS` never revisits a table it already found."""
-    cursor.execute('PRAGMA user_version')
-    version = cursor.fetchone()[0]
-    if version >= SCHEMA_VERSION:
+@contextmanager
+def get_db(db_path: str = DB_PATH) -> Generator[sqlite3.Cursor, None, None]:
+    """Cursor on the process-wide connection; commits on success, rolls back on exception."""
+    if getattr(_reentry, 'held', False):
+        # re-entry would deadlock on the shared connection
+        log("Database", "Nested get_db; using a private connection", xbmc.LOGERROR)
+        with _own_db(db_path) as cursor:
+            yield cursor
         return
 
-    if version < 1:
-        if _add_column(cursor, 'dbid_registry', 'tmdb_id', 'TEXT'):
-            log("Database", "Schema migration 1: added dbid_registry.tmdb_id", xbmc.LOGINFO)
-        cursor.execute(
-            'CREATE INDEX IF NOT EXISTS idx_dbid_registry_tmdb '
-            'ON dbid_registry(media_type, tmdb_id)'
-        )
+    with _shared_lock:
+        conn = _shared.get(db_path)
+        if conn is None:
+            conn = get_connection(db_path)
+            _shared[db_path] = conn
+        cursor = conn.cursor()
+        _reentry.held = True
+        try:
+            yield cursor
+            conn.commit()
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception as rollback_err:
+                log("Database", f"Rollback failed: {rollback_err}", xbmc.LOGWARNING)
+            raise
+        finally:
+            _reentry.held = False
+            cursor.close()
 
-    if version < 2:
-        if _add_column(cursor, 'slideshow_pool', 'artist', 'TEXT'):
-            log("Database", "Schema migration 2: added slideshow_pool.artist", xbmc.LOGINFO)
 
-    if version < 3:
-        # TMDB ids repeat across media types, so the key needs all three parts
-        cursor.execute('DROP TABLE IF EXISTS provider_cache')
-        cursor.execute(_PROVIDER_CACHE_SCHEMA)
-        cursor.execute(
-            'CREATE INDEX IF NOT EXISTS idx_provider_cache_expires ON provider_cache(cached_at)'
-        )
-        log("Database", "Schema migration 3: rebuilt provider_cache with media_type",
-            xbmc.LOGINFO)
-
-    cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
+def close_connections() -> None:
+    """Close the shared connections; call once as the service stops."""
+    with _shared_lock:
+        for path, conn in list(_shared.items()):
+            try:
+                conn.close()
+            except Exception as e:
+                log("Database", f"Failed to close {path}: {e}", xbmc.LOGWARNING)
+            _shared.pop(path, None)
 
 
 def _cleanup_old_databases() -> None:
     """Delete old database versions if they exist."""
-    for path in _OLD_DB_PATHS:
-        if xbmcvfs.exists(path):
+    for base in _OLD_DB_PATHS + [_MUSIC_DB_PATH]:
+        # the -wal can be the larger half, and it outlives the file it belonged to
+        for path in (base, base + '-wal', base + '-shm'):
+            if not xbmcvfs.exists(path):
+                continue
             try:
                 xbmcvfs.delete(path)
                 log("Database", f"Deleted old database: {path}", xbmc.LOGINFO)
@@ -606,7 +203,7 @@ def _cleanup_old_databases() -> None:
 
 
 def init_database() -> None:
-    """Create all tables at DB_PATH; deletes any older-version DB files first."""
+    """Create every table at DB_PATH; a version bump starts a fresh file and drops the old one."""
     _cleanup_old_databases()
 
     conn = get_connection(DB_PATH)
@@ -615,8 +212,7 @@ def init_database() -> None:
     try:
         # WAL is persistent at the DB level; apply once during init.
         cursor.execute('PRAGMA journal_mode = WAL')
-        _create_base_schema(cursor)
-        _migrate_schema(cursor)
+        create_schema(cursor)
         conn.commit()
 
     except Exception as e:
