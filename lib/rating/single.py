@@ -14,7 +14,7 @@ from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
 from lib.infrastructure.tasks import ShutdownAbortFlag
-from lib.rating.merger import merge_ratings, prepare_kodi_ratings
+from lib.rating.merger import merge_ratings, prepare_kodi_ratings, has_alias_drift
 from lib.rating.ids import (
     get_imdb_id_from_tmdb,
     build_external_ids,
@@ -148,14 +148,16 @@ def merge_and_apply_ratings(
             final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
             added_ratings.append(f"{rating_name} ({new_val:.1f})")
 
-    kodi_ratings = prepare_kodi_ratings(final_ratings, default_source="imdb")
+    supplied = set(merged)
+    kodi_ratings = prepare_kodi_ratings(final_ratings, default_source="imdb", supplied=supplied)
 
     if added_ratings:
         log("Ratings", f"Added ratings: {', '.join(added_ratings)}", xbmc.LOGDEBUG)
     if updated_ratings:
         log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
-    if not added_ratings and not updated_ratings:
+    if (not added_ratings and not updated_ratings
+            and not has_alias_drift(existing_ratings, supplied)):
         db.update_synced_ratings(
             media_type, dbid, final_ratings, build_external_ids(ids, media_type))
         return True, {

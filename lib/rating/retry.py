@@ -148,7 +148,8 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
         return False
     method, id_key = method_info
 
-    kodi_ratings = prepare_kodi_ratings(final_ratings, default_source="imdb")
+    kodi_ratings = prepare_kodi_ratings(
+        final_ratings, default_source="imdb", supplied=set(merged_new))
     response = request(method, {id_key: entry.dbid, "ratings": kodi_ratings})
 
     if response is None:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import xbmc
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 from lib.kodi.client import log
 
 # only breaks a tie on vote count; a rating's owner already wins via _RATING_ORIGIN
@@ -90,7 +90,8 @@ def merge_ratings(sources_ratings: List[Dict[str, Any]],
 
 
 def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
-                         default_source: str = "imdb"
+                         default_source: str = "imdb",
+                         supplied: Optional[Set[str]] = None
                          ) -> Dict[str, Dict[str, bool | int | float]]:
     """Convert merged ratings into Kodi's `Set*Details.ratings` shape.
 
@@ -127,11 +128,31 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
         kodi_ratings[first_source]["default"] = True
 
     for src, alias in _KEY_ALIASES.items():
-        if src in kodi_ratings and alias not in kodi_ratings:
+        if src not in kodi_ratings:
+            continue
+        if alias not in kodi_ratings:
             kodi_ratings[alias] = {
                 "rating": kodi_ratings[src]["rating"],
                 "votes": kodi_ratings[src]["votes"],
                 "default": False,
             }
+        elif supplied and src in supplied:
+            kodi_ratings[alias]["rating"] = kodi_ratings[src]["rating"]
+            kodi_ratings[alias]["votes"] = kodi_ratings[src]["votes"]
 
     return kodi_ratings
+
+
+def has_alias_drift(ratings: Dict[str, Dict[str, Any]], supplied: Set[str]) -> bool:
+    """True when the two names for one rating hold different numbers."""
+    for src, alias in _KEY_ALIASES.items():
+        if src not in supplied:
+            continue
+        first, second = ratings.get(src), ratings.get(alias)
+        if not isinstance(first, dict) or not isinstance(second, dict):
+            continue
+        if first.get("rating") is None or second.get("rating") is None:
+            continue
+        if abs(first["rating"] - second["rating"]) > 0.01:
+            return True
+    return False
