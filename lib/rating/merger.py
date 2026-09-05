@@ -5,11 +5,7 @@ import xbmc
 from typing import Dict, List, Optional, Any
 from lib.kodi.client import log
 
-# Source priority. Gaps allow inserting future sources between tiers without renumbering:
-#   110 = authoritative dataset (IMDb's own ratings file)
-#   100 = direct first-party APIs (TMDB, Trakt)
-#    90 = aggregators (MDBList, pulls from sources we'd otherwise hit directly)
-#    50 = secondary aggregators with stale data (OMDb)
+# only breaks a tie on vote count; a rating's owner already wins via _RATING_ORIGIN
 DEFAULT_SOURCE_PRIORITY: Dict[str, int] = {
     "imdb_dataset": 110,
     "tmdb": 100,
@@ -26,14 +22,19 @@ _KEY_ALIASES: Dict[str, str] = {
 }
 
 
+# the provider a rating belongs to; a downstream copy cannot lead it
+_RATING_ORIGIN: Dict[str, str] = {
+    "imdb": "imdb_dataset",
+    "trakt": "trakt",
+    "tmdb": "tmdb",
+    "themoviedb": "tmdb",
+}
+
+
 def merge_ratings(sources_ratings: List[Dict[str, Any]],
                   source_priority: Optional[Dict[str, int]] = None
                   ) -> Dict[str, Dict[str, float]]:
-    """Merge ratings from multiple sources, picking highest priority + vote count per rating key.
-
-    Each input dict carries a `_source` marker (`tmdb`, `mdblist`, etc.) that selects priority.
-    Direct APIs outrank aggregators; aggregators outrank OMDb on shared fields.
-    """
+    """Best entry per rating key: the owning provider, else the highest vote count."""
     if source_priority is None:
         source_priority = DEFAULT_SOURCE_PRIORITY
 
@@ -69,10 +70,16 @@ def merge_ratings(sources_ratings: List[Dict[str, Any]],
                 existing_priority = source_priority.get(existing_source, 0)
                 existing_votes = existing.get("votes", 0)
 
+                origin = _RATING_ORIGIN.get(source_name)
+                incoming_is_origin = origin is not None and origin == data_source
+                existing_is_origin = origin is not None and origin == existing_source
+
                 should_replace = False
-                if data_priority > existing_priority:
+                if incoming_is_origin != existing_is_origin:
+                    should_replace = incoming_is_origin
+                elif votes > existing_votes:
                     should_replace = True
-                elif data_priority == existing_priority and votes > existing_votes:
+                elif votes == existing_votes and data_priority > existing_priority:
                     should_replace = True
 
                 if should_replace:
