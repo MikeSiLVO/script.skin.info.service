@@ -27,6 +27,9 @@ from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 
 from lib.kodi.client import log, ADDON
 
+ConnectReadTimeout = Tuple[float, float]
+RequestsPerWindow = Tuple[int, float]
+
 _USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
 
 
@@ -328,23 +331,13 @@ class ApiSession:
         base_url: str = "",
         max_retries: int = 3,
         backoff_factor: float = 0.5,
-        timeout: Tuple[float, float] = (5.0, 10.0),
-        rate_limit: Optional[Tuple[int, float]] = None,
+        timeout: ConnectReadTimeout = (5.0, 10.0),
+        rate_limit: Optional[RequestsPerWindow] = None,
         retry_statuses: Optional[List[int]] = None,
         default_headers: Optional[Dict[str, str]] = None,
         connect_retries: int = 0,
         read_retries: int = 0
     ):
-        """Initialize API session.
-
-        Args:
-            backoff_factor: Exponential multiplier (0.5 = 0.5s, 1s, 2s, ...).
-            timeout: (connect_timeout, read_timeout) in seconds.
-            rate_limit: Optional (max_requests, window_seconds) for proactive rate limiting.
-            retry_statuses: HTTP status codes to retry (default: [500, 502, 503, 504]).
-            connect_retries: Retries on connection errors (default 0 = fail fast).
-            read_retries: Retries on read errors/timeouts (default 0 = fail fast).
-        """
         self.service_name = service_name
         self.base_url = base_url.rstrip("/") if base_url else ""
         self.timeout = timeout
@@ -497,7 +490,7 @@ class ApiSession:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None,
+        timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[Dict[str, Any]]:
         """Make GET request. Returns JSON response dict, or None on error.
 
@@ -565,7 +558,7 @@ class ApiSession:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None,
+        timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[Any]:
         """Make POST request. Returns JSON response (dict or list), or None on error.
 
@@ -622,7 +615,7 @@ class ApiSession:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None,
+        timeout: Optional[ConnectReadTimeout] = None,
         stream: bool = False,
         deadline_seconds: Optional[float] = None,
     ) -> Optional[requests.Response]:
@@ -683,7 +676,7 @@ class ApiSession:
         self,
         endpoint: str,
         abort_flag=None,
-        timeout: Optional[Tuple[float, float]] = None,
+        timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[requests.Response]:
         self._check_abort(abort_flag)
 
