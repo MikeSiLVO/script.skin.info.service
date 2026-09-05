@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-08-21 10:16+0000\n"
+"PO-Revision-Date: 2026-09-05 23:02+0000\n"
 "Last-Translator: Massimo Pissarello <mapi68@gmail.com>\n"
 "Language-Team: Italian <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/it_it/>\n"
 "Language: it_it\n"
@@ -11,7 +11,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.8.1\n"
+"X-Generator: Weblate 2026.9\n"
 
 msgctxt "Addon Summary"
 msgid "Provides rich media info and artwork to skins."
@@ -44,7 +44,7 @@ msgstr "Artwork"
 #. Error shown when an edited rating is not a number in range; 7.3 is an example value
 msgctxt "#32005"
 msgid "Rating must be a number from 0 to 10, such as 7.3"
-msgstr ""
+msgstr "La valutazione deve essere un numero da 0 a 10, ad esempio 7.3"
 
 #. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
@@ -98,7 +98,7 @@ msgstr "{0} episodi"
 #. Error shown when an edited year falls outside the accepted range
 msgctxt "#32018"
 msgid "Year must be between 1800 and 2100"
-msgstr ""
+msgstr "L'anno deve essere compreso tra 1800 e 2100"
 
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
@@ -111,7 +111,7 @@ msgstr "Mostra opzioni di menu aggiuntive per scaricare l'artwork sul filesystem
 #. Error shown when an edited runtime is not a whole number of minutes in range
 msgctxt "#32021"
 msgid "Runtime must be 0 to 10080 minutes"
-msgstr ""
+msgstr "La durata deve essere compresa tra 0 e 10080 minuti"
 
 msgctxt "#32022"
 msgid "When File Already Exists"
@@ -132,7 +132,7 @@ msgstr "Sovrascrivi il file esistente"
 #. Error shown when an edited Top 250 position falls outside the accepted range
 msgctxt "#32026"
 msgid "Top 250 must be 0-250"
-msgstr ""
+msgstr "La Top 250 deve essere compresa tra 0 e 250"
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
@@ -165,7 +165,7 @@ msgstr "Recupero artwork - Annullato"
 #. Error shown when an edited duration is not a MM:SS time
 msgctxt "#32034"
 msgid "Duration must be in MM:SS format"
-msgstr ""
+msgstr "La durata deve essere nel formato MM:SS"
 
 msgctxt "#32035"
 msgid "Always Ask"
@@ -1008,35 +1008,35 @@ msgstr "Valutazioni IMDb aggiornate"
 
 msgctxt "#32321"
 msgid "{0} rate limited, resuming in {1}s"
-msgstr ""
+msgstr "{0} limitato per frequenza richieste, ripresa tra {1}s"
 
 msgctxt "#32323"
 msgid "Stopped: no sources reachable"
-msgstr ""
+msgstr "Interrotto: nessuna fonte raggiungibile"
 
 msgctxt "#32324"
 msgid "Trakt will fetch {0} movies."
-msgstr ""
+msgstr "Trakt scaricherà {0} film."
 
 msgctxt "#32325"
 msgid "Trakt will fetch {0} seasons."
-msgstr ""
+msgstr "Trakt scaricherà {0} stagioni."
 
 msgctxt "#32326"
 msgid "Trakt will fetch {0} shows."
-msgstr ""
+msgstr "Trakt scaricherà {0} serie TV."
 
 msgctxt "#32327"
 msgid "Trakt allows 500 requests every 5 minutes."
-msgstr ""
+msgstr "Trakt consente 500 richieste ogni 5 minuti."
 
 msgctxt "#32328"
 msgid "Include Trakt in this update?"
-msgstr ""
+msgstr "Includere Trakt in questo aggiornamento?"
 
 msgctxt "#32329"
 msgid "Include"
-msgstr ""
+msgstr "Includi"
 
 msgctxt "#32330"
 msgid "Analyzing Textures"
@@ -1084,11 +1084,11 @@ msgstr "Analisi libreria..."
 
 msgctxt "#32354"
 msgid "Downloading IMDb episode data..."
-msgstr ""
+msgstr "Download dei dati episodi IMDb in corso..."
 
 msgctxt "#32355"
 msgid "Matching episodes (IMDb dataset)... {0}/{1}"
-msgstr ""
+msgstr "Corrispondenza episodi (dataset IMDb)... {0}/{1}"
 
 msgctxt "#32356"
 msgid "Fetching episodes (TMDB)... {0}/{1}"
@@ -2143,7 +2143,7 @@ msgstr "Miniatura artista"
 
 msgctxt "#32695"
 msgid "Ratings sources to check (IMDb always on)"
-msgstr ""
+msgstr "Fonti di valutazione da controllare (IMDb sempre attivo)"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"
