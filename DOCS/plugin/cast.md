@@ -113,7 +113,8 @@ Pass both `tmdb_id` and `imdb_id` when available; `tmdb_id` is used directly and
 
 Kodi stores guest stars on the episode, not on the show:
 
-- `tvshow` - Show cast only, no guest stars
+- `tvshow` - Show cast only, no guest stars. Online, this is TMDB's billed show cast; where TMDB
+  has none it falls back to the regulars across every season, then to every credited actor
 - `episode` - Episode cast (guest stars included) plus the show cast
 - `season` - Deduplicated cast from every episode in the season, so guest stars are included
 

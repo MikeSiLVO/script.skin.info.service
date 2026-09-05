@@ -7,7 +7,7 @@ Provides:
 from __future__ import annotations
 
 import xbmc
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Sequence
 
 from lib.data.api.client import ApiSession
 from lib.data.api.client import RateLimitHit, RetryableError
@@ -628,6 +628,20 @@ class ApiTmdb(RatingSource):
             db.cache_season_metadata(str(tmdb_id), season_number, data)
 
         return data
+
+    def get_tv_season_credits(self, tmdb_id: int, season_numbers: Sequence[int],
+                              abort_flag=None) -> Optional[dict]:
+        """Billed cast per season, appended in one call."""
+        appends = ",".join(f"season/{n}/credits" for n in season_numbers)
+        return self.session.get(
+            f"/tv/{tmdb_id}",
+            params={
+                "api_key": self.get_api_key(),
+                "language": _get_metadata_language(),
+                "append_to_response": appends,
+            },
+            abort_flag=abort_flag
+        )
 
     def get_person_details(self, person_id: int, abort_flag=None) -> Optional[dict]:
         """Fetch person details with images, combined_credits, and external_ids appended."""

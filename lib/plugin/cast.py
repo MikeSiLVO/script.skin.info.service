@@ -39,6 +39,40 @@ def _deduplicate_cast(items: list) -> list:
     return unique_cast
 
 
+_SEASONS_PER_CALL = 20
+_UNBILLED = 9999
+_MAX_SHOW_CAST = 200
+
+
+def _season_regular_cast(api, tmdb_id: int, show_data: dict) -> list:
+    """Regulars across every season, deduped on the best billing each actor reached."""
+    numbers = [n for n in ((s.get('season_number') or 0) for s in show_data.get('seasons') or [])
+               if n > 0]
+    found: dict = {}
+    for start in range(0, len(numbers), _SEASONS_PER_CALL):
+        batch = numbers[start:start + _SEASONS_PER_CALL]
+        data = api.get_tv_season_credits(tmdb_id, batch)
+        if not data:
+            continue
+        for number in batch:
+            for member in (data.get(f"season/{number}/credits") or {}).get('cast', []):
+                name = member.get('name')
+                if not name:
+                    continue
+                billing = member.get('order')
+                billing = _UNBILLED if billing is None else billing
+                # billing is show-wide, not per season
+                if name not in found or billing < found[name][0]:
+                    found[name] = (billing, member)
+    ranked = sorted(found.values(), key=lambda entry: entry[0])
+    return [member for _, member in ranked[:_MAX_SHOW_CAST]]
+
+
+def _aggregate_cast(show_data: dict) -> list:
+    """Every credited actor, for a show credited per episode with no season regulars."""
+    return show_data.get('aggregate_credits', {}).get('cast', [])[:_MAX_SHOW_CAST]
+
+
 def _create_cast_listitems(handle: int, cast_list: list) -> int:
     """Add ListItems to the plugin directory for each actor. Returns count added."""
     items_added = 0
@@ -114,8 +148,10 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
 
     elif dbtype == 'tvshow':
         data = api.get_tv_details_extended(tmdb_id)
-        if data and 'credits' in data:
-            cast = data['credits'].get('cast', [])
+        if data:
+            cast = (data.get('credits', {}).get('cast', [])
+                    or _season_regular_cast(api, tmdb_id, data)
+                    or _aggregate_cast(data))
 
     elif dbtype == 'season':
         if season is not None:
