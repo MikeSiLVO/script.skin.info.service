@@ -61,12 +61,15 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
         omdb = ApiOmdb()
         awards_data = omdb.get_awards(media_type, imdb_id, abort_flag=abort_flag)
         if awards_data:
-            props["Awards.Oscar.Wins"] = str(awards_data.get("oscar_wins", 0))
-            props["Awards.Oscar.Nominations"] = str(awards_data.get("oscar_nominations", 0))
-            props["Awards.Emmy.Wins"] = str(awards_data.get("emmy_wins", 0))
-            props["Awards.Emmy.Nominations"] = str(awards_data.get("emmy_nominations", 0))
-            props["Awards.Other.Wins"] = str(awards_data.get("other_wins", 0))
-            props["Awards.Other.Nominations"] = str(awards_data.get("other_nominations", 0))
+            counts = {
+                "Awards.Oscar.Wins": awards_data.get("oscar_wins"),
+                "Awards.Oscar.Nominations": awards_data.get("oscar_nominations"),
+                "Awards.Emmy.Wins": awards_data.get("emmy_wins"),
+                "Awards.Emmy.Nominations": awards_data.get("emmy_nominations"),
+                "Awards.Other.Wins": awards_data.get("other_wins"),
+                "Awards.Other.Nominations": awards_data.get("other_nominations"),
+            }
+            props.update({k: str(v) for k, v in counts.items() if v})
             props["Awards"] = awards_data.get("awards_text", "")
 
         ratings = omdb.fetch_ratings(media_type, {"imdb": imdb_id}, abort_flag=abort_flag)
