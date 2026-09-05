@@ -281,5 +281,3 @@ def revoke_trakt_authorization() -> None:
         settings = ADDON.getSettings()
         settings.setString("trakt_configured", "false")
         ADDON.setSetting("trakt_configured", "false")
-
-

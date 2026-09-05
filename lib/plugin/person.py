@@ -745,5 +745,3 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
 
     xbmcplugin.addDirectoryItem(handle, '', listitem, False)
     xbmcplugin.endOfDirectory(handle)
-
-

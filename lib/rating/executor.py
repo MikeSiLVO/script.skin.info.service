@@ -455,4 +455,3 @@ class RatingBatchExecutor:
     def get_unfinalized_items(self) -> List[int]:
         """Dbids still being worked; a finalized item is removed outright."""
         return list(self.item_states)
-

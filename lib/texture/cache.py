@@ -520,5 +520,3 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
         log("Texture",f"Orphaned cleanup failed: {str(e)}", xbmc.LOGERROR)
 
     return stats
-
-

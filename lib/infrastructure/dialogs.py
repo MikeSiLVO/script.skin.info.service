@@ -194,5 +194,3 @@ def show_select(
 ) -> int:
     """Show select dialog."""
     return xbmcgui.Dialog().select(heading, options, preselect=preselect)  # type: ignore[arg-type]
-
-

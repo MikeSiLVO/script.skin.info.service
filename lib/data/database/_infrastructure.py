@@ -221,4 +221,3 @@ def init_database() -> None:
         raise
     finally:
         conn.close()
-

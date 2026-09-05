@@ -372,5 +372,3 @@ def remove_dbid(media_type: str, dbid: int) -> None:
             "DELETE FROM library_item WHERE media_type = ? AND dbid = ?",
             (media_type, dbid),
         )
-
-

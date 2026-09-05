@@ -141,4 +141,3 @@ class KodiSettings:
             if cls.get_bool(setting_id):
                 art_types.append(art_type)
         return ','.join(art_types)
-

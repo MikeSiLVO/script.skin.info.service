@@ -692,5 +692,3 @@ def dialog_progress(
             dialog_bg.close()
         elif dialog_normal:
             dialog_normal.close()
-
-

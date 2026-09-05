@@ -398,5 +398,3 @@ class ArtworkScanner:
             scope_label=scope_label,
             progress_title=cfg['progress_title'],
         )
-
-

@@ -1380,5 +1380,3 @@ def set_musicvideo_properties(details: dict) -> None:
         userrating=details.get("userrating"),
     )
     set_listitem_unified_properties(unified)
-
-

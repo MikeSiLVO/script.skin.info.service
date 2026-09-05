@@ -205,5 +205,3 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
     except Exception as e:
         log("Blur", f"Failed to blur image {source_path}: {e}", xbmc.LOGERROR)
         return None
-
-

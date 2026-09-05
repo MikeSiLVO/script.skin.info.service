@@ -466,4 +466,3 @@ class FocusDispatcher:
 
         set_episode_properties(details)
         set_ratings_properties(details, "Episode")
-

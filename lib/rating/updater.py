@@ -294,4 +294,3 @@ def update_library_ratings(
     xbmc.executebuiltin("Container.Refresh")
 
     return results
-
