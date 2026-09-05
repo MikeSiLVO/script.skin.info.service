@@ -378,7 +378,7 @@ def _create_library_listitem(item: dict, dbtype: str) -> xbmcgui.ListItem:
 
     rating = item.get('rating')
     if rating:
-        listitem.setProperty('Rating', str(rating))
+        listitem.setProperty('Rating', f"{rating:.1f}")
 
     playcount = item.get('playcount')
     if playcount:
