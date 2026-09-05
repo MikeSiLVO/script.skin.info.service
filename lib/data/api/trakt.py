@@ -105,6 +105,14 @@ class ApiTrakt(RatingSource):
         token = self._get_valid_token(abort_flag)
         return {"Authorization": f"Bearer {token}"} if token else {}
 
+    def _token_after_failed_refresh(self, sent_refresh: str) -> Optional[str]:
+        """A refresh token is single-use, so only the one actually rejected is safe to delete."""
+        stored = self._load_tokens()
+        if stored and stored.get("refresh_token") != sent_refresh:
+            return stored.get("access_token")
+        self._delete_tokens()
+        return None
+
     def _get_valid_token(self, abort_flag=None) -> Optional[str]:
         """Get valid access token, refreshing if needed."""
         tokens = self._load_tokens()
@@ -133,9 +141,7 @@ class ApiTrakt(RatingSource):
                         new_tokens.get("expires_in", 86400)
                     )
                     return new_tokens["access_token"]
-                else:
-                    self._delete_tokens()
-                    return None
+                return self._token_after_failed_refresh(tokens["refresh_token"])
 
             except RateLimitHit:
                 raise
