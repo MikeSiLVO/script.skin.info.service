@@ -300,6 +300,7 @@ Each source provides three properties:
 | `Rating.{source}` | Rating (0-10) |
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Percentage (0-100) |
+| `Rating.{source}.Stars` | Roger Ebert and Letterboxd only, their own number out of 4 and 5 |
 
 **Available Sources:**
 

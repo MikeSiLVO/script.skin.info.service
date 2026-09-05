@@ -10,7 +10,7 @@ from typing import List, Optional, Tuple
 from lib.kodi.client import (
     request, extract_result, get_item_details, decode_image_url, KODI_MOVIE_PROPERTIES, log,
 )
-from lib.kodi.formatters import RATING_SOURCE_NORMALIZE
+from lib.kodi.formatters import format_stars, RATING_SOURCE_NORMALIZE
 from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.plugin.listitems import (
     build_movie_data,
@@ -539,6 +539,10 @@ def handle_dbid_query(handle: int, params: dict) -> None:
                                     (float(rating_val) / float(max_val)) * 100)))
                                 output_type = RATING_SOURCE_NORMALIZE.get(rating_type, rating_type)
                                 properties_dict[f"Rating.{output_type}.Percent"] = str(pct)
+                                stars = format_stars(
+                                    output_type, float(rating_val) / float(max_val) * 10.0)
+                                if stars:
+                                    properties_dict[f"Rating.{output_type}.Stars"] = stars
                             except (ValueError, TypeError, ZeroDivisionError):
                                 pass
 

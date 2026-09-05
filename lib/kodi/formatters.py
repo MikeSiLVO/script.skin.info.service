@@ -21,6 +21,21 @@ RATING_SOURCE_NORMALIZE = {
     "themoviedb": "tmdb",
 }
 
+_STAR_SCALES = {"rogerebert": (4, 0.5), "letterboxd": (5, 0.0)}
+
+
+def format_stars(source: Optional[str], rating: float) -> str:
+    """The rating back on its own star scale; empty unless the source uses one."""
+    scale = _STAR_SCALES.get(source) if source else None
+    if not scale or not rating:
+        return ""
+    max_val, step = scale
+    stars = float(rating) / 10.0 * max_val
+    if step:
+        stars = round(stars / step) * step
+    return f"{stars:.1f}"
+
+
 def format_number(value) -> str:
     """Format number with thousand separators."""
     if not value:
@@ -35,11 +50,15 @@ def format_rating_props(source: str, rating: float, votes: int) -> Dict[str, str
     """Format rating data into property dict for a given source."""
     scaled = round(rating, 1)
     pct = max(0, min(100, int(round(scaled * 10))))
-    return {
+    props = {
         f"Rating.{source}": str(scaled),
         f"Rating.{source}.Votes": format_number(votes),
         f"Rating.{source}.Percent": str(pct)
     }
+    stars = format_stars(source, scaled)
+    if stars:
+        props[f"Rating.{source}.Stars"] = stars
+    return props
 
 
 def format_movie_props(data: dict) -> Dict[str, str]:

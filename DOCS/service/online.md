@@ -361,6 +361,7 @@ Ratings from multiple sources. Each source provides three properties.
 | `Rating.{source}` | Rating value (0-10 scale) |
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Rating as percentage (0-100) |
+| `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 |
 
 ### Available Sources
 

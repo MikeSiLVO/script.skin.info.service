@@ -12,7 +12,7 @@ import xbmc
 from lib.kodi.utilities import (
     clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
 )
-from lib.kodi.formatters import format_number, RATING_SOURCE_NORMALIZE
+from lib.kodi.formatters import format_number, format_stars, RATING_SOURCE_NORMALIZE
 
 
 def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
@@ -325,6 +325,9 @@ def _build_listitem_unified_data(
             data[f"ListItem.Rating.{output_src}"] = str(scaled)
             data[f"ListItem.Rating.{output_src}.Votes"] = format_number(info.get("votes"))
             data[f"ListItem.Rating.{output_src}.Percent"] = str(pct)
+            stars = format_stars(output_src, scaled)
+            if stars:
+                data[f"ListItem.Rating.{output_src}.Stars"] = stars
 
     return data
 
@@ -335,7 +338,8 @@ def set_listitem_unified_properties(data: dict) -> None:
 
     current_sources: Set[str] = set()
     for key in data:
-        if key.startswith("ListItem.Rating.") and not key.endswith((".Votes", ".Percent")):
+        if key.startswith("ListItem.Rating.") and not key.endswith(
+                (".Votes", ".Percent", ".Stars")):
             parts = key.split(".")
             if len(parts) >= 3:
                 src = parts[2]
@@ -349,6 +353,7 @@ def set_listitem_unified_properties(data: dict) -> None:
         props[f"SkinInfo.ListItem.Rating.{src}"] = ""
         props[f"SkinInfo.ListItem.Rating.{src}.Votes"] = ""
         props[f"SkinInfo.ListItem.Rating.{src}.Percent"] = ""
+        props[f"SkinInfo.ListItem.Rating.{src}.Stars"] = ""
 
     batch_set_props(props)
     _LISTITEM_RATING_STATE = current_sources
@@ -1005,6 +1010,9 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
         props[f"{prefix}.{output_src}"] = str(scaled)
         props[f"{prefix}.{output_src}.Votes"] = format_number(info.get("votes"))
         props[f"{prefix}.{output_src}.Percent"] = str(pct)
+        stars = format_stars(output_src, scaled)
+        if stars:
+            props[f"{prefix}.{output_src}.Stars"] = stars
 
     prev_sources = _RATING_STATE.get(media_type, set())
     removed_sources = prev_sources - current_sources
@@ -1012,6 +1020,7 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
         props[f"{prefix}.{src}"] = ""
         props[f"{prefix}.{src}.Votes"] = ""
         props[f"{prefix}.{src}.Percent"] = ""
+        props[f"{prefix}.{src}.Stars"] = ""
 
     if not ratings:
         props[prefix] = ""

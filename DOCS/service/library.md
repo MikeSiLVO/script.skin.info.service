@@ -89,6 +89,7 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Rating.{source}` | Rating from specific source | Movie, TVShow, Episode |
 | `Rating.{source}.Votes` | Vote count for source | Movie, TVShow, Episode |
 | `Rating.{source}.Percent` | Source rating as percentage | Movie, TVShow, Episode |
+| `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 | Movie, TVShow, Episode |
 | `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) | Movie, TVShow |
 | `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) | Movie, TVShow |
 
@@ -206,6 +207,7 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Rating.{source}` | Scaled rating (0-10) |
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Percentage (0-100) |
+| `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 |
 | `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
 | `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 

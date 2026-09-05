@@ -150,6 +150,8 @@ Properties (percent values only):
 - `Rating.Tomatoes.Percent`
 - `Rating.Popcorn.Percent`
 
+Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number out of 4 and 5.
+
 ---
 
 ## TV Shows

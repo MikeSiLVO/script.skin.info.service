@@ -136,7 +136,8 @@ opens. Blur radius follows the skin string `SkinInfo.BlurRadius` (default 40).
 ### Ratings
 
 Each source provides three properties: `Rating.{source}`, `Rating.{source}.Votes`,
-`Rating.{source}.Percent` (0-100).
+`Rating.{source}.Percent` (0-100). Roger Ebert and Letterboxd add `Rating.{source}.Stars`,
+their own number out of 4 and 5, since the rest are rescaled to Kodi's 0-10.
 
 | Source key | Provider |
 |------------|----------|
