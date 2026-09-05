@@ -219,7 +219,7 @@ def fetch_trakt_data(
 def handle_online(handle: int, params: dict) -> None:
     """Plugin entry for the online-data ListItem; library mode needs `dbid`+`dbtype`, direct mode
     needs `tmdb_id` or `imdb_id`."""
-    from lib.service.online import fetch_all_online_data
+    from lib.service.online.fetchers import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
 

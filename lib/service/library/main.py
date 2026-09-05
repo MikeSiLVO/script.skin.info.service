@@ -90,7 +90,7 @@ class LibraryMonitor(xbmc.Monitor):
         if media_type == 'musicvideo':
             self.service_main.musicvideo.invalidate_for(int(dbid))
         elif media_type in ('movie', 'tvshow', 'episode'):
-            from lib.service.online import invalidate_online_cache_for_dbid
+            from lib.service.online.helpers import invalidate_online_cache_for_dbid
             invalidate_online_cache_for_dbid(media_type, str(dbid))
             if media_type == 'tvshow':
                 from lib.data.database.runtime import invalidate_show_runtime

@@ -551,7 +551,7 @@ def _handle_search_library_person(args: dict) -> None:
 
 
 def _handle_online_fetch(args: dict) -> None:
-    from lib.service.online import fetch_all_online_data
+    from lib.service.online.fetchers import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
     from lib.data.database._infrastructure import init_database

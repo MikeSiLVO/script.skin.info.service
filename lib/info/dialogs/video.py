@@ -100,7 +100,7 @@ def open_video_info(
             log("General", "DialogVideoInfo: No tmdb_id or imdb_id", xbmc.LOGWARNING)
             return
 
-        from lib.service.online import fetch_all_online_data
+        from lib.service.online.fetchers import fetch_all_online_data
         online_props = fetch_all_online_data(
             media_type=media_type,
             imdb_id=imdb_id,

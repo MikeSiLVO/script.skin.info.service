@@ -127,7 +127,7 @@ class Orchestrator:
             clear_prop("SkinInfo.Service.Library.Running")
 
         if online_enabled:
-            from lib.service.online import OnlineServiceMain
+            from lib.service.online.main import OnlineServiceMain
             self._ensure_started('_online_thread', OnlineServiceMain)
             set_prop("SkinInfo.Service.Online.Running", "true")
         else:
