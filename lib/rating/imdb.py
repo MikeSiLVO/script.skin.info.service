@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 import xbmc
 import xbmcgui
@@ -29,6 +29,49 @@ _DRIP_DELAY = {
 _PLAYBACK_POLL_MS = 10000
 _RESUME_GRACE_S = 300
 _SYNC_FLUSH_SIZE = 50
+
+
+class ImdbUpdate(NamedTuple):
+    """One item's pending IMDb write; `kodi_ratings` is None when Kodi already matches."""
+    dbid: int
+    kodi_ratings: Optional[Dict]
+    imdb_id: str
+    new_rating: float
+    new_votes: int
+    title: str
+    year: str
+    is_add: bool
+    old_rating: Optional[float]
+    old_votes: int
+
+
+def _needs_write(old_rating: Optional[float], old_votes: int,
+                 new_rating: float, new_votes: int, *, gated: bool) -> bool:
+    """True when Kodi is far enough from the dataset to rewrite it."""
+    if old_rating is None:
+        return True
+    if abs(old_rating - new_rating) >= _RATING_EPSILON:
+        return True
+    if not gated:
+        return new_votes != old_votes
+    if not old_votes:
+        return new_votes > 0
+    if old_votes < 100:
+        return new_votes != old_votes
+    swing = abs(new_votes - old_votes) / old_votes
+    return swing > (0.1 if old_votes < 1000 else 0.05)
+
+
+def format_rating_change(old_rating: Optional[float], old_votes: int,
+                         new_rating: float, new_votes: int) -> str:
+    """Format the rating and vote movement for a log line; the arrow shows only on a real change."""
+    old_rating = old_rating or 0.0
+    rating = (f"{old_rating:.1f}" if abs(old_rating - new_rating) < _RATING_EPSILON
+              else f"{old_rating:.1f} -> {new_rating:.1f}")
+    if old_votes:
+        swing = (new_votes - old_votes) / old_votes * 100
+        return f"imdb {rating}, votes {old_votes} -> {new_votes} ({swing:+.1f}%)"
+    return f"imdb {rating}, votes {new_votes}"
 
 
 def _get_kodi_state() -> str:
@@ -105,7 +148,12 @@ def update_changed_imdb_ratings(
         return stats
 
     if changed_items:
-        log("Ratings", f"Found {len(changed_items)} items with changed IMDb ratings", xbmc.LOGINFO)
+        from lib.data.database.imdb import get_dataset_stats
+        generation = get_dataset_stats().get("last_modified") or "unknown"
+        log("Ratings",
+            f"Found {len(changed_items)} items with changed IMDb ratings "
+            f"against dataset {generation}",
+            xbmc.LOGINFO)
     if total_new:
         log("Ratings", f"Found {total_new} new library items to sync", xbmc.LOGINFO)
 
@@ -173,10 +221,10 @@ def update_changed_imdb_ratings(
                 log("Ratings", f"Added {item['imdb_id']}: imdb ({item['new_rating']:.1f})",
                     xbmc.LOGDEBUG)
             else:
-                log("Ratings",
-                    f"Updated {item['imdb_id']}: imdb "
-                    f"({item.get('old_rating', 0):.1f} -> {item['new_rating']:.1f})",
-                    xbmc.LOGDEBUG)
+                change = format_rating_change(
+                    item.get('old_rating'), item.get('old_votes', 0) or 0,
+                    item['new_rating'], item['new_votes'])
+                log("Ratings", f"Updated {item['imdb_id']}: {change}", xbmc.LOGDEBUG)
             stats["updated"] += 1
         else:
             log("Ratings",
@@ -291,8 +339,9 @@ def _collect_new_library_items(
             existing_imdb = item.get("ratings", {}).get("imdb", {})
             existing_rating = existing_imdb.get("rating") if existing_imdb else None
 
-            if (existing_rating is not None
-                    and abs(existing_rating - rating_data["rating"]) < _RATING_EPSILON):
+            if (existing_rating is not None and not _needs_write(
+                    existing_rating, int(existing_imdb.get("votes") or 0),
+                    rating_data["rating"], int(rating_data["votes"]), gated=True)):
                 unchanged_syncs.append(
                     (mtype, item[id_key], imdb_id,
                      rating_data["rating"], existing_imdb.get("votes") or 0)
@@ -335,6 +384,7 @@ def run_imdb_batch(
     monitor: xbmc.Monitor,
     dataset_date: str,
     processed_ids: Set[int],
+    gated: bool = False,
 ) -> None:
     """Run IMDb dataset batch update. Mutates `results` and `processed_ids` in place."""
 
@@ -408,7 +458,7 @@ def run_imdb_batch(
 
             prepared = prepare_imdb_update(
                 item, media_type, dataset,
-                ratings_map=batch_ratings, resolved_imdb_id=resolved_imdb_id
+                ratings_map=batch_ratings, resolved_imdb_id=resolved_imdb_id, gated=gated
             )
             if prepared is None:
                 results["skipped"] += 1
@@ -417,27 +467,20 @@ def run_imdb_batch(
                     processed_ids.add(dbid)
                 continue
 
-            dbid, kodi_ratings, imdb_id, new_rating, new_votes, title, year, is_add = prepared
+            dbid = prepared.dbid
 
-            if kodi_ratings is None:
-                unchanged_syncs.append((media_type, dbid, imdb_id, new_rating, new_votes))
+            if prepared.kodi_ratings is None:
+                unchanged_syncs.append((media_type, dbid, prepared.imdb_id,
+                                        prepared.new_rating, prepared.old_votes))
                 processed_ids.add(dbid)
                 continue
 
             batch_items_prepared += 1
             set_calls.append({
                 "method": set_method,
-                "params": {set_id_key: dbid, "ratings": kodi_ratings}
+                "params": {set_id_key: dbid, "ratings": prepared.kodi_ratings}
             })
-            items_to_update.append({
-                "dbid": dbid,
-                "imdb_id": imdb_id,
-                "new_rating": new_rating,
-                "new_votes": new_votes,
-                "title": title,
-                "year": year,
-                "is_add": is_add
-            })
+            items_to_update.append(prepared)
 
         if results.get("cancelled"):
             break
@@ -459,20 +502,22 @@ def run_imdb_batch(
                     break
 
                 response = set_responses[i] if i < len(set_responses) else None
-                dbid = update_info["dbid"]
+                dbid = update_info.dbid
 
                 if response is not None and "error" not in response:
                     sync_batch.append((
                         media_type, dbid,
-                        update_info["imdb_id"], update_info["new_rating"], update_info["new_votes"]
+                        update_info.imdb_id, update_info.new_rating, update_info.new_votes
                     ))
-                    action = "Added" if update_info["is_add"] else "Updated"
-                    log("Ratings",
-                        f"{action} {update_info['title']}: "
-                        f"imdb ({update_info['new_rating']:.1f})",
-                        xbmc.LOGDEBUG)
+                    action = "Added" if update_info.is_add else "Updated"
+                    change = (f"imdb {update_info.new_rating:.1f}, "
+                              f"votes {update_info.new_votes}" if update_info.is_add
+                              else format_rating_change(
+                                  update_info.old_rating, update_info.old_votes,
+                                  update_info.new_rating, update_info.new_votes))
+                    log("Ratings", f"{action} {update_info.title}: {change}", xbmc.LOGDEBUG)
                     results["updated"] += 1
-                    if update_info["is_add"]:
+                    if update_info.is_add:
                         results["total_ratings_added"] += 1
                     else:
                         results["total_ratings_updated"] += 1
@@ -638,8 +683,9 @@ def prepare_imdb_update(
     db_cursor=None,
     ratings_map: Optional[Dict[str, Dict]] = None,
     resolved_imdb_id: Optional[str] = None,
-) -> Optional[Tuple[int, Optional[Dict], str, float, int, str, str, bool]]:
-    """Build (dbid, kodi_ratings, ...) tuple for an IMDb-only batch update; None on skip/no-op."""
+    gated: bool = False,
+) -> Optional[ImdbUpdate]:
+    """Prepare one item's IMDb write; None when the item cannot be resolved."""
     dbid = item.get("movieid") or item.get("episodeid") or item.get("tvshowid")
     if not dbid:
         return None
@@ -666,10 +712,11 @@ def prepare_imdb_update(
     old_rating = existing_imdb.get("rating") if existing_imdb else None
 
     is_add = old_rating is None
-    if not is_add and abs(old_rating - new_rating) < _RATING_EPSILON:
+    old_votes = int(existing_imdb.get("votes") or 0)
+    if not _needs_write(old_rating, old_votes, new_rating, new_votes, gated=gated):
         # the sync row records Kodi's votes when no write happens
-        old_votes = existing_imdb.get("votes") or 0
-        return (dbid, None, imdb_id, new_rating, old_votes, title, str(year) if year else "", False)
+        return ImdbUpdate(dbid, None, imdb_id, new_rating, new_votes,
+                          title, str(year) if year else "", False, old_rating, old_votes)
 
     kodi_ratings = {
         "imdb": {
@@ -680,10 +727,8 @@ def prepare_imdb_update(
     }
     preserve_other_ratings(existing_ratings, kodi_ratings)
 
-    return (
-        dbid, kodi_ratings, imdb_id, new_rating, new_votes,
-        title, str(year) if year else "", is_add
-    )
+    return ImdbUpdate(dbid, kodi_ratings, imdb_id, new_rating, new_votes,
+                      title, str(year) if year else "", is_add, old_rating, old_votes)
 
 
 def update_single_item_imdb(item: Dict, media_type: str, abort_flag=None,

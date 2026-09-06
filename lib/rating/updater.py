@@ -116,7 +116,8 @@ def update_library_ratings(
     media_type: str,
     sources: List,
     use_background: bool = False,
-    source_mode: str = "multi_source"
+    source_mode: str = "multi_source",
+    gated: bool = False
 ) -> Dict[str, int]:
     """Update ratings for all items of a media type."""
     start_time = time.time()
@@ -174,14 +175,16 @@ def update_library_ratings(
     dataset_date: str = ""
     processed_ids: Set[int] = set()
 
+    def _show_downloading() -> None:
+        """Show the dataset-download message on the active progress dialog."""
+        if isinstance(progress, xbmcgui.DialogProgressBG):
+            progress.update(0, heading, ADDON.getLocalizedString(32305))
+        elif isinstance(progress, xbmcgui.DialogProgress):
+            progress.update(0, ADDON.getLocalizedString(32305))
+
     dataset = get_imdb_dataset()
+    dataset.refresh_if_stale(on_download_start=_show_downloading)
     if not dataset.is_dataset_available():
-        def _show_downloading() -> None:
-            """Surface the dataset-download message on the active progress dialog."""
-            if isinstance(progress, xbmcgui.DialogProgressBG):
-                progress.update(0, heading, ADDON.getLocalizedString(32305))
-            elif isinstance(progress, xbmcgui.DialogProgress):
-                progress.update(0, ADDON.getLocalizedString(32305))
         dataset.force_download(on_download_start=_show_downloading)
 
     if source_mode == "imdb":
@@ -222,7 +225,8 @@ def update_library_ratings(
             max_request_seconds=task_manager.MAX_REQUEST_SECONDS) as ctx:
             if source_mode == "imdb":
                 run_imdb_batch(
-                    media_type, items, progress, results, ctx, monitor, dataset_date, processed_ids
+                    media_type, items, progress, results, ctx, monitor, dataset_date,
+                    processed_ids, gated=gated
                 )
             else:
                 run_multi_source_batch(

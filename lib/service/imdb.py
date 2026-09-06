@@ -148,11 +148,14 @@ class ImdbUpdateService(threading.Thread):
         log("Service", f"Starting IMDb full auto-update (scope={scope})", xbmc.LOGINFO)
 
         if scope in ("all", "movies_tvshows", "movies"):
-            update_library_ratings("movie", [], use_background=True, source_mode="imdb")
+            update_library_ratings("movie", [], use_background=True, source_mode="imdb",
+                                  gated=True)
         if scope in ("all", "movies_tvshows"):
-            update_library_ratings("tvshow", [], use_background=True, source_mode="imdb")
+            update_library_ratings("tvshow", [], use_background=True, source_mode="imdb",
+                                  gated=True)
         if scope == "all":
-            update_library_ratings("episode", [], use_background=True, source_mode="imdb")
+            update_library_ratings("episode", [], use_background=True, source_mode="imdb",
+                                  gated=True)
 
     def _notify_when_idle(
         self,

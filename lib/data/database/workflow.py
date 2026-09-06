@@ -204,7 +204,7 @@ def update_synced_ratings_batch(items: List[tuple]) -> None:
 
 
 def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
-    """Synced items whose IMDb rating or vote count has drifted far enough to rewrite."""
+    """Drifted synced items; the SQL twin of `_needs_write(gated=True)` in lib/rating/imdb.py."""
     query = '''
         SELECT s.media_type, s.dbid, s.imdb_id,
                r.rating AS new_rating, r.votes AS new_votes,
