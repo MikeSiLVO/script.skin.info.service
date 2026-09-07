@@ -5,7 +5,6 @@ chain. Helpers that need those should live in their owning API module instead.
 """
 from __future__ import annotations
 
-from base64 import b64decode
 from typing import Optional
 
 
@@ -14,6 +13,7 @@ TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
 
 def decode_key(blob: str) -> str:
     """Decode a built-in provider key."""
+    from base64 import b64decode
     return b64decode(blob).decode("ascii")
 
 

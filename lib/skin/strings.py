@@ -1,5 +1,4 @@
 """String manipulation utilities for skin integration."""
-import urllib.parse
 import xbmc
 
 
@@ -26,7 +25,8 @@ def urlencode(string, prefix='', window='home'):
         xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
         return
 
-    encoded = urllib.parse.quote(string)
+    from urllib.parse import quote
+    encoded = quote(string)
     xbmc.executebuiltin(f'SetProperty({prop_name},{encoded},{window})')
 
 
@@ -38,5 +38,6 @@ def urldecode(string, prefix='', window='home'):
         xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
         return
 
-    decoded = urllib.parse.unquote(string)
+    from urllib.parse import unquote
+    decoded = unquote(string)
     xbmc.executebuiltin(f'SetProperty({prop_name},{decoded},{window})')

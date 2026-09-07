@@ -1,7 +1,6 @@
 """Plugin handlers for cast lists (library and player)."""
 from __future__ import annotations
 
-import traceback
 from typing import Optional
 
 import xbmc
@@ -352,6 +351,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     except Exception as e:
+        import traceback
         log("Plugin", f"Library Cast: Error - {e}", xbmc.LOGERROR)
         log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
@@ -430,6 +430,7 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     except Exception as e:
+        import traceback
         log("Plugin", f"Player Cast: Error - {e}", xbmc.LOGERROR)
         log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle, succeeded=False)

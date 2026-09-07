@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Optional
 import unicodedata
-from urllib.parse import quote
 import xbmc
 import xbmcgui
 import xbmcplugin
@@ -297,6 +296,7 @@ def _available_sort_letters(target: str) -> set[str]:
 def handle_letter_jump_list(handle: int, params: dict) -> None:
     """Return A-Z (plus '#') ListItems for container letter-jump; see DOCS/plugin/navigation.md
     for the full API."""
+    from urllib.parse import quote
     target = params.get('target', ['50'])[0]
     showall = params.get('showall', ['true'])[0].lower() != 'false'
     want_available = params.get('available', ['false'])[0].lower() == 'true' or not showall

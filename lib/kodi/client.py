@@ -1,11 +1,9 @@
 """Kodi JSON-RPC interface with caching and rate limiting."""
 from __future__ import annotations
 
-import json
-from typing import Any, Dict, Optional, Tuple, List, Callable, overload
+from typing import Any, Dict, NamedTuple, Optional, Tuple, List, Callable, overload
 from time import monotonic
 import threading
-import urllib.parse
 
 import xbmc
 import xbmcaddon
@@ -20,11 +18,8 @@ CACHE_CLEANUP_INTERVAL = 60
 CACHE_CLEANUP_REQUEST_INTERVAL = 50
 CACHE_MAX_SIZE = 200
 
-from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class MediaTypeSpec:
+class MediaTypeSpec(NamedTuple):
     """Per-media-type Kodi JSON-RPC bindings; source of truth for the `KODI_*_METHODS`/
     `KODI_ID_KEYS` dicts."""
     get_method: str
@@ -174,6 +169,7 @@ def _call_jsonrpc(payload: Any, error_context: str) -> Any:
 
     Returns None on transport, JSON, or shape errors.
     """
+    import json
     try:
         raw = xbmc.executeJSONRPC(json.dumps(payload, separators=(",", ":")))
     except (OSError, IOError) as e:
@@ -369,7 +365,8 @@ def decode_image_url(url: str) -> str:
     if '@' in inner:
         return url
 
-    return urllib.parse.unquote(inner)
+    from urllib.parse import unquote
+    return unquote(inner)
 
 
 def encode_image_url(decoded_url: str) -> str:
@@ -380,7 +377,8 @@ def encode_image_url(decoded_url: str) -> str:
     if decoded_url.startswith('image://'):
         return decoded_url
 
-    encoded = urllib.parse.quote(decoded_url, safe='')
+    from urllib.parse import quote
+    encoded = quote(decoded_url, safe='')
     return f'image://{encoded}/'
 
 
@@ -581,6 +579,7 @@ def get_api_key(key_id: str) -> Optional[str]:
             token_path = xbmcvfs.translatePath(f"special://profile/addon_data/script.skin.info.service/{token_file}")
             if xbmcvfs.exists(token_path):
                 try:
+                    import json
                     with open(token_path, 'r') as f:
                         tokens = json.load(f)
                         return tokens.get("access_token")

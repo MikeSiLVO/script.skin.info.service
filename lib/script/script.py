@@ -4,7 +4,6 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import set_prop, clear_prop, resolve_infolabel
-from lib.infrastructure.dialogs import DialogProgress
 
 
 def _set_window_prop(key: str, value: str, window: str) -> None:
@@ -416,6 +415,7 @@ def _handle_search_library_person(args: dict) -> None:
     import urllib.parse
     import xbmcgui
     from lib.kodi.client import request
+    from lib.infrastructure.dialogs import DialogProgress
 
     name = urllib.parse.unquote(args.get('name', ''))
     crew = args.get('crew', '')

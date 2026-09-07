@@ -377,12 +377,14 @@ def main() -> None:
         handler(handle, params)
         return
 
-    from lib.plugin.widgets.discovery import WIDGET_REGISTRY, handle_discover
-    if action in WIDGET_REGISTRY:
-        handle_discover(handle, action, params)
-    else:
-        from lib.plugin.dbid import handle_dbid_query
-        handle_dbid_query(handle, params)
+    if action:
+        from lib.plugin.widgets.discovery import WIDGET_REGISTRY, handle_discover
+        if action in WIDGET_REGISTRY:
+            handle_discover(handle, action, params)
+            return
+
+    from lib.plugin.dbid import handle_dbid_query
+    handle_dbid_query(handle, params)
 
 
 if __name__ == "__main__":

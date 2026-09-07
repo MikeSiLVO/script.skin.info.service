@@ -10,7 +10,6 @@ import time
 import xbmc
 import xbmcgui
 from typing import Any, Dict, Optional, List, Tuple
-from datetime import datetime
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
@@ -269,6 +268,7 @@ def format_date(date_str: str, include_time: bool = False) -> str:
     if not date_str:
         return ""
 
+    from datetime import datetime
     try:
         if " " in date_str:
             dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")

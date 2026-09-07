@@ -1,7 +1,6 @@
 """Discovery widgets for trending, popular, and upcoming content."""
 from __future__ import annotations
 
-import traceback
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import xbmc
@@ -340,6 +339,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
             xbmc.LOGINFO)
 
     except Exception as e:
+        import traceback
         log("Plugin", f"Discover: Error - {e}", xbmc.LOGERROR)
         log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
@@ -426,6 +426,7 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
             xbmc.LOGINFO)
 
     except Exception as e:
+        import traceback
         log("Plugin", f"TMDB Recommendations: Error - {e}", xbmc.LOGERROR)
         log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle, succeeded=False)

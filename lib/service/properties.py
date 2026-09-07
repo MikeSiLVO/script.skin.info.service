@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Any, Optional, List, Tuple, Dict, Set
 import os
-import urllib.request
 import xbmc
 
 from lib.kodi.utilities import (
@@ -137,10 +136,12 @@ def media_path(path: Optional[str]) -> str:
         base = os.path.split(path)[0]
 
     if base.startswith("rar://"):
-        base = urllib.request.url2pathname(base[6:])
+        from urllib.request import url2pathname
+        base = url2pathname(base[6:])
     elif base.startswith("multipath://"):
+        from urllib.request import url2pathname
         parts = base[13:].split("%2f/")
-        base = urllib.request.url2pathname(parts[0])
+        base = url2pathname(parts[0])
     return base
 
 _STATE = {
