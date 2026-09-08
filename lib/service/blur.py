@@ -81,6 +81,19 @@ def _generate_cache_key(source_path: str, blur_radius: int) -> str:
     return f"{hash_value}.jpg"
 
 
+def _is_full_path(path: str) -> bool:
+    """Kodi's `CURL::IsFullPath`: rooted, a scheme, a drive letter, or a UNC share."""
+    return (path.startswith('/')
+            or '://' in path
+            or (len(path) > 1 and path[1] == ':')
+            or path.startswith('\\\\'))
+
+
+def _is_skin_texture(source_path: str) -> bool:
+    """True for a skin-relative texture, which the skin draws itself and never wants blurred."""
+    return bool(source_path) and not _is_full_path(source_path)
+
+
 def _resolve_source_for_mtime(source_path: str) -> Optional[str]:
     """Map a source URL/path to its local filesystem path for mtime checks. None if unmappable."""
     if source_path.startswith(('http://', 'https://', 'image://')):
@@ -143,6 +156,14 @@ def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
     original_path = source_path
 
     img_bytes = None
+    if source_path.startswith('image://') and '@' in source_path:
+        log("Blur", f"Not fetchable, Kodi-internal art: {source_path}", xbmc.LOGDEBUG)
+        return None
+
+    if _is_skin_texture(source_path):
+        log("Blur", f"Skin texture, nothing to blur: {source_path}", xbmc.LOGDEBUG)
+        return None
+
     if source_path.startswith(('http://', 'https://', 'image://')):
         local_path = _url_to_cached_path(source_path)
 
