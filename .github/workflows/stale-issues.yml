@@ -10,5 +10,5 @@ jobs:
     if: github.repository == 'MikeSiLVO/script.skin.info.service'
     permissions:
       issues: write
-    uses: MikeSiLVO/workflows/.github/workflows/stale-issues.yml@v1
+    uses: MikeSiLVO/workflows/.github/workflows/stale-issues.yml@v2.0.0
     secrets: inherit

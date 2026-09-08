@@ -14,5 +14,5 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: MikeSiLVO/workflows/.github/workflows/sync-addon-metadata-translations.yml@v1
+    uses: MikeSiLVO/workflows/.github/workflows/sync-addon-metadata-translations.yml@v2.0.0
     secrets: inherit

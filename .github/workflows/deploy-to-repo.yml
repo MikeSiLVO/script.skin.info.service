@@ -9,7 +9,7 @@ on:
 jobs:
   deploy:
     if: github.repository == 'MikeSiLVO/script.skin.info.service'
-    uses: MikeSiLVO/workflows/.github/workflows/deploy-to-repo.yml@v1
+    uses: MikeSiLVO/workflows/.github/workflows/deploy-to-repo.yml@v2.0.0
     with:
       channel: piers
     secrets: inherit

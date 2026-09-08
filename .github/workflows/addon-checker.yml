@@ -11,6 +11,6 @@ on:
 jobs:
   addon-checker:
     if: github.repository == 'MikeSiLVO/script.skin.info.service'
-    uses: MikeSiLVO/workflows/.github/workflows/addon-checker.yml@v1
+    uses: MikeSiLVO/workflows/.github/workflows/addon-checker.yml@v2.0.0
     with:
       kodi_branch: omega
