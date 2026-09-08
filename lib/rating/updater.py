@@ -8,7 +8,7 @@ import xbmc
 import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
-from lib.kodi.client import request, get_library_items, log, ADDON
+from lib.kodi.client import request, get_library_items, log, ADDON, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api import tracker as usage_tracker
@@ -138,7 +138,29 @@ def update_library_ratings(
         progress = DialogProgress()
         progress.create(heading, ADDON.getLocalizedString(32303).format(media_type))
 
-    items = get_library_items([media_type], properties=properties)
+    monitor = xbmc.Monitor()
+
+    def _loading_progress(_mt: str, done: int, total: int) -> None:
+        percent = min(100, int((done * 100) / total)) if total else 0
+        message = f"{ADDON.getLocalizedString(32303).format(media_type)} {done:,}/{total:,}"
+        if isinstance(progress, xbmcgui.DialogProgressBG):
+            progress.update(percent, heading, message)
+        else:
+            progress.update(percent, message)
+
+    def _loading_cancelled() -> bool:
+        if isinstance(progress, xbmcgui.DialogProgress):
+            return progress.iscanceled()
+        return monitor.abortRequested()
+
+    try:
+        items = get_library_items([media_type], properties=properties,
+                                  progress_callback=_loading_progress,
+                                  abort_check=_loading_cancelled)
+    except LibraryScanAborted:
+        progress.close()
+        return {"updated": 0, "failed": 0, "skipped": 0, "cancelled": True}
+
     if not items:
         if progress:
             progress.close()
