@@ -5,7 +5,15 @@ from typing import Optional, Union
 import xbmc
 import xbmcgui
 
-_MONITOR = xbmc.Monitor()
+_MONITOR: Optional[xbmc.Monitor] = None
+
+
+def _shutdown_monitor() -> xbmc.Monitor:
+    """Shared monitor behind `DialogProgress.iscanceled()`'s shutdown check."""
+    global _MONITOR
+    if _MONITOR is None:
+        _MONITOR = xbmc.Monitor()
+    return _MONITOR
 
 
 class DialogProgress(xbmcgui.DialogProgress):
@@ -17,7 +25,7 @@ class DialogProgress(xbmcgui.DialogProgress):
 
     def iscanceled(self) -> bool:
         """True if the user cancelled or Kodi is shutting down."""
-        return _MONITOR.abortRequested() or super().iscanceled()
+        return _shutdown_monitor().abortRequested() or super().iscanceled()
 
 
 class ProgressDialog:
