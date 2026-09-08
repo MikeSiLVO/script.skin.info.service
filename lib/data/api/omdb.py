@@ -83,7 +83,7 @@ class ApiOmdb(RatingSource):
         force_refresh: bool = False,
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """Fetch ratings from OMDb (RatingSource interface); needs an IMDb id."""
-        if media_type == "episode":
+        if not self.supports(media_type):
             return None
         imdb_id = ids.get("imdb")
         if not imdb_id:
@@ -94,6 +94,10 @@ class ApiOmdb(RatingSource):
             return None
 
         return self._extract_ratings(data)
+
+    def supports(self, media_type: str) -> bool:
+        """OMDb rates the parent title only; it has no per-episode entry."""
+        return media_type != "episode"
 
     def get_awards(self, media_type: str, imdb_id: str, abort_flag=None) -> Optional[dict]:
         """Extract awards data from OMDb (fetches if not cached)."""

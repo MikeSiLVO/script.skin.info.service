@@ -27,6 +27,10 @@ class RatingSource(ABC):
     def test_connection(self) -> bool:
         pass
 
+    def supports(self, media_type: str) -> bool:
+        """Whether this source can return ratings for the media type at all."""
+        return True
+
     def normalize_rating(self, value: float, scale_max: int) -> float:
         if scale_max == 10:
             return round(float(value), 1)

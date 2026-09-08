@@ -13,6 +13,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.data.api.client import RateLimitHit, RetryableError
+from lib.data.api.source import RatingSource
 from lib.infrastructure.tasks import MAX_REQUEST_SECONDS
 
 
@@ -76,7 +77,7 @@ class RetryPoolEntry:
 class RatingBatchExecutor:
     """Parallel rating fetcher with a worker cap, a per-source cap, and admission backpressure."""
 
-    def __init__(self, sources: List, abort_flag=None):
+    def __init__(self, sources: List[RatingSource], abort_flag=None):
         self.sources = sources
         self.source_names = {
             source: source.provider_name
@@ -186,6 +187,10 @@ class RatingBatchExecutor:
 
         for source in self.sources:
             source_name = self.source_names[source]
+
+            # not deferred: a source that cannot serve this type is never coming back for it
+            if not source.supports(media_type):
+                continue
 
             if self._pause_outlasts_run(source_name):
                 state.deferred_sources.add(source_name)

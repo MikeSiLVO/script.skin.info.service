@@ -100,6 +100,10 @@ class ApiMdblist(RatingSource):
             return data
         return []
 
+    def supports(self, media_type: str) -> bool:
+        """MDBList rates the parent title only; episode ratings ride the show append."""
+        return media_type != "episode"
+
     def fetch_data(
         self,
         media_type: str,
@@ -112,7 +116,7 @@ class ApiMdblist(RatingSource):
         ids prefers "tmdb", falls back to "imdb". force_refresh bypasses cache read
         but still writes to cache.
         """
-        if media_type == "episode":
+        if not self.supports(media_type):
             return None
 
         media_id = ids.get("tmdb")
@@ -148,7 +152,7 @@ class ApiMdblist(RatingSource):
 
     def get_mdblist_data(self, media_type: str, ids: Dict[str, str]) -> Optional[dict]:
         """Get cached MDBList data (does not fetch if missing)."""
-        if media_type == "episode":
+        if not self.supports(media_type):
             return None
 
         media_id = ids.get("tmdb")
@@ -400,7 +404,7 @@ class ApiMdblist(RatingSource):
         if usage_tracker.is_provider_skipped("mdblist"):
             return {}
 
-        if media_type == "episode":
+        if not self.supports(media_type):
             return {}
 
         results: Dict[str, dict] = {}
