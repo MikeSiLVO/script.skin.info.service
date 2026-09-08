@@ -37,7 +37,7 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
     """Update ratings for every episode of a show. Returns count actually updated."""
     response = request("VideoLibrary.GetEpisodes", {
         "tvshowid": tvshow_dbid,
-        "properties": ["title", "season", "episode", "tvshowid", "uniqueid", "ratings"]
+        "properties": ["title", "season", "episode", "tvshowid", "showtitle", "uniqueid", "ratings"]
     })
 
     if not response or "episodes" not in response.get("result", {}):
@@ -125,7 +125,7 @@ def update_library_ratings(
 
     if media_type == "episode":
         clear_tvshow_uniqueid_cache()
-        properties = ["title", "season", "episode", "tvshowid", "uniqueid", "ratings"]
+        properties = ["title", "season", "episode", "tvshowid", "showtitle", "uniqueid", "ratings"]
     else:
         properties = ["title", "year", "uniqueid", "ratings"]
 

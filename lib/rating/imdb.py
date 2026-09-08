@@ -9,18 +9,18 @@ import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import (
-    request, batch_request, get_library_items, log,
+    request, batch_request, get_library_items, format_item_label, log,
     KODI_SET_DETAILS_METHODS, ADDON,
 )
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.database import workflow as db
 from lib.infrastructure.dialogs import show_textviewer, show_yesnocustom
-from lib.rating.ids import get_tvshow_uniqueid, prefetch_tvshow_uniqueids, update_kodi_uniqueid
+from lib.rating.ids import (get_tvshow_uniqueid, prefetch_tvshow_uniqueids,
+                            update_kodi_uniqueid)
+from lib.rating.merger import format_rating_change, rating_display_changed
 
 
 PROGRESS_SAVE_SECONDS = 60
-
-_RATING_EPSILON = 0.05  # IMDb ratings are 1-decimal; ignore sub-step drift from other scrapers
 
 _DRIP_DELAY = {
     "idle": {"movie": 0, "tvshow": 0, "episode": 0},
@@ -50,7 +50,7 @@ def _needs_write(old_rating: Optional[float], old_votes: int,
     """True when Kodi is far enough from the dataset to rewrite it."""
     if old_rating is None:
         return True
-    if abs(old_rating - new_rating) >= _RATING_EPSILON:
+    if rating_display_changed(old_rating, new_rating):
         return True
     if not gated:
         return new_votes != old_votes
@@ -60,18 +60,6 @@ def _needs_write(old_rating: Optional[float], old_votes: int,
         return new_votes != old_votes
     swing = abs(new_votes - old_votes) / old_votes
     return swing > (0.1 if old_votes < 1000 else 0.05)
-
-
-def format_rating_change(old_rating: Optional[float], old_votes: int,
-                         new_rating: float, new_votes: int) -> str:
-    """Format the rating and vote movement for a log line; the arrow shows only on a real change."""
-    old_rating = old_rating or 0.0
-    rating = (f"{old_rating:.1f}" if abs(old_rating - new_rating) < _RATING_EPSILON
-              else f"{old_rating:.1f} -> {new_rating:.1f}")
-    if old_votes:
-        swing = (new_votes - old_votes) / old_votes * 100
-        return f"imdb {rating}, votes {old_votes} -> {new_votes} ({swing:+.1f}%)"
-    return f"imdb {rating}, votes {new_votes}"
 
 
 def _get_kodi_state() -> str:
@@ -222,6 +210,7 @@ def update_changed_imdb_ratings(
                     xbmc.LOGDEBUG)
             else:
                 change = format_rating_change(
+                    "imdb",
                     item.get('old_rating'), item.get('old_votes', 0) or 0,
                     item['new_rating'], item['new_votes'])
                 log("Ratings", f"Updated {item['imdb_id']}: {change}", xbmc.LOGDEBUG)
@@ -254,16 +243,6 @@ def update_changed_imdb_ratings(
             f"{stats['skipped']} skipped, {stats['failed']} failed",
             xbmc.LOGINFO)
     return stats
-
-
-def _item_label(item: Dict, media_type: str) -> str:
-    if media_type == "episode":
-        showtitle = item.get("showtitle")
-        season = item.get("season")
-        episode = item.get("episode")
-        if showtitle and season is not None and episode is not None:
-            return f"{showtitle} S{int(season):02d}E{int(episode):02d}"
-    return item.get("title", "")
 
 
 def _collect_new_library_items(
@@ -312,7 +291,7 @@ def _collect_new_library_items(
             if not dbid:
                 continue
             if wanted_titles and (mtype, dbid) in wanted_titles:
-                title_map[(mtype, dbid)] = _item_label(item, mtype)
+                title_map[(mtype, dbid)] = format_item_label(item, mtype)
             if dbid in synced_dbids:
                 continue
             imdb_id = resolve_imdb_id(item, mtype, dataset)
@@ -355,7 +334,7 @@ def _collect_new_library_items(
             batch_items.append({
                 "dbid": item[id_key],
                 "imdb_id": imdb_id,
-                "title": _item_label(item, mtype),
+                "title": format_item_label(item, mtype),
                 "new_rating": rating_data["rating"],
                 "new_votes": rating_data["votes"],
                 "old_rating": 0.0,
@@ -513,6 +492,7 @@ def run_imdb_batch(
                     change = (f"imdb {update_info.new_rating:.1f}, "
                               f"votes {update_info.new_votes}" if update_info.is_add
                               else format_rating_change(
+                                  "imdb",
                                   update_info.old_rating, update_info.old_votes,
                                   update_info.new_rating, update_info.new_votes))
                     log("Ratings", f"{action} {update_info.title}: {change}", xbmc.LOGDEBUG)
@@ -690,7 +670,7 @@ def prepare_imdb_update(
     if not dbid:
         return None
 
-    title = item.get("title", "Unknown")
+    title = format_item_label(item, media_type) or "Unknown"
     year = item.get("year", "")
     existing_ratings = item.get("ratings", {})
 
@@ -738,7 +718,7 @@ def update_single_item_imdb(item: Dict, media_type: str, abort_flag=None,
     if not dbid:
         return False, None
 
-    title = item.get("title", "Unknown")
+    title = format_item_label(item, media_type) or "Unknown"
     year = item.get("year")
     uniqueid = item.get("uniqueid", {})
     existing_ratings = item.get("ratings", {})
@@ -789,7 +769,7 @@ def update_single_item_imdb(item: Dict, media_type: str, abort_flag=None,
 
     if old_rating is None:
         added_ratings.append(f"imdb ({new_rating:.1f})")
-    elif abs(old_rating - new_rating) >= _RATING_EPSILON:
+    elif rating_display_changed(old_rating, new_rating):
         updated_ratings.append(f"imdb ({old_rating:.1f} -> {new_rating:.1f})")
     else:
         return True, None

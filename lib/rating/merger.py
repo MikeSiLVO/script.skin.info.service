@@ -31,6 +31,30 @@ _RATING_ORIGIN: Dict[str, str] = {
 }
 
 
+def _display_tenths(rating: float) -> int:
+    """Rating in tenths, rounding half up so this matches SQLite's ROUND."""
+    return int(rating * 10 + 0.5)
+
+
+def rating_display_changed(old_rating: Optional[float], new_rating: float) -> bool:
+    """True when the rating moves at the one decimal Kodi displays."""
+    if old_rating is None:
+        return True
+    return _display_tenths(old_rating) != _display_tenths(new_rating)
+
+
+def format_rating_change(source: str, old_rating: Optional[float], old_votes: int,
+                         new_rating: float, new_votes: int) -> str:
+    """Format the rating and vote movement for a log line; the arrow shows only on a real change."""
+    old_rating = old_rating or 0.0
+    rating = (f"{old_rating:.1f} -> {new_rating:.1f}"
+              if rating_display_changed(old_rating, new_rating) else f"{old_rating:.1f}")
+    if old_votes:
+        swing = (new_votes - old_votes) / old_votes * 100
+        return f"{source} {rating}, votes {old_votes} -> {new_votes} ({swing:+.1f}%)"
+    return f"{source} {rating}, votes {new_votes}"
+
+
 def merge_ratings(sources_ratings: List[Dict[str, Any]],
                   source_priority: Optional[Dict[str, int]] = None
                   ) -> Dict[str, Dict[str, float]]:

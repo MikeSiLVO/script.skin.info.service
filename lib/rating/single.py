@@ -14,7 +14,8 @@ from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
 from lib.infrastructure.tasks import ShutdownAbortFlag
-from lib.rating.merger import merge_ratings, prepare_kodi_ratings, has_alias_drift
+from lib.rating.merger import (merge_ratings, prepare_kodi_ratings, has_alias_drift,
+                               format_rating_change, rating_display_changed)
 from lib.rating.ids import (
     get_imdb_id_from_tmdb,
     build_external_ids,
@@ -140,10 +141,11 @@ def merge_and_apply_ratings(
 
             # a changed rating value must win even when the provider's vote
             # count declined (providers renormalize their counts)
-            if new_votes > old_votes or abs(old_val - new_val) > 0.01:
+            if new_votes > old_votes or rating_display_changed(old_val, new_val):
                 final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
-                if abs(old_val - new_val) > 0.01:
-                    updated_ratings.append(f"{rating_name} ({old_val:.1f} -> {new_val:.1f})")
+                if rating_display_changed(old_val, new_val):
+                    updated_ratings.append(format_rating_change(
+                        rating_name, old_val, int(old_votes), new_val, int(new_votes)))
         else:
             final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
             added_ratings.append(f"{rating_name} ({new_val:.1f})")
@@ -154,7 +156,7 @@ def merge_and_apply_ratings(
     if added_ratings:
         log("Ratings", f"Added ratings: {', '.join(added_ratings)}", xbmc.LOGDEBUG)
     if updated_ratings:
-        log("Ratings", f"Updated ratings: {', '.join(updated_ratings)}", xbmc.LOGDEBUG)
+        log("Ratings", f"Updated ratings: {' | '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
     if (not added_ratings and not updated_ratings
             and not has_alias_drift(existing_ratings, supplied)):

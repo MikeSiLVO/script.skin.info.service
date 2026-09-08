@@ -132,7 +132,7 @@ def _resolve_single_item_target(
 def _fetch_single_item(dbid: str, media_type: str) -> Optional[dict]:
     """Fetch a single Kodi item with the properties needed for rating update; notify on failure."""
     if media_type == "episode":
-        properties = ["title", "season", "episode", "tvshowid", "uniqueid", "ratings"]
+        properties = ["title", "season", "episode", "tvshowid", "showtitle", "uniqueid", "ratings"]
     else:
         properties = ["title", "year", "uniqueid", "ratings"]
 

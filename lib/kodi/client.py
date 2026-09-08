@@ -606,6 +606,17 @@ def _is_debug_enabled() -> bool:
     return _debug_enabled
 
 
+def format_item_label(item: Dict, media_type: str) -> str:
+    """Display label for an item; episodes get show title with SxxExx."""
+    if media_type == "episode":
+        showtitle = item.get("showtitle")
+        season = item.get("season")
+        episode = item.get("episode")
+        if showtitle and season is not None and episode is not None:
+            return f"{showtitle} S{int(season):02d}E{int(episode):02d}"
+    return item.get("title", "")
+
+
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
     """Log a categorized message; DEBUG escalates to INFO when the debug setting is on."""
     if level == xbmc.LOGDEBUG and _is_debug_enabled():

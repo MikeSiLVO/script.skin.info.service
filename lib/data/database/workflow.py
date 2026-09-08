@@ -211,7 +211,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
                s.rating AS old_rating, s.votes AS old_votes
         FROM imdb_sync s
         JOIN imdb_rating r ON s.imdb_id = r.imdb_id
-        WHERE ABS(s.rating - r.rating) >= 0.05
+        WHERE ROUND(s.rating, 1) != ROUND(r.rating, 1)
            OR (s.votes = 0 AND r.votes > 0)
            OR (s.votes > 0 AND s.votes < 100 AND r.votes != s.votes)
            OR (s.votes >= 100 AND s.votes < 1000

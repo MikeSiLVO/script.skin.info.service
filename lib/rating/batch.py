@@ -7,7 +7,7 @@ import xbmc
 import xbmcgui
 
 from lib.infrastructure import tasks as task_manager
-from lib.kodi.client import get_api_key, log, ADDON
+from lib.kodi.client import get_api_key, format_item_label, log, ADDON
 from lib.data.api.tmdb import ApiTmdb, resolve_tmdb_id
 from lib.data.api.mdblist import (
     ApiMdblist as MDBListRatingsSource,
@@ -102,7 +102,7 @@ def prepare_item_for_batch(
     if not dbid:
         return None, None, None, None, None, None, None
 
-    title = item.get("title", "Unknown")
+    title = format_item_label(item, media_type) or "Unknown"
     year = item.get("year", "")
     existing_ratings = item.get("ratings", {})
 
