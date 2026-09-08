@@ -1,6 +1,7 @@
 """Widget handlers for plugin content."""
 from __future__ import annotations
 
+import math
 import random
 import re
 from typing import Optional
@@ -8,7 +9,7 @@ from typing import Optional
 import xbmc
 import xbmcgui
 import xbmcplugin
-from lib.kodi.client import request, get_item_details, extract_result, ADDON
+from lib.kodi.client import request, batch_request, get_item_details, extract_result, ADDON
 
 _FAVOURITE_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
 
@@ -28,6 +29,25 @@ _MOVIE_PROPERTIES = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'pl
                      'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
 
 _RECENT_WINDOW = {'field': 'dateadded', 'operator': 'inthelast', 'value': '365 days'}
+
+_TAG_STOPLIST = frozenset({
+    'duringcreditsstinger', 'aftercreditsstinger', 'woman director', 'sequel', 'remake',
+    'based on novel or book', 'based on true story', 'based on comic',
+    'based on young adult novel', 'live action remake',
+    'amused', 'hilarious', 'suspenseful', 'absurd', 'awestruck', 'tense', 'fascinate',
+    'emotional', 'sentimental', 'uplifting', 'entertaining', 'excited', 'admiring',
+})
+
+_TAG_WEIGHT = 8.0
+_TAG_FULL_MATCH = 0.08
+_SAME_SET_PENALTY = 12.0
+_MAX_VOTE_LOG = math.log1p(1000000)
+
+_SIMILAR_MOVIE_SCORING = ['genre', 'year', 'mpaa', 'tag', 'director', 'writer', 'studio',
+                          'setid', 'rating', 'votes', 'playcount']
+
+_SIMILAR_SHOW_SCORING = ['genre', 'year', 'mpaa', 'tag', 'studio', 'rating', 'votes',
+                         'watchedepisodes']
 
 
 def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
@@ -808,175 +828,242 @@ def handle_by_director(handle: int, params: dict) -> None:
     xbmcplugin.endOfDirectory(handle)
 
 
-def handle_similar(handle: int, params: dict) -> None:
-    """Plugin entry: library items similar to the source, scored by genre overlap plus
-    year/MPAA proximity; prefers library `dbid`+`dbtype`, falls back to `tmdb_id`+`dbtype`
-    (no MPAA score)."""
-    dbid_param = params.get('dbid', [''])[0]
-    tmdb_id_param = params.get('tmdb_id', [''])[0]
-    dbtype = params.get('dbtype', ['movie'])[0]
-    limit = int(params.get('limit', ['25'])[0])
+def _int_param(params: dict, name: str, default: int) -> int:
+    """Read an integer plugin argument, falling back to the default on anything unparseable."""
+    try:
+        return int(params.get(name, [str(default)])[0])
+    except (ValueError, TypeError):
+        return default
 
-    if not dbid_param and not tmdb_id_param:
-        xbmcplugin.endOfDirectory(handle)
-        return
 
-    dbid = 0
-    genres: list = []
-    source_year = 0
-    source_mpaa = ''
+def _vote_count(item: dict) -> float:
+    """Vote count as a number; Kodi returns it as a grouped string."""
+    raw = item.get('votes')
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    digits = re.sub(r'[^0-9]', '', str(raw or ''))
+    return float(digits) if digits else 0.0
 
-    if dbid_param:
-        try:
-            dbid = int(dbid_param)
-        except (ValueError, TypeError):
-            dbid = 0
 
-    if dbid:
-        if dbtype == 'episode':
-            # Episodes carry no year/mpaa; score against the parent show instead.
-            ep = get_item_details('episode', dbid, ['genre', 'tvshowid'])
-            if ep:
-                raw_genres = ep.get('genre', [])
-                if not isinstance(raw_genres, list):
-                    raw_genres = [raw_genres] if raw_genres else []
-                genres = raw_genres
-                show = get_item_details('tvshow', ep.get('tvshowid', 0),
-                                        ['genre', 'year', 'mpaa'])
-                if show:
-                    if not genres:
-                        sg = show.get('genre', [])
-                        genres = sg if isinstance(sg, list) else ([sg] if sg else [])
-                    source_year = show.get('year', 0)
-                    source_mpaa = show.get('mpaa', '')
-        else:
-            item = get_item_details(dbtype, dbid, ['genre', 'year', 'mpaa'])
-            if item:
-                raw_genres = item.get('genre', [])
-                if not isinstance(raw_genres, list):
-                    raw_genres = [raw_genres] if raw_genres else []
-                genres = raw_genres
-                source_year = item.get('year', 0)
-                source_mpaa = item.get('mpaa', '')
+def _as_set(value) -> set:
+    """Coerce a Kodi field that may be a list, a bare string or absent into a set."""
+    if isinstance(value, list):
+        return {v for v in value if v}
+    return {value} if value else set()
 
-    if not genres and tmdb_id_param:
+
+def _similar_tag_weights(rows: list) -> dict:
+    """Inverse document frequency per tag over the candidate pool, so common tags count least."""
+    counts: dict = {}
+    for row in rows:
+        for tag in _as_set(row.get('tag')) - _TAG_STOPLIST:
+            counts[tag] = counts.get(tag, 0) + 1
+
+    total = max(len(rows), 1)
+    return {tag: math.log(total / seen) for tag, seen in counts.items()}
+
+
+def _tag_norm(tags: set, weights: dict) -> float:
+    """Euclidean norm of a tag set under the IDF weights, for cosine similarity."""
+    return math.sqrt(sum(weights.get(t, 0.0) ** 2 for t in tags)) or 1.0
+
+
+def _similar_tier_score(seed: dict, cand: dict, weights: dict) -> float:
+    """Rank a candidate against the seed within its genre tier; never large enough to cross one."""
+    shared = seed['tags'] & cand['tags']
+    if shared:
+        cosine = sum(weights.get(t, 0.0) for t in shared) / (seed['norm'] * cand['norm'])
+        score = _TAG_WEIGHT * min(1.0, cosine / _TAG_FULL_MATCH)
+    else:
+        score = 0.0
+
+    if seed['directors'] & cand['directors']:
+        score += 1.5
+    if seed['writers'] & cand['writers']:
+        score += 0.9
+    if seed['studios'] & cand['studios']:
+        score += 0.4
+
+    if seed['year'] and cand.get('year'):
+        gap = abs(seed['year'] - cand['year'])
+        score += 1.5 if gap <= 5 else 1.0 if gap <= 10 else 0.5 if gap <= 20 else 0.0
+
+    if seed['certificate'][1] and seed['certificate'] == cand['certificate']:
+        score += 0.6
+
+    # Kodi surfaces sets of its own
+    if seed['setid'] and seed['setid'] == cand.get('setid'):
+        score -= _SAME_SET_PENALTY
+
+    score += 1.5 * min(1.0, math.log1p(_vote_count(cand)) / _MAX_VOTE_LOG)
+    return score + 0.15 * (cand.get('rating') or 0.0)
+
+
+def _similar_pool(target_dbtype: str, genres: list, path: str) -> list:
+    """Every candidate the seed could match, from an XSP path when given, else by shared genre."""
+    properties = (_SIMILAR_MOVIE_SCORING if target_dbtype == 'movie'
+                  else _SIMILAR_SHOW_SCORING)
+
+    if path:
+        result = request('Files.GetDirectory',
+                         {'directory': path, 'media': 'video', 'properties': properties})
+        rows = extract_result(result, 'files', [])
+        id_field = 'movieid' if target_dbtype == 'movie' else 'tvshowid'
+        for row in rows:
+            row[id_field] = row.get('id', 0)
+        return rows
+
+    genre_filter = {'field': 'genre', 'operator': 'is', 'value': genres}
+    if target_dbtype == 'movie':
+        result = request('VideoLibrary.GetMovies',
+                         {'filter': genre_filter, 'properties': properties})
+        return extract_result(result, 'movies', [])
+
+    result = request('VideoLibrary.GetTVShows',
+                     {'filter': genre_filter, 'properties': properties})
+    return extract_result(result, 'tvshows', [])
+
+
+def _watch_state_wanted(row: dict, target_dbtype: str, wanted: str) -> bool:
+    """True when a candidate's watch state matches the requested `watched` filter."""
+    if wanted not in ('watched', 'unwatched'):
+        return True
+
+    # a show's playcount only turns 1 once every episode is watched
+    seen = (row.get('playcount') or 0) if target_dbtype == 'movie' else (
+        row.get('watchedepisodes') or 0)
+    return bool(seen) if wanted == 'watched' else not seen
+
+
+def _similar_seed(dbtype: str, dbid: int, tmdb_id_param: str) -> dict:
+    """Resolve the seed's scoring fields from the library, falling back to TMDB genres."""
+    seed = {'genres': [], 'year': 0, 'mpaa': '', 'tags': set(), 'directors': set(),
+            'writers': set(), 'studios': set(), 'setid': 0}
+
+    if dbid and dbtype != 'set':
+        properties = (_SIMILAR_MOVIE_SCORING if dbtype == 'movie'
+                      else _SIMILAR_SHOW_SCORING)
+        item = get_item_details(dbtype, dbid, properties)
+        if item:
+            seed['genres'] = list(_as_set(item.get('genre')))
+            _fill_seed_fields(seed, item)
+
+    if not seed['genres'] and tmdb_id_param and dbtype in ('movie', 'tvshow'):
         try:
             tmdb_id = int(tmdb_id_param)
         except (ValueError, TypeError):
             tmdb_id = 0
-
-        if tmdb_id and dbtype in ('movie', 'tvshow'):
+        if tmdb_id:
             from lib.data.api.tmdb import ApiTmdb
-            tmdb_data = ApiTmdb().get_complete_data(dbtype, tmdb_id)
-            if tmdb_data:
-                genres = [
-                    g.get('name', '') for g in (tmdb_data.get('genres') or []) if g.get('name')
-                ]
-                date_str = tmdb_data.get('release_date') or tmdb_data.get('first_air_date') or ''
-                if date_str and len(date_str) >= 4:
-                    try:
-                        source_year = int(date_str[:4])
-                    except (ValueError, TypeError):
-                        source_year = 0
+            data = ApiTmdb().get_complete_data(dbtype, tmdb_id)
+            if data:
+                seed['genres'] = [g.get('name', '') for g in (data.get('genres') or [])
+                                  if g.get('name')]
+                released = data.get('release_date') or data.get('first_air_date') or ''
+                if len(released) >= 4 and released[:4].isdigit():
+                    seed['year'] = int(released[:4])
 
-    if not genres:
+    return seed
+
+
+def _fill_seed_fields(seed: dict, item: dict) -> None:
+    """Copy the scoring fields shared by movies and shows off a resolved seed item."""
+    seed['year'] = item.get('year', 0)
+    seed['mpaa'] = item.get('mpaa', '')
+    seed['tags'] = _as_set(item.get('tag')) - _TAG_STOPLIST
+    seed['directors'] = _as_set(item.get('director'))
+    seed['writers'] = _as_set(item.get('writer'))
+    seed['studios'] = _as_set(item.get('studio'))
+    seed['setid'] = item.get('setid', 0)
+
+
+def handle_similar(handle: int, params: dict) -> None:
+    """Plugin entry: movies or shows similar to the source, ranked by shared genre count first
+    and then by tag, crew, era, certificate and popularity; `watched` filters by watch state
+    and `path` scores inside an XSP pool instead of the whole library."""
+    dbid_param = params.get('dbid', [''])[0]
+    tmdb_id_param = params.get('tmdb_id', [''])[0]
+    dbtype = params.get('dbtype', ['movie'])[0]
+    limit = _int_param(params, 'limit', 25)
+    wanted = params.get('watched', ['both'])[0].lower()
+    path = params.get('path', [''])[0]
+
+    if dbtype not in ('movie', 'set', 'tvshow') or (not dbid_param and not tmdb_id_param):
+        xbmcplugin.endOfDirectory(handle)
+        return
+
+    try:
+        dbid = int(dbid_param) if dbid_param else 0
+    except (ValueError, TypeError):
+        dbid = 0
+
+    from lib.kodi.utilities import normalize_certificate
+
+    seed = _similar_seed(dbtype, dbid, tmdb_id_param)
+    if not seed['genres']:
         xbmcplugin.endOfDirectory(handle)
         return
 
     target_dbtype = 'movie' if dbtype in ('movie', 'set') else 'tvshow'
+    id_field = 'movieid' if target_dbtype == 'movie' else 'tvshowid'
 
-    genre_filters = [{'field': 'genre', 'operator': 'contains', 'value': g} for g in genres]
-    genre_filter = {'or': genre_filters} if len(genre_filters) > 1 else genre_filters[0]
+    candidates = _similar_pool(target_dbtype, seed['genres'], path)
+    weights = _similar_tag_weights(candidates)
+    seed['norm'] = _tag_norm(seed['tags'], weights)
+    seed['certificate'] = normalize_certificate(seed['mpaa'])
+    seed_genres = set(seed['genres'])
 
-    candidates = []
+    ranked = []
+    for cand in candidates:
+        if cand.get(id_field) == dbid:
+            continue
+        if not _watch_state_wanted(cand, target_dbtype, wanted):
+            continue
 
-    # only score-relevant fields here; full details are fetched later for the survivors
+        overlap = len(seed_genres & _as_set(cand.get('genre')))
+        if not overlap:
+            continue
+
+        cand['tags'] = _as_set(cand.get('tag')) - _TAG_STOPLIST
+        cand['directors'] = _as_set(cand.get('director'))
+        cand['writers'] = _as_set(cand.get('writer'))
+        cand['studios'] = _as_set(cand.get('studio'))
+        cand['certificate'] = normalize_certificate(cand.get('mpaa'))
+        cand['norm'] = _tag_norm(cand['tags'], weights)
+        ranked.append((overlap, _similar_tier_score(seed, cand, weights), cand[id_field]))
+
+    ranked.sort(key=lambda row: (row[0], row[1]), reverse=True)
+    item_ids = [row[2] for row in ranked[:limit]]
+    if not item_ids:
+        xbmcplugin.endOfDirectory(handle)
+        return
+
     if target_dbtype == 'movie':
-        result = request('VideoLibrary.GetMovies', {
-            'filter': genre_filter,
-            'properties': ['genre', 'year', 'mpaa'],
-        })
-        candidates = extract_result(result, 'movies', [])
-        id_field = 'movieid'
+        method, result_key = 'VideoLibrary.GetMovieDetails', 'moviedetails'
+        detail_properties = _MOVIE_PROPERTIES
     else:
-        result = request('VideoLibrary.GetTVShows', {
-            'filter': genre_filter,
-            'properties': ['genre', 'year', 'mpaa'],
-        })
-        candidates = extract_result(result, 'tvshows', [])
-        id_field = 'tvshowid'
+        method, result_key = 'VideoLibrary.GetTVShowDetails', 'tvshowdetails'
+        detail_properties = _FULL_SHOW_PROPERTIES
 
-    scored_items = []
-    for candidate in candidates:
-        if candidate.get(id_field) == dbid:
+    details = batch_request([
+        {'method': method, 'params': {id_field: item_id, 'properties': detail_properties}}
+        for item_id in item_ids
+    ])
+
+    for item_id, detail in zip(item_ids, details):
+        full = extract_result(detail, result_key, {})
+        if not full:
             continue
-
-        cand_genres = candidate.get('genre', [])
-        if not isinstance(cand_genres, list):
-            cand_genres = [cand_genres] if cand_genres else []
-
-        if not cand_genres:
-            continue
-
-        genre_overlap = len(set(genres) & set(cand_genres))
-        if genre_overlap == 0:
-            continue
-
-        score = genre_overlap * 10
-
-        cand_year = candidate.get('year', 0)
-        if source_year and cand_year:
-            year_diff = abs(source_year - cand_year)
-            if year_diff <= 5:
-                score += 3
-            elif year_diff <= 10:
-                score += 2
-            elif year_diff <= 20:
-                score += 1
-
-        cand_mpaa = candidate.get('mpaa', '')
-        if source_mpaa and cand_mpaa and source_mpaa == cand_mpaa:
-            score += 2
-
-        scored_items.append((score, candidate))
-
-    scored_items.sort(key=lambda x: (x[0], random.random()), reverse=True)
-    scored_items = scored_items[:limit]
-
-
-    # full properties fetched only for items that survived scoring
-    all_items = []
-    for _score, item_data in scored_items:
-        item_id = item_data[id_field]
+        full[id_field] = item_id
         if target_dbtype == 'movie':
-            detail = request('VideoLibrary.GetMovieDetails',
-                             {'movieid': item_id, 'properties': _MOVIE_PROPERTIES})
-            full = extract_result(detail, 'moviedetails', {})
-            if not full:
-                continue
-            full['movieid'] = item_id
-            listitem = _create_movie_listitem(full)
-            all_items.append((full.get('file', ''), listitem, False))
+            xbmcplugin.addDirectoryItem(handle, full.get('file', ''),
+                                        _create_movie_listitem(full), False)
         else:
-            detail = request('VideoLibrary.GetTVShowDetails',
-                             {'tvshowid': item_id, 'properties': _FULL_SHOW_PROPERTIES})
-            full = extract_result(detail, 'tvshowdetails', {})
-            if not full:
-                continue
-            full['tvshowid'] = item_id
-            listitem = _create_tvshow_listitem(full)
-            all_items.append((f"videodb://tvshows/titles/{item_id}/", listitem, True))
+            xbmcplugin.addDirectoryItem(handle, f"videodb://tvshows/titles/{item_id}/",
+                                        _create_tvshow_listitem(full), True)
 
-    for url, listitem, isfolder in all_items:
-        xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
-
-    if target_dbtype == 'movie':
-        xbmcplugin.setContent(handle, 'movies')
-    else:
-        xbmcplugin.setContent(handle, 'tvshows')
+    xbmcplugin.setContent(handle, 'movies' if target_dbtype == 'movie' else 'tvshows')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
-
-
 def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
     """Unwatched movies and shows for a genre, each tagged with its media type."""
     candidates = []

@@ -425,7 +425,8 @@ Items by a random director from the source item.
 
 ## Similar Items
 
-Items similar to source based on genre matching with year/MPAA scoring.
+Items similar to the source. Shared genre count decides the order first, then tags, crew, era,
+certificate and popularity break the tie within each group.
 
 ### Usage
 
@@ -435,36 +436,49 @@ Items similar to source based on genre matching with year/MPAA scoring.
 
 <!-- TMDB-only item as seed (no library entry) -->
 <content>plugin://script.skin.info.service/?action=similar&amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]&amp;dbtype=movie</content>
+
+<!-- Only unwatched, scored inside your own smart playlist -->
+<content>plugin://script.skin.info.service/?action=similar&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=movie&amp;watched=unwatched&amp;path=special://profile/playlists/video/My%20List.xsp</content>
 ```
 
 ### Parameters
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `dbid` | Conditional | - | Library ID. Provide this OR `tmdb_id`. Library seed gives the richest scoring (year + MPAA proximity). |
-| `tmdb_id` | Conditional | - | TMDB ID. Used when no library entry exists. Genres pulled from TMDB; MPAA proximity scoring skipped. |
-| `dbtype` | No | movie | Source type (`movie`, `tvshow`, `episode`) |
+| `dbid` | Conditional | - | Library ID. Provide this OR `tmdb_id`. A library seed scores on everything below. |
+| `tmdb_id` | Conditional | - | TMDB ID. Used when no library entry exists. Only genres and year come from TMDB. |
+| `dbtype` | No | movie | Source type (`movie`, `set`, `tvshow`). An `episode` source returns nothing; pass its show instead. |
 | `limit` | No | 25 | Maximum items |
+| `watched` | No | both | `watched`, `unwatched` or `both` |
+| `path` | No | - | Score inside this path instead of the whole library. Takes a `.xsp` file, an inline XSP filter or a smart playlist. |
 
 Results are always **library items** — `tmdb_id` only changes how the seed's genres are obtained.
 
-### Scoring
+### Ordering
 
-- **Genre overlap**: +10 points per matching genre
-- **Year proximity**: +3 (≤5 years), +2 (≤10 years), +1 (≤20 years)
-- **MPAA match**: +2 points
+Items sharing more genres always rank above items sharing fewer, so the list works down a group at
+a time until it reaches `limit`. Within a group:
+
+- **Tags**: rarer shared tags count for more than common ones. Tags come from the scraper, so this
+  needs "Add tags" enabled in the scraper settings; without them the remaining signals still order
+  the list.
+- **Crew**: shared director, then writer, then studio
+- **Era**: closer release years
+- **Certificate**: same rating, compared per country so `NL:16` and `GR:16` stay distinct
+- **Popularity**: vote count and rating, which decides items that match on nothing else
+- **Same set**: penalised, because Kodi already groups sets of its own
 
 ### Example
 
-Source: "The Dark Knight" (Action, Crime, Drama | 2008 | PG-13)
+Source: "The Dark Knight" (Action, Crime, Drama)
 
-- "Heat" (Action, Crime, Drama | 1995 | R) = 31 points
-- "Inception" (Action, Sci-Fi | 2010 | PG-13) = 15 points
+- "Heat" (Action, Crime, Drama) ranks above every two-genre match, whatever its rating
+- "Inception" (Action, Sci-Fi) only appears once the three-genre matches run out
 
 **Widget Type:**
 
 - **Source movie/set**: Movie widget
-- **Source tvshow/episode**: TV Show widget
+- **Source tvshow**: TV Show widget
 
 ---
 

@@ -5,6 +5,7 @@ only. Route any property also written by the service through these to avoid cach
 """
 from __future__ import annotations
 
+import re
 import threading
 import time
 import xbmc
@@ -125,6 +126,29 @@ DEFAULT_LANGUAGE = 'en'
 
 # Kodi's join separator for multi-value strings (genres, directors, cast).
 MULTI_VALUE_SEP = " / "
+
+
+_CERT_RATED = re.compile(r'^rated\s*:?\s*', re.IGNORECASE)
+_CERT_COUNTRY = re.compile(r'^([A-Za-z ]{1,20})[:/](.*)$')
+_CERT_COUNTRY_ALIAS = {
+    'USA': 'US', 'UNITED KINGDOM': 'UK', 'DENMARK': 'DK', 'GERMANY': 'DE', 'FRANCE': 'FR',
+    'BRAZIL': 'BR', 'AUSTRALIA': 'AU', 'NETHERLANDS': 'NL', 'GREECE': 'GR',
+}
+
+
+def normalize_certificate(value: Optional[str]) -> Tuple[str, str]:
+    """Normalize a certificate to `(country, rating)` for comparison; an empty rating never
+    matches, and countries must agree so `NL:16` stays distinct from `GR:16`."""
+    text = _CERT_RATED.sub('', (value or '').strip()).strip().upper()
+    if not text:
+        return '', ''
+
+    match = _CERT_COUNTRY.match(text)
+    if not match:
+        return '', ' '.join(text.split())
+
+    country = ' '.join(match.group(1).split())
+    return _CERT_COUNTRY_ALIAS.get(country, country), ' '.join(match.group(2).lstrip('-').split())
 
 
 def normalize_language_tag(value: Optional[str]) -> str:
