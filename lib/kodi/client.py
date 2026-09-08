@@ -89,10 +89,8 @@ _CACHE_LOCK = threading.Lock()
 
 
 def _cleanup_expired_cache(force: bool = False) -> None:
-    """Evict expired entries and trim cache to `CACHE_MAX_SIZE`.
-
-    No-op unless one of the cleanup triggers (time, request count, size) fires, or `force=True`.
-    """
+    """Evict expired entries, then least-recently-used ones down to `CACHE_MAX_SIZE`; a no-op
+    unless a cleanup trigger (time, request count, size) fires or `force=True`."""
     global _last_cleanup, _request_count
     now = monotonic()
 
@@ -114,12 +112,8 @@ def _cleanup_expired_cache(force: bool = False) -> None:
         for k in expired:
             _L1.pop(k, None)
 
-        if len(_L1) > CACHE_MAX_SIZE:
-            import heapq
-            excess = len(_L1) - CACHE_MAX_SIZE
-            oldest_keys = heapq.nsmallest(excess, _L1.items(), key=lambda x: x[1][0])
-            for k, _ in oldest_keys:
-                _L1.pop(k, None)
+        while len(_L1) > CACHE_MAX_SIZE:
+            _L1.pop(next(iter(_L1)), None)
 
 
 def drop_cached(prefix: str) -> None:
@@ -135,6 +129,9 @@ def get_cache_only(cache_key: str) -> Optional[dict]:
     with _CACHE_LOCK:
         ent = _L1.get(cache_key)
         if ent and ent[0] > now:
+            # a hit protects the entry from the capacity evict
+            del _L1[cache_key]
+            _L1[cache_key] = ent
             return ent[1]
     return None
 
@@ -225,10 +222,9 @@ def request(method: str, params: Optional[Dict[str, Any]] = None,
         with _CACHE_LOCK:
             try:
                 result_only = data.get("result")
-                if result_only is not None:
-                    _L1[cache_key] = (monotonic() + float(ttl), {"result": result_only})
-                else:
-                    _L1[cache_key] = (monotonic() + float(ttl), data)
+                entry = {"result": result_only} if result_only is not None else data
+                _L1.pop(cache_key, None)
+                _L1[cache_key] = (monotonic() + float(ttl), entry)
             except Exception as e:
                 log(
                     "General",
@@ -310,10 +306,9 @@ def batch_request(calls: List[Dict[str, Any]],
             if key and "error" not in resp:
                 try:
                     result_only = resp.get("result")
-                    if result_only is not None:
-                        _L1[key] = (now + float(ttl), {"result": result_only})
-                    else:
-                        _L1[key] = (now + float(ttl), resp)
+                    entry = {"result": result_only} if result_only is not None else resp
+                    _L1.pop(key, None)
+                    _L1[key] = (now + float(ttl), entry)
                 except Exception as e:
                     log(
                         "General",
