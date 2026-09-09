@@ -244,52 +244,110 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
             break
 
 
-_SCAN_CHUNK = 1000
+_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
 
-# Skip the scan above this count; each item permanently registers a GUIInfo entry against
-# Kodi's ~60k global cap.
-_MAX_AVAILABILITY_ITEMS = 10000
+# fixed, so repeat scans reuse registrations
+_LETTER_GRID = 16384
+_GRID_LEVELS = _LETTER_GRID.bit_length()
+
+_ALPHA_SORT_METHODS = (1, 7, 10, 29, 57)
+
+# below this a sweep is cheaper
+_SWEEP_MAX_ITEMS = 256
+
+
+def _letter_rank(letter: str) -> int:
+    """Position of a folded letter in ascending sort order, with '#' ahead of A."""
+    return 0 if letter == '#' else ord(letter) - ord('A') + 1
+
+
+def _sorts_before(letter: str, target_letter: str, descending: bool) -> bool:
+    """True when one folded letter sorts earlier than another in the container's order."""
+    rank, target_rank = _letter_rank(letter), _letter_rank(target_letter)
+    return rank > target_rank if descending else rank < target_rank
+
+
+def _alphabetic_sort(target: str) -> bool:
+    """True when the sort puts letters in sequence, and false outside a media window."""
+    return xbmc.getCondVisibility(
+        ' | '.join(f'Container({target}).SortMethod({m})' for m in _ALPHA_SORT_METHODS)
+    )
 
 
 def _container_too_large(target: str) -> bool:
-    """True when the target has too many items to scan for availability safely."""
+    """True when the container holds more items than the probe grid can address."""
     try:
-        count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
+        count = int(xbmc.getInfoLabel(f'Container({target}).NumAllItems') or 0)
     except ValueError:
         return False
-    if count > _MAX_AVAILABILITY_ITEMS:
-        log('SkinUtils', f'letter_jump: {count} items exceed availability cap; plain bar',
+    if count > _LETTER_GRID:
+        log('SkinUtils', f'letter_jump: {count} items exceed the probe grid; plain bar',
             xbmc.LOGINFO)
         return True
     return False
 
 
-def _available_sort_letters(target: str) -> set[str]:
-    """Folded jump letters (A-Z plus '#') present in the target container.
+def _probe_letters(target: str, indexes: list) -> dict:
+    """Folded letter at each absolute index, from one batched `GetInfoLabels` call."""
+    labels = [f'Container({target}).ListItemAbsolute({i}).SortLetter' for i in indexes]
+    response = request('XBMC.GetInfoLabels', {'labels': labels})
+    result = response.get('result', {}) if response else {}
+    return {index: _fold_letter(result.get(label, ''))
+            for index, label in zip(indexes, labels)}
 
-    Reads the live container, so active filters and the current sort are honoured.
-    """
+
+def _sweep_letters(target: str, start_index: int, all_count: int) -> set[str]:
+    """Every folded letter in a small container, reading each item in one batch."""
+    at = _probe_letters(target, list(range(start_index, all_count)))
+    return {letter for letter in at.values() if letter}
+
+
+def _available_sort_letters(target: str, descending: bool) -> set[str]:
+    """Folded jump letters (A-Z plus '#') in the live container, honoring filters and sort."""
     try:
         all_count = int(xbmc.getInfoLabel(f'Container({target}).NumAllItems') or 0)
         count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
     except ValueError:
         return set()
+    if all_count <= 0:
+        return set()
 
     start_index = max(0, all_count - count)  # 1 when a ".." parent item leads the list
+    if all_count - start_index <= _SWEEP_MAX_ITEMS:
+        return _sweep_letters(target, start_index, all_count)
 
+    low = {letter: start_index for letter in _LETTERS}
+    high = {letter: _LETTER_GRID for letter in _LETTERS}
+    active = set(_LETTERS)
     found: set[str] = set()
-    for start in range(start_index, all_count, _SCAN_CHUNK):
-        labels = [
-            f'Container({target}).ListItemAbsolute({i}).SortLetter'
-            for i in range(start, min(start + _SCAN_CHUNK, all_count))
-        ]
-        response = request('XBMC.GetInfoLabels', {'labels': labels})
-        for value in (response.get('result', {}) if response else {}).values():
-            letter = _fold_letter(value)
-            if letter:
-                found.add(letter)
-        if len(found) >= 27:
+
+    for _ in range(_GRID_LEVELS):
+        probes = {}
+        for letter in sorted(active):
+            if low[letter] >= high[letter]:
+                active.discard(letter)
+                continue
+            probes[letter] = (low[letter] + high[letter]) // 2
+        if not probes:
             break
+
+        at = _probe_letters(target, sorted(set(probes.values())))
+        found.update(value for value in at.values() if value)
+
+        for letter, mid in probes.items():
+            seen = at.get(mid, '')
+            if seen and _sorts_before(seen, letter, descending):
+                low[letter] = mid + 1
+            else:
+                high[letter] = mid
+
+    # unseen letter present only at its lower bound
+    missing = [letter for letter in _LETTERS
+               if letter not in found and low[letter] < all_count]
+    if missing:
+        at = _probe_letters(target, sorted({low[letter] for letter in missing}))
+        found.update(letter for letter in missing if at.get(low[letter], '') == letter)
+
     return found
 
 
@@ -301,15 +359,16 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
     showall = params.get('showall', ['true'])[0].lower() != 'false'
     want_available = params.get('available', ['false'])[0].lower() == 'true' or not showall
 
-    if want_available and _container_too_large(target):
+    if want_available and (_container_too_large(target) or not _alphabetic_sort(target)):
         want_available = False
-        showall = True  # can't compact or dim without the scan; fall back to the full bar
+        showall = True  # can't compact or dim without the search; fall back to the full bar
 
     is_descending = xbmc.getCondVisibility(f'Container({target}).SortDirection(descending)')
 
-    letters = 'ZYXWVUTSRQPONMLKJIHGFEDCBA#' if is_descending else 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
+    # '#' last both ways, only A-Z reverses
+    letters = _LETTERS[:-1][::-1] + '#' if is_descending else _LETTERS
 
-    available = _available_sort_letters(target) if want_available else set()
+    available = _available_sort_letters(target, is_descending) if want_available else set()
 
     for letter in letters:
         is_available = letter in available
