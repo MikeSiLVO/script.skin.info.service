@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta3"
+	   version="2.0.1~beta4"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,23 +32,18 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta3
-- The database is rebuilt on a new layout, so online data is fetched again on first run
-- The separate music cache file is gone, folded into the main database
-- Ratings sources can each be turned on or off, with IMDb always on
-- A bulk ratings run can skip Trakt, and shows Trakt's request limit so you can decide
-- The ratings dialog reports items done and names the source that is behind
-- Roger Ebert ratings are no longer missing
-- Movie sets can be edited in the metadata editor
-- Edited ratings and votes are saved instead of being dropped
-- Ratings accept a decimal point or comma, and a bad entry is rejected instead of saved as zero
-- New properties for HDR type, audio language, subtitle language and stereo mode
-- MDBList award tags, aggregate score and Metacritic Must-See are available as properties
-- Online cast fills in for seasons and episodes
-- Editing or rescraping an item updates its properties straight away
-- Person details set actors content so skins can style the list
-- Playback widgets refresh instead of serving a cached page
-- Ratings and awards no longer show on the wrong item when a movie and a show share a TMDB id
+2.0.1~beta4
+- Fix memory growing during video playback
+- The IMDb Top 250 can update itself daily, or be run straight from a skin
+- New star-scale property for Roger Ebert and Letterboxd ratings
+- Award counts are left empty instead of writing 0
+- Similar items rank on shared genres first, and can be limited to unwatched or to a playlist
+- A TV show with no cast of its own falls back to the season regulars
+- The ratings dialog shows progress while it loads library items
+- Filmography ratings show at one decimal
+- Blur skips internal art and skin textures
+- The letter bar checks the available letters without scanning every item
+- A failed Trakt token refresh no longer signs you out
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
