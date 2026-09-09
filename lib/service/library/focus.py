@@ -231,7 +231,7 @@ class FocusDispatcher:
 
         # one person is the same dbid+DBType in the actors and artists nodes; only this differs
         identity = f"{dbtype}|{mv_mediatype}"
-        if dbid == self._last_id and dbtype and identity == self._last_dbtype:
+        if dbid == self._last_id and self._last_type and identity == self._last_dbtype:
             self._service.blur.handle_focus()
             return
 
