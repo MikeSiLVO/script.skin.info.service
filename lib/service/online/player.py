@@ -8,7 +8,7 @@ from typing import Dict, Optional, TYPE_CHECKING
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import clear_group, batch_set_props, playing_media_type
+from lib.kodi.utilities import clear_group, batch_set_props
 from lib.data.database.cache import CacheKey
 from lib.service.online.helpers import (
     make_cache_key,
@@ -49,8 +49,11 @@ class PlayerHandler:
             self._clear_if_active()
             return
 
-        dbtype = playing_media_type(self._player)
-        if dbtype not in ("movie", "episode"):
+        if xbmc.getCondVisibility("VideoPlayer.Content(movies)"):
+            dbtype = "movie"
+        elif xbmc.getCondVisibility("VideoPlayer.Content(episodes)"):
+            dbtype = "episode"
+        else:
             self._clear_if_active()
             return
 

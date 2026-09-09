@@ -10,7 +10,7 @@ from lib.kodi.client import (
     request, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, decode_image_url,
 )
 from lib.kodi.utilities import (
-    batch_set_props, clear_group, playing_media_type, MULTI_VALUE_SEP,
+    batch_set_props, clear_group, MULTI_VALUE_SEP,
 )
 from lib.service.properties import set_ratings_properties
 
@@ -44,8 +44,13 @@ class PlayerVideoTracker:
                 self._last_player_type = None
             return
 
-        player_type = playing_media_type(self._player)
-        if player_type not in ("movie", "episode", "musicvideo"):
+        if xbmc.getCondVisibility("VideoPlayer.Content(movies)"):
+            player_type = "movie"
+        elif xbmc.getCondVisibility("VideoPlayer.Content(episodes)"):
+            player_type = "episode"
+        elif xbmc.getCondVisibility("VideoPlayer.Content(musicvideos)"):
+            player_type = "musicvideo"
+        else:
             return
 
         if player_dbid == self._last_player_id and player_type == self._last_player_type:
