@@ -1,4 +1,4 @@
-"""Utility functions for properties, date formatting, and language handling.
+"""Utility functions for properties, settings, date formatting, and language handling.
 
 `set_prop`/`batch_set_props`/`clear_prop`/`clear_group` cache-diff writes to the home window
 only. Route any property also written by the service through these to avoid cache desync.
@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional, List, Tuple
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
-from lib.kodi.client import log, request
+from lib.kodi.client import ADDON, log, request
 HOME = xbmcgui.Window(10000)
 
 MEDIA_TYPE_LABELS = {
@@ -285,6 +285,17 @@ def extract_media_ids(item: dict) -> Dict[str, Optional[str]]:
         "tvdb": str(tvdb_id) if tvdb_id else None,
         "trakt": str(trakt_id) if trakt_id else None,
     }
+
+
+def setting_float(key: str) -> float:
+    """Read a numeric addon setting uncached, treating unset or unparseable as 0.0."""
+    stored = ADDON.getSetting(key)
+    if stored:
+        try:
+            return float(stored)
+        except (ValueError, TypeError):
+            pass
+    return 0.0
 
 
 def format_date(date_str: str, include_time: bool = False) -> str:

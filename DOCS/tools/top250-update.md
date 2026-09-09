@@ -8,6 +8,35 @@ Set the IMDb Top 250 rank on matching library items from Trakt's official curate
 
 Access via **Tools > IMDb Top 250 Update**.
 
+## RunScript
+
+```xml
+RunScript(script.skin.info.service,action=update_top250)
+```
+
+Takes no parameters. Runs the update straight away and closes when it finishes, rather than
+returning to the Tools menu.
+
+## Auto-Update
+
+Under **Settings > Ratings > IMDb Top 250**, set **Auto-update** to run it unattended:
+
+| Option | When it runs |
+|--------|--------------|
+| Off | Never; the Tools entry and RunScript still work |
+| After library scan | Once each library scan finishes |
+| Every day | Once a day, timed to land after Trakt refreshes the list |
+| Both | Either trigger |
+
+Automatic runs show a background progress bar instead of a dialog, ask for no confirmation, and
+finish with a notification giving the same counts as the manual summary. The notification waits
+until video playback stops, so it never appears over a film.
+
+Trakt rebuilds the list each morning, and the daily check aims for an hour after that, learning the
+time from the list itself rather than counting 24 hours from whenever Kodi last started. If the box
+was off when a check was due, it runs shortly after the next start. When the list comes back
+unchanged from the previous run, the library is left untouched and no notification appears.
+
 ## What It Does
 
 Fetches the current IMDb Top 250 list from Trakt and walks the library to update each movie's `top250` field. Items that are no longer on the list have their `top250` value cleared. Existing correct rankings are left alone.

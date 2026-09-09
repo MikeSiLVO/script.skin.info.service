@@ -333,6 +333,20 @@
 					<control type="list" format="string" />
 				</setting>
 			</group>
+			<group id="4" label="32600">
+				<setting id="top250_auto_update" type="string" label="32136" help="32595">
+					<default>off</default>
+					<constraints>
+						<options>
+							<option label="351">off</option>
+							<option label="32139">library_scan</option>
+							<option label="808">daily</option>
+							<option label="32141">both</option>
+						</options>
+					</constraints>
+					<control type="list" format="string" />
+				</setting>
+			</group>
 		</category>
 		<category id="stinger" label="32150">
 			<group id="1" label="32150">

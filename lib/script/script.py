@@ -235,6 +235,11 @@ def _handle_tools(_args: dict) -> None:
     run_tools()
 
 
+def _handle_update_top250(_args: dict) -> None:
+    from lib.script.top250 import run_top250_update
+    run_top250_update()
+
+
 def _handle_review_artwork(args: dict) -> None:
     from lib.artwork.manager import run_art_fetcher_single
     run_art_fetcher_single(args.get('dbid'), args.get('dbtype'), args.get('art_type'))
@@ -825,6 +830,7 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "playall": _handle_playall,
     "playrandom": _handle_playrandom,
     "tools": _handle_tools,
+    "update_top250": _handle_update_top250,
     "review_artwork": _handle_review_artwork,
     "download_artwork": _handle_download_artwork,
     "update_ratings": _handle_update_ratings,

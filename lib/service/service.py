@@ -36,6 +36,7 @@ class Orchestrator:
         self._online_thread = None
         self._library_thread = None
         self._imdb_thread = None
+        self._top250_thread = None
         self._stinger_thread = None
 
     def run(self) -> None:
@@ -141,6 +142,7 @@ class Orchestrator:
 
     def _manage_setting_services(self) -> None:
         imdb_enabled = ADDON.getSetting("imdb_auto_update") != "off"
+        top250_enabled = ADDON.getSetting("top250_auto_update") not in ("", "off")
         stinger_enabled = ADDON.getSettingBool("stinger_enabled")
 
         if imdb_enabled:
@@ -148,6 +150,12 @@ class Orchestrator:
             self._ensure_started('_imdb_thread', ImdbUpdateService)
         else:
             self._ensure_stopped('_imdb_thread')
+
+        if top250_enabled:
+            from lib.service.top250 import Top250UpdateService
+            self._ensure_started('_top250_thread', Top250UpdateService)
+        else:
+            self._ensure_stopped('_top250_thread')
 
         if stinger_enabled:
             from lib.service.stinger import StingerService
@@ -158,11 +166,13 @@ class Orchestrator:
     def _stop_all(self) -> None:
         # Signal abort on all threads first so they can shut down in parallel,
         # then join to wait.
-        for attr in ('_stinger_thread', '_imdb_thread', '_online_thread', '_library_thread'):
+        attrs = ('_stinger_thread', '_top250_thread', '_imdb_thread',
+                 '_online_thread', '_library_thread')
+        for attr in attrs:
             thread = getattr(self, attr)
             if thread is not None:
                 thread.abort.set()
-        for attr in ('_stinger_thread', '_imdb_thread', '_online_thread', '_library_thread'):
+        for attr in attrs:
             self._ensure_stopped(attr)
 
 

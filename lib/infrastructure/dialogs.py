@@ -1,6 +1,7 @@
 """Dialog helper utilities for progress tracking and user interaction."""
 from __future__ import annotations
 
+import threading
 from typing import Optional, Union
 import xbmc
 import xbmcgui
@@ -156,6 +157,17 @@ def show_notification(
 ) -> None:
     """Show notification dialog."""
     xbmcgui.Dialog().notification(heading, message, icon, duration)
+
+
+def notify_when_idle(heading: str, message: str, monitor: xbmc.Monitor,
+                     abort: Optional[threading.Event] = None) -> None:
+    """Show a notification, holding it back until video playback stops."""
+    while xbmc.getCondVisibility("Player.HasVideo"):
+        if monitor.waitForAbort(30):
+            return
+        if abort is not None and abort.is_set():
+            return
+    show_notification(heading, message)
 
 
 def show_ok(heading: str, message: str) -> None:
