@@ -1757,6 +1757,10 @@ msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
 msgstr "Analyse terminée ! Trouvés : {0} | Mis en cache : {1} | Existants : {2}"
 
+msgctxt "#32595"
+msgid "Automatically update IMDb Top 250 rankings in your library"
+msgstr ""
+
 msgctxt "#32600"
 msgid "IMDb Top 250"
 msgstr "Top 250 IMDb"
