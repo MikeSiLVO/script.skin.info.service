@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional
+from typing import Optional, Tuple
 
 import xbmc
 
@@ -14,6 +14,9 @@ from lib.kodi.client import log
 # while - catches fanart changed outside our feature or a scan (Kodi GUI chooser, other apps).
 _RECONCILE_INTERVAL_S = 21600  # 6h
 _RECONCILE_IDLE_S = 60
+
+# shortest rotation is MIN_SLIDESHOW_INTERVAL
+_SETTINGS_TTL_S = 1.0
 
 
 class SlideshowDriver:
@@ -26,6 +29,9 @@ class SlideshowDriver:
         self._stopping = False
         self._last_reconcile = 0.0
         self._reconcile_thread: Optional[threading.Thread] = None
+        self._settings_read = 0.0
+        self._enabled = False
+        self._interval = 10
         from lib.service.slideshow import PlaylistRotator, LibrarySlideshow
         self._library = LibrarySlideshow()
         self._playlists = PlaylistRotator()
@@ -51,18 +57,30 @@ class SlideshowDriver:
         except Exception as e:
             log("Service", f"Slideshow: Error populating pool: {str(e)}", xbmc.LOGERROR)
 
+    def _settings(self) -> Tuple[bool, int]:
+        """Read the enable flag and refresh interval, at most once a second."""
+        now = time.time()
+        if (now - self._settings_read) >= _SETTINGS_TTL_S:
+            self._enabled = skin_bool('SkinInfo.EnableSlideshow')
+            self._interval = self._read_interval()
+            self._settings_read = now
+        return self._enabled, self._interval
+
+    @staticmethod
+    def _read_interval() -> int:
+        """Clamp the skin's refresh interval to the supported range, defaulting to 10s."""
+        from lib.service.slideshow import MIN_SLIDESHOW_INTERVAL, MAX_SLIDESHOW_INTERVAL
+        raw = xbmc.getInfoLabel('Skin.String(SkinInfo.SlideshowRefreshInterval)') or '10'
+        try:
+            return max(MIN_SLIDESHOW_INTERVAL, min(int(raw), MAX_SLIDESHOW_INTERVAL))
+        except ValueError:
+            return 10
+
     def update(self) -> None:
         """Refresh slideshow props if the skin opted in and the interval has elapsed."""
-        if not skin_bool('SkinInfo.EnableSlideshow'):
+        enabled, interval = self._settings()
+        if not enabled:
             return
-
-        interval_str = xbmc.getInfoLabel('Skin.String(SkinInfo.SlideshowRefreshInterval)') or '10'
-        try:
-            from lib.service.slideshow import MIN_SLIDESHOW_INTERVAL, MAX_SLIDESHOW_INTERVAL
-            interval = int(interval_str)
-            interval = max(MIN_SLIDESHOW_INTERVAL, min(interval, MAX_SLIDESHOW_INTERVAL))
-        except ValueError:
-            interval = 10
 
         now = time.time()
         if (now - self._last_update) < interval:
@@ -91,7 +109,8 @@ class SlideshowDriver:
         Runs at most once per interval, only when the box has been idle and the slideshow is in
         use. The reconcile diffs the pool against the library and no-ops when nothing changed.
         """
-        if not skin_bool('SkinInfo.EnableSlideshow'):
+        enabled, _ = self._settings()
+        if not enabled:
             return
         if (time.time() - self._last_reconcile) < _RECONCILE_INTERVAL_S:
             return
