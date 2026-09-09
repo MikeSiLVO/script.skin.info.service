@@ -1730,6 +1730,10 @@ msgctxt "#32594"
 msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
 msgstr ""
 
+msgctxt "#32595"
+msgid "Automatically update IMDb Top 250 rankings in your library"
+msgstr ""
+
 msgctxt "#32600"
 msgid "IMDb Top 250"
 msgstr ""
