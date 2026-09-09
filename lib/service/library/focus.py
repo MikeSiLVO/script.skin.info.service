@@ -176,8 +176,8 @@ class FocusDispatcher:
         """
         if not is_kodi_piers_or_later():
             return False
-        in_container = (xbmc.getInfoLabel("Container.Content") or "").lower() in (
-            "videoversions", "videoextras"
+        in_container = xbmc.getCondVisibility(
+            "Container.Content(videoversions) | Container.Content(videoextras)"
         )
         if not in_container:
             if self._last_asset_parent is not None and not modal_dialog_active():

@@ -74,17 +74,17 @@ class MusicVideoFocusHandler:
     def _read_focus() -> Tuple[str, str, str]:
         """(artist, album, title) for the focused item, or empties; handles the DBID-less
         artist node (album nodes return empties, no online data)."""
-        dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
-        if dbtype == "musicvideo":
-            if not (xbmc.getInfoLabel("ListItem.DBID") or ""):
+        if xbmc.getCondVisibility("String.IsEqual(ListItem.DBType,musicvideo)"):
+            if xbmc.getCondVisibility("String.IsEmpty(ListItem.DBID)"):
                 return "", "", ""
             return (
                 xbmc.getInfoLabel("ListItem.Artist") or "",
                 xbmc.getInfoLabel("ListItem.Album") or "",
                 xbmc.getInfoLabel("ListItem.Title") or "",
             )
-        if (dbtype == "actor"
-                and xbmc.getInfoLabel("ListItem.Property(musicvideomediatype)") == "artist"):
+        if xbmc.getCondVisibility(
+                "String.IsEqual(ListItem.DBType,actor) + "
+                "String.IsEqual(ListItem.Property(musicvideomediatype),artist)"):
             return xbmc.getInfoLabel("ListItem.Label") or "", "", ""
         return "", "", ""
 

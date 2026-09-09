@@ -350,8 +350,8 @@ def kodi_build_version() -> str:
 
 
 def skin_bool(setting: str) -> bool:
-    """True when a skin bool is set, read without the GUI lock."""
-    return bool(xbmc.getInfoLabel(f"Skin.HasSetting({setting})"))
+    """True when a skin bool is set."""
+    return xbmc.getCondVisibility(f"Skin.HasSetting({setting})")
 
 
 def playing_media_type(player: xbmc.Player) -> str:
