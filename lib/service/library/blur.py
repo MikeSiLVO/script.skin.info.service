@@ -5,10 +5,9 @@ import threading
 from typing import List, Optional
 
 import xbmc
-import xbmcgui
 
 from lib.kodi.client import log
-from lib.kodi.utilities import set_prop, clear_prop, skin_bool
+from lib.kodi.utilities import set_prop, clear_prop, get_prop, skin_bool
 
 
 class BlurHandler:
@@ -29,7 +28,7 @@ class BlurHandler:
                 self._focus_last_source = None
             return
 
-        prefix = xbmcgui.Window(10000).getProperty("SkinInfo.BlurPrefix") or ""
+        prefix = get_prop("SkinInfo.BlurPrefix")
         prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
 
         self._process(
@@ -65,11 +64,11 @@ class BlurHandler:
                 self._set_last(slot, None)
             return
 
-        blur_source_var = xbmcgui.Window(10000).getProperty(source_property + "Var")
+        blur_source_var = get_prop(source_property + "Var")
         if blur_source_var:
             source_path = self._resolve_with_fallbacks(blur_source_var.split("|"), is_var=True)
         else:
-            blur_source_infolabel = xbmcgui.Window(10000).getProperty(source_property)
+            blur_source_infolabel = get_prop(source_property)
             if not blur_source_infolabel:
                 if self._get_last(slot) is not None:
                     self._clear_props(prop_base)
