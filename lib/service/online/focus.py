@@ -10,6 +10,7 @@ import xbmc
 from lib.kodi.client import log
 from lib.kodi.utilities import (
     clear_group, batch_set_props, gui_transition_settled, modal_dialog_active,
+    normalize_dbtype,
 )
 from lib.data.database.cache import (
     CacheKey,
@@ -59,7 +60,7 @@ class FocusHandler:
         if not gui_transition_settled():
             return
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
-        dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
+        dbtype = normalize_dbtype(xbmc.getInfoLabel("ListItem.DBType"))
 
         if not dbid or dbtype not in ("movie", "tvshow", "episode", "season"):
             if modal_dialog_active():

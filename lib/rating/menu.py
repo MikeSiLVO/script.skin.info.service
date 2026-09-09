@@ -7,6 +7,7 @@ import xbmcgui
 
 from lib.kodi.client import request, get_api_key, log, KODI_GET_DETAILS_METHODS, ADDON
 from lib.kodi.settings import KodiSettings
+from lib.kodi.utilities import normalize_dbtype
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource
 from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
@@ -114,14 +115,13 @@ def _resolve_single_item_target(
     None on failure."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
-    if not dbtype:
-        dbtype = xbmc.getInfoLabel("ListItem.DBType")
+    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
 
     if not dbid or dbid == "-1" or not dbtype:
         _notify(32259, xbmcgui.NOTIFICATION_WARNING)
         return None
 
-    media_type = dbtype.lower()
+    media_type = dbtype
     if media_type not in ("movie", "tvshow", "episode", "set"):
         _notify(32263, xbmcgui.NOTIFICATION_WARNING, 3000, media_type)
         return None

@@ -9,6 +9,7 @@ import xbmcgui
 from lib.infrastructure.dialogs import show_notification
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.kodi.client import log, ADDON
+from lib.kodi.utilities import normalize_dbtype
 from lib.editor.config import (
     MEDIA_TYPE_FIELDS,
     FieldType,
@@ -41,8 +42,7 @@ def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
     """Main entry point for metadata editor."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
-    if not dbtype:
-        dbtype = xbmc.getInfoLabel("ListItem.DBType")
+    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(
@@ -53,7 +53,7 @@ def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
         )
         return
 
-    media_type = dbtype.lower()
+    media_type = dbtype
 
     if media_type not in MEDIA_TYPE_FIELDS:
         show_notification(

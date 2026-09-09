@@ -136,6 +136,11 @@ _CERT_COUNTRY_ALIAS = {
 }
 
 
+def normalize_dbtype(value: Optional[str]) -> str:
+    """Normalize a media type to lowercase; Kodi stores what an add-on set, verbatim."""
+    return (value or "").lower()
+
+
 def normalize_certificate(value: Optional[str]) -> Tuple[str, str]:
     """Normalize a certificate to `(country, rating)` for comparison; an empty rating never
     matches, and countries must agree so `NL:16` stays distinct from `GR:16`."""

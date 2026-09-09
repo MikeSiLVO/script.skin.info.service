@@ -23,7 +23,7 @@ from lib.kodi.client import (
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utilities import parse_pipe_list
+from lib.kodi.utilities import normalize_dbtype, parse_pipe_list
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.infrastructure.dialogs import (
     show_ok, show_yesno, show_textviewer, show_select, show_notification, DialogProgress)
@@ -403,8 +403,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
     """
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
-    if not dbtype:
-        dbtype = xbmc.getInfoLabel("ListItem.DBType")
+    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(
@@ -417,7 +416,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     db.init_database()
 
-    media_type = dbtype.lower()
+    media_type = dbtype
     dbid_int = int(dbid)
 
     method_info = KODI_GET_DETAILS_METHODS.get(media_type)
@@ -652,8 +651,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     """Open artwork selection dialog for a single item, optionally limited to given art types."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
-    if not dbtype:
-        dbtype = xbmc.getInfoLabel("ListItem.DBType")
+    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(
@@ -666,11 +664,10 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
 
     db.init_database()
 
-    dbtype_lower = dbtype.lower()
     dbid_int = int(dbid)
 
-    art_types = ART_TYPES_BY_MEDIA.get(dbtype_lower)
-    method_info = KODI_GET_DETAILS_METHODS.get(dbtype_lower)
+    art_types = ART_TYPES_BY_MEDIA.get(dbtype)
+    method_info = KODI_GET_DETAILS_METHODS.get(dbtype)
 
     if not art_types or not method_info:
         show_notification(
@@ -685,13 +682,13 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     if requested:
         unsupported = [art_type for art_type in requested if art_type not in art_types]
         if unsupported:
-            log("Artwork", f"Art types not valid for {dbtype_lower}: {', '.join(unsupported)}",
+            log("Artwork", f"Art types not valid for {dbtype}: {', '.join(unsupported)}",
                 xbmc.LOGWARNING)
         requested = [art_type for art_type in art_types if art_type in requested]
         if not requested:
             show_notification(
                 "Artwork",
-                f"No art type for {dbtype_lower}: {art_type_filter}",
+                f"No art type for {dbtype}: {art_type_filter}",
                 xbmcgui.NOTIFICATION_WARNING,
                 3000
             )
@@ -701,15 +698,15 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     method_name, id_key, result_key = method_info
 
     properties = ["art"]
-    if dbtype_lower == 'album':
+    if dbtype == 'album':
         properties.extend(
             ["title", "year", "musicbrainzalbumartistid", "musicbrainzreleasegroupid"]
         )
-    elif dbtype_lower == 'artist':
+    elif dbtype == 'artist':
         properties.append("musicbrainzartistid")
     else:
         properties.append("title")
-        if dbtype_lower in ('movie', 'tvshow', 'musicvideo'):
+        if dbtype in ('movie', 'tvshow', 'musicvideo'):
             properties.append("year")
 
     details = extract_result(
@@ -730,7 +727,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     year = details.get("year", "")
     current_art = details.get("art", {})
 
-    if dbtype_lower == 'artist':
+    if dbtype == 'artist':
         mbid = details.get('musicbrainzartistid')
         if isinstance(mbid, list):
             mbid = mbid[0] if mbid else None
@@ -742,7 +739,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
                 4000
             )
             return
-    elif dbtype_lower == 'album':
+    elif dbtype == 'album':
         artist_mbid = details.get('musicbrainzalbumartistid')
         if isinstance(artist_mbid, list):
             artist_mbid = artist_mbid[0] if artist_mbid else None
@@ -775,7 +772,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     )
 
     try:
-        all_artwork = fetcher.fetch_all(dbtype_lower, dbid_int, bypass_cache=True)
+        all_artwork = fetcher.fetch_all(dbtype, dbid_int, bypass_cache=True)
     except Exception as e:
         log("Artwork", f"Error fetching artwork: {str(e)}", xbmc.LOGERROR)
         show_notification(
@@ -837,7 +834,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             art_type=selected_art_type,
             available_art=filtered_art,
             full_artwork_list=full_artwork_list,
-            media_type=dbtype_lower,
+            media_type=dbtype,
             year=str(year) if year else "",
             current_url=current_url,
             dbid=dbid_int
@@ -852,7 +849,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             art_updates[selected_art_type] = selected_art.get("url")
 
         if art_updates:
-            processor._apply_art(dbtype_lower, dbid_int, art_updates)
+            processor._apply_art(dbtype, dbid_int, art_updates)
             xbmc.executebuiltin("Container.Refresh")
             show_notification(
                 "Artwork",
@@ -862,7 +859,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             )
             if KodiSettings.download_after_manage_artwork():
                 _download_selected_artwork(
-                    dbtype_lower, dbid_int, title, art_updates, force_overwrite=True
+                    dbtype, dbid_int, title, art_updates, force_overwrite=True
                 )
             refreshed_details = extract_result(
                 request(method_name, {id_key: dbid_int, "properties": ["art"]}),

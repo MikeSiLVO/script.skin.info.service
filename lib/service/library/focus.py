@@ -13,6 +13,7 @@ from lib.kodi.client import (
 )
 from lib.kodi.utilities import (
     clear_group, gui_transition_settled, is_kodi_piers_or_later, modal_dialog_active,
+    normalize_dbtype,
 )
 from lib.service.properties import (
     set_artist_properties,
@@ -222,7 +223,7 @@ class FocusDispatcher:
             self._service.blur.handle_focus()
             return
 
-        dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
+        dbtype = normalize_dbtype(xbmc.getInfoLabel("ListItem.DBType"))
 
         mv_mediatype = ""
         if dbtype in ("actor", "album"):
@@ -244,8 +245,6 @@ class FocusDispatcher:
             cur_type = dbtype
         elif dbid == self._last_id and self._last_type:
             cur_type = self._last_type
-        elif dbtype.lower() == "set":
-            cur_type = "set"
         else:
             # Container.Content(x) is a case-insensitive compare against this label
             cur_type = _CONTAINER_CONTENT_TYPES.get(
