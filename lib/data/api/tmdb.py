@@ -266,7 +266,7 @@ class ApiTmdb(RatingSource):
             return None
 
         if media_type == "episode":
-            return self._episode_ratings(int(tmdb_id_str), ids)
+            return self._episode_ratings(int(tmdb_id_str), ids, abort_flag, force_refresh)
 
         try:
             complete_data = self.get_complete_data(
@@ -417,11 +417,15 @@ class ApiTmdb(RatingSource):
         """Provider-cache key for one episode's TMDB rating."""
         return f"{tmdb_id}_s{season}e{episode}"
 
-    def _episode_ratings(self, tmdb_id: int, ids: Dict[str, str]) -> Optional[Dict]:
-        """Episode rating from cache; `prefetch_episode_ratings` is what fills it."""
+    def _episode_ratings(self, tmdb_id: int, ids: Dict[str, str], abort_flag=None,
+                         force_refresh: bool = False) -> Optional[Dict]:
+        """Episode rating from cache; `force_refresh` refills it via `prefetch_episode_ratings`."""
         season, episode = ids.get("season"), ids.get("episode")
         if not season or not episode:
             return None
+
+        if force_refresh:
+            self.prefetch_episode_ratings(tmdb_id, [int(season)], abort_flag)
 
         cached = self.get_cached_data(
             "episode", self._episode_rating_key(tmdb_id, season, episode))
