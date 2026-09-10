@@ -150,7 +150,7 @@ their own number out of 4 and 5, since the rest are rescaled to Kodi's 0-10.
 | `Rating.rogerebert` | MDBList |
 | `Rating.myanimelist` | MDBList |
 | `Rating.tomatoes` | MDBList, OMDb backfill |
-| `Rating.popcorn` | MDBList, OMDb backfill |
+| `Rating.popcorn` | MDBList |
 | `Rating.mdblistscore` | MDBList |
 
 `Rating.mdblistscore` is MDBList's own aggregate of the other sources, not a rating their users gave. It carries no vote count.

@@ -10,7 +10,7 @@ from lib.data.api.source import RatingSource
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
 from lib.kodi.client import get_api_key, log
-from lib.kodi.formatters import RT_SOURCE_TOMATOES, RT_SOURCE_POPCORN
+from lib.kodi.formatters import RT_SOURCE_TOMATOES
 
 
 class ApiOmdb(RatingSource):
@@ -46,7 +46,7 @@ class ApiOmdb(RatingSource):
         try:
             data = self.session.get(
                 "/",
-                params={"i": imdb_id, "apikey": self.api_key, "tomatoes": "true"},
+                params={"i": imdb_id, "apikey": self.api_key},
                 abort_flag=abort_flag
             )
 
@@ -126,32 +126,6 @@ class ApiOmdb(RatingSource):
                     "rating": self.normalize_rating(rating_val, 10),
                     "votes": votes_val
                 }
-            except (ValueError, AttributeError):
-                pass
-
-        tomato_meter = data.get("tomatoMeter", "").replace("N/A", "")
-        tomato_reviews = data.get("tomatoReviews", "0").replace("N/A", "0").replace(",", "")
-
-        if tomato_meter:
-            try:
-                rating = self.normalize_rating(float(tomato_meter), 100)
-                if rating > 0:
-                    result[RT_SOURCE_TOMATOES] = {"rating": rating, "votes": float(tomato_reviews)}
-            except (ValueError, AttributeError):
-                pass
-
-        tomato_user_meter = data.get("tomatoUserMeter", "").replace("N/A", "")
-        tomato_user_reviews = (
-            data.get("tomatoUserReviews", "0").replace("N/A", "0").replace(",", "")
-        )
-
-        if tomato_user_meter:
-            try:
-                rating = self.normalize_rating(float(tomato_user_meter), 100)
-                if rating > 0:
-                    result[RT_SOURCE_POPCORN] = {
-                        "rating": rating, "votes": float(tomato_user_reviews)
-                    }
             except (ValueError, AttributeError):
                 pass
 
@@ -254,7 +228,7 @@ class ApiOmdb(RatingSource):
         try:
             data = self.session.get(
                 "/",
-                params={"i": "tt0133093", "apikey": self.api_key, "tomatoes": "true"}
+                params={"i": "tt0133093", "apikey": self.api_key}
             )
             return data is not None and data.get("Response") == "True"
         except Exception as e:
