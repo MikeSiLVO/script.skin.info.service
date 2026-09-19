@@ -2149,6 +2149,10 @@ msgctxt "#32695"
 msgid "Ratings sources to check (IMDb always on)"
 msgstr ""
 
+msgctxt "#32696"
+msgid "Continue Watching"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr "Debug kimenet engedélyezése"
