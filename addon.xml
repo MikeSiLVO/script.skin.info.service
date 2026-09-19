@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta4"
+	   version="2.0.1~beta5"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,18 +32,10 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta4
-- Fix memory growing during video playback
-- The IMDb Top 250 can update itself daily, or be run straight from a skin
-- New star-scale property for Roger Ebert and Letterboxd ratings
-- Award counts are left empty instead of writing 0
-- Similar items rank on shared genres first, and can be limited to unwatched or to a playlist
-- A TV show with no cast of its own falls back to the season regulars
-- The ratings dialog shows progress while it loads library items
-- Filmography ratings show at one decimal
-- Blur skips internal art and skin textures
-- The letter bar checks the available letters without scanning every item
-- A failed Trakt token refresh no longer signs you out
+2.0.1~beta5
+- New Continue Watching widget: in-progress movies and next episodes in one list
+- Updating ratings on a single episode fetches its latest TMDB rating
+- The context menu entry is hidden when every item in it is turned off
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
