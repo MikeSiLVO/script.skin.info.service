@@ -61,6 +61,9 @@ def _handle_widgets_menu(handle: int) -> None:
         (ADDON.getLocalizedString(32685),
          "plugin://script.skin.info.service/?action=next_up_favourites",
          "DefaultTVShows.png", True),
+        (ADDON.getLocalizedString(32696),
+         "plugin://script.skin.info.service/?action=continue_watching",
+         "DefaultVideo.png", True),
         (ADDON.getLocalizedString(32621),
          "plugin://script.skin.info.service/?action=recent_episodes_grouped",
          "DefaultRecentlyAddedEpisodes.png", True),
@@ -199,6 +202,11 @@ def _handle_next_up_favourites(handle: int, params: dict) -> None:
     handle_next_up_favourites(handle, params)
 
 
+def _handle_continue_watching(handle: int, params: dict) -> None:
+    from lib.plugin.widgets.video import handle_continue_watching
+    handle_continue_watching(handle, params)
+
+
 def _handle_favourites(handle: int, params: dict) -> None:
     from lib.plugin.widgets.favourites import handle_favourites
     handle_favourites(handle, params)
@@ -325,6 +333,7 @@ _HANDLERS = {
     'discover_tvshows_menu': _handle_discover_tvshows_menu_action,
     'next_up': _handle_next_up,
     'next_up_favourites': _handle_next_up_favourites,
+    'continue_watching': _handle_continue_watching,
     'favourites': _handle_favourites,
     'recent_episodes_grouped': _handle_recent_episodes_grouped,
     'recent_videos': _handle_recent_videos,

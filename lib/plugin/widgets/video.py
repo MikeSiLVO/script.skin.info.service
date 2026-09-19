@@ -17,7 +17,7 @@ _EPISODE_PROPERTIES = ['title', 'season', 'episode', 'showtitle', 'plot', 'art',
                        'resume', 'runtime', 'firstaired', 'rating', 'userrating',
                        'playcount', 'lastplayed']
 
-_SHOW_PROPERTIES = ['title', 'mpaa', 'studio', 'episode', 'watchedepisodes']
+_SHOW_PROPERTIES = ['title', 'mpaa', 'studio', 'episode', 'watchedepisodes', 'lastplayed']
 
 _FULL_SHOW_PROPERTIES = ['art', 'episode', 'watchedepisodes', 'title', 'plot', 'rating',
                          'userrating', 'year', 'premiered', 'playcount', 'votes', 'genre',
@@ -29,6 +29,7 @@ _MOVIE_PROPERTIES = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'pl
                      'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
 
 _RECENT_WINDOW = {'field': 'dateadded', 'operator': 'inthelast', 'value': '365 days'}
+_IN_PROGRESS = {'field': 'inprogress', 'operator': 'true', 'value': ''}
 
 _TAG_STOPLIST = frozenset({
     'duringcreditsstinger', 'aftercreditsstinger', 'woman director', 'sequel', 'remake',
@@ -86,7 +87,7 @@ def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
         'tvshowid': tvshowid,
         'filter': {
             'or': [
-                {'field': 'inprogress', 'operator': 'true', 'value': ''},
+                _IN_PROGRESS,
                 {'field': 'playcount', 'operator': 'greaterthan', 'value': '0'}
             ]
         },
@@ -123,18 +124,17 @@ def _episode_item_from_show(show: dict, episode: dict) -> xbmcgui.ListItem:
     return listitem
 
 
-def handle_next_up(handle: int, params: dict) -> None:
-    """Plugin entry: next unwatched episode per in-progress show (`limit`, default 25)."""
-    limit = int(params.get('limit', ['25'])[0])
-
+def _next_up_rows(limit: int) -> list:
+    """Next unwatched episode per in-progress show as `(lastplayed, url, listitem)` rows."""
     result = request('VideoLibrary.GetTVShows', {
-        'filter': {'field': 'inprogress', 'operator': 'true', 'value': ''},
+        'filter': _IN_PROGRESS,
         'properties': _SHOW_PROPERTIES,
         'sort': {'method': 'lastplayed', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
     })
     shows = extract_result(result, 'tvshows', [])
 
+    rows = []
     for show in shows:
         if show.get('episode', 0) <= show.get('watchedepisodes', 0):
             continue
@@ -143,8 +143,17 @@ def handle_next_up(handle: int, params: dict) -> None:
         if not episode:
             continue
 
-        listitem = _episode_item_from_show(show, episode)
-        xbmcplugin.addDirectoryItem(handle, episode['file'], listitem, False)
+        rows.append((show.get('lastplayed', ''), episode['file'],
+                     _episode_item_from_show(show, episode)))
+    return rows
+
+
+def handle_next_up(handle: int, params: dict) -> None:
+    """Plugin entry: next unwatched episode per in-progress show (`limit`, default 25)."""
+    limit = int(params.get('limit', ['25'])[0])
+
+    for _, url, listitem in _next_up_rows(limit):
+        xbmcplugin.addDirectoryItem(handle, url, listitem, False)
 
     xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
@@ -199,6 +208,23 @@ def handle_next_up_favourites(handle: int, params: dict) -> None:
 
     xbmcplugin.setContent(handle, 'episodes')
     # favourites change without a library event, so a cached listing would go stale
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def handle_continue_watching(handle: int, params: dict) -> None:
+    """Plugin entry: in-progress movies and the next episode of each in-progress show, most
+    recently played first (`limit`, default 25)."""
+    limit = int(params.get('limit', ['25'])[0])
+
+    rows = [(movie.get('lastplayed', ''), movie['file'], _create_movie_listitem(movie))
+            for movie in _query_movies(_IN_PROGRESS, 'lastplayed', limit)]
+    rows += _next_up_rows(limit)
+    rows.sort(key=lambda row: row[0], reverse=True)
+
+    for _, url, listitem in rows[:limit]:
+        xbmcplugin.addDirectoryItem(handle, url, listitem, False)
+
+    xbmcplugin.setContent(handle, 'videos')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
@@ -1554,7 +1580,7 @@ def _franchise_movies(franchise: dict, limit: int, sort_method: str) -> list:
 
 
 def _query_movies(movie_filter: dict, sort_method: str, limit: int) -> list:
-    """Fetch movies for a seasonal filter with the standard render properties."""
+    """Fetch movies matching a filter, in widget sort order, with standard render properties."""
     reverse = _SORT_KEYS.get(sort_method, ('', False, False))[1]
     result = request('VideoLibrary.GetMovies', {
         'filter': movie_filter,

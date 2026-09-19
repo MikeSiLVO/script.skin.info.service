@@ -11,6 +11,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 - [Localized Labels](#localized-labels)
 - [Next Up](#next-up)
 - [Next Up (Favourites)](#next-up-favourites)
+- [Continue Watching](#continue-watching)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
 - [Recent Videos](#recent-videos)
 - [Favourites](#favourites)
@@ -39,6 +40,7 @@ language instead of hardcoded English:
 |--------|--------|-------|
 | Next Up | `next_up` | 32620 |
 | Next Up (Favourites) | `next_up_favourites` | 32685 |
+| Continue Watching | `continue_watching` | 32696 |
 | Recent Episodes Grouped | `recent_episodes_grouped` | 32621, renders "Recent Episodes" |
 | Recent Videos | `recent_videos` | 32686 |
 | Favourites | `favourites` | Kodi 1036 |
@@ -165,6 +167,59 @@ ignored.
 - **Resume Point**: If partially watched
 
 **Widget Type:** Episode
+
+---
+
+## Continue Watching
+
+In-progress movies and the next episode of each in-progress TV show in one list, most recently
+played first.
+
+The episode half is [Next Up](#next-up). The movie half is every movie with a resume point.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=continue_watching</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `limit` | No | 25 | Maximum items to return |
+
+### Examples
+
+```xml
+<!-- Basic -->
+<content>plugin://script.skin.info.service/?action=continue_watching</content>
+
+<!-- Custom limit -->
+<content>plugin://script.skin.info.service/?action=continue_watching&amp;limit=10</content>
+
+<!-- With auto-refresh -->
+<content>plugin://script.skin.info.service/?action=continue_watching&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
+```
+
+### Behavior
+
+1. Fetches up to `limit` in-progress movies and up to `limit` in-progress TV shows, each
+   sorted by last played
+2. For each show, picks the next unwatched episode the same way Next Up does
+3. Merges both into one list ordered by last played, then trims to `limit`
+
+A show's position comes from when the show was last played, not from the episode returned, so
+a show you watched last night stays above a movie you paused last week even though its next
+episode has never been started.
+
+### Item Properties
+
+- **MediaType**: `movie` or `episode`
+- **Artwork**: movie artwork, or TV show artwork plus episode thumb
+- **Resume Point**: on every movie, and on an episode that was partially watched
+
+**Widget Type:** Mixed video
 
 ---
 
