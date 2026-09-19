@@ -17,20 +17,6 @@ _AGE_BUCKET_LABELS = ('0-7', '8-30', '31-90', '91-180', '180+', 'unknown')
 _USAGE_BUCKET_BOUNDS = (5, 20, 50)
 _USAGE_BUCKET_LABELS = ('0', '1-5', '6-20', '21-50', '50+')
 
-# Kodi's `Textures.GetTextures` returns width/usecount swapped for some entries (PR #27584).
-# A `usecount >= 256` paired with `width < 256` is the swap signature, fall back to width.
-_USECOUNT_SWAP_THRESHOLD = 256
-
-
-def _real_usecount(size_record: Dict[str, Any]) -> int:
-    """Return the true usecount for a size record, accounting for the Kodi width/usecount swap."""
-    raw_usecount = size_record.get('usecount', 0)
-    raw_width = size_record.get('width', 0)
-    if raw_width < _USECOUNT_SWAP_THRESHOLD and raw_usecount >= _USECOUNT_SWAP_THRESHOLD:
-        return raw_width
-    return raw_usecount
-
-
 def _bucket_age(days_ago: int) -> str:
     """Return the age-bucket label for `days_ago`."""
     for bound, label in zip(_AGE_BUCKET_BOUNDS, _AGE_BUCKET_LABELS):
@@ -64,7 +50,7 @@ def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
                        usage_buckets: Dict[str, int]) -> None:
     """Update `age_buckets` and `usage_buckets` in place from a single size record."""
     lastusetime = size.get('lastused')
-    usecount = _real_usecount(size)
+    usecount = size.get('usecount', 0)
 
     if lastusetime:
         try:
