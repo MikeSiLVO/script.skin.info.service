@@ -115,6 +115,8 @@ class Orchestrator:
             return
         thread.abort.set()
         thread.join(timeout=2)
+        if thread.is_alive():
+            log("Service", f"{type(thread).__name__} still running after abort", xbmc.LOGWARNING)
         setattr(self, attr, None)
 
     def _manage_skin_services(self, library_enabled: bool, online_enabled: bool) -> None:

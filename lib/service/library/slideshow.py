@@ -142,9 +142,13 @@ class SlideshowDriver:
         """
         try:
             self._stopping = True
-            for thread in (self._update_thread, self._reconcile_thread):
+            for name, thread in (('update', self._update_thread),
+                                 ('reconcile', self._reconcile_thread)):
                 if thread and thread.is_alive():
                     thread.join(timeout=5)
+                    if thread.is_alive():
+                        log("Service", f"Slideshow: {name} still running after cleanup",
+                            xbmc.LOGWARNING)
             self._library.clear()
             self._playlists.clear()
         except Exception as e:
