@@ -31,6 +31,7 @@ def _handle_root_menu(handle: int) -> None:
 
 def _handle_search_menu(handle: int) -> None:
     """Show search submenu."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32614))
     items = [
         (ADDON.getLocalizedString(32616),
          "plugin://script.skin.info.service/?action=exec_search&dbtype=movie",
@@ -53,6 +54,7 @@ def _handle_search_menu(handle: int) -> None:
 
 def _handle_widgets_menu(handle: int) -> None:
     """Show widgets submenu."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32615))
     items = [
         (ADDON.getLocalizedString(32619), "plugin://script.skin.info.service/?action=discover_menu",
          "DefaultAddonVideo.png", True),
@@ -91,16 +93,11 @@ def _handle_widgets_menu(handle: int) -> None:
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
-_SEASONAL_MENU = [
-    (32642, "christmas"), (32643, "halloween"), (32644, "valentines"),
-    (32645, "thanksgiving"), (32646, "starwars"), (32647, "startrek"),
-    (32648, "newyear"), (32649, "easter"), (32650, "independence"),
-]
-
-
 def _handle_seasonal_menu(handle: int) -> None:
-    """Show seasonal submenu (one entry per SEASONAL_TAGS key)."""
-    for string_id, key in _SEASONAL_MENU:
+    """Show seasonal submenu (one entry per season key)."""
+    from lib.plugin.widgets.video import SEASONAL_LABELS
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32622))
+    for key, string_id in SEASONAL_LABELS.items():
         li = xbmcgui.ListItem(ADDON.getLocalizedString(string_id), offscreen=True)
         li.setArt({'icon': "DefaultYear.png", 'thumb': "DefaultYear.png"})
         xbmcplugin.addDirectoryItem(
@@ -111,20 +108,20 @@ def _handle_seasonal_menu(handle: int) -> None:
 
 
 _FAVOURITES_MENU = [
-    (None, "", "DefaultFavourites.png"),
-    (32687, "movie", "DefaultMovies.png"),
-    (32688, "tvshow", "DefaultTVShows.png"),
-    (32689, "episode", "DefaultTVShows.png"),
-    (32690, "musicvideo", "DefaultMusicVideos.png"),
+    ("", "DefaultFavourites.png"),
+    ("movie", "DefaultMovies.png"),
+    ("tvshow", "DefaultTVShows.png"),
+    ("episode", "DefaultTVShows.png"),
+    ("musicvideo", "DefaultMusicVideos.png"),
 ]
 
 
 def _handle_favourites_menu(handle: int) -> None:
     """Show favourites submenu: everything, then one entry per media type."""
-    for string_id, dbtype, icon in _FAVOURITES_MENU:
-        label = (xbmc.getLocalizedString(1036) if string_id is None
-                 else ADDON.getLocalizedString(string_id))
-        li = xbmcgui.ListItem(label, offscreen=True)
+    from lib.plugin.widgets.favourites import favourites_label
+    xbmcplugin.setPluginCategory(handle, favourites_label(""))
+    for dbtype, icon in _FAVOURITES_MENU:
+        li = xbmcgui.ListItem(favourites_label(dbtype), offscreen=True)
         li.setArt({'icon': icon, 'thumb': icon})
         url = "plugin://script.skin.info.service/?action=favourites"
         if dbtype:

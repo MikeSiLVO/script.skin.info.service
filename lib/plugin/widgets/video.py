@@ -150,6 +150,7 @@ def _next_up_rows(limit: int) -> list:
 
 def handle_next_up(handle: int, params: dict) -> None:
     """Plugin entry: next unwatched episode per in-progress show (`limit`, default 25)."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32620))
     limit = int(params.get('limit', ['25'])[0])
 
     for _, url, listitem in _next_up_rows(limit):
@@ -179,6 +180,7 @@ def _favourite_tvshow_ids() -> list:
 
 def handle_next_up_favourites(handle: int, params: dict) -> None:
     """Plugin entry: next unwatched episode for each favourited TV show (`limit`, default 25)."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32685))
     limit = int(params.get('limit', ['25'])[0])
 
     favourite_ids = _favourite_tvshow_ids()
@@ -214,6 +216,7 @@ def handle_next_up_favourites(handle: int, params: dict) -> None:
 def handle_continue_watching(handle: int, params: dict) -> None:
     """Plugin entry: in-progress movies and the next episode of each in-progress show, most
     recently played first (`limit`, default 25)."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32696))
     limit = int(params.get('limit', ['25'])[0])
 
     rows = [(movie.get('lastplayed', ''), movie['file'], _create_movie_listitem(movie))
@@ -308,6 +311,7 @@ def _recent_episode_rows(limit: int, group: bool) -> list:
 def handle_recent_videos(handle: int, params: dict) -> None:
     """Plugin entry: recently added movies and episodes interleaved by date; `group=false` lists
     every episode instead of one row per show."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32686))
     limit = int(params.get('limit', ['25'])[0])
     group = params.get('group', ['true'])[0].lower() != 'false'
 
@@ -380,6 +384,7 @@ def _create_episode_listitem(episode: dict) -> xbmcgui.ListItem:
 def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
     """Plugin entry: recently-added episodes, grouped so new series collapse into one folder;
     `include_watched=true` disables the in-progress filter."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32621))
     limit = int(params.get('limit', ['25'])[0])
     include_watched = params.get('include_watched', ['false'])[0].lower() == 'true'
 
@@ -633,6 +638,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
 
         actor = random.choice(top_cast)['name']
 
+    xbmcplugin.setPluginCategory(handle, actor)
     all_items = []
 
     if mix or dbtype in ('movie', 'set'):
@@ -806,6 +812,7 @@ def handle_by_director(handle: int, params: dict) -> None:
 
     director = random.choice(top_directors)
 
+    xbmcplugin.setPluginCategory(handle, director)
     all_items = []
 
     if mix or dbtype in ('movie', 'set'):
@@ -1018,6 +1025,7 @@ def handle_similar(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle)
         return
 
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32683))
     try:
         dbid = int(dbid_param) if dbid_param else 0
     except (ValueError, TypeError):
@@ -1278,6 +1286,9 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
     _render_recommended(handle, scored_items, label, dbtype)
 
 
+_RECOMMENDED_LABELS = {'movie': 32623, 'tvshow': 32624, 'both': 32682}
+
+
 def handle_recommended(handle: int, params: dict) -> None:
     """Plugin entry: recommendations from recent watch history; default is single-seed (most
     like the last watch), `multi=true` blends across `history_size` watches with
@@ -1289,6 +1300,8 @@ def handle_recommended(handle: int, params: dict) -> None:
     history_size = int(params.get('history_size', ['10'])[0])
     recency_decay = min(1.0, max(0.0, float(params.get('recency', ['0.75'])[0])))
     multi = params.get('multi', ['false'])[0].lower() == 'true'
+    if dbtype in _RECOMMENDED_LABELS:
+        xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(_RECOMMENDED_LABELS[dbtype]))
 
     history = []
 
@@ -1469,6 +1482,12 @@ def handle_recommended(handle: int, params: dict) -> None:
     _render_recommended(handle, scored_items, ADDON.getLocalizedString(32652), dbtype)
 
 
+SEASONAL_LABELS = {
+    'christmas': 32642, 'halloween': 32643, 'valentines': 32644, 'thanksgiving': 32645,
+    'starwars': 32646, 'startrek': 32647, 'newyear': 32648, 'easter': 32649,
+    'independence': 32650,
+}
+
 # Holiday seasons: library movies whose TMDB keyword tags match (exact, OR'd).
 SEASONAL_TAGS = {
     'christmas': [
@@ -1625,6 +1644,8 @@ def handle_seasonal(handle: int, params: dict) -> None:
     season = params.get('season', [''])[0].lower()
     limit = int(params.get('limit', ['50'])[0])
     sort_method = validate_sort_method(params.get('sort', ['random'])[0], 'random')
+    if season in SEASONAL_LABELS:
+        xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(SEASONAL_LABELS[season]))
 
     if season in SEASONAL_FRANCHISES:
         movies = _franchise_movies(SEASONAL_FRANCHISES[season], limit, sort_method)

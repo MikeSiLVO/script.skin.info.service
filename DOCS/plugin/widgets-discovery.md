@@ -31,6 +31,7 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [Common Parameters](#common-parameters)
 - [Library Filter](#library-filter)
 - [Browse Menus](#browse-menus)
+- [Plugin Category](#plugin-category)
 - [Item Properties](#item-properties)
 
 ---
@@ -465,6 +466,19 @@ Folder-based menus for skin file manager integration:
 ```
 
 Also accessible from Widgets > Discover in the plugin root menu.
+
+---
+
+## Plugin Category
+
+Every discovery widget sets `Container.PluginCategory` to its translated name ("TMDB Trending",
+"Trakt Popular"); TMDB Recommendations sets "Recommendations". A skin that opens a widget path in
+a full window (`ActivateWindow(Videos,plugin://...,return)`) can take the heading from the
+container:
+
+```xml
+<label>$INFO[Container.PluginCategory]</label>
+```
 
 ---
 

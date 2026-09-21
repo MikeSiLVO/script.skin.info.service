@@ -50,6 +50,9 @@ language instead of hardcoded English:
 | Favourite Music Videos | `favourites&dbtype=musicvideo` | 32690 |
 | Recommended (movies) | `recommended&dbtype=movie` | 32623, renders "Recommended Movies" |
 | Recommended (TV shows) | `recommended&dbtype=tvshow` | 32624, renders "Recommended TV Shows" |
+| Recommended (both) | `recommended&dbtype=both` | 32682, renders "Recommendations" |
+| Similar Items | `similar` | 32683, renders "Similar in Library" |
+| Similar Artists | `similar_artists` | 32697 |
 | Seasonal (christmas) | `seasonal&season=christmas` | 32642 |
 | Seasonal (halloween) | `seasonal&season=halloween` | 32643 |
 | Seasonal (valentines) | `seasonal&season=valentines` | 32644 |
@@ -61,7 +64,24 @@ language instead of hardcoded English:
 | Seasonal (independence) | `seasonal&season=independence` | 32650 |
 
 Kodi core strings are marked as such and come from `$LOCALIZE[1036]` rather than the addon.
-Widgets with no row have no label of their own, so name them yourself.
+
+Every widget also sets `Container.PluginCategory` to its label, so a skin that opens a widget
+path in a full window (`ActivateWindow(Videos,plugin://...,return)`) can take the heading from
+the container:
+
+```xml
+<label>$INFO[Container.PluginCategory]</label>
+```
+
+Widgets with no row set the category from their source item instead:
+
+| Widget | Category |
+|--------|----------|
+| By Actor | the actor's name |
+| By Director | the director's name |
+| Artist Albums | the artist's name |
+| Artist Music Videos | the artist's name |
+| Genre Artists | the genre |
 
 ---
 

@@ -7,7 +7,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import log, request, extract_result, get_item_details
+from lib.kodi.client import ADDON, log, request, extract_result, get_item_details
 
 
 def _resolve_artist_name(params: dict) -> Optional[str]:
@@ -244,6 +244,7 @@ def handle_similar_artists(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32697))
     limit = int(params.get('limit', ['25'])[0])
 
     from lib.service.music import get_similar_artist_names
@@ -279,6 +280,7 @@ def handle_artist_albums(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
+    xbmcplugin.setPluginCategory(handle, artist_name)
     from lib.plugin.widgets import validate_sort_method
     limit = int(params.get('limit', ['25'])[0])
     sort_method = validate_sort_method(params.get('sort', ['year'])[0], 'year')
@@ -315,6 +317,7 @@ def handle_artist_musicvideos(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
+    xbmcplugin.setPluginCategory(handle, artist_name)
     limit = int(params.get('limit', ['25'])[0])
 
     exclude_id: Optional[int] = None
@@ -378,6 +381,7 @@ def handle_genre_artists(handle: int, params: dict) -> None:
             return
         genre = genres[0]
 
+    xbmcplugin.setPluginCategory(handle, genre)
     limit = int(params.get('limit', ['25'])[0])
 
     result = request('AudioLibrary.GetArtists', {

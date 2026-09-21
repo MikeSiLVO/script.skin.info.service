@@ -273,6 +273,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
+        xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(config["label"]))
         if config.get("auth") == "oauth":
             from lib.data.api.trakt import ApiTrakt
             if not ApiTrakt().is_authorized():
@@ -360,6 +361,8 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
+        xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32682))
+
         tmdb_id = 0
         if tmdb_id_str:
             try:
@@ -445,6 +448,7 @@ _DISCOVER_MENUS = {
 
 def handle_discover_menu(handle: int, params: dict) -> None:
     """Render the top-level Discover menu (Movies / TV Shows)."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32619))
     for menu in _DISCOVER_MENUS.values():
         icon = menu["icon"]
         li = xbmcgui.ListItem(ADDON.getLocalizedString(menu["label"]), offscreen=True)
@@ -458,6 +462,7 @@ def handle_discover_menu(handle: int, params: dict) -> None:
 
 def _render_discover_widgets(handle: int, media: str) -> None:
     """List every registry widget supporting `media`, marking the ones needing an account."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(_DISCOVER_MENUS[media]["label"]))
     icon = _DISCOVER_MENUS[media]["icon"]
     for action, config in WIDGET_REGISTRY.items():
         if media not in config["types"]:

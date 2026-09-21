@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import re
 
+import xbmc
 import xbmcplugin
 
-from lib.kodi.client import request, extract_result
+from lib.kodi.client import ADDON, request, extract_result
 
 _WINDOW_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
 
@@ -21,6 +22,15 @@ _LIBRARY_CALLS = {
 
 _CONTENT = {'movie': 'movies', 'tvshow': 'tvshows', 'episode': 'episodes',
             'musicvideo': 'musicvideos'}
+
+_LABELS = {'movie': 32687, 'tvshow': 32688, 'episode': 32689, 'musicvideo': 32690}
+
+
+def favourites_label(dbtype: str) -> str:
+    """Translated widget label for one media type, Kodi's own "Favourites" for all of them."""
+    if dbtype in _LABELS:
+        return ADDON.getLocalizedString(_LABELS[dbtype])
+    return xbmc.getLocalizedString(1036)
 
 
 def _favourite_entries() -> list:
@@ -78,6 +88,7 @@ def handle_favourites(handle: int, params: dict) -> None:
 
     dbtype = params.get('dbtype', [''])[0].lower()
     limit = int(params.get('limit', ['0'])[0])
+    xbmcplugin.setPluginCategory(handle, favourites_label(dbtype))
 
     favourites = _favourite_entries()
     wanted_shows, wanted_paths = set(), []

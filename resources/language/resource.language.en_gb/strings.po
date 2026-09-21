@@ -2096,6 +2096,10 @@ msgctxt "#32696"
 msgid "Continue Watching"
 msgstr ""
 
+msgctxt "#32697"
+msgid "Similar Artists"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""
