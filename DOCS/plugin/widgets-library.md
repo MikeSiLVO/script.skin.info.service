@@ -399,7 +399,7 @@ are folders that open the show; everything else is playable.
 
 ## By Actor
 
-Items featuring a random actor from the source item's cast.
+Items featuring a random actor from the source item's cast, or a chosen billing position.
 
 ### Usage
 
@@ -415,6 +415,7 @@ Items featuring a random actor from the source item's cast.
 | `dbtype` | No | movie | Source type (movie/tvshow/episode) |
 | `limit` | No | 25 | Maximum items |
 | `cast_limit` | No | 4 | Pick from top N cast (0=all) |
+| `position` | No | - | Billing position to use instead of a random pick (1 = top billed); empty when the cast is shorter |
 | `mix` | No | true | Mixed movie/show results |
 | `lock` | No | false | Lock to same actor across widgets |
 
@@ -430,6 +431,11 @@ Items featuring a random actor from the source item's cast.
 <!-- Lock same actor across two widgets -->
 <content>plugin://script.skin.info.service/?action=by_actor&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=movie&amp;mix=false&amp;lock=true</content>
 <content>plugin://script.skin.info.service/?action=by_actor&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=tvshow&amp;mix=false&amp;lock=true</content>
+
+<!-- One widget per top-billed actor -->
+<content>plugin://script.skin.info.service/?action=by_actor&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]&amp;position=1</content>
+<content>plugin://script.skin.info.service/?action=by_actor&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]&amp;position=2</content>
+<content>plugin://script.skin.info.service/?action=by_actor&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]&amp;position=3</content>
 ```
 
 ### Actor Locking

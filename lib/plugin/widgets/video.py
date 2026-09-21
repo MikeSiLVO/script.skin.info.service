@@ -579,8 +579,9 @@ def _find_actor_role(cast: list, actor_name: str) -> str:
 
 
 def handle_by_actor(handle: int, params: dict) -> None:
-    """Plugin entry: library items featuring a random actor from the source item; `mix` picks
-    movies+shows or matches `dbtype`, `lock` keeps the actor stable across refreshes."""
+    """Plugin entry: library items featuring a random actor from the source item; `position`
+    takes a billing slot instead, `mix` picks movies+shows or matches `dbtype`, `lock` keeps the
+    random actor stable across refreshes."""
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
         xbmcplugin.endOfDirectory(handle)
@@ -590,6 +591,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
     dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])
     cast_limit = int(params.get('cast_limit', ['4'])[0])
+    position = _int_param(params, 'position', 0)
     mix = params.get('mix', ['true'])[0].lower() == 'true'
     lock = params.get('lock', ['false'])[0].lower() == 'true'
 
@@ -599,7 +601,14 @@ def handle_by_actor(handle: int, params: dict) -> None:
     lock_property_actor = 'SkinInfoService.ByActor.Lock'
     lock_property_dbid = 'SkinInfoService.ByActor.Lock.DbId'
 
-    if lock:
+    if position > 0:
+        item = get_item_details(dbtype, dbid, ['cast'])
+        cast = (item or {}).get('cast') or []
+        if len(cast) < position:
+            xbmcplugin.endOfDirectory(handle)
+            return
+        actor = cast[position - 1]['name']
+    elif lock:
         locked_dbid = window.getProperty(lock_property_dbid)
         locked_actor = window.getProperty(lock_property_actor)
 
