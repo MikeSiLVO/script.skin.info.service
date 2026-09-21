@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta5"
+	   version="2.0.1~beta6"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,10 +32,9 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta5
-- New Continue Watching widget: in-progress movies and next episodes in one list
-- Updating ratings on a single episode fetches its latest TMDB rating
-- The context menu entry is hidden when every item in it is turned off
+2.0.1~beta6
+- Set Container.PluginCategory for page headers and breadcrumbs
+- By Actor takes a position param to pin a widget to a billing slot
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
