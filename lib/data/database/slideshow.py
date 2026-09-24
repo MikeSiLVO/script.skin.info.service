@@ -107,11 +107,3 @@ def is_pool_populated() -> bool:
     with get_db() as cursor:
         cursor.execute('SELECT 1 FROM slideshow_pool LIMIT 1')
         return cursor.fetchone() is not None
-
-
-def pool_predates_artist() -> bool:
-    """True while rows predate the artist column, so a pool built before music video support
-    gets one reconcile instead of waiting for a library scan."""
-    with get_db() as cursor:
-        cursor.execute('SELECT 1 FROM slideshow_pool WHERE artist IS NULL LIMIT 1')
-        return cursor.fetchone() is not None

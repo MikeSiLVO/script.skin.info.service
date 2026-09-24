@@ -76,17 +76,11 @@ class Orchestrator:
                 return
             from lib.data.database.cache import clear_expired_cache
             from lib.data.database.rollcall import needs_id_backfill, sync_dbids
-            from lib.data.database.slideshow import pool_predates_artist
             clear_expired_cache()
             if self.monitor.abortRequested():
                 return
             if needs_id_backfill():
                 sync_dbids()
-            if self.monitor.abortRequested():
-                return
-            if pool_predates_artist():
-                from lib.service.slideshow import reconcile_pool, POOL_MEDIA_TYPES
-                reconcile_pool(POOL_MEDIA_TYPES)
 
         threading.Thread(target=_run, daemon=True).start()
 

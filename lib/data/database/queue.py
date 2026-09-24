@@ -21,7 +21,6 @@ STATUS_PENDING = 'pending'
 STATUS_COMPLETED = 'completed'
 STATUS_SKIPPED = 'skipped'
 STATUS_ERROR = 'error'
-STATUS_CANCELLED = 'cancelled'
 
 ItemKey = Tuple[str, int]
 

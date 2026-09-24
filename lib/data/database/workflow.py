@@ -80,13 +80,6 @@ def cancel_session(session_id: int) -> None:
             (int(time.time()), session_id))
 
 
-def get_session(session_id: int) -> Optional[sqlite3.Row]:
-    """Return a scan session row by ID, or None."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('SELECT * FROM scan_session WHERE id = ?', (session_id,))
-        return cursor.fetchone()
-
-
 def get_last_manual_review_session(
     media_types: Optional[Sequence[str]] = None,
 ) -> Optional[sqlite3.Row]:
