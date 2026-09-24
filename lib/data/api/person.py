@@ -238,12 +238,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
             log("Person", f"No credits found for {media_type} {tmdb_id}", xbmc.LOGWARNING)
             return None
 
-        credits = complete_data['credits'].get('cast', [])
-
-        if media_type == 'tvshow':
-            aggregate = complete_data.get('aggregate_credits', {}).get('cast', [])
-            if aggregate:
-                credits = _flatten_aggregate_credits(aggregate)
+        credits = tmdb_cast(complete_data, media_type)
 
     match = exact_match(credits, actor_name, actor_role)
     if match:
@@ -295,6 +290,16 @@ def _flatten_aggregate_credits(aggregate_cast: list) -> list:
         for role in roles:
             flat.append({**actor, 'character': role.get('character', '')})
     return flat
+
+
+def tmdb_cast(data: Optional[dict], media_type: str) -> list:
+    """Get the cast from a complete TMDB record, across all seasons for a TV show."""
+    data = data or {}
+    if media_type == 'tvshow':
+        aggregate = data.get('aggregate_credits', {}).get('cast', [])
+        if aggregate:
+            return _flatten_aggregate_credits(aggregate)
+    return data.get('credits', {}).get('cast', [])
 
 
 def normalize_name(name: str) -> str:

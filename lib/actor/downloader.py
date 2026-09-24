@@ -45,17 +45,11 @@ def get_episode_guest_stars(tvshowid: int) -> List[Dict]:
 
 
 def _get_tmdb_credits(media_type: str, tmdb_id: str) -> List[Dict]:
-    """Get TMDB cast list from cache or API."""
+    """Get the cast from the item's complete TMDB record."""
+    from lib.data.api.person import tmdb_cast
     from lib.data.api.tmdb import ApiTmdb
 
-    api = ApiTmdb()
-    data = api.get_complete_data(media_type, int(tmdb_id))
-
-    if not data:
-        return []
-
-    credits = data.get("credits", {})
-    return credits.get("cast", [])
+    return tmdb_cast(ApiTmdb().get_complete_data(media_type, int(tmdb_id)), media_type)
 
 
 def _match_actor_to_profile(
