@@ -399,13 +399,8 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         if media_type in ('movie', 'tvshow'):
             progress.update(95, f"{title}\n{ADDON.getLocalizedString(32981)}")
             file_path = details.get("file", "")
-            downloaded, _, _ = download_actor_images(
-                media_type=media_type,
-                dbid=dbid_int,
-                file_path=file_path,
-                existing_file_mode=existing_file_mode
-            )
-            actor_count = downloaded
+            actor_count = download_actor_images(
+                media_type, dbid_int, file_path, existing_file_mode, downloader)
 
         progress.close()
 

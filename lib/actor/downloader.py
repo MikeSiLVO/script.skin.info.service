@@ -53,22 +53,10 @@ def _get_tmdb_credits(media_type: str, tmdb_id: str) -> List[Dict]:
     return tmdb_cast(ApiTmdb().get_complete_data(media_type, int(tmdb_id)), media_type)
 
 
-def download_actor_images(
-    media_type: str,
-    dbid: int,
-    file_path: str,
-    show_path: Optional[str] = None,
-    existing_file_mode: str = "skip",
-    abort_flag=None
-) -> Tuple[int, int, int]:
-    """Download actor images for a single media item.
-
-    Falls back to Kodi thumbnail URLs when TMDB match fails.
-    Returns (downloaded, skipped, failed) counts.
-    """
-    downloaded = 0
-    skipped = 0
-    failed = 0
+def download_actor_images(media_type: str, dbid: int, file_path: str,
+                          existing_file_mode: str = "skip",
+                          downloader: Optional[DownloadArtwork] = None) -> int:
+    """Download actor images, Kodi's thumbnail on a TMDB miss; returns how many were written."""
     monitor = xbmc.Monitor()
 
     cast, media_ids = get_cast_with_ids(media_type, dbid)
@@ -85,23 +73,23 @@ def download_actor_images(
 
     if not cast:
         log("Artwork", f"No cast found for {media_type} {dbid}", xbmc.LOGDEBUG)
-        return downloaded, skipped, failed
+        return 0
 
-    actors_folder = build_actors_folder_path(media_type, file_path, show_path)
+    actors_folder = build_actors_folder_path(media_type, file_path)
     if not actors_folder:
         log(
             "Artwork",
             f"Could not determine .actors folder for {media_type} {dbid}",
             xbmc.LOGWARNING,
         )
-        return downloaded, skipped, failed
+        return 0
 
     actors_folder_check = vfs_ensure_dir_slash(actors_folder)
     if not xbmcvfs.exists(actors_folder_check):
         xbmcvfs.mkdirs(actors_folder)
         if not xbmcvfs.exists(actors_folder_check):
             log("Artwork", f"Failed to create .actors folder: {actors_folder}", xbmc.LOGWARNING)
-            return downloaded, skipped, failed
+            return 0
         log("Artwork", f"Created .actors folder: {actors_folder}", xbmc.LOGDEBUG)
 
     tmdb_credits: List[Dict] = []
@@ -111,73 +99,54 @@ def download_actor_images(
         if tmdb_credits:
             log("Artwork", f"Got {len(tmdb_credits)} cast members from TMDB", xbmc.LOGDEBUG)
 
-    downloader = DownloadArtwork()
+    own_downloader = downloader is None
+    active = downloader or DownloadArtwork()
     seen_filenames: set = set()
+    downloaded = 0
 
-    for actor in cast:
-        if monitor.abortRequested():
-            break
-        if abort_flag and abort_flag.is_requested():
-            break
+    try:
+        for actor in cast:
+            if monitor.abortRequested():
+                break
 
-        name = actor.get("name", "").strip()
-        if not name:
-            continue
-
-        role = actor.get("role", "").strip()
-
-        filename = sanitize_actor_filename(name, "")
-        if filename in seen_filenames:
-            log("Artwork", f"Duplicate actor filename '{filename}', skipping", xbmc.LOGDEBUG)
-            skipped += 1
-            continue
-        seen_filenames.add(filename)
-
-        local_path = vfs_join(actors_folder, filename)
-
-        match = match_credit(tmdb_credits, name, role,
-                             lambda credit: bool(credit.get("profile_path")))
-        if match:
-            url = tmdb_image_url(match["profile_path"])
-            success, error, _, _ = downloader.download_artwork(
-                url=url,
-                local_path=local_path,
-                existing_file_mode=existing_file_mode,
-            )
-            if success:
-                downloaded += 1
-                log("Artwork", f"Downloaded actor image from TMDB: {name}", xbmc.LOGDEBUG)
-                continue
-            elif error is None:
-                skipped += 1
+            name = actor.get("name", "").strip()
+            if not name:
                 continue
 
-        thumbnail = actor.get("thumbnail", "").strip()
-        if thumbnail:
-            decoded_url = decode_image_url(thumbnail)
-            if decoded_url.startswith("http"):
-                success, error, _, _ = downloader.download_artwork(
-                    url=decoded_url,
+            filename = sanitize_actor_filename(name, "")
+            if filename in seen_filenames:
+                continue
+            seen_filenames.add(filename)
+
+            local_path = vfs_join(actors_folder, filename)
+            sources = []
+            match = match_credit(tmdb_credits, name, actor.get("role", "").strip(),
+                                 lambda credit: bool(credit.get("profile_path")))
+            if match:
+                sources.append(("TMDB", tmdb_image_url(match["profile_path"])))
+            thumbnail = decode_image_url(actor.get("thumbnail", "").strip())
+            if thumbnail.startswith("http"):
+                sources.append(("Kodi URL", thumbnail))
+            if not sources:
+                log("Artwork", f"No image source for actor '{name}'", xbmc.LOGDEBUG)
+                continue
+
+            for source, url in sources:
+                success, error, _, _ = active.download_artwork(
+                    url=url,
                     local_path=local_path,
                     existing_file_mode=existing_file_mode,
                 )
                 if success:
                     downloaded += 1
-                    log("Artwork", f"Downloaded actor image from Kodi URL: {name}", xbmc.LOGDEBUG)
-                    continue
-                elif error is None:
-                    skipped += 1
-                    continue
-                else:
-                    failed += 1
-                    log(
-                        "Artwork",
-                        f"Failed to download actor image for '{name}': {error}",
-                        xbmc.LOGWARNING,
-                    )
-                    continue
+                    log("Artwork", f"Downloaded actor image from {source}: {name}",
+                        xbmc.LOGDEBUG)
+                if success or error is None:
+                    break
+                log("Artwork", f"Failed to download actor image for '{name}' from {source}: "
+                    f"{error}", xbmc.LOGWARNING)
+    finally:
+        if own_downloader:
+            active.close()
 
-        log("Artwork", f"No image source for actor '{name}'", xbmc.LOGDEBUG)
-        skipped += 1
-
-    return downloaded, skipped, failed
+    return downloaded
