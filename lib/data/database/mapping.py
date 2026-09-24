@@ -129,12 +129,24 @@ def save_episode_miss(tmdb_id: str, season: int, episode: int,
     if numeric_id is None:
         return
     from lib.data.database.cache import get_cache_ttl_hours
-    expires = int(time.time()) + get_cache_ttl_hours(air_date) * 3600
+    _store_episode_miss(numeric_id, season, episode, get_cache_ttl_hours(air_date))
+
+
+def save_unlisted_episode(tmdb_id: str, season: int, episode: int) -> None:
+    """Record an episode TMDB does not list at all, for the same window as a `/find` miss."""
+    numeric_id = as_int(tmdb_id)
+    if numeric_id is not None:
+        _store_episode_miss(numeric_id, season, episode, _FIND_MISS_TTL_DAYS * 24)
+
+
+def _store_episode_miss(tmdb_id: int, season: int, episode: int, ttl_hours: int) -> None:
+    """Upsert an episode miss that expires after the given hours."""
+    expires = int(time.time()) + ttl_hours * 3600
     with get_db() as cursor:
         cursor.execute(
             "INSERT INTO tmdb_episode_miss (tmdb_id, season, episode, expires_at) "
             "VALUES (?, ?, ?, ?) "
             "ON CONFLICT (tmdb_id, season, episode) DO UPDATE SET "
             "expires_at = excluded.expires_at",
-            (numeric_id, season, episode, expires),
+            (tmdb_id, season, episode, expires),
         )

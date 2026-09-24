@@ -104,21 +104,19 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
 
             return imdb_id or None
 
-        if media_type == "episode" and tvdb_id:
+        if media_type == "episode" and season is not None and episode is not None:
+            fallback = "trying TVDB fallback" if tvdb_id else "no TVDB ID for fallback"
             log(
                 "Ratings",
                 f"TMDB lookup failed for episode "
-                f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d}), trying TVDB fallback",
+                f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d}), {fallback}",
                 xbmc.LOGDEBUG,
             )
-            return _try_tvdb_episode_fallback(tmdb_client, str(tvdb_id))
-        if media_type == "episode":
-            log(
-                "Ratings",
-                f"TMDB lookup failed for episode "
-                f"(tmdb={tmdb_id}, S{season:02d}E{episode:02d}), no TVDB ID for fallback",
-                xbmc.LOGDEBUG,
-            )
+            imdb_id = _try_tvdb_episode_fallback(tmdb_client, str(tvdb_id)) if tvdb_id else None
+            if not imdb_id and _unlisted_on_tmdb(cached, season, episode):
+                from lib.data.database.mapping import save_unlisted_episode
+                save_unlisted_episode(tmdb_id, season, episode)
+            return imdb_id
         else:
             log(
                 "Ratings",
@@ -130,6 +128,15 @@ def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
         log("Ratings", f"Error fetching TMDB data for IMDb ID lookup: {e}", xbmc.LOGWARNING)
 
     return None
+
+
+def _unlisted_on_tmdb(show: Optional[Dict], season: int, episode: int) -> bool:
+    """True when TMDB's cached show lists fewer episodes for the season, or not the season."""
+    seasons = (show or {}).get("seasons") or []
+    for entry in seasons:
+        if entry.get("season_number") == season:
+            return episode > (entry.get("episode_count") or 0)
+    return bool(seasons)
 
 
 def _try_tvdb_episode_fallback(tmdb_client: ApiTmdb, tvdb_id: str) -> Optional[str]:
