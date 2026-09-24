@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-09-21 13:07+0000\n"
+"PO-Revision-Date: 2026-09-24 14:16+0000\n"
 "Last-Translator: Alfonso Cachero <alfonso.cachero@gmail.com>\n"
 "Language-Team: Spanish (Spain) <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/es_es/>\n"
 "Language: es_es\n"
@@ -19,317 +19,317 @@ msgstr "Provee información enriquecida del contenido y arte a las skins."
 
 msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
-msgstr ""
+msgstr "Skin Info Service provee skins con metadata enriquecida y mejor arte de lo que expone Kodi por defecto. Añade propiedades extra como las valoraciones desde distintas fuentes, arte, detalles de la emisión, elenco y argumento de las películas, programas de TV, episodios, sagas, vídeos musicales, intérpretes y álbumes, pintándolo todo en la colección y datos online. Incluye tambien una herramietna para buscar y añadir carteles de GIF animados para la colección."
 
 msgctxt "#32000"
 msgid "Animated Art"
-msgstr ""
+msgstr "Arte Animado"
 
 msgctxt "#32001"
 msgid "Key was not saved, please try again"
-msgstr ""
+msgstr "La clave no se guardado. Inténtelo de nuevo"
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
-msgstr ""
+msgstr "Patrones de nombre de archivo Gif (exacto/sufijo)"
 
 msgctxt "#32003"
 msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
-msgstr ""
+msgstr "Lista de patrones de nombre de archivo gif separados por coma. Selecciona nombres exactos (p.ej. 'poster.gif') o que terminen con el patrón (p.ej. 'movie.poster.gif')"
 
 msgctxt "#32004"
 msgid "Artwork"
-msgstr ""
+msgstr "Arte"
 
 #. Error shown when an edited rating is not a number in range; 7.3 is an example value
 msgctxt "#32005"
 msgid "Rating must be a number from 0 to 10, such as 7.3"
-msgstr ""
+msgstr "La valoración debe ser entre 0 y 10, como 7.3"
 
 #. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
 msgid "Preferred language"
-msgstr ""
+msgstr "Idioma preferido"
 
 msgctxt "#32007"
 msgid "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
-msgstr ""
+msgstr "El idioma para el Arte se prioriza para carteles, logos y otro arte sensible al idioma."
 
 msgctxt "#32008"
 msgid "Prefer fanart in selected language"
-msgstr ""
+msgstr "Preferir fanart en el idioma escogido"
 
 msgctxt "#32009"
 msgid "No artwork available from scrapers"
-msgstr ""
+msgstr "No hay arte disponible en los scrapers"
 
 msgctxt "#32010"
 msgid "No artwork matched language preferences"
-msgstr ""
+msgstr "No hay arte según las preferencias de idioma"
 
 msgctxt "#32011"
 msgid "Needs manual review"
-msgstr ""
+msgstr "Necesita revisión manual"
 
 msgctxt "#32012"
 msgid "No images selected"
-msgstr ""
+msgstr "No hay imágenes seleccionadas"
 
 msgctxt "#32013"
 msgid "Downloaded {0} files"
-msgstr ""
+msgstr "Descargando {0} archivos"
 
 msgctxt "#32014"
 msgid "{0} files"
-msgstr ""
+msgstr "{0} archivos"
 
 msgctxt "#32015"
 msgid "{0} image(s) selected"
-msgstr ""
+msgstr "{0} imágenes seleccionadas"
 
 msgctxt "#32016"
 msgid "{0} seasons"
-msgstr ""
+msgstr "{0} temporadas"
 
 msgctxt "#32017"
 msgid "{0} episodes"
-msgstr ""
+msgstr "{0} episodios"
 
 #. Error shown when an edited year falls outside the accepted range
 msgctxt "#32018"
 msgid "Year must be between 1800 and 2100"
-msgstr ""
+msgstr "El año debe estar entre 1800 y 2100"
 
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
-msgstr ""
+msgstr "Añadir opción 'Descargar' para el arte que falte y precaché"
 
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
-msgstr ""
+msgstr "Muestra opciones adicionales en el menú para descargar arte durante las operaciones de revisión y precaché"
 
 #. Error shown when an edited runtime is not a whole number of minutes in range
 msgctxt "#32021"
 msgid "Runtime must be 0 to 10080 minutes"
-msgstr ""
+msgstr "La duración debe ser de 0 a 10080 minutos"
 
 msgctxt "#32022"
 msgid "When File Already Exists"
-msgstr ""
+msgstr "Cuando el Archivo Exista"
 
 msgctxt "#32023"
 msgid "What to do when artwork file already exists on filesystem"
-msgstr ""
+msgstr "Qué hacer cuando el arte ya exista en el dispositivo"
 
 msgctxt "#32024"
 msgid "Skip (don't download)"
-msgstr ""
+msgstr "Saltar (no descargar)"
 
 msgctxt "#32025"
 msgid "Overwrite existing file"
-msgstr ""
+msgstr "Sobreescribir archivo existente"
 
 #. Error shown when an edited Top 250 position falls outside the accepted range
 msgctxt "#32026"
 msgid "Top 250 must be 0-250"
-msgstr ""
+msgstr "Top 250 debe estar entre 0 y 250"
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
-msgstr ""
+msgstr "Usar Nombre de Archivo de la Película como Prefijo"
 
 msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
-msgstr ""
+msgstr "Guarda el archivo como 'Avatar-poster.jpg' en lugar de 'poster.jpg'"
 
 msgctxt "#32029"
 msgid "Export to NFO"
-msgstr ""
+msgstr "Exportar a NFO"
 
 msgctxt "#32030"
 msgid "NFO file written"
-msgstr ""
+msgstr "Guardado archivo NFO"
 
 msgctxt "#32031"
 msgid "Could not write NFO file"
-msgstr ""
+msgstr "No se puede guardar el archivo NFO"
 
 msgctxt "#32032"
 msgid "Processing cancelled"
-msgstr ""
+msgstr "Procesamiento cancelado"
 
 msgctxt "#32033"
 msgid "Art Fetcher - Cancelled"
-msgstr ""
+msgstr "Conseguidor de Arte - Cancelado"
 
 #. Error shown when an edited duration is not a MM:SS time
 msgctxt "#32034"
 msgid "Duration must be in MM:SS format"
-msgstr ""
+msgstr "La duración debe estar en el formato MM:SS"
 
 msgctxt "#32035"
 msgid "Always Ask"
-msgstr ""
+msgstr "Preguntar Siempre"
 
 msgctxt "#32036"
 msgid "GIF Scanner Mode"
-msgstr ""
+msgstr "Modo de Escaneo GIF"
 
 msgctxt "#32037"
 msgid "Scan mode for animated art scanner"
-msgstr ""
+msgstr "Modo de escaneo para el arte animado"
 
 msgctxt "#32038"
 msgid "Incremental"
-msgstr ""
+msgstr "Incremental"
 
 msgctxt "#32039"
 msgid "Full Scan"
-msgstr ""
+msgstr "Escaneo Completo"
 
 msgctxt "#32040"
 msgid "Download Report"
-msgstr ""
+msgstr "Descargar Informe"
 
 msgctxt "#32041"
 msgid "No download history found."
-msgstr ""
+msgstr "No hay historial de descargas."
 
 msgctxt "#32042"
 msgid "Cancelled"
-msgstr ""
+msgstr "Cancelado"
 
 msgctxt "#32043"
 msgid "No valid media types to download."
-msgstr ""
+msgstr "No hay tipos de contenido válidos para descargar."
 
 msgctxt "#32044"
 msgid "API Keys"
-msgstr ""
+msgstr "Claves de API"
 
 msgctxt "#32045"
 msgid "Downloaded:"
-msgstr ""
+msgstr "Descargados:"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
-msgstr ""
+msgstr "Configurar clave de API TMDB"
 
 msgctxt "#32047"
 msgid "Get your API key from https://www.themoviedb.org/settings/api"
-msgstr ""
+msgstr "Obtén la clave de API en https://www.themoviedb.org/settings/api"
 
 msgctxt "#32048"
 msgid "Test Connection"
-msgstr ""
+msgstr "Probar Conexión"
 
 msgctxt "#32049"
 msgid "Clear API Key"
-msgstr ""
+msgstr "Borrar Clave API"
 
 msgctxt "#32050"
 msgid "MDBList"
-msgstr ""
+msgstr "MDBList"
 
 msgctxt "#32051"
 msgid "Configure MDBList API Key"
-msgstr ""
+msgstr "Configurar Clave API MDBList"
 
 msgctxt "#32052"
 msgid "Get your API key from https://mdblist.com/preferences/"
-msgstr ""
+msgstr "Obtén la clave de API en https://mdblist.com/preferences/"
 
 msgctxt "#32053"
 msgid "OMDb"
-msgstr ""
+msgstr "OMDb"
 
 msgctxt "#32054"
 msgid "Configure OMDb API Key"
-msgstr ""
+msgstr "Configurar Clave API OMDb"
 
 msgctxt "#32055"
 msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
-msgstr ""
+msgstr "Obtén la clave de API en http://www.omdbapi.com/apikey.aspx"
 
 msgctxt "#32056"
 msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
-msgstr ""
+msgstr "Fanart.tv · fanart.tv/get-an-api-key[CR]Sin clave: 7 días · Personal: 2 días · VIP: Inmediato"
 
 msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
-msgstr ""
+msgstr "Configurar Clave API Fanart.tv"
 
 msgctxt "#32059"
 msgid "Trakt"
-msgstr ""
+msgstr "Trakt"
 
 msgctxt "#32060"
 msgid "Authorize Trakt"
-msgstr ""
+msgstr "Autorizar Trakt"
 
 msgctxt "#32061"
 msgid "Authorize this addon to access your Trakt account"
-msgstr ""
+msgstr "Autoriza a este addon para acceder a tu cuenta Trakt"
 
 msgctxt "#32062"
 msgid "Test Trakt Connection"
-msgstr ""
+msgstr "Probar Conexión a Trakt"
 
 msgctxt "#32063"
 msgid "Revoke Authorization"
-msgstr ""
+msgstr "Revocar Autorización"
 
 msgctxt "#32064"
 msgid "Ratings"
-msgstr ""
+msgstr "Valoraciones"
 
 msgctxt "#32065"
 msgid "Not configured"
-msgstr ""
+msgstr "No configurado"
 
 msgctxt "#32066"
 msgid "Stopped early: downloads stalled"
-msgstr ""
+msgstr "Detención temprana: Descargas paradas"
 
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
-msgstr ""
+msgstr "No hay progreso en los últimos {0} segundos. Lánzalo otra vez para terminar el resto."
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
-msgstr ""
+msgstr "Cola de Procesamiento de Arte"
 
 msgctxt "#32073"
 msgid "Cache is empty"
-msgstr ""
+msgstr "Caché vacía"
 
 msgctxt "#32074"
 msgid "Default ratings source"
-msgstr ""
+msgstr "Fuente de valoraciones por defecto"
 
 msgctxt "#32075"
 msgid "Primary source to display when multiple ratings are available"
-msgstr ""
+msgstr "Fuente principal para mostrar cuando hay valoraciones múltiples"
 
 msgctxt "#32076"
 msgid "IMDb"
-msgstr ""
+msgstr "IMDb"
 
 msgctxt "#32077"
 msgid "TMDB"
-msgstr ""
+msgstr "TMDB"
 
 msgctxt "#32080"
 msgid "API Key"
-msgstr ""
+msgstr "Clave API"
 
 msgctxt "#32081"
 msgid "Status: Authorized"
-msgstr ""
+msgstr "Estado: Autorizado"
 
 msgctxt "#32082"
 msgid "Texture Cache Manager"
-msgstr ""
+msgstr "Gestor de Caché de Texturas"
 
 msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
