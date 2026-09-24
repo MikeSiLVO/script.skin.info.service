@@ -398,7 +398,7 @@ def _season_ttl_hours(season_data: dict) -> int:
     today = datetime.now().date().isoformat()
     episodes = season_data.get("episodes") or []
     if not episodes:
-        return 6
+        return 24
     for ep in episodes:
         air = ep.get("air_date") or ""
         if not air or air > today:
