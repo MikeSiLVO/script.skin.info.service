@@ -281,7 +281,7 @@ def handle_artist_albums(handle: int, params: dict) -> None:
         return
 
     xbmcplugin.setPluginCategory(handle, artist_name)
-    from lib.plugin.widgets import validate_sort_method
+    from lib.kodi.utilities import validate_sort_method
     limit = int(params.get('limit', ['25'])[0])
     sort_method = validate_sort_method(params.get('sort', ['year'])[0], 'year')
 

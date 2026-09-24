@@ -126,6 +126,21 @@ def normalize_dbtype(value: Optional[str]) -> str:
     return (value or "").lower()
 
 
+_VALID_SORT_METHODS = frozenset((
+    "none", "label", "date", "size", "file", "path", "drivetype", "title", "track",
+    "time", "artist", "album", "albumtype", "genre", "country", "year", "rating",
+    "userrating", "votes", "top250", "programcount", "playlist", "episode", "season",
+    "totalepisodes", "watchedepisodes", "tvshowstatus", "tvshowtitle", "sorttitle",
+    "productioncode", "mpaa", "studio", "dateadded", "lastplayed", "playcount",
+    "listeners", "bitrate", "random", "totaldiscs", "originaldate", "bpm", "originaltitle",
+))
+
+
+def validate_sort_method(method: str, fallback: str) -> str:
+    """Return the sort method if Kodi's JSON-RPC accepts it, else the fallback."""
+    return method if method in _VALID_SORT_METHODS else fallback
+
+
 def normalize_certificate(value: Optional[str]) -> Tuple[str, str]:
     """Normalize a certificate to `(country, rating)` for comparison; an empty rating never
     matches, and countries must agree so `NL:16` stays distinct from `GR:16`."""

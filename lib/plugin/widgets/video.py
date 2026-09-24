@@ -1649,7 +1649,7 @@ def _halloween_movies(limit: int, sort_method: str) -> list:
 
 def handle_seasonal(handle: int, params: dict) -> None:
     """Plugin entry: seasonal movie collections (holiday keywords, genre, or franchise set)."""
-    from lib.plugin.widgets import validate_sort_method
+    from lib.kodi.utilities import validate_sort_method
     season = params.get('season', [''])[0].lower()
     limit = int(params.get('limit', ['50'])[0])
     sort_method = validate_sort_method(params.get('sort', ['random'])[0], 'random')
