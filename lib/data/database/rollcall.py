@@ -340,9 +340,8 @@ def get_dbids_by_tmdb(media_type: str, tmdb_ids: Iterable) -> Dict[str, int]:
                 for row in chunked_in_query(cursor, sql, [media_type], sorted(wanted))
             }
     except sqlite3.OperationalError as e:
-        # Plugin and script entries never run init_database, so the column can still be missing
-        # until the service has started once after the upgrade; a lock or I/O fault is not that.
-        expected = "no such column" in str(e)
+        # plugin and script entries never run init_database
+        expected = "no such table" in str(e)
         log("Database", f"DBID registry lookup failed: {e}",
             xbmc.LOGDEBUG if expected else xbmc.LOGWARNING)
         return {}

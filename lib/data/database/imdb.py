@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import time
 from typing import Optional, Dict, List, Tuple, Generator, Callable
 
-from lib.data.database._infrastructure import get_db
+from lib.data.database._infrastructure import get_db, chunked_in_query
 
 
 def _select_rating(cursor: sqlite3.Cursor, imdb_id: str) -> Optional[Dict[str, float | int]]:
@@ -37,7 +37,6 @@ def get_ratings_batch(imdb_ids: List[str]) -> Dict[str, Dict[str, float | int]]:
     if not imdb_ids:
         return {}
 
-    from lib.data.database._infrastructure import chunked_in_query
     results: Dict[str, Dict[str, float | int]] = {}
     sql = "SELECT imdb_id, rating, votes FROM imdb_rating WHERE imdb_id IN ({placeholders})"
     with get_db() as cursor:

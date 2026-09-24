@@ -23,6 +23,7 @@ from lib.data.database.music import (
     get_cached_album,
     get_cached_artist,
     get_cached_track,
+    lastfm_text,
 )
 from lib.kodi.client import log
 from lib.kodi.formatters import format_number
@@ -475,22 +476,6 @@ def fetch_album_online_data(
             or None)
 
 
-def _extract_wiki(data: Optional[dict]) -> str:
-    """Extract wiki/bio text from a Last.fm response, stripping the HTML suffix."""
-    if not isinstance(data, dict):
-        return ''
-    wiki = data.get('wiki') or data.get('bio')
-    if not isinstance(wiki, dict):
-        return ''
-    content = wiki.get('content') or wiki.get('summary') or ''
-    if not content:
-        return ''
-    href_idx = content.find('<a href=')
-    if href_idx > 0:
-        content = content[:href_idx].rstrip()
-    return content
-
-
 def _extract_tags(data: Optional[dict]) -> str:
     """Extract top tags from a Last.fm response as MULTI_VALUE_SEP joined string."""
     if not isinstance(data, dict):
@@ -513,7 +498,7 @@ def extract_track_properties(artist: str, track: str) -> Dict[str, str]:
     lastfm = get_cached_track(SOURCE_LASTFM, artist, track, lang=lang)
     audiodb = get_cached_track(SOURCE_AUDIODB, artist, track)
 
-    wiki = _extract_wiki(lastfm)
+    wiki = lastfm_text(lastfm)
     if not wiki:
         wikipedia = get_cached_track(SOURCE_WIKIPEDIA, artist, track, lang=lang)
         if isinstance(wikipedia, dict):
@@ -586,7 +571,7 @@ def extract_album_properties(artist: str, album: str, *, mbid: str = '') -> Dict
                                lang=lang)
     audiodb_data = get_cached_album(SOURCE_AUDIODB, artist=artist, album=album, mbid=mbid)
 
-    wiki = _extract_wiki(lastfm)
+    wiki = lastfm_text(lastfm)
     if not wiki:
         wikipedia = get_cached_album(SOURCE_WIKIPEDIA, artist=artist, album=album, lang=lang)
         if isinstance(wikipedia, dict):

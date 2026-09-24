@@ -14,6 +14,7 @@ import xbmc
 from lib.data.database._infrastructure import (
     get_db,
     DB_PATH,
+    sql_placeholders,
     compress_data as _compress,
     decompress_data as _decompress,
 )
@@ -195,7 +196,7 @@ def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int
             targets.append(('artist', artist_lower))
         for entity, prefix in targets:
             kinds = [_kind(entity, src) for src in sources]
-            placeholders = ','.join('?' * len(kinds))
+            placeholders = sql_placeholders(len(kinds))
             cursor.execute(
                 f'DELETE FROM blob_cache WHERE kind IN ({placeholders}) '
                 'AND (cache_key = ? OR cache_key LIKE ?)',
@@ -334,25 +335,27 @@ def get_best_artist_bio(*, mbid: str = '', name: str = '') -> str:
     """Check AudioDB first (richer bios), fall back to Last.fm."""
     from lib.kodi.settings import KodiSettings
     lang = KodiSettings.online_metadata_language()
-    suffix = _AUDIODB_LANG_MAP.get(lang, 'EN')
 
     audiodb_data = get_cached_artist(SOURCE_AUDIODB, mbid=mbid, name=name)
     if audiodb_data:
-        bio = audiodb_data.get(f'strBiography{suffix}') or ''
-        if not bio and suffix != 'EN':
+        bio = audiodb_data.get(audiodb_text_field('strBiography')) or ''
+        if not bio:
             bio = audiodb_data.get('strBiographyEN') or ''
         if bio:
             return bio
 
-    lastfm_data = get_cached_artist(SOURCE_LASTFM, mbid=mbid, name=name, lang=lang)
-    if lastfm_data:
-        bio_obj = lastfm_data.get('bio') or {}
-        if isinstance(bio_obj, dict):
-            content = bio_obj.get('content') or bio_obj.get('summary') or ''
-            if content:
-                href_idx = content.find('<a href=')
-                if href_idx > 0:
-                    content = content[:href_idx].rstrip()
-                return content
+    return lastfm_text(get_cached_artist(SOURCE_LASTFM, mbid=mbid, name=name, lang=lang))
 
-    return ''
+
+def lastfm_text(data: Optional[dict]) -> str:
+    """Wiki or bio text from a Last.fm response, cut before the link Last.fm appends."""
+    if not isinstance(data, dict):
+        return ''
+    wiki = data.get('wiki') or data.get('bio')
+    if not isinstance(wiki, dict):
+        return ''
+    content = wiki.get('content') or wiki.get('summary') or ''
+    href_idx = content.find('<a href=')
+    if href_idx > 0:
+        content = content[:href_idx].rstrip()
+    return content
