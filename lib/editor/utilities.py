@@ -91,7 +91,7 @@ def validate_top250(value: int) -> tuple[bool, str]:
 def format_runtime_display(seconds: int) -> str:
     """Format runtime seconds for display."""
     if not seconds:
-        return "(not set)"
+        return ADDON.getLocalizedString(32392)
 
     hours, remainder = divmod(seconds, 3600)
     minutes = remainder // 60
@@ -147,34 +147,34 @@ def parse_duration_from_edit(text: str) -> int:
 def format_list_display(values: list[str] | None, max_items: int = 3) -> str:
     """Format list values for display in menu."""
     if not values:
-        return "(not set)"
+        return ADDON.getLocalizedString(32392)
 
     if len(values) <= max_items:
         return ", ".join(values)
 
     shown = ", ".join(values[:max_items])
-    return f"{shown} (+{len(values) - max_items} more)"
+    return f"{shown} {ADDON.getLocalizedString(32729).format(len(values) - max_items)}"
 
 
 def format_userrating_display(value: int) -> str:
     """Format user rating for display."""
     if not value:
-        return "(not rated)"
+        return f"({ADDON.getLocalizedString(32391)})"
     return f"{value}/10"
 
 
 def format_uniqueids_display(uniqueids: dict[str, Any] | None) -> str:
     """Format unique IDs as 'type value' pairs."""
     if not uniqueids:
-        return "(not set)"
+        return ADDON.getLocalizedString(32392)
     parts = [f"{id_type} {value}" for id_type, value in uniqueids.items() if value]
-    return ", ".join(parts) if parts else "(not set)"
+    return ", ".join(parts) if parts else ADDON.getLocalizedString(32392)
 
 
 def format_ratings_display(ratings: dict[str, Any] | None) -> str:
     """Format external ratings dict for display."""
     if not ratings:
-        return "(no ratings)"
+        return ADDON.getLocalizedString(32392)
 
     parts = []
     for source, data in ratings.items():
@@ -185,7 +185,7 @@ def format_ratings_display(ratings: dict[str, Any] | None) -> str:
             parts.append(f"{source}: {data}")
 
     if not parts:
-        return "(no ratings)"
+        return ADDON.getLocalizedString(32392)
 
     return ", ".join(parts[:3])
 
@@ -196,7 +196,7 @@ _MENU_TEXT_TRUNCATE_LEN = 50
 def format_value_for_display(value: Any, field_type: FieldType) -> str:
     """Format a field value for menu display based on type."""
     if not value:
-        return "(not set)"
+        return ADDON.getLocalizedString(32392)
 
     if field_type == FieldType.TEXT or field_type == FieldType.TEXT_LONG:
         text = str(value)

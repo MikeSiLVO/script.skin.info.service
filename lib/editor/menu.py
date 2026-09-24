@@ -76,7 +76,7 @@ def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
         )
         return
 
-    title = item.get("title") or item.get("artist") or "Unknown"
+    title = item.get("title") or item.get("artist") or xbmc.getLocalizedString(13205)
     log("Editor", f"Editing {media_type} '{title}' (dbid={dbid_int})", xbmc.LOGDEBUG)
 
     _show_main_menu(dbid_int, media_type, item, title)
@@ -199,7 +199,8 @@ def _edit_field(
                 item["premiered"] = f"{new_value}{original[4:10]}"
             else:
                 item["premiered"] = f"{new_value}-01-01"
-        show_notification(ADDON.getLocalizedString(32258), f"{display_name} updated",
+        show_notification(ADDON.getLocalizedString(32258),
+                          ADDON.getLocalizedString(32728).format(display_name),
                           xbmcgui.NOTIFICATION_INFO, 2000)
         xbmc.executebuiltin("Container.Refresh")
 

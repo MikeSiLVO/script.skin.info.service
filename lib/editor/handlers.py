@@ -254,8 +254,7 @@ def _select_from_library(
     if not library_values:
         xbmcgui.Dialog().ok(
             ADDON.getLocalizedString(32390),
-            f"No existing {field_name} found in library.\n"
-            "Use Quick Edit or Add/Remove instead."
+            ADDON.getLocalizedString(32726).format(field_name)
         )
         return None, True
 
@@ -268,7 +267,7 @@ def _select_from_library(
     preselect = [i for i, v in enumerate(all_values) if v in current]
 
     result = xbmcgui.Dialog().multiselect(
-        f"Select {field_name}",
+        ADDON.getLocalizedString(32556).format(field_name),
         all_values,  # type: ignore[arg-type]
         preselect=preselect
     )
@@ -287,7 +286,7 @@ def _add_remove_items(
     monitor = xbmc.Monitor()
 
     while not monitor.abortRequested():
-        options = [f"[+] Add {field_name}"]
+        options = [f"[+] {ADDON.getLocalizedString(32394).format(field_name)}"]
         for item in items:
             options.append(f"[-] {item}")
         options.append(f"[{ADDON.getLocalizedString(32393)}]")
@@ -333,12 +332,14 @@ def handle_ratings(
             if isinstance(data, dict):
                 rating = data.get("rating", 0)
                 votes = data.get("votes", 0)
-                default_mark = " [Default]" if data.get("default") else ""
-                options.append(f"{source}: {rating:.1f} ({votes:,} votes){default_mark}")
+                default_mark = f" [{xbmc.getLocalizedString(571)}]" if data.get("default") else ""
+                vote_text = ADDON.getLocalizedString(32727).format(f"{votes:,}")
+                options.append(f"{source}: {rating:.1f} ({vote_text}){default_mark}")
             else:
                 options.append(f"{source}: {data}")
 
-        options.append("[+] Add Rating Source")
+        add_rating = ADDON.getLocalizedString(32394).format(xbmc.getLocalizedString(563))
+        options.append(f"[+] {add_rating}")
 
         choice = show_select(ADDON.getLocalizedString(32557).format(field_name), options)
 
@@ -479,10 +480,10 @@ def _add_rating_source(ratings: dict[str, Any]) -> bool:
 def _edit_single_rating(ratings: dict[str, Any], source: str) -> bool:
     """Edit a single rating source. Returns True if modified."""
     options = [
-        "Edit Rating Value",
+        ADDON.getLocalizedString(32557).format(xbmc.getLocalizedString(563)),
         f"Edit {ADDON.getLocalizedString(32253)}",
-        "Set as Default",
-        "Remove This Rating",
+        xbmc.getLocalizedString(40023),
+        xbmc.getLocalizedString(1210),
     ]
 
     choice = show_select(ADDON.getLocalizedString(32557).format(source), options)

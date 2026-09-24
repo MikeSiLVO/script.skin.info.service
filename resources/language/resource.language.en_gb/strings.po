@@ -2213,6 +2213,25 @@ msgctxt "#32725"
 msgid "That date cannot exist"
 msgstr ""
 
+#. {0} is a field name such as Genre
+msgctxt "#32726"
+msgid "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
+msgstr ""
+
+msgctxt "#32727"
+msgid "{0} votes"
+msgstr ""
+
+#. {0} is a field name such as Genre
+msgctxt "#32728"
+msgid "{0} updated"
+msgstr ""
+
+#. {0} is how many more values are not shown
+msgctxt "#32729"
+msgid "(+{0} more)"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""
