@@ -40,7 +40,7 @@ from lib.artwork.config import (
     REVIEW_MODE_MISSING,
     SESSION_DETAIL_KEYS,
     default_session_stats as _default_session_stats,
-    serialise_session_stats as _serialise_session_stats,
+    load_session_stats as _load_session_stats,
 )
 from lib.artwork.scanner import ArtworkScanner
 
@@ -1014,7 +1014,7 @@ class ArtworkSelection:
 
                     db_workflow.update_session_stats(
                         self.session_id,
-                        _serialise_session_stats(self._build_stats_payload()),
+                        _load_session_stats(self._build_stats_payload()),
                     )
         finally:
             self.loading_progress.close()
@@ -1040,7 +1040,7 @@ class ArtworkSelection:
 
         if cancelled:
             db_workflow.update_session_stats(
-                self.session_id, _serialise_session_stats(self._build_stats_payload())
+                self.session_id, _load_session_stats(self._build_stats_payload())
             )
             db_workflow.cancel_session(self.session_id)
             heading = (
@@ -1051,7 +1051,7 @@ class ArtworkSelection:
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
         else:
             db_workflow.update_session_stats(
-                self.session_id, _serialise_session_stats(self._build_stats_payload())
+                self.session_id, _load_session_stats(self._build_stats_payload())
             )
             db_workflow.complete_session(self.session_id)
             heading = (

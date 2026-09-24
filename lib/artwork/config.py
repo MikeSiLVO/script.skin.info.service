@@ -4,8 +4,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from lib.kodi.utilities import validate_media_type, validate_dbid  # noqa: F401 - re-exported
-
 
 REVIEW_SCOPE_OPTIONS = [
     ('movies', 'Movies'),
@@ -149,8 +147,3 @@ def load_session_stats(raw: Any) -> dict:
             stats['review_mode'] = REVIEW_MODE_MISSING
 
     return stats
-
-
-def serialise_session_stats(stats: dict) -> dict:
-    """Serialize session stats (currently just normalizes via load)."""
-    return load_session_stats(stats)

@@ -10,7 +10,7 @@ import threading
 import time
 import xbmc
 import xbmcgui
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
@@ -27,21 +27,6 @@ MEDIA_TYPE_LABELS = {
     'artist': 'Artists',
     'album': 'Albums',
 }
-
-VALID_MEDIA_TYPES = frozenset(MEDIA_TYPE_LABELS.keys())
-
-
-def validate_media_type(media_type: str) -> bool:
-    """Validate that media_type is a known type."""
-    return media_type in VALID_MEDIA_TYPES
-
-
-def validate_dbid(dbid: Any) -> bool:
-    """Validate that dbid is a positive integer."""
-    try:
-        return int(dbid) > 0
-    except (ValueError, TypeError):
-        return False
 
 
 def resolve_infolabel(value: str) -> str:

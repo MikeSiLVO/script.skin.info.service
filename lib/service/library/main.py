@@ -157,7 +157,3 @@ class ServiceMain(threading.Thread):
         self.player.handle()
         self.music_player.handle()
         self.focus.process()
-
-    def _clear_media_type(self, media_type: str) -> None:
-        """Compatibility shim that delegates to the focus dispatcher."""
-        self.focus.clear_media_type(media_type)

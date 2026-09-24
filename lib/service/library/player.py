@@ -31,7 +31,7 @@ class PlayerVideoTracker:
         """Update Player props for the currently playing video."""
         if not self._player.isPlayingVideo():
             if self._last_player_id:
-                self._service._clear_media_type("player")
+                self._service.focus.clear_media_type("player")
                 self._last_player_id = None
                 self._last_player_type = None
             return
@@ -39,7 +39,7 @@ class PlayerVideoTracker:
         player_dbid = xbmc.getInfoLabel("VideoPlayer.DBID") or ""
         if not player_dbid:
             if self._last_player_id:
-                self._service._clear_media_type("player")
+                self._service.focus.clear_media_type("player")
                 self._last_player_id = None
                 self._last_player_type = None
             return

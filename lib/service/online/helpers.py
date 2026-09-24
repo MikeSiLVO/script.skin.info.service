@@ -15,11 +15,6 @@ def get_online_ttl(media_type: str, tmdb_id: str) -> int:
     return get_title_ttl_hours(media_type, tmdb_id) or 72
 
 
-def invalidate_online_cache(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> None:
-    """Invalidate the online properties cache for a specific library item."""
-    invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
-
-
 def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
     """Resolve uniqueids for a library item and drop its cached online data."""
     from lib.kodi.client import get_item_uniqueids
