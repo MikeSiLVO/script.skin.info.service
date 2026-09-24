@@ -1193,11 +1193,17 @@ class ArtworkManager:
 
         self._select_intent()
 
+    def _set_scope(self, scope: str) -> None:
+        """Set the scope and its media filter; 'all' filters nothing."""
+        self.scope = scope
+        self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope)
+
     def _handle_scope_arg(self) -> bool:
         """Handle pre-selected scope from argument."""
         valid_scopes = {scope for scope, _ in REVIEW_SCOPE_OPTIONS}
+        scope = self.scope_arg
 
-        if self.scope_arg not in valid_scopes:
+        if not scope or scope not in valid_scopes:
             show_notification(
                 "Missing Artwork",
                 f"Unknown scope '{self.scope_arg}'.",
@@ -1206,13 +1212,10 @@ class ArtworkManager:
             )
             return False
 
-        self.scope = self.scope_arg
-        self.media_filter = (
-            None if self.scope == 'all' else REVIEW_MEDIA_FILTERS.get(self.scope, None)
-        )
+        self._set_scope(scope)
         self.session_id = None
 
-        scope_label = REVIEW_SCOPE_LABELS.get(self.scope, self.scope.title())
+        scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
 
         items = []
 
@@ -1319,8 +1322,7 @@ class ArtworkManager:
 
     def _start_scan_for_scope(self, scope: str, enable_download: bool = False) -> bool:
         """Start scan workflow for selected scope."""
-        self.scope = scope
-        self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope, None)
+        self._set_scope(scope)
         self.session_id = None
         return self._handle_manual_review(enable_download=enable_download)
 
@@ -1365,8 +1367,7 @@ class ArtworkManager:
         if not confirmed:
             return
 
-        self.scope = scope
-        self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope, None)
+        self._set_scope(scope)
         self.session_id = None
         self._run_auto_apply_mode()
 
@@ -1400,8 +1401,7 @@ class ArtworkManager:
 
     def _view_report_for_scope(self, scope: str) -> None:
         """View report for a specific scope."""
-        self.scope = scope
-        self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope, None)
+        self._set_scope(scope)
 
         last_session = db_workflow.get_last_manual_review_session(self.media_filter)
 

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, List
 
 
 REVIEW_SCOPE_OPTIONS = [
@@ -23,6 +23,13 @@ REVIEW_MEDIA_FILTERS = {
 }
 
 REVIEW_MODE_MISSING = 'missing_only'
+
+
+def scope_media_types(scope: str) -> List[str]:
+    """Media types a review scope covers, every one of them for 'all'."""
+    if scope == 'all':
+        return [media_type for types in REVIEW_MEDIA_FILTERS.values() for media_type in types]
+    return list(REVIEW_MEDIA_FILTERS.get(scope, []))
 
 # Art types each media type can actually receive, per what the providers return.
 ART_TYPES_BY_MEDIA = {

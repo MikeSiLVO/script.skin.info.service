@@ -14,7 +14,7 @@ from lib.data.database import workflow as db_workflow
 from lib.kodi.client import get_library_items, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code
-from lib.artwork.config import REVIEW_MODE_MISSING, bulk_art_types
+from lib.artwork.config import REVIEW_MODE_MISSING, bulk_art_types, scope_media_types
 from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.kodi.client import log, ADDON
@@ -115,15 +115,7 @@ class ArtworkScanner:
 
     def scan(self, media_type: str) -> bool:
         """Scan a library scope for missing artwork; False only on fatal error."""
-        media_types = []
-        if media_type in ("movies", "all"):
-            media_types.append("movie")
-        if media_type in ("tvshows", "all"):
-            media_types.extend(["tvshow", "season", "episode"])
-        if media_type in ("musicvideos", "all"):
-            media_types.append("musicvideo")
-        if media_type in ("music", "all"):
-            media_types.extend(["artist", "album"])
+        media_types = scope_media_types(media_type)
 
         self._sync_feed_changes(media_types)
 
