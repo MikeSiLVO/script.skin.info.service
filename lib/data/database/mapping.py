@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from lib.data.database._infrastructure import as_int, get_db, chunked_in_query
 
@@ -75,6 +75,16 @@ def get_tmdb_id_by_imdb(imdb_id: str, media_type: str) -> Optional[str]:
 def get_tmdb_id_by_tvdb(tvdb_id: str, media_type: str) -> Optional[str]:
     """Look up tmdb_id from tvdb_id."""
     return _lookup("tmdb_id", "tvdb_id", as_int(tvdb_id), media_type)
+
+
+def get_tmdb_ids_by_tvdb(tvdb_ids: List[str], media_type: str) -> List[str]:
+    """Get the TMDB ids mapped to many TVDB ids; an unmapped id is left out."""
+    wanted = [i for i in (as_int(t) for t in tvdb_ids) if i is not None]
+    if not wanted:
+        return []
+    sql = "SELECT tmdb_id FROM tmdb_title WHERE media_type = ? AND tvdb_id IN ({placeholders})"
+    with get_db() as cursor:
+        return [str(row["tmdb_id"]) for row in chunked_in_query(cursor, sql, [media_type], wanted)]
 
 
 def is_known_find_miss(imdb_id: str, media_type: str) -> bool:

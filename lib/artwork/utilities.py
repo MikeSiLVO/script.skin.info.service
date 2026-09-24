@@ -276,6 +276,7 @@ def sync_feed_changes(fanart_api, feeds: List[str]) -> dict:
     import time
 
     from lib.data.database import cache as db_cache
+    from lib.data.database.mapping import get_tmdb_ids_by_tvdb
     from lib.kodi.client import log
     import xbmc
 
@@ -304,7 +305,11 @@ def sync_feed_changes(fanart_api, feeds: List[str]) -> dict:
     for feed in feeds:
         due = db_cache.take_due_rechecks(feed, now)
         if due:
-            cleared = db_cache.clear_artwork_for_ids(due)
+            ids = list(due)
+            if feed == 'tv':
+                # a show's completion marker is keyed by its TMDB id, the feed sends TVDB ids
+                ids += get_tmdb_ids_by_tvdb(due, 'tvshow')
+            cleared = db_cache.clear_artwork_for_ids(ids)
             log("Artwork", f"Feed '{feed}': cleared {cleared} cached rows for {len(due)} items",
                 xbmc.LOGDEBUG)
 
