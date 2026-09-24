@@ -123,7 +123,7 @@ on the media type.
 | `BlurredFanart` | Blurred copy of `Fanart`, generated on open |
 
 The two blurred images are produced in the background, so they appear a moment after the dialog
-opens. Blur radius follows the skin string `SkinInfo.BlurRadius` (default 40).
+opens. Blur radius follows [`SkinInfo.BlurRadius`](../tools/blur.md#blur-radius).
 
 ### IDs
 

@@ -6,6 +6,19 @@ Automatically create blurred images.
 
 ---
 
+## Blur Radius
+
+`SkinInfo.BlurRadius` sets the radius for every blur: the service loop, player blur, the info
+dialogs, and RunScript when `radius` is left out.
+
+```xml
+<onclick>Skin.SetString(SkinInfo.BlurRadius,30)</onclick>
+```
+
+Whole numbers from 1. Unset or anything else uses 40. A value gives the same look on any image size.
+
+---
+
 ## Service Loop Blur
 
 ### Main Library Blur
@@ -116,7 +129,7 @@ RunScript(script.skin.info.service,action=blur,source="<infolabel>",prefix=<name
 | ----------- | -------- | ------------------------------- | ---------------------------------------- | --------------- |
 | `source`    | **Yes**  | Image path or infolabel to blur | -                                        | **Yes**         |
 | `prefix`    | No       | Property name prefix            | `Custom`                                 | No              |
-| `radius`    | No       | Blur radius (recommended 30-50) | `Skin.String(SkinInfo.BlurRadius)` or 40 | No              |
+| `radius`    | No       | Blur radius, 1 or more          | `Skin.String(SkinInfo.BlurRadius)` or 40 | No              |
 | `window_id` | No       | Window name or ID               | `home`                                   | No              |
 
 ### Examples

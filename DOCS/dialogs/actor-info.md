@@ -62,6 +62,7 @@ Set on the dialog window while it's open. Read via `$INFO[Window.Property(X)]`.
 | `Gender` | Gender text |
 | `TopMovies`, `TopTVShows` | Top credit titles |
 | `ProfileImage` | Profile image URL |
+| `BlurredThumb` | Blurred copy of `ProfileImage`, set a moment after the dialog opens |
 
 ### Container Paths
 
