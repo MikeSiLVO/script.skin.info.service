@@ -28,6 +28,8 @@ MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 ART_EXTENSIONS = ('jpg', 'png', 'gif', 'webp')
 
+_FOLDER_HEADING = "[B]Downloaded Files by Folder[/B]"
+
 ERROR_CATEGORY_LABELS = {
     'network': "Network errors (timeouts / connection failures)",
     'provider_blocked': "Source blocked after repeated failures (one server kept erroring)",
@@ -103,21 +105,12 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
                         for path, count in sorted_folders[:max_folders]
                     ]
 
-                    report_parts = report_text.split("[B]Downloaded Files by Folder[/B]")
-                    if len(report_parts) == 2:
-                        before_folders = report_parts[0] + "[B]Downloaded Files by Folder[/B]\n\n"
-                        after_folders = ""
-
-                        if "[B]Filename Pattern Mismatches" in report_parts[1]:
-                            _, mismatch_part = report_parts[1].split(
-                                "[B]Filename Pattern Mismatches", 1
-                            )
-                            after_folders = (
-                                "\n\n[B]Filename Pattern Mismatches" + mismatch_part
-                            )
-
+                    before, found, rest = report_text.partition(_FOLDER_HEADING)
+                    if found:
+                        next_section = rest.find("\n\n[B]")
+                        after_folders = rest[next_section:] if next_section >= 0 else ""
                         report_text = (
-                            before_folders + truncated_text
+                            before + _FOLDER_HEADING + "\n\n" + truncated_text
                             + "\n".join(folder_lines) + after_folders
                         )
                         full_text = header + report_text
@@ -540,7 +533,7 @@ def format_folder_section(folder_stats: Optional[Dict[str, int]]) -> List[str]:
     """Format the per-folder download breakdown. Returns empty list when no folder data."""
     if not folder_stats:
         return []
-    lines = ["", "[B]Downloaded Files by Folder[/B]", ""]
+    lines = ["", _FOLDER_HEADING, ""]
     for folder_path, count in sorted(folder_stats.items(), key=lambda x: x[0]):
         lines.append(f"{count} files - {folder_path}")
     return lines

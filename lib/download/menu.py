@@ -12,6 +12,7 @@ from lib.data.database import workflow as db_workflow
 from lib.download.workflows import (
     LOG_DIR,
     download_scope_artwork,
+    format_failure_section,
     format_folder_section,
     format_mismatch_section,
 )
@@ -63,6 +64,7 @@ def show_download_report() -> None:
         f"Total size: {mb:.2f} MB",
     ]
     lines.extend(format_folder_section(stats.get('folder_counts', {})))
+    lines.extend(format_failure_section(stats.get('error_categories', {})))
     lines.extend(format_mismatch_section(mismatch_counts))
     lines.extend([
         "",

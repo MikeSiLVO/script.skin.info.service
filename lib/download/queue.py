@@ -79,8 +79,10 @@ class DownloadQueue(WorkerQueue):
 
         success, error, bytes_downloaded, error_category = downloader.download_artwork(
             url=url,
-            local_path=local_path,            existing_file_mode=self.existing_file_mode,
-            alternate_path=alternate_path,            abort_flag=self.abort_flag,
+            local_path=local_path,
+            existing_file_mode=self.existing_file_mode,
+            alternate_path=alternate_path,
+            abort_flag=self.abort_flag,
             progress_callback=self._on_progress
         )
 
