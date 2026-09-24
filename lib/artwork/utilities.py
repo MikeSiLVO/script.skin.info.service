@@ -1,6 +1,7 @@
 """Helper classes and utilities for artwork fetching."""
 from __future__ import annotations
 
+import math
 from typing import List, Optional
 
 from lib.kodi.settings import KodiSettings
@@ -26,28 +27,7 @@ def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
 def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
                                sort_mode: str = 'popularity',
                                source_pref: str = 'all') -> List[dict]:
-    """Sort artwork by quality and popularity. Returns a new list (input not modified).
-
-    sort_mode:
-    - 'popularity' (default): Language > Weighted Popularity > Resolution.
-      Uses IMDb Bayesian averaging to balance rating quality vs. vote confidence.
-    - 'resolution': Resolution only (highest pixel count first).
-
-    source_pref:
-    - 'all' (default): TMDB and Fanart.tv mixed, sorted fairly.
-    - 'tmdb': Only TMDB items.
-    - 'fanart': Only Fanart.tv items.
-
-    Popularity mode sorting priority:
-    - Source tier: Primary sources first (TMDB, Fanart.tv), TheAudioDB last.
-    - Source preference (landscape only): Fanart.tv before TMDB.
-    - Language preference (if enabled for art type).
-    - Weighted popularity:
-      * TMDB: Bayesian (m=3, C=2.3): weighted = (votes/(votes+3)) * rating + (3/(votes+3)) * 2.3
-        Prevents single-vote ratings from dominating.
-      * Fanart.tv: Normalized likes (likes * 0.73) to match TMDB rating range.
-    - Resolution (pixel count) as tiebreaker.
-    """
+    """Sort a copy by source, language, fanart.tv likes or TMDB's own order, then resolution."""
     if not art_list or len(art_list) <= 1:
         return art_list
 
@@ -79,20 +59,9 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
         if sort_mode == 'resolution':
             return (-pixels,)
 
-        m = 3
-        C = 2.3
-
-        rating = float(art.get('rating', 0) or 0)
-        vote_count = int(art.get('vote_count', 0) or 0)
+        # likes scaled onto TMDB's rating range; TMDB images share one baseline
         likes = int(art.get('likes', '0') or '0')
-
-        if rating > 0 and vote_count >= 0:
-            weighted_rating = (vote_count / (vote_count + m)) * rating + (m / (vote_count + m)) * C
-            popularity = weighted_rating
-        elif likes > 0:
-            popularity = likes * 0.73
-        else:
-            popularity = C if rating > 0 or vote_count == 0 else 0
+        popularity = likes * 0.73 if likes > 0 else 2.3
 
         if use_language_preference:
             language = normalize_language_tag(art.get('language'))
@@ -114,7 +83,7 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
         else:
             source_priority = 0
 
-        return (source_priority, lang_match, -popularity, -pixels)
+        return (source_priority, lang_match, -popularity, art.get('rank', math.inf), -pixels)
 
     return sorted(art_list, key=get_sort_key)
 

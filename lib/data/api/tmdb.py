@@ -28,8 +28,8 @@ def _get_metadata_language() -> str:
     return lang
 
 
-def format_tmdb_image(image: dict, preview_size: str) -> Optional[dict]:
-    """Format a TMDB image entry to the common artwork format."""
+def format_tmdb_image(image: dict, preview_size: str, rank: int) -> Optional[dict]:
+    """Format a TMDB image entry to the common artwork format, keeping its place in TMDB's order."""
     file_path = image.get('file_path')
     if not file_path:
         return None
@@ -45,7 +45,8 @@ def format_tmdb_image(image: dict, preview_size: str) -> Optional[dict]:
         'height': image.get('height', 0),
         'rating': image.get('vote_average', 0),
         'language': image.get('iso_639_1') or '',
-        'source': 'TMDB'
+        'source': 'TMDB',
+        'rank': rank,
     }
 
 
@@ -55,7 +56,7 @@ def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
     result: Dict[str, List[dict]] = {}
 
     logos = data.get('logos') or []
-    formatted_logos = [format_tmdb_image(entry, 'w500') for entry in logos]
+    formatted_logos = [format_tmdb_image(entry, 'w500', i) for i, entry in enumerate(logos)]
     formatted_logos = [entry for entry in formatted_logos if entry]
     if formatted_logos:
         result['clearlogo'] = formatted_logos
@@ -63,8 +64,8 @@ def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
     posters = data.get('posters') or []
     keyart = []
     all_posters = []
-    for poster in posters:
-        formatted = format_tmdb_image(poster, 'w500')
+    for i, poster in enumerate(posters):
+        formatted = format_tmdb_image(poster, 'w500', i)
         if formatted:
             all_posters.append(formatted)
             if not poster.get('iso_639_1'):
@@ -81,8 +82,8 @@ def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
     user_lang = _get_metadata_language().split('-')[0].lower()
 
     formatted_backdrops: List[tuple[dict, str | None]] = []
-    for backdrop in backdrops:
-        formatted = format_tmdb_image(backdrop, 'w780')
+    for i, backdrop in enumerate(backdrops):
+        formatted = format_tmdb_image(backdrop, 'w780', i)
         if formatted:
             lang = backdrop.get('iso_639_1')
             formatted_backdrops.append((formatted, lang.lower() if lang else None))
@@ -231,7 +232,7 @@ class ApiTmdb(RatingSource):
         stills = data.get('stills', [])
         result = {}
         if stills:
-            formatted = [format_tmdb_image(img, 'w300') for img in stills]
+            formatted = [format_tmdb_image(img, 'w300', i) for i, img in enumerate(stills)]
             result['thumb'] = [img for img in formatted if img]
 
         return result
@@ -554,7 +555,7 @@ class ApiTmdb(RatingSource):
             entries = images.get(response_key) or []
             if not entries:
                 continue
-            formatted = [format_tmdb_image(img, preview_size) for img in entries]
+            formatted = [format_tmdb_image(img, preview_size, i) for i, img in enumerate(entries)]
             formatted = [img for img in formatted if img]
             if formatted:
                 db_cache.cache_artwork(media_type, str(tmdb_id), 'tmdb', art_type,
