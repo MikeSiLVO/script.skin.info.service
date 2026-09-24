@@ -29,6 +29,7 @@ _AWARD_PROPS = {
     "golden-globe-nominated": "Awards.GoldenGlobe.Nominated",
     "razzie-winner": "Awards.Razzie.Won",
     "razzie-nominee": "Awards.Razzie.Nominated",
+    "emmy-award-winner": "Awards.Emmy.Won",
     "emmy-award-nominated": "Awards.Emmy.Nominated",
     "festival-cannes-winner": "Awards.Festival.Cannes",
     "festival-venice-winner": "Awards.Festival.Venice",
@@ -59,18 +60,9 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
 
     try:
         omdb = ApiOmdb()
-        awards_data = omdb.get_awards(media_type, imdb_id, abort_flag=abort_flag)
-        if awards_data:
-            counts = {
-                "Awards.Oscar.Wins": awards_data.get("oscar_wins"),
-                "Awards.Oscar.Nominations": awards_data.get("oscar_nominations"),
-                "Awards.Emmy.Wins": awards_data.get("emmy_wins"),
-                "Awards.Emmy.Nominations": awards_data.get("emmy_nominations"),
-                "Awards.Other.Wins": awards_data.get("other_wins"),
-                "Awards.Other.Nominations": awards_data.get("other_nominations"),
-            }
-            props.update({k: str(v) for k, v in counts.items() if v})
-            props["Awards"] = awards_data.get("awards_text", "")
+        awards = omdb.get_awards(media_type, imdb_id, abort_flag=abort_flag)
+        if awards:
+            props["Awards"] = awards
 
         ratings = omdb.fetch_ratings(media_type, {"imdb": imdb_id}, abort_flag=abort_flag)
         if ratings:

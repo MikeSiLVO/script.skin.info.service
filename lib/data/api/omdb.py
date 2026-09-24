@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from typing import Optional, Dict
-import re
 import xbmc
 
 from lib.data.api.client import ApiSession
@@ -99,17 +98,14 @@ class ApiOmdb(RatingSource):
         """OMDb rates the parent title only; it has no per-episode entry."""
         return media_type != "episode"
 
-    def get_awards(self, media_type: str, imdb_id: str, abort_flag=None) -> Optional[dict]:
-        """Extract awards data from OMDb (fetches if not cached)."""
+    def get_awards(self, media_type: str, imdb_id: str, abort_flag=None) -> Optional[str]:
+        """Get a title's awards line from OMDb as written, fetching if not cached."""
         data = self.get_omdb_data(media_type, imdb_id)
         if not data:
             data = self.fetch_data(media_type, imdb_id, abort_flag)
 
-        if not data or not data.get('Awards'):
-            return None
-
-        media_type = data.get('Type', 'movie')
-        return self._parse_awards(data['Awards'], media_type)
+        awards = data.get('Awards') if data else None
+        return awards if awards and awards != "N/A" else None
 
     def _extract_ratings(self, data: dict) -> Dict[str, Dict[str, float]]:
         """Extract ratings dict from full OMDb response."""
@@ -169,54 +165,6 @@ class ApiOmdb(RatingSource):
 
         if result:
             result["_source"] = "omdb"  # type: ignore[assignment]
-
-        return result
-
-    def _parse_awards(self, awards_string: str, media_type: str) -> dict:
-        """Parse OMDb Awards field into structured data."""
-        result = {
-            "oscar_wins": 0,
-            "oscar_nominations": 0,
-            "emmy_wins": 0,
-            "emmy_nominations": 0,
-            "other_wins": 0,
-            "other_nominations": 0,
-            "awards_text": ""
-        }
-
-        if not awards_string or awards_string == "N/A":
-            return result
-
-        result["awards_text"] = awards_string
-
-        if media_type == "series":
-            emmy_wins_match = re.search(r'Won (\d+) Primetime Emmys?', awards_string)
-            if emmy_wins_match:
-                result["emmy_wins"] = int(emmy_wins_match.group(1))
-
-            emmy_noms_match = re.search(r'Nominated for (\d+) Primetime Emmys?', awards_string)
-            if emmy_noms_match:
-                result["emmy_nominations"] = int(emmy_noms_match.group(1))
-        else:
-            oscar_wins_match = re.search(r'Won (\d+) Oscars?', awards_string)
-            if oscar_wins_match:
-                result["oscar_wins"] = int(oscar_wins_match.group(1))
-
-            oscar_noms_match = re.search(r'Nominated for (\d+) Oscars?', awards_string)
-            if oscar_noms_match:
-                result["oscar_nominations"] = int(oscar_noms_match.group(1))
-
-        total_match = re.search(r'(\d+) wins? & (\d+) nominations? total', awards_string)
-        if total_match:
-            total_wins = int(total_match.group(1))
-            total_noms = int(total_match.group(2))
-
-            if media_type == "series":
-                result["other_wins"] = total_wins - result["emmy_wins"]
-                result["other_nominations"] = total_noms - result["emmy_nominations"]
-            else:
-                result["other_wins"] = total_wins - result["oscar_wins"]
-                result["other_nominations"] = total_noms - result["oscar_nominations"]
 
         return result
 

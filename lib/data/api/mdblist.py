@@ -23,7 +23,7 @@ AWARD_KEYWORDS = frozenset({
     "oscar-best-director-winner", "oscar-best-director-nominee",
     "golden-globe-winner", "golden-globe-nominated",
     "razzie-winner", "razzie-nominee",
-    "emmy-award-nominated",
+    "emmy-award-winner", "emmy-award-nominated",
     "festival-cannes-winner", "festival-venice-winner",
     "festival-sundance-winner", "festival-toronto-winner",
     "national-film-preservation-board-winner", "national-film-registry",

@@ -425,17 +425,11 @@ Awards data from OMDb. Requires OMDb API key.
 | Property | Description |
 |----------|-------------|
 | `Awards` | Full awards text |
-| `Awards.Oscar.Wins` | Number of Oscars won |
-| `Awards.Oscar.Nominations` | Number of Oscar nominations |
-| `Awards.Emmy.Wins` | Number of Emmys won |
-| `Awards.Emmy.Nominations` | Number of Emmy nominations |
-| `Awards.Other.Wins` | Other award wins |
-| `Awards.Other.Nominations` | Other award nominations |
 
 #### Awards (MDBList)
 
 MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
-counts above, which come from OMDb. Each is `"true"` when it applies and absent otherwise.
+`Awards` text above, which comes from OMDb. Each is `"true"` when it applies and absent otherwise.
 
 | Property | Description |
 |----------|-------------|
@@ -444,7 +438,7 @@ counts above, which come from OMDb. Each is `"true"` when it applies and absent 
 | `Awards.BestDirector.Won` / `Awards.BestDirector.Nominated` | Best Director |
 | `Awards.GoldenGlobe.Won` / `Awards.GoldenGlobe.Nominated` | Golden Globe |
 | `Awards.Razzie.Won` / `Awards.Razzie.Nominated` | Golden Raspberry |
-| `Awards.Emmy.Nominated` | Emmy |
+| `Awards.Emmy.Won` / `Awards.Emmy.Nominated` | Emmy |
 | `Awards.Festival.Cannes` / `.Venice` / `.Sundance` / `.Toronto` | Festival top prize |
 | `Awards.FilmRegistry` | US National Film Registry |
 
@@ -452,7 +446,6 @@ counts above, which come from OMDb. Each is `"true"` when it applies and absent 
 
 ```xml
 <label>$INFO[Window(Home).Property(SkinInfo.Online.Awards)]</label>
-<label>Oscars: $INFO[Window(Home).Property(SkinInfo.Online.Awards.Oscar.Wins)] wins, $INFO[Window(Home).Property(SkinInfo.Online.Awards.Oscar.Nominations)] nominations</label>
 ```
 
 ---

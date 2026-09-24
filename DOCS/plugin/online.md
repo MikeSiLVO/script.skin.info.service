@@ -234,17 +234,11 @@ Properties via `Container(ID).ListItem.Property(...)`
 | Property | Description |
 |----------|-------------|
 | `Awards` | Full awards text |
-| `Awards.Oscar.Wins` | Oscar wins |
-| `Awards.Oscar.Nominations` | Oscar nominations |
-| `Awards.Emmy.Wins` | Emmy wins |
-| `Awards.Emmy.Nominations` | Emmy nominations |
-| `Awards.Other.Wins` | Other wins |
-| `Awards.Other.Nominations` | Other nominations |
 
 #### Awards (MDBList)
 
 MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
-counts above, which come from OMDb. Each is `"true"` when it applies and absent otherwise.
+`Awards` text above, which comes from OMDb. Each is `"true"` when it applies and absent otherwise.
 
 | Property | Description |
 |----------|-------------|
@@ -253,7 +247,7 @@ counts above, which come from OMDb. Each is `"true"` when it applies and absent 
 | `Awards.BestDirector.Won` / `Awards.BestDirector.Nominated` | Best Director |
 | `Awards.GoldenGlobe.Won` / `Awards.GoldenGlobe.Nominated` | Golden Globe |
 | `Awards.Razzie.Won` / `Awards.Razzie.Nominated` | Golden Raspberry |
-| `Awards.Emmy.Nominated` | Emmy |
+| `Awards.Emmy.Won` / `Awards.Emmy.Nominated` | Emmy |
 | `Awards.Festival.Cannes` / `.Venice` / `.Sundance` / `.Toronto` | Festival top prize |
 | `Awards.FilmRegistry` | US National Film Registry |
 
