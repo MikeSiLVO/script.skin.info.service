@@ -132,24 +132,6 @@ class WorkerQueue:
                 queued += 1
         return queued
 
-    def wait(self, timeout: Optional[float] = None) -> bool:
-        """Block until the queue is empty. Returns False on timeout or Kodi abort."""
-        try:
-            if timeout:
-                start = time.time()
-                monitor = xbmc.Monitor()
-                while not self.queue.empty() or self.processing_set:
-                    if time.time() - start > timeout:
-                        return False
-                    if monitor.waitForAbort(0.1):
-                        return False
-            else:
-                self.queue.join()
-            return True
-        except Exception as e:
-            log("General", f"{self.__class__.__name__} wait error: {str(e)}", xbmc.LOGERROR)
-            return False
-
     def get_stats(self) -> Dict:
         """Return current queue statistics.
 
