@@ -306,13 +306,13 @@ def _flatten_aggregate_credits(aggregate_cast: list) -> list:
 
 
 def normalize_name(name: str) -> str:
-    """Normalize name for matching by handling special characters and initials."""
+    """Normalize a name for matching, ignoring accents, apostrophe style and dots in initials."""
     import re
     import unicodedata
 
     normalized = unicodedata.normalize('NFD', name)
     normalized = ''.join(char for char in normalized if not unicodedata.combining(char))
-    normalized = re.sub(r"['']", "'", normalized)
+    normalized = re.sub("[\u2018\u2019]", "'", normalized)
     normalized = re.sub(r'([A-Z])\.\s*', r'\1 ', normalized)
     normalized = ' '.join(normalized.split())
 
