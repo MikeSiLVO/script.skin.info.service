@@ -78,9 +78,6 @@ def _show_session_report(session_row) -> None:
     details = stats.get('details')
     if not isinstance(details, dict):
         details = {}
-    auto_runs = stats.get('auto_runs')
-    if not isinstance(auto_runs, list):
-        auto_runs = []
 
     started = _stamp(session_row['started'])
     status = session_row['status']
@@ -97,20 +94,16 @@ def _show_session_report(session_row) -> None:
         lines: List[str],
         header: str,
         entries: List[Dict[str, Any]],
-        formatter,
-        *,
-        indent: str = "    ",
-        max_items: int = 20
+        formatter
     ) -> None:
         valid_entries = [entry for entry in entries if isinstance(entry, dict)]
         if not valid_entries:
             return
         lines.append(header)
-        to_show = min(max_items, len(valid_entries))
-        for entry in valid_entries[:to_show]:
-            lines.append(f"{indent}• {formatter(entry)}")
-        if len(valid_entries) > max_items:
-            lines.append(f"{indent}… {len(valid_entries) - max_items} more")
+        for entry in valid_entries[:20]:
+            lines.append(f"    • {formatter(entry)}")
+        if len(valid_entries) > 20:
+            lines.append(f"    … {len(valid_entries) - 20} more")
         lines.append("")
 
     def _format_entry(
@@ -149,12 +142,6 @@ def _show_session_report(session_row) -> None:
 
     def _format_manual_skipped(entry: Dict[str, Any]) -> str:
         return _format_entry(entry, include_art_type=True, include_reason=True)
-
-    def _format_auto_run_applied(entry: Dict[str, Any]) -> str:
-        return _format_entry(entry, include_art_type=True, include_url=True)
-
-    def _format_auto_run_skipped(entry: Dict[str, Any]) -> str:
-        return _format_entry(entry, include_art_type=False, include_reason=True)
 
     session_id = session_row['id']
     session_art_types = db_workflow.get_session_art_types(session_id)
@@ -219,44 +206,6 @@ def _show_session_report(session_row) -> None:
         stale_entries,
         _format_manual_skipped
     )
-
-    if auto_runs:
-        lines.append("Auto Fetch Runs:")
-        for idx, run in enumerate(auto_runs, start=1):
-            timestamp = run.get('timestamp')
-            if isinstance(timestamp, str):
-                ts_display = timestamp.replace('T', ' ')
-            else:
-                ts_display = "unknown"
-            counts = run.get('counts', {})
-            processed = counts.get('processed', 0)
-            auto_applied = counts.get('auto_applied', 0)
-            skipped_auto = counts.get('skipped', 0)
-            errors = counts.get('errors', 0)
-            pending_after = run.get('pending_after', 'n/a')
-            lines.append(f"  Run #{idx} ({ts_display})")
-            lines.append(
-                f"    Processed: {processed} | Applied: {auto_applied} | "
-                f"Skipped: {skipped_auto} | Errors: {errors}"
-            )
-            lines.append(f"    Remaining after run: {pending_after}")
-            _append_detail_section(
-                lines,
-                "    Applied:",
-                run.get('applied', []),
-                _format_auto_run_applied,
-                indent="      ",
-                max_items=15
-            )
-            _append_detail_section(
-                lines,
-                "    Skipped:",
-                run.get('skipped', []),
-                _format_auto_run_skipped,
-                indent="      ",
-                max_items=15
-            )
-        lines.append("")
 
     lines.append("=" * 50)
 

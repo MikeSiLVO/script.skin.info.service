@@ -109,7 +109,6 @@ def default_session_stats() -> dict:
         'auto': 0,
         'remaining': 0,
         'details': {key: [] for key in SESSION_DETAIL_KEYS},
-        'auto_runs': [],
         'review_mode': REVIEW_MODE_MISSING,
     }
 
@@ -139,10 +138,6 @@ def load_session_stats(raw: Any) -> dict:
                         stats['details'][key] = [
                             dict(entry) for entry in entries if isinstance(entry, dict)
                         ]
-
-            auto_runs = source.get('auto_runs')
-            if isinstance(auto_runs, list):
-                stats['auto_runs'] = [dict(run) for run in auto_runs if isinstance(run, dict)]
 
             stats['review_mode'] = REVIEW_MODE_MISSING
 
