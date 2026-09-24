@@ -17,6 +17,7 @@ from lib.data.database._infrastructure import (
     compress_data as _compress_data,
     decompress_data as _decompress_data,
     sql_placeholders,
+    chunked_in_modify,
 )
 from lib.kodi.client import log
 
@@ -668,12 +669,9 @@ def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
             (feed, stamp)
         )
         due = [row['item_id'] for row in cursor.fetchall()]
-        if due:
-            cursor.execute(
-                f'DELETE FROM fanarttv_recheck WHERE feed = ? AND item_id IN '
-                f'({sql_placeholders(len(due))})',
-                (feed, *due)
-            )
+        chunked_in_modify(
+            cursor, 'DELETE FROM fanarttv_recheck WHERE feed = ? AND item_id IN ({placeholders})',
+            [feed], due)
         return due
 
 
@@ -689,8 +687,5 @@ def clear_artwork_for_ids(media_ids: List[str]) -> int:
     if not media_ids:
         return 0
     with get_db(DB_PATH) as cursor:
-        cursor.execute(
-            f'DELETE FROM artwork_cache WHERE media_id IN ({sql_placeholders(len(media_ids))})',
-            tuple(media_ids)
-        )
-        return cursor.rowcount or 0
+        return chunked_in_modify(
+            cursor, 'DELETE FROM artwork_cache WHERE media_id IN ({placeholders})', [], media_ids)
