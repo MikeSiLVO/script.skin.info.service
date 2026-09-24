@@ -5,7 +5,7 @@ import xbmc
 from typing import Optional, List
 
 from lib.infrastructure.dialogs import show_ok, show_textviewer
-from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
+from lib.artwork.config import REVIEW_MEDIA_FILTERS, scope_label
 
 from lib.data.database._infrastructure import init_database
 from lib.data.database import workflow as db_workflow
@@ -34,7 +34,7 @@ def show_download_report() -> None:
     scope = last_report.get('scope', 'unknown')
     timestamp = last_report['timestamp']
 
-    scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
+    scope_name = scope_label(scope)
 
     downloaded = stats.get('downloaded', 0)
     skipped = stats.get('skipped', 0)
@@ -52,7 +52,7 @@ def show_download_report() -> None:
     lines = [
         f"[B]Artwork Download Report - {status}[/B]",
         "",
-        f"Scope: {scope_label}",
+        f"Scope: {scope_name}",
         f"Timestamp: {timestamp}",
         "",
         f"Library items scanned: {total_items}",

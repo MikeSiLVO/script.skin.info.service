@@ -286,10 +286,12 @@ class ArtworkAuto:
         else:
             percent = 0
 
-        message = (
-            f"Processed: {self.stats['processed']}/{self.total_items}[CR]"
-            f"Auto-applied: {self.stats['auto_applied']}[CR]"
-            f"Skipped: {self.stats['skipped']}")
+        message = "[CR]".join((
+            ADDON.getLocalizedString(32284).format(
+                f"{self.stats['processed']}/{self.total_items}"),
+            ADDON.getLocalizedString(32285).format(self.stats['auto_applied']),
+            ADDON.getLocalizedString(32286).format(self.stats['skipped']),
+        ))
 
         self.progress.update(percent, message, force=force)
 

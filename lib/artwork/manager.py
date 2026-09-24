@@ -37,12 +37,12 @@ from lib.actor.downloader import download_actor_images
 from lib.artwork.config import (
     ART_TYPES_BY_MEDIA,
     REVIEW_SCOPE_OPTIONS,
-    REVIEW_SCOPE_LABELS,
     REVIEW_MEDIA_FILTERS,
     REVIEW_MODE_MISSING,
     SESSION_DETAIL_KEYS,
     default_session_stats as _default_session_stats,
     load_session_stats as _load_session_stats,
+    scope_label,
 )
 from lib.artwork.scanner import ArtworkScanner
 
@@ -471,8 +471,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(
-            "Artwork",
-            "No valid item selected",
+            ADDON.getLocalizedString(32004),
+            ADDON.getLocalizedString(32259),
             xbmcgui.NOTIFICATION_WARNING,
             3000
         )
@@ -487,8 +487,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
 
     if not art_types or not method_info:
         show_notification(
-            "Artwork",
-            f"Unsupported media type: {dbtype}",
+            ADDON.getLocalizedString(32004),
+            ADDON.getLocalizedString(32263).format(dbtype),
             xbmcgui.NOTIFICATION_WARNING,
             3000
         )
@@ -503,8 +503,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
         requested = [art_type for art_type in art_types if art_type in requested]
         if not requested:
             show_notification(
-                "Artwork",
-                f"No art type for {dbtype}: {art_type_filter}",
+                ADDON.getLocalizedString(32004),
+                ADDON.getLocalizedString(32712).format(dbtype, art_type_filter),
                 xbmcgui.NOTIFICATION_WARNING,
                 3000
             )
@@ -532,8 +532,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
 
     if not details or not isinstance(details, dict):
         show_notification(
-            "Artwork",
-            f"{dbtype.title()} not found",
+            ADDON.getLocalizedString(32004),
+            ADDON.getLocalizedString(32401).format(dbtype.title()),
             xbmcgui.NOTIFICATION_WARNING,
             3000
         )
@@ -549,8 +549,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             mbid = mbid[0] if mbid else None
         if not mbid:
             show_notification(
-                "Artwork",
-                "No MusicBrainz ID for this artist",
+                ADDON.getLocalizedString(32004),
+                ADDON.getLocalizedString(32713),
                 xbmcgui.NOTIFICATION_WARNING,
                 4000
             )
@@ -561,14 +561,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             artist_mbid = artist_mbid[0] if artist_mbid else None
         release_group_id = details.get('musicbrainzreleasegroupid')
         if not artist_mbid or not release_group_id:
-            missing = []
-            if not artist_mbid:
-                missing.append("artist")
-            if not release_group_id:
-                missing.append("release group")
             show_notification(
-                "Artwork",
-                f"Missing MusicBrainz {' & '.join(missing)} ID",
+                ADDON.getLocalizedString(32004),
+                ADDON.getLocalizedString(32714),
                 xbmcgui.NOTIFICATION_WARNING,
                 4000
             )
@@ -581,8 +576,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     processor = ArtworkAuto(source_fetcher=fetcher, use_background=False)
 
     show_notification(
-        "Artwork",
-        "Fetching artwork...",
+        ADDON.getLocalizedString(32004),
+        ADDON.getLocalizedString(32276).format(title),
         xbmcgui.NOTIFICATION_INFO,
         2000
     )
@@ -592,8 +587,8 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
     except Exception as e:
         log("Artwork", f"Error fetching artwork: {str(e)}", xbmc.LOGERROR)
         show_notification(
-            "Artwork",
-            "Failed to fetch artwork",
+            ADDON.getLocalizedString(32004),
+            ADDON.getLocalizedString(32715),
             xbmcgui.NOTIFICATION_ERROR,
             3000
         )
@@ -607,8 +602,9 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
 
     if not available_by_type:
         show_notification(
-            "Artwork",
-            f"No {', '.join(requested)} artwork found" if requested else "No artwork found",
+            ADDON.getLocalizedString(32004),
+            (ADDON.getLocalizedString(32716).format(', '.join(requested)) if requested
+             else ADDON.getLocalizedString(32009)),
             xbmcgui.NOTIFICATION_INFO,
             3000
         )
@@ -665,13 +661,13 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             art_updates[selected_art_type] = selected_art.get("url")
 
         if art_updates and not processor._apply_art(dbtype, dbid_int, art_updates):
-            show_notification("Artwork", ADDON.getLocalizedString(32251),
+            show_notification(ADDON.getLocalizedString(32004), ADDON.getLocalizedString(32251),
                               xbmcgui.NOTIFICATION_ERROR, 3000)
         elif art_updates:
             xbmc.executebuiltin("Container.Refresh")
             show_notification(
-                "Artwork",
-                "Artwork updated",
+                ADDON.getLocalizedString(32004),
+                ADDON.getLocalizedString(32717),
                 xbmcgui.NOTIFICATION_INFO,
                 2000
             )
@@ -841,10 +837,8 @@ class ArtworkSelection:
                 f"auto={self.stats.get('auto', 0)}, session={self.session_id}"
             )
 
-        applied_count = self.stats['applied']
-        skipped_count = self.stats['skipped']
-        auto_count = self.stats.get('auto', 0)
-        manual_total = applied_count + skipped_count
+        summary = ADDON.getLocalizedString(32718).format(
+            self.stats['applied'], self.stats['skipped'], self.stats.get('auto', 0))
         remaining = db_queue.count_queue_items(
             status='pending',
             media_types=self.media_filter,
@@ -856,23 +850,15 @@ class ArtworkSelection:
                 self.session_id, _load_session_stats(self._build_stats_payload())
             )
             db_workflow.cancel_session(self.session_id)
-            heading = (
-                f"Cancelled: manual {manual_total} "
-                f"(applied {applied_count}, skipped {skipped_count})"
-            )
-            message = f"Auto-skipped: {auto_count}"
-            show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
+            show_notification(ADDON.getLocalizedString(32032), summary,
+                              xbmcgui.NOTIFICATION_INFO, 5000)
         else:
             db_workflow.update_session_stats(
                 self.session_id, _load_session_stats(self._build_stats_payload())
             )
             db_workflow.complete_session(self.session_id)
-            heading = (
-                f"Complete: manual {manual_total} "
-                f"(applied {applied_count}, skipped {skipped_count})"
-            )
-            message = f"Auto-skipped: {auto_count}"
-            show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
+            show_notification(ADDON.getLocalizedString(32279), summary,
+                              xbmcgui.NOTIFICATION_INFO, 5000)
 
         outcome = {
             'status': 'cancelled' if cancelled else 'completed',
@@ -1205,8 +1191,8 @@ class ArtworkManager:
 
         if not scope or scope not in valid_scopes:
             show_notification(
-                "Missing Artwork",
-                f"Unknown scope '{self.scope_arg}'.",
+                ADDON.getLocalizedString(32273),
+                ADDON.getLocalizedString(32575).format(self.scope_arg),
                 xbmcgui.NOTIFICATION_WARNING,
                 4000
             )
@@ -1214,8 +1200,6 @@ class ArtworkManager:
 
         self._set_scope(scope)
         self.session_id = None
-
-        scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
 
         items = []
 
@@ -1242,12 +1226,12 @@ class ArtworkManager:
         items.append(
             MenuItem(
                 ADDON.getLocalizedString(32086),
-                lambda: self._view_scope_report(scope_label),
+                lambda: self._view_scope_report(scope_label(scope)),
                 loop=True,
             )
         )
 
-        menu = Menu(f"{scope_label} - Select Action", items)
+        menu = Menu(ADDON.getLocalizedString(32719).format(scope_label(scope)), items)
         result = menu.show()
         return result if isinstance(result, bool) else False
 
@@ -1256,15 +1240,15 @@ class ArtworkManager:
         self._run_auto_apply_mode()
         return False
 
-    def _view_scope_report(self, scope_label: str) -> None:
+    def _view_scope_report(self, label: str) -> None:
         """View report for current scope."""
         last_session = db_workflow.get_last_manual_review_session(self.media_filter)
         if last_session and last_session['stats']:
             _show_session_report(last_session)
         else:
             show_notification(
-                "View Report",
-                f"No report available for {scope_label}.",
+                ADDON.getLocalizedString(32282),
+                ADDON.getLocalizedString(32720).format(label),
                 xbmcgui.NOTIFICATION_INFO,
                 3000
             )
@@ -1298,10 +1282,11 @@ class ArtworkManager:
         """Handle 'Browse & Choose Artwork' flow with scope selection."""
         items = []
 
-        for scope, label in REVIEW_SCOPE_OPTIONS:
+        for scope, _ in REVIEW_SCOPE_OPTIONS:
             items.append(
                 MenuItem(
-                    label, lambda s=scope: self._start_scan_for_scope(s, enable_download=False)
+                    scope_label(scope),
+                    lambda s=scope: self._start_scan_for_scope(s, enable_download=False),
                 )
             )
 
@@ -1312,9 +1297,10 @@ class ArtworkManager:
         """Handle 'Browse & Choose + Download' flow with scope selection."""
         items = []
 
-        for scope, label in REVIEW_SCOPE_OPTIONS:
+        for scope, _ in REVIEW_SCOPE_OPTIONS:
             items.append(
-                MenuItem(label, lambda s=scope: self._start_scan_for_scope(s, enable_download=True))
+                MenuItem(scope_label(scope),
+                         lambda s=scope: self._start_scan_for_scope(s, enable_download=True))
             )
 
         menu = Menu(ADDON.getLocalizedString(32508), items)
@@ -1328,11 +1314,11 @@ class ArtworkManager:
 
     def _handle_auto_apply_flow(self):
         """Handle 'Auto-Fill Missing Artwork' flow with scope selection."""
-        items = [MenuItem(xbmc.getLocalizedString(593), lambda: self._run_auto_apply('all'))]
+        items = [MenuItem(scope_label('all'), lambda: self._run_auto_apply('all'))]
 
-        for scope, label in REVIEW_SCOPE_OPTIONS:
+        for scope, _ in REVIEW_SCOPE_OPTIONS:
             if scope != 'all':
-                items.append(MenuItem(label, lambda s=scope: self._run_auto_apply(s)))
+                items.append(MenuItem(scope_label(scope), lambda s=scope: self._run_auto_apply(s)))
 
         menu = Menu(ADDON.getLocalizedString(32509), items)
         return menu.show()
@@ -1348,18 +1334,9 @@ class ArtworkManager:
 
     def _run_auto_apply(self, scope: str) -> None:
         """Execute auto-apply for selected scope."""
-        scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
-
-        message = (
-            "Automatically applies missing artwork without review.[CR]"
-            "Only fills in missing artwork, won't replace existing.[CR]"
-            "View results afterwards in Session History.[CR][CR]"
-            "Continue?"
-        )
-
         confirmed = show_yesno(
-            f"Auto-Fill {scope_label}",
-            message,
+            ADDON.getLocalizedString(32722).format(scope_label(scope)),
+            ADDON.getLocalizedString(32723),
             nolabel=xbmc.getLocalizedString(222),
             yeslabel=ADDON.getLocalizedString(32567)
         )
@@ -1377,11 +1354,10 @@ class ArtworkManager:
             MenuItem(ADDON.getLocalizedString(32510), self._view_last_report_any_scope, loop=True)
         ]
 
-        for scope, label in REVIEW_SCOPE_OPTIONS:
+        for scope, _ in REVIEW_SCOPE_OPTIONS:
             if scope != 'all':
-                items.append(
-                    MenuItem(label, lambda s=scope: self._view_report_for_scope(s), loop=True)
-                )
+                items.append(MenuItem(
+                    scope_label(scope), lambda s=scope: self._view_report_for_scope(s), loop=True))
 
         menu = Menu(ADDON.getLocalizedString(32512), items)
         return menu.show()
@@ -1393,8 +1369,8 @@ class ArtworkManager:
             _show_session_report(last_session)
         else:
             show_notification(
-                "View Reports",
-                "No reports available.",
+                ADDON.getLocalizedString(32512),
+                ADDON.getLocalizedString(32721),
                 xbmcgui.NOTIFICATION_INFO,
                 3000
             )
@@ -1409,8 +1385,8 @@ class ArtworkManager:
             _show_session_report(last_session)
         else:
             show_notification(
-                "View Reports",
-                f"No report available for {REVIEW_SCOPE_LABELS.get(scope, scope)}.",
+                ADDON.getLocalizedString(32512),
+                ADDON.getLocalizedString(32720).format(scope_label(scope)),
                 xbmcgui.NOTIFICATION_INFO,
                 3000
             )
@@ -1497,8 +1473,8 @@ def run_artwork_manager(scope: Optional[str] = None) -> None:
             manager.run()
             return
         show_notification(
-            "Missing Artwork",
-            f"Unknown scope '{normalized}'.",
+            ADDON.getLocalizedString(32273),
+            ADDON.getLocalizedString(32575).format(normalized),
             xbmcgui.NOTIFICATION_WARNING,
             4000
         )

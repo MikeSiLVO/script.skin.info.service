@@ -245,17 +245,18 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         sorted_languages.extend([lang for lang, _ in other_languages])
 
-        # Show "All images" only if it would combine multiple languages
+        # Show "All" only if it would combine multiple languages
         if is_filtered and len(sorted_languages) > 1:
             sorted_languages.append('all')
 
         labels = []
         for lang in sorted_languages:
             if lang == 'all':
-                labels.append(f"All images ({len(self.full_artwork_list)})")
+                labels.append(f"{xbmc.getLocalizedString(593)} ({len(self.full_artwork_list)})")
             else:
                 count = count_language(lang)
-                display = "Text-free" if lang == '' else get_language_display_name(lang)
+                display = (ADDON.getLocalizedString(32122) if lang == ''
+                           else get_language_display_name(lang))
                 labels.append(f"{display} ({count})")
 
         selected = show_select(ADDON.getLocalizedString(32554), labels)
@@ -315,13 +316,13 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         is_fanart_no_lang_filter = self.art_type == 'fanart' and not prefer_fanart_language
 
         if self.current_language == 'all':
-            language_display = 'All images'
+            language_display = xbmc.getLocalizedString(593)
             language_short = 'all'
         elif self.current_language is not None:
             language_display = get_language_display_name(self.current_language)
             language_short = self.current_language
         elif is_fanart_no_lang_filter:
-            language_display = 'Text-free'
+            language_display = ADDON.getLocalizedString(32122)
             language_short = ''
         else:
             preferred = get_preferred_language_code()
@@ -329,14 +330,10 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             language_short = preferred
 
         if len(self.available_art) != len(self.full_artwork_list):
-            if is_fanart_no_lang_filter and self.current_language is None:
-                count_text = (f"{len(self.available_art)} of {len(self.full_artwork_list)} "
-                              "available (Text-free)")
-            else:
-                count_text = (f"{len(self.available_art)} of {len(self.full_artwork_list)} "
-                              f"available ({language_display})")
+            count_text = ADDON.getLocalizedString(32709).format(
+                len(self.available_art), len(self.full_artwork_list), language_display)
         else:
-            count_text = f"{len(self.full_artwork_list)} available"
+            count_text = ADDON.getLocalizedString(32710).format(len(self.full_artwork_list))
         self.setProperty('count', count_text)
         self.setProperty('language', language_display)
         self.setProperty('language_short', language_short)

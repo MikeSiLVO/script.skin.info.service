@@ -16,7 +16,7 @@ from lib.infrastructure.paths import (
 )
 from lib.infrastructure.tasks import TaskContext
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
-from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
+from lib.artwork.config import REVIEW_MEDIA_FILTERS, scope_label
 from lib.kodi.client import log, ADDON, is_inherited_art
 from lib.kodi.settings import KodiSettings
 from lib.data.database import workflow as db_workflow
@@ -77,11 +77,11 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
         _rotate_log_files()
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        scope_label = REVIEW_SCOPE_LABELS.get(scope, scope.title())
+        scope_name = scope_label(scope)
 
         header = "=" * 80 + "\n"
         header += f"Artwork Download Report - {timestamp}\n"
-        header += f"Scope: {scope_label}\n"
+        header += f"Scope: {scope_name}\n"
         header += "=" * 80 + "\n\n"
 
         full_text = header + report_text

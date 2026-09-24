@@ -102,7 +102,7 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
         season = art_info.get('season', '')
         source = art_info.get('source', '')
 
-        label = f"Option {index + 1}"
+        label = ADDON.getLocalizedString(32708).format(index + 1)
 
         item = xbmcgui.ListItem(label=label, offscreen=True)
         item.setArt({'thumb': preview, 'icon': preview})

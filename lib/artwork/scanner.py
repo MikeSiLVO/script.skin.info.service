@@ -76,7 +76,8 @@ class ArtworkScanner:
     def _update_fetch_progress(self, progress_title: str, done: int, total: int) -> None:
         """Keep the bar moving while library data is still being fetched (seasons are per-show)."""
         percent = min(100, int((done * 100) / total)) if total else 0
-        self.progress.update(percent, f"{progress_title}[CR]Loading library: {done}/{total}")
+        loading = f"{ADDON.getLocalizedString(32350)} {done}/{total}"
+        self.progress.update(percent, f"{progress_title}[CR]{loading}")
         if self._task_context is not None:
             self._task_context.mark_progress()
 
@@ -104,10 +105,11 @@ class ArtworkScanner:
 
         speed_str = f"{int(items_per_second)}/s" if items_per_second > 0 else "0/s"
 
-        line1 = f"{overall_index}/{total_items} • {progress_title} • {speed_str} • ETA {eta_str}"
-        line2 = f"Missing: {self.missing_count} items queued"
+        eta = ADDON.getLocalizedString(32705).format(eta_str)
+        line1 = f"{overall_index}/{total_items} • {progress_title} • {speed_str} • {eta}"
+        line2 = ADDON.getLocalizedString(32706).format(self.missing_count)
         title_display = f"{title} ({year})" if year else title
-        line3 = f"Scanning: {title_display}"
+        line3 = ADDON.getLocalizedString(32704).format(title_display)
 
         message = f"{line1}[CR]{line2}[CR]{line3}"
 
@@ -155,9 +157,9 @@ class ArtworkScanner:
                     had_failure = True
                     break
         finally:
-            summary_heading = "Scan cancelled" if self.cancelled else "Scan complete"
-            summary_line1 = f"Items scanned: {self.scanned_count}"
-            summary_line2 = f"Queued for selection: {self.queued_count}"
+            summary_heading = ADDON.getLocalizedString(32032 if self.cancelled else 32279)
+            summary_line1 = ADDON.getLocalizedString(32284).format(self.scanned_count)
+            summary_line2 = ADDON.getLocalizedString(32706).format(self.queued_count)
             self._close_scan_progress(summary_heading, summary_line1, summary_line2)
 
         stats = {
@@ -278,7 +280,7 @@ class ArtworkScanner:
             self.queued_count += len(queue_items)
 
         log("Artwork",
-            f"{progress_title}: scanned {total}, queued {len(queue_items)} items "
+            f"{db_media_type}: scanned {total}, queued {len(queue_items)} items "
             f"({len(art_items)} art types)")
 
         return not self.cancelled
@@ -303,51 +305,51 @@ class ArtworkScanner:
         enabled = {art_type.strip() for art_type in setting_value.split(",") if art_type.strip()}
         return [art_type for art_type in supported if art_type in enabled]
 
-    # Per-type scan configuration: properties to fetch, title/year keys, progress label.
+    # Per-type scan configuration: properties to fetch, title/year keys, Kodi's type name.
     # Music sorts by artist so one artist's items queue together and share a single fetch.
     _SCAN_CONFIGS = {
         'movie': {
             'fetch_media_type': 'movie', 'id_key': 'movieid',
             'properties': ["title", "year", "art"],
             'title_key': 'label', 'year_key': 'year',
-            'progress_title': "Scanning Movies", 'scope_label': 'movies',
+            'type_name': 342, 'scope_label': 'movies',
         },
         'tvshow': {
             'fetch_media_type': 'tvshow', 'id_key': 'tvshowid',
             'properties': ["title", "year", "art"],
             'title_key': 'label', 'year_key': 'year',
-            'progress_title': "Scanning TV Shows", 'scope_label': 'tvshows',
+            'type_name': 20343, 'scope_label': 'tvshows',
         },
         'season': {
             'fetch_media_type': 'season', 'id_key': 'seasonid',
             'properties': ["title", "art", "season", "showtitle", "tvshowid"],
             'title_key': 'label', 'year_key': None,
-            'progress_title': "Scanning Seasons", 'scope_label': 'seasons',
+            'type_name': 33054, 'scope_label': 'seasons',
         },
         'episode': {
             'fetch_media_type': 'episode', 'id_key': 'episodeid',
             'properties': ["title", "art", "season", "episode", "showtitle"],
             'title_key': 'label', 'year_key': None,
-            'progress_title': "Scanning Episodes", 'scope_label': 'episodes',
+            'type_name': 20360, 'scope_label': 'episodes',
         },
         'musicvideo': {
             'fetch_media_type': 'musicvideo', 'id_key': 'musicvideoid',
             'properties': ["title", "artist", "art", "year", "uniqueid"],
             'title_key': 'label', 'year_key': 'year',
-            'progress_title': "Scanning Music Videos", 'scope_label': 'musicvideos',
+            'type_name': 20389, 'scope_label': 'musicvideos',
             'sort': {'method': 'artist', 'order': 'ascending'},
         },
         'artist': {
             'fetch_media_type': 'artist', 'id_key': 'artistid',
             'properties': ["art"],
             'title_key': 'artist', 'year_key': None,
-            'progress_title': "Scanning Artists", 'scope_label': 'artists',
+            'type_name': 133, 'scope_label': 'artists',
         },
         'album': {
             'fetch_media_type': 'album', 'id_key': 'albumid',
             'properties': ["title", "artist", "art", "year"],
             'title_key': 'label', 'year_key': 'year',
-            'progress_title': "Scanning Albums", 'scope_label': 'albums',
+            'type_name': 132, 'scope_label': 'albums',
             'sort': {'method': 'artist', 'order': 'ascending'},
         },
     }
@@ -355,7 +357,8 @@ class ArtworkScanner:
     def _scan_collection(self, media_type: str, art_types: List[str], session_id: int,
                          scope_label: str) -> bool:
         cfg = self._SCAN_CONFIGS[media_type]
-        progress_title = cfg['progress_title']
+        type_name = xbmc.getLocalizedString(cfg['type_name'])
+        progress_title = ADDON.getLocalizedString(32704).format(type_name)
         try:
             kwargs = {
                 'media_types': [cfg['fetch_media_type']],
@@ -389,5 +392,5 @@ class ArtworkScanner:
             art_types=art_types,
             session_id=session_id,
             scope_label=scope_label,
-            progress_title=cfg['progress_title'],
+            progress_title=progress_title,
         )

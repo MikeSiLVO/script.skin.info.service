@@ -397,11 +397,12 @@ class ArtworkAnimated:
             current_art = item.get("art", {})
 
             percent = int((idx / total) * 100)
-            message = (
-                f"Scanning: {title}\n"
-                f"Progress: {idx + 1}/{total} | Found: {self.found_count} | "
-                f"Cached: {self.skipped_cached} | Existing: {self.skipped_existing}"
-            )
+            message = "\n".join((
+                ADDON.getLocalizedString(32704).format(title),
+                ADDON.getLocalizedString(32284).format(f"{idx + 1}/{total}"),
+                ADDON.getLocalizedString(32707).format(
+                    self.found_count, self.skipped_cached, self.skipped_existing),
+            ))
             self.progress.update(percent, message)
             if self.task_context is not None:
                 self.task_context.mark_progress()
@@ -587,14 +588,9 @@ class ArtworkAnimated:
 
     def show_summary(self) -> None:
         """Show completion notification."""
-        if self.cancelled:
-            message = ADDON.getLocalizedString(32593).format(
-                self.found_count, self.skipped_cached, self.skipped_existing
-            )
-        else:
-            message = ADDON.getLocalizedString(32594).format(
-                self.found_count, self.skipped_cached, self.skipped_existing
-            )
+        counts = ADDON.getLocalizedString(32707).format(
+            self.found_count, self.skipped_cached, self.skipped_existing)
+        message = f"{ADDON.getLocalizedString(32032 if self.cancelled else 32279)} {counts}"
 
         show_notification(
             ADDON.getLocalizedString(32192),

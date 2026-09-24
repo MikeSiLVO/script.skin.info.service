@@ -61,11 +61,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
             self._fetch_available_art()
 
         # Set window properties for XML
-        art_label = (
-            f"Multi-Art {self.art_type.title()}"
-            if self.art_type != 'fanart'
-            else "Multi-Art Fanart"
-        )
+        art_label = ADDON.getLocalizedString(32711).format(self.art_type.title())
         self.setProperty('heading', self.title)
         self.setProperty('arttype', art_label)
         self.setProperty('mediatype', self.media_type)

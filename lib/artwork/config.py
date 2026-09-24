@@ -4,16 +4,17 @@ from __future__ import annotations
 import json
 from typing import Any, List
 
+import xbmc
 
+
+# each scope's name as a Kodi core string
 REVIEW_SCOPE_OPTIONS = [
-    ('movies', 'Movies'),
-    ('tvshows', 'TV Shows'),
-    ('musicvideos', 'Music Videos'),
-    ('music', 'Music'),
-    ('all', 'All Types'),
+    ('movies', 342),
+    ('tvshows', 20343),
+    ('musicvideos', 20389),
+    ('music', 2),
+    ('all', 593),
 ]
-
-REVIEW_SCOPE_LABELS = {scope: label for scope, label in REVIEW_SCOPE_OPTIONS}
 
 REVIEW_MEDIA_FILTERS = {
     'movies': ['movie'],
@@ -23,6 +24,14 @@ REVIEW_MEDIA_FILTERS = {
 }
 
 REVIEW_MODE_MISSING = 'missing_only'
+
+
+def scope_label(scope: str) -> str:
+    """Get a review scope's name in Kodi's language, the raw scope when it is unknown."""
+    for option, label_id in REVIEW_SCOPE_OPTIONS:
+        if option == scope:
+            return xbmc.getLocalizedString(label_id)
+    return scope
 
 
 def scope_media_types(scope: str) -> List[str]:

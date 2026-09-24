@@ -1692,14 +1692,6 @@ msgctxt "#32592"
 msgid "Cancel it and start {0}?"
 msgstr ""
 
-msgctxt "#32593"
-msgid "Scan cancelled. Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
-
-msgctxt "#32594"
-msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
-
 msgctxt "#32595"
 msgid "Automatically update IMDb Top 250 rankings in your library"
 msgstr ""
@@ -2124,6 +2116,93 @@ msgstr ""
 
 msgctxt "#32703"
 msgid "Person Info"
+msgstr ""
+
+msgctxt "#32704"
+msgid "Scanning {0}"
+msgstr ""
+
+msgctxt "#32705"
+msgid "ETA {0}"
+msgstr ""
+
+msgctxt "#32706"
+msgid "Queued: {0}"
+msgstr ""
+
+msgctxt "#32707"
+msgid "Found: {0} | Cached: {1} | Existing: {2}"
+msgstr ""
+
+msgctxt "#32708"
+msgid "Option {0}"
+msgstr ""
+
+#. {2} is a language name
+msgctxt "#32709"
+msgid "{0} of {1} available ({2})"
+msgstr ""
+
+msgctxt "#32710"
+msgid "{0} available"
+msgstr ""
+
+#. {0} is an art type such as Fanart or Poster
+msgctxt "#32711"
+msgid "Multi-Art {0}"
+msgstr ""
+
+#. {0} is a media type, {1} a list of art types
+msgctxt "#32712"
+msgid "Art type not supported for {0}: {1}"
+msgstr ""
+
+msgctxt "#32713"
+msgid "No MusicBrainz ID for this artist"
+msgstr ""
+
+msgctxt "#32714"
+msgid "No MusicBrainz ID for this album"
+msgstr ""
+
+msgctxt "#32715"
+msgid "Failed to fetch artwork"
+msgstr ""
+
+#. {0} is a list of art types
+msgctxt "#32716"
+msgid "No {0} artwork found"
+msgstr ""
+
+msgctxt "#32717"
+msgid "Artwork updated"
+msgstr ""
+
+msgctxt "#32718"
+msgid "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
+msgstr ""
+
+#. {0} is a library name such as Movies
+msgctxt "#32719"
+msgid "{0} - Select Action"
+msgstr ""
+
+#. {0} is a library name such as Movies
+msgctxt "#32720"
+msgid "No report available for {0}"
+msgstr ""
+
+msgctxt "#32721"
+msgid "No reports available"
+msgstr ""
+
+#. {0} is a library name such as Movies
+msgctxt "#32722"
+msgid "Auto-Fill {0}"
+msgstr ""
+
+msgctxt "#32723"
+msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
 msgstr ""
 
 msgctxt "#32901"
