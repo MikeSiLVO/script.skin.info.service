@@ -4,11 +4,7 @@ from typing import Dict
 import xbmcgui
 
 
-_CLOSE_ACTIONS = (
-    xbmcgui.ACTION_NAV_BACK,
-    xbmcgui.ACTION_PREVIOUS_MENU,
-    92, 216, 247, 257, 275, 61467, 61448,
-)
+_CLOSE_ACTIONS = (xbmcgui.ACTION_NAV_BACK, xbmcgui.ACTION_PREVIOUS_MENU)
 
 
 class DialogBase(xbmcgui.WindowXMLDialog):

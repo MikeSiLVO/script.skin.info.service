@@ -5,6 +5,7 @@ Skinner control IDs and window/ListItem properties: DOCS/tools/artwork-review.md
 from __future__ import annotations
 
 import xbmc
+import xbmcgui
 from lib.infrastructure.dialogs import show_select
 from typing import Optional, List, Tuple
 from lib.artwork.dialogs.base import ArtworkDialogBase
@@ -165,8 +166,8 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             self._toggle_source_pref()
 
     def onAction(self, action):
-        """Handle keyboard/remote actions."""
-        if action.getId() in (9, 10, 92, 216, 247, 257, 275, 61467, 61448):
+        """Cancel and close on Back or Menu."""
+        if action.getId() in (xbmcgui.ACTION_NAV_BACK, xbmcgui.ACTION_PREVIOUS_MENU):
             self.result = None
             self.close()
 
