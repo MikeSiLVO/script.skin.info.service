@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from lib.kodi.client import log, request, extract_result, decode_image_url, get_item_details, ADDON
 from lib.kodi.utilities import extract_media_ids
 from lib.data.api.utilities import tmdb_image_url
+from lib.data.api.person import match_credit
 from lib.download.artwork import DownloadArtwork
 from lib.actor.config import sanitize_actor_filename
 from lib.infrastructure.paths import vfs_join, vfs_ensure_dir_slash, build_actors_folder_path
@@ -50,38 +51,6 @@ def _get_tmdb_credits(media_type: str, tmdb_id: str) -> List[Dict]:
     from lib.data.api.tmdb import ApiTmdb
 
     return tmdb_cast(ApiTmdb().get_complete_data(media_type, int(tmdb_id)), media_type)
-
-
-def _match_actor_to_profile(
-    actor_name: str,
-    actor_role: str,
-    tmdb_credits: List[Dict]
-) -> Optional[str]:
-    """Match Kodi actor to TMDB cast member via 4-stage matching."""
-    from lib.data.api.person import (
-        exact_match,
-        fuzzy_role_match,
-        name_only_match,
-        fuzzy_name_match
-    )
-
-    match = exact_match(tmdb_credits, actor_name, actor_role)
-    if match and match.get("profile_path"):
-        return match["profile_path"]
-
-    match = fuzzy_role_match(tmdb_credits, actor_name, actor_role)
-    if match and match.get("profile_path"):
-        return match["profile_path"]
-
-    match = name_only_match(tmdb_credits, actor_name)
-    if match and match.get("profile_path"):
-        return match["profile_path"]
-
-    match = fuzzy_name_match(tmdb_credits, actor_name)
-    if match and match.get("profile_path"):
-        return match["profile_path"]
-
-    return None
 
 
 def download_actor_images(
@@ -166,9 +135,10 @@ def download_actor_images(
 
         local_path = vfs_join(actors_folder, filename)
 
-        profile_path = _match_actor_to_profile(name, role, tmdb_credits) if tmdb_credits else None
-        if profile_path:
-            url = tmdb_image_url(profile_path)
+        match = match_credit(tmdb_credits, name, role,
+                             lambda credit: bool(credit.get("profile_path")))
+        if match:
+            url = tmdb_image_url(match["profile_path"])
             success, error, _, _ = downloader.download_artwork(
                 url=url,
                 local_path=local_path,

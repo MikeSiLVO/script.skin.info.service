@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 import xbmc
 import xbmcgui
@@ -240,28 +240,8 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
         credits = tmdb_cast(complete_data, media_type)
 
-    match = exact_match(credits, actor_name, actor_role)
+    match = match_credit(credits, actor_name, actor_role)
     if match:
-        log("Person", f"Matched '{actor_name}' via exact match (person_id={match['id']})",
-            xbmc.LOGDEBUG)
-        return match['id']
-
-    match = fuzzy_role_match(credits, actor_name, actor_role)
-    if match:
-        log("Person", f"Matched '{actor_name}' via fuzzy role (person_id={match['id']})",
-            xbmc.LOGDEBUG)
-        return match['id']
-
-    match = name_only_match(credits, actor_name)
-    if match:
-        log("Person", f"Matched '{actor_name}' via name only (person_id={match['id']})",
-            xbmc.LOGDEBUG)
-        return match['id']
-
-    match = fuzzy_name_match(credits, actor_name)
-    if match:
-        log("Person", f"Matched '{actor_name}' via fuzzy name (person_id={match['id']})",
-            xbmc.LOGDEBUG)
         return match['id']
 
     if auto_search:
@@ -364,6 +344,24 @@ def fuzzy_name_match(credits: list, name: str) -> Optional[dict]:
         actor_name = actor.get('name', '').lower().strip()
         if actor_name == name_lower or actor_name == name_reversed:
             return actor
+    return None
+
+
+def match_credit(credits: list, name: str, role: str,
+                 usable: Optional[Callable[[dict], bool]] = None) -> Optional[dict]:
+    """Match an actor to a credit, strictest matcher first, passing over unusable matches."""
+    matchers = (
+        ('exact match', lambda: exact_match(credits, name, role)),
+        ('fuzzy role', lambda: fuzzy_role_match(credits, name, role)),
+        ('name only', lambda: name_only_match(credits, name)),
+        ('fuzzy name', lambda: fuzzy_name_match(credits, name)),
+    )
+    for label, matcher in matchers:
+        match = matcher()
+        if match and (usable is None or usable(match)):
+            log("Person", f"Matched '{name}' via {label} (person_id={match.get('id')})",
+                xbmc.LOGDEBUG)
+            return match
     return None
 
 
