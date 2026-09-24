@@ -164,23 +164,10 @@ def get_cached_artwork(
     media_type: str, media_id: str, source: str, art_type: str
 ) -> Optional[list]:
     """Return cached artwork list, or None if missing/expired."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('''
-            SELECT data FROM artwork_cache
-            WHERE media_type = ? AND media_id = ? AND source = ? AND art_type = ?
-              AND expires_at > ?
-        ''', (media_type, media_id, source, art_type, _now()))
-
-        row = cursor.fetchone()
-
-        if not row:
-            return None
-
-        try:
-            return _decompress_data(row['data'])
-        except Exception as e:
-            log("Cache", f"Failed to parse cached data: {str(e)}", xbmc.LOGERROR)
-            return None
+    return _fetch_cached(
+        'artwork_cache',
+        'media_type = ? AND media_id = ? AND source = ? AND art_type = ? AND expires_at > ?',
+        (media_type, media_id, source, art_type, _now()), 'artwork')
 
 
 def get_cached_artwork_batch(
@@ -489,14 +476,12 @@ def clear_expired_cache() -> int:
 
 def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
     """Cache compressed TMDB person data with a days-based TTL."""
-    expires = _now() + (ttl_days * 86400)
-
     with get_db(DB_PATH) as cursor:
         cursor.execute('''
             INSERT INTO tmdb_person (person_id, expires_at, data) VALUES (?, ?, ?)
             ON CONFLICT (person_id) DO UPDATE SET
                 expires_at = excluded.expires_at, data = excluded.data
-        ''', (person_id, expires, _compress_data(data)))
+        ''', (person_id, _expiry(ttl_days * 24), _compress_data(data)))
 
 
 def get_cached_person_data(person_id: int) -> Optional[dict]:
@@ -628,7 +613,7 @@ def cache_online_properties(key: CacheKey, props: Dict[str, str], ttl_hours: int
                 expires_at = excluded.expires_at,
                 data = excluded.data
         ''', (key.media_type, key.item_id, key.scope, now,
-              now + int(ttl_hours * 3600), _compress_data(props)))
+              _expiry(ttl_hours), _compress_data(props)))
 
 
 def get_feed_checkpoint(feed: str) -> int:
@@ -662,7 +647,7 @@ def add_rechecks(feed: str, item_ids: List[str], recheck_after: int) -> None:
 
 def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
     """Item ids whose recheck is due, removing them so they are handled once."""
-    stamp = int(time.time()) if now is None else int(now)
+    stamp = _now() if now is None else int(now)
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'SELECT item_id FROM fanarttv_recheck WHERE feed = ? AND recheck_after <= ?',
@@ -673,13 +658,6 @@ def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
             cursor, 'DELETE FROM fanarttv_recheck WHERE feed = ? AND item_id IN ({placeholders})',
             [feed], due)
         return due
-
-
-def has_pending_recheck(item_id: str) -> bool:
-    """True while an item is waiting on a feed recheck, so no empty result is recorded for it."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('SELECT 1 FROM fanarttv_recheck WHERE item_id = ? LIMIT 1', (item_id,))
-        return cursor.fetchone() is not None
 
 
 def clear_artwork_for_ids(media_ids: List[str]) -> int:
