@@ -852,8 +852,10 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
         if action == "selected" and selected_art:
             art_updates[selected_art_type] = selected_art.get("url")
 
-        if art_updates:
-            processor._apply_art(dbtype, dbid_int, art_updates)
+        if art_updates and not processor._apply_art(dbtype, dbid_int, art_updates):
+            show_notification("Artwork", ADDON.getLocalizedString(32251),
+                              xbmcgui.NOTIFICATION_ERROR, 3000)
+        elif art_updates:
             xbmc.executebuiltin("Container.Refresh")
             show_notification(
                 "Artwork",
@@ -1197,7 +1199,8 @@ class ArtworkSelection:
             })
             return False
 
-        self.auto._apply_art(media_type, dbid, {art_type: selected_art['url']})
+        if not self.auto._apply_art(media_type, dbid, {art_type: selected_art['url']}):
+            return False
 
         cache_key = (media_type, dbid)
         if cache_key in self._current_art_cache:

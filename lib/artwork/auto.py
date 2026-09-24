@@ -180,6 +180,7 @@ class ArtworkAuto:
             all_available_art = self.source_fetcher.fetch_all(media_type, dbid, bulk=True)
 
             applied_any = False
+            apply_failed = False
             no_art_available = False
             blocked_by_policy = False
 
@@ -208,8 +209,10 @@ class ArtworkAuto:
                     best = compare_art_quality(filtered_candidates)
 
                 if best:
-                    self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
-                                    artwork_type=art_type, defer_pool_refresh=True)
+                    if not self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
+                                           artwork_type=art_type, defer_pool_refresh=True):
+                        apply_failed = True
+                        continue
                     db_queue.update_art_item(media_type, dbid, art_type, best['url'])
                     applied_any = True
                     self.stats['auto_applied'] += 1
@@ -217,6 +220,10 @@ class ArtworkAuto:
 
             if applied_any:
                 db_queue.update_queue_status(media_type, dbid, 'completed')
+            elif apply_failed:
+                self.stats['errors'] += 1
+                db_queue.update_queue_status(media_type, dbid, 'error')
+                return
             else:
                 db_queue.update_queue_status(media_type, dbid, 'skipped')
                 if no_art_available:
