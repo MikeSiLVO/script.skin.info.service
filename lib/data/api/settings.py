@@ -138,7 +138,7 @@ def test_api_key(provider: str) -> None:
 
 
 def authorize_trakt() -> None:
-    """Authorize Trakt using OAuth device code flow."""
+    """Authorize Trakt: show the device code, then poll until the user approves it."""
     import time
     from lib.data.api.trakt import TRAKT_CLIENT_ID, ApiTrakt as TraktRatingsSource
     from lib.data.api.client import ApiSession
@@ -183,11 +183,7 @@ def authorize_trakt() -> None:
             remaining = int(expires_in - (time.time() - start_time))
 
             progress.update(
-                0,
-                f"1. Visit: {verification_url}\n"
-                f"2. Enter code: [B]{user_code}[/B]\n"
-                f"3. Click Authorize on the website\n\n"
-                f"Waiting for authorization... ({remaining}s remaining)"
+                0, ADDON.getLocalizedString(32702).format(verification_url, user_code, remaining)
             )
 
             if progress.iscanceled() or monitor.abortRequested():

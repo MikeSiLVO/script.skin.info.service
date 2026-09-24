@@ -363,13 +363,13 @@ def fuzzy_name_match(credits: list, name: str) -> Optional[dict]:
 
 
 def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
-    """Search TMDB and show dialog for user selection."""
+    """Search TMDB by name and let the user pick; None when nothing is found or chosen."""
     results = api.search_person(name)
 
     if not results:
         xbmcgui.Dialog().notification(
-            "Person Info",
-            f"Actor '{name}' not found",
+            ADDON.getLocalizedString(32703),
+            ADDON.getLocalizedString(32401).format(name),
             xbmcgui.NOTIFICATION_WARNING,
             3000
         )

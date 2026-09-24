@@ -2100,6 +2100,32 @@ msgctxt "#32697"
 msgid "Similar Artists"
 msgstr ""
 
+msgctxt "#32698"
+msgid "Wait 60s and Retry"
+msgstr ""
+
+msgctxt "#32699"
+msgid "Retry Tomorrow"
+msgstr ""
+
+msgctxt "#32700"
+msgid "Stop All Updates"
+msgstr ""
+
+#. {0} is the provider name, e.g. TRAKT
+msgctxt "#32701"
+msgid "Continue Without {0}"
+msgstr ""
+
+#. {0} is a web address, {1} a short code the user types there, {2} the seconds left
+msgctxt "#32702"
+msgid "1. Visit: {0}\n2. Enter code: [B]{1}[/B]\n3. Click Authorize on the website\n\nWaiting for authorization... ({2}s remaining)"
+msgstr ""
+
+msgctxt "#32703"
+msgid "Person Info"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

@@ -22,13 +22,13 @@ def handle_rate_limit_error(provider: str) -> str:
     """Handle an HTTP 429 by asking the user; returns retry, skip, cancel_batch or cancel_all."""
     dialog = xbmcgui.Dialog()
     choices: Sequence[str] = [
-        "Wait 60s and Retry",
-        "Retry Tomorrow",
-        "Stop All Updates",
-        f"Continue Without {provider.upper()}"
+        ADDON.getLocalizedString(32698),
+        ADDON.getLocalizedString(32699),
+        ADDON.getLocalizedString(32700),
+        ADDON.getLocalizedString(32701).format(provider.upper()),
     ]
 
-    choice = dialog.select(f"{provider.upper()} - Rate Limit", list(choices))
+    choice = dialog.select(ADDON.getLocalizedString(32313).format(provider.upper()), list(choices))
 
     if choice == 0:
         # Wait 60 seconds then retry
