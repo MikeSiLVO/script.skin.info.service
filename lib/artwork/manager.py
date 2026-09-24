@@ -333,11 +333,7 @@ def _download_selected_artwork(
     if force_overwrite:
         existing_file_mode = 'overwrite'
     else:
-        existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = (
-            int(existing_file_mode_setting) if existing_file_mode_setting else 0
-        )
-        existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+        existing_file_mode = KodiSettings.existing_file_mode()
 
     savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
@@ -482,11 +478,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         episode_count = 0
         actor_count = 0
 
-        existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = (
-            int(existing_file_mode_setting) if existing_file_mode_setting else 0
-        )
-        existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+        existing_file_mode = KodiSettings.existing_file_mode()
 
         if progress.iscanceled():
             progress.close()

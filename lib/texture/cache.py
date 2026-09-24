@@ -268,11 +268,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
         if progress_dialog:
             progress_dialog.update(15, f"Processing {len(items)} items...")
 
-        existing_file_mode_setting = KodiSettings.existing_file_mode()
-        existing_file_mode_int = (
-            int(existing_file_mode_setting) if existing_file_mode_setting else 0
-        )
-        existing_file_mode = ['skip', 'overwrite', 'use_existing'][existing_file_mode_int]
+        existing_file_mode = KodiSettings.existing_file_mode()
 
         PathBuilder.prepare_named_item_folders(media_types)
 

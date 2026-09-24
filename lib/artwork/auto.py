@@ -335,10 +335,7 @@ class ArtworkAuto:
                     f"Could not build download path for {media_type} '{title}' {artwork_type}")
                 return
 
-            existing_file_mode_setting = KodiSettings.existing_file_mode()
-            existing_file_mode_int = (
-                int(existing_file_mode_setting) if existing_file_mode_setting else 0)
-            existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+            existing_file_mode = KodiSettings.existing_file_mode()
 
             if self._downloader is None:
                 self._downloader = DownloadArtwork()

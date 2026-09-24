@@ -18,6 +18,7 @@ from lib.infrastructure.tasks import TaskContext
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 from lib.kodi.client import log, ADDON, is_inherited_art
+from lib.kodi.settings import KodiSettings
 from lib.data.database import workflow as db_workflow
 
 # Log file paths
@@ -328,11 +329,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
         else:
             progress.update(15, ADDON.getLocalizedString(32293).format(len(items)))
 
-        existing_file_mode_setting = ADDON.getSetting('download.existing_file_mode')
-        existing_file_mode_int = (
-            int(existing_file_mode_setting) if existing_file_mode_setting else 0
-        )
-        existing_file_mode = ['skip', 'overwrite'][existing_file_mode_int]
+        existing_file_mode = KodiSettings.existing_file_mode()
 
         jobs, mismatch_counts = build_download_jobs(items)
 

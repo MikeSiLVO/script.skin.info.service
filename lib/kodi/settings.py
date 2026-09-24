@@ -93,8 +93,8 @@ class KodiSettings:
 
     @classmethod
     def existing_file_mode(cls) -> str:
-        """Get existing file mode for downloads."""
-        return cls.get_string('download.existing_file_mode')
+        """Get existing file mode for downloads, 'skip' or 'overwrite'."""
+        return 'overwrite' if cls.get_string('download.existing_file_mode') == '1' else 'skip'
 
     @classmethod
     def tmdb_use_custom_key(cls) -> bool:
