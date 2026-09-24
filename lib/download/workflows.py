@@ -462,14 +462,18 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                         mb = bytes_downloaded / (1024 * 1024) if bytes_downloaded > 0 else 0
 
                         if use_background:
-                            message = f"Downloaded {downloaded} of {total} ({mb:.2f} MB)"
+                            message = ADDON.getLocalizedString(32465).format(
+                                f"{downloaded}/{total}", mb)
                             progress.update(percent, message=message)
                         else:
+                            counts = " | ".join((
+                                ADDON.getLocalizedString(32465).format(downloaded, mb),
+                                ADDON.getLocalizedString(32286).format(skipped),
+                                ADDON.getLocalizedString(32470).format(failed),
+                            ))
                             message = (
-                                f"Progress: {completed} / {total}[CR]"
-                                f"Downloaded: {downloaded} | Skipped: {skipped} | "
-                                f"Failed: {failed}[CR]"
-                                f"Size: {mb:.2f} MB"
+                                ADDON.getLocalizedString(32284).format(f"{completed}/{total}")
+                                + f"[CR]{counts}"
                             )
                             progress.update(percent, message)
                         last_update_time = current_time
