@@ -19,10 +19,7 @@ def _cancel_batch() -> None:
 
 
 def handle_rate_limit_error(provider: str) -> str:
-    """Show modal dialog when an HTTP 429 lands for `provider`.
-
-    Returns one of: "cancel_batch", "cancel_all", "skip", "retry".
-    """
+    """Handle an HTTP 429 by asking the user; returns retry, skip, cancel_batch or cancel_all."""
     dialog = xbmcgui.Dialog()
     choices: Sequence[str] = [
         "Wait 60s and Retry",
@@ -53,6 +50,7 @@ def handle_rate_limit_error(provider: str) -> str:
         _cancel_batch()
         return "cancel_batch"
     elif choice == 2:
+        _cancel_batch()
         return "cancel_all"
     elif choice == 3:
         _session_skip_providers.add(provider.lower())
