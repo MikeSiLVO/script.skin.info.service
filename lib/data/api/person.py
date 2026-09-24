@@ -97,7 +97,7 @@ def build_person_props(person_data: dict) -> Dict[str, str]:
 
 
 def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
-    """Get TMDB ID for library item, converting from IMDb/TVDB if needed."""
+    """Get a library item's TMDB id, converting an IMDb or TVDB id when that is all it has."""
     if dbtype in ('season', 'episode'):
         details = get_item_details(dbtype, dbid, ['tvshowid'])
         if not details:
@@ -112,6 +112,7 @@ def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
         return None
 
     uniqueid = details.get('uniqueid', {})
+    find_type = 'tvshow' if dbtype == 'tvshow' else 'movie'
 
     if uniqueid.get('tmdb'):
         try:
@@ -120,19 +121,19 @@ def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
             pass
 
     if uniqueid.get('imdb'):
-        tmdb_id = _convert_external_id(uniqueid['imdb'], 'imdb_id')
+        tmdb_id = _convert_external_id(uniqueid['imdb'], 'imdb_id', find_type)
         if tmdb_id:
             return tmdb_id
 
     if dbtype in ('tvshow', 'episode') and uniqueid.get('tvdb'):
-        tmdb_id = _convert_external_id(uniqueid['tvdb'], 'tvdb_id')
+        tmdb_id = _convert_external_id(uniqueid['tvdb'], 'tvdb_id', find_type)
         if tmdb_id:
             return tmdb_id
 
     # IMDb IDs stored under non-standard keys (e.g. "unknown")
     for value in uniqueid.values():
         if isinstance(value, str) and value.startswith('tt'):
-            tmdb_id = _convert_external_id(value, 'imdb_id')
+            tmdb_id = _convert_external_id(value, 'imdb_id', find_type)
             if tmdb_id:
                 return tmdb_id
 
@@ -141,10 +142,10 @@ def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
     return None
 
 
-def _convert_external_id(external_id: str, source: str) -> Optional[int]:
-    """Convert IMDB/TVDB ID to TMDB ID using TMDB Find API."""
+def _convert_external_id(external_id: str, source: str, media_type: str) -> Optional[int]:
+    """Convert an IMDb or TVDB id to a TMDB id through TMDB's find endpoint."""
     api = ApiTmdb()
-    result = api.find_by_external_id(external_id, source)
+    result = api.find_by_external_id(external_id, source, media_type)
     if result and "id" in result:
         return result["id"]
     return None
