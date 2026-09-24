@@ -62,27 +62,15 @@ class InfoDialogBase(DialogBase):
     def _blur_worker(self, sources) -> None:
         """Set each blurred image as it finishes, stopping once the dialog closes."""
         from lib.service.blur import blur_image
-        radius = self._blur_radius()
         for key, src in sources:
             if self._closing:
                 return
-            blurred = blur_image(src, radius)
+            blurred = blur_image(src)
             if blurred and not self._closing:
                 try:
                     self.setProperty(key, blurred)
                 except Exception:
                     pass
-
-    @staticmethod
-    def _blur_radius() -> int:
-        """Radius the skin sets in `SkinInfo.BlurRadius`, 40 when unset or invalid."""
-        import xbmc
-        value = xbmc.getInfoLabel("Skin.String(SkinInfo.BlurRadius)") or "40"
-        try:
-            radius = int(value)
-        except (ValueError, TypeError):
-            return 40
-        return radius if radius >= 1 else 40
 
     def close(self) -> None:
         """Hand topmost back to the previous dialog and stop the blur before closing."""

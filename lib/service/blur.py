@@ -126,13 +126,21 @@ def _cache_is_fresh(source_path: str, cache_path: str) -> bool:
         return True
 
 
-def blur_image(source_path: str, blur_radius: int = 40) -> Optional[str]:
-    """Return a cached blurred copy of `source_path`. Creates it if missing. None on failure.
+def _skin_radius() -> int:
+    """Radius the skin sets in `SkinInfo.BlurRadius`, 40 when unset or invalid."""
+    try:
+        radius = int(xbmc.getInfoLabel("Skin.String(SkinInfo.BlurRadius)") or 40)
+    except ValueError:
+        return 40
+    return radius if radius >= 1 else 40
 
-    Accepts local paths, `image://`, or http(s) URLs. Recommended radius 30-50.
-    """
+
+def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[str]:
+    """Return a cached blurred copy of `source_path`, at the skin's radius unless given 1+."""
     if not source_path:
         return None
+    if blur_radius is None or blur_radius < 1:
+        blur_radius = _skin_radius()
 
     # Resource addon icons can't be resolved via texture cache
     if source_path.startswith('resource://'):

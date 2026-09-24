@@ -112,15 +112,7 @@ class BlurHandler:
         try:
             from lib.service import blur
 
-            blur_radius_str = xbmc.getInfoLabel("Skin.String(SkinInfo.BlurRadius)") or "40"
-            try:
-                blur_radius = int(blur_radius_str)
-                if blur_radius < 1:
-                    blur_radius = 40
-            except (ValueError, TypeError):
-                blur_radius = 40
-
-            blurred_path = blur.blur_image(source, blur_radius)
+            blurred_path = blur.blur_image(source)
 
             if blurred_path:
                 set_prop(f"{prop_base}BlurredImage", blurred_path)

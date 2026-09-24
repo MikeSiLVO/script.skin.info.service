@@ -43,15 +43,6 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
             _clear_blur_properties(blur_key, orig_key, window)
             return
 
-        if radius is None:
-            blur_radius_str = xbmc.getInfoLabel("Skin.String(SkinInfo.BlurRadius)") or "40"
-            try:
-                radius = int(blur_radius_str)
-                if radius < 1:
-                    radius = 40
-            except (ValueError, TypeError):
-                radius = 40
-
         from lib.service import blur
         blurred_path = blur.blur_image(source, radius)
 
