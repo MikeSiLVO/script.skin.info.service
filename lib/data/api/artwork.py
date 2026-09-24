@@ -154,7 +154,7 @@ class ApiArtworkFetcher:
                 )
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        if tmdb_id:
+        if complete_data:
             db_cache.cache_artwork(
                 media_type, str(tmdb_id), 'system', cache_marker_type,
                 [{'marker': 'complete'}], release_date, ttl_hours,
