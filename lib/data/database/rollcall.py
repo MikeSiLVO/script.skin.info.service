@@ -9,6 +9,7 @@ import xbmc
 
 from lib.data.database._infrastructure import (
     DB_PATH,
+    as_int,
     get_db,
     chunked_in_query,
     chunked_in_modify as _chunked_delete,
@@ -46,14 +47,6 @@ def _build_content_key(uniqueid: dict) -> str:
         if val:
             return f"{source}:{val}"
     return ""
-
-
-def _as_int(value) -> Optional[int]:
-    """Kodi hands ids back as strings or ints; the column is INTEGER."""
-    try:
-        return int(value) if value else None
-    except (TypeError, ValueError):
-        return None
 
 
 _PAGE_SIZE = 5000
@@ -124,11 +117,11 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, _Item]]:
                     item.get("title", ""),
                     _build_content_key(uniqueid),
                     uniqueid.get("imdb") or None,
-                    _as_int(uniqueid.get("tmdb")),
-                    _as_int(uniqueid.get("tvdb")),
+                    as_int(uniqueid.get("tmdb")),
+                    as_int(uniqueid.get("tvdb")),
                     None,
                     # a tvshow item carries its own id in tvshowid
-                    _as_int(item.get("tvshowid")) if media_type == "episode" else None,
+                    as_int(item.get("tvshowid")) if media_type == "episode" else None,
                     item.get("season") if media_type == "episode" else None,
                     item.get("episode") if media_type == "episode" else None,
                 )
