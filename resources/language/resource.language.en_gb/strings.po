@@ -2205,6 +2205,14 @@ msgctxt "#32723"
 msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
 msgstr ""
 
+msgctxt "#32724"
+msgid "Enter the date as YYYY-MM-DD"
+msgstr ""
+
+msgctxt "#32725"
+msgid "That date cannot exist"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

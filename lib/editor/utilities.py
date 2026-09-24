@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 from lib.kodi.client import ADDON
@@ -24,18 +25,15 @@ def validate_date(value: str) -> tuple[bool, str]:
         return True, ""
 
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", value):
-        return False, "Invalid date format (use YYYY-MM-DD)"
+        return False, ADDON.getLocalizedString(32724)
 
+    year, month, day = map(int, value.split("-"))
+    if year < 1800 or year > 2100:
+        return False, ADDON.getLocalizedString(32018)
     try:
-        year, month, day = map(int, value.split("-"))
-        if not (1 <= month <= 12):
-            return False, "Month must be 1-12"
-        if not (1 <= day <= 31):
-            return False, "Day must be 1-31"
-        if year < 1800 or year > 2100:
-            return False, "Year seems invalid"
+        date(year, month, day)
     except ValueError:
-        return False, "Invalid date"
+        return False, ADDON.getLocalizedString(32725)
 
     return True, ""
 
