@@ -591,8 +591,6 @@ def prompt_imdb_corrections(pending: List[Dict]) -> int:
             ADDON.getLocalizedString(32421),
             message,
             customlabel=ADDON.getLocalizedString(32427),
-            nolabel=xbmc.getLocalizedString(106),
-            yeslabel=xbmc.getLocalizedString(107)
         )
 
         if result == 2:

@@ -33,8 +33,7 @@ class ProgressDialog:
     """Context-managed progress dialog that picks `DialogProgress` or `DialogProgressBG` and
     clamps percent."""
 
-    def __init__(self, use_background: bool = False, heading: str = "Processing",
-                 fg_message_prefix: str = ""):
+    def __init__(self, heading: str, use_background: bool = False, fg_message_prefix: str = ""):
         self.use_background = use_background
         self.heading = heading
         self.fg_message_prefix = fg_message_prefix
@@ -192,14 +191,9 @@ def show_yesno(
 
 def show_yesnocustom(heading: str, message: str, customlabel: str,
                      nolabel: str = "", yeslabel: str = "") -> int:
-    """Show yes/no/custom dialog. Returns `0`=No, `1`=Yes, `2`=Custom, `-1`=Cancelled."""
+    """Show a yes/no/custom dialog; 0 No, 1 Yes, 2 custom, -1 cancelled."""
     return xbmcgui.Dialog().yesnocustom(
-        heading,
-        message,
-        customlabel=customlabel,
-        nolabel=nolabel or "No",
-        yeslabel=yeslabel or "Yes"
-    )
+        heading, message, customlabel=customlabel, nolabel=nolabel, yeslabel=yeslabel)
 
 
 def show_textviewer(heading: str, text: str, use_mono: bool = False) -> None:
