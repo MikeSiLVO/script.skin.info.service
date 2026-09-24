@@ -73,28 +73,11 @@ _INTEGER_VALIDATORS = {
 def handle_integer(
     field_name: str, current_value: int | None, validator: str | None = None
 ) -> tuple[int | None, bool]:
-    """Handle integer input."""
-    heading = _edit_heading(field_name)
-    default = str(current_value) if current_value else ""
-
-    result = xbmcgui.Dialog().input(heading, default, type=xbmcgui.INPUT_NUMERIC)
-
-    if not result:
-        return None, True
-
-    try:
-        value = int(result)
-    except ValueError:
-        return None, True
-
+    """Handle integer input, checked by the field's validator when it has one."""
     validator_fn = _INTEGER_VALIDATORS.get(validator) if validator else None
-    if validator_fn:
-        valid, error = validator_fn(value)
-        if not valid:
-            xbmcgui.Dialog().ok(ADDON.getLocalizedString(32254), error)
-            return None, True
-
-    return value, False
+    return _prompt_until_valid(
+        _edit_heading(field_name), str(current_value) if current_value else "", int,
+        validator_fn or (lambda _value: (True, "")), 32254, xbmcgui.INPUT_NUMERIC)
 
 
 def _handle_seconds(
