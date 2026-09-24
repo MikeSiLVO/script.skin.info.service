@@ -403,27 +403,14 @@ class PathBuilder:
 
     @staticmethod
     def _find_movie_root(path: str) -> str:
-        """Walk up past BDMV/VIDEO_TS/STREAM/BACKUP directories to find the real movie root."""
+        """Find the folder holding a BDMV or VIDEO_TS structure, else the file's own folder."""
         dir_path = vfs_dirname(path)
+        parent_dir = vfs_dirname(dir_path)
 
-        check_path = dir_path
-        for _ in range(3):
-            dirname = vfs_basename(check_path)
-            if dirname in ('BDMV', 'VIDEO_TS', 'STREAM', 'BACKUP'):
-                check_path = vfs_dirname(check_path)
-            else:
-                break
-
-        parent_name = vfs_basename(vfs_dirname(path))
-        grandparent_name = vfs_basename(vfs_dirname(vfs_dirname(path)))
-
-        if parent_name in ('BDMV', 'VIDEO_TS'):
-            return vfs_dirname(vfs_dirname(path))
-        elif grandparent_name in ('BDMV', 'VIDEO_TS'):
-            return vfs_dirname(vfs_dirname(vfs_dirname(path)))
-        elif parent_name == 'STREAM' and grandparent_name == 'BDMV':
-            return vfs_dirname(vfs_dirname(vfs_dirname(path)))
-
+        if vfs_basename(dir_path) in ('BDMV', 'VIDEO_TS'):
+            return parent_dir
+        if vfs_basename(parent_dir) in ('BDMV', 'VIDEO_TS'):
+            return vfs_dirname(parent_dir)
         return dir_path
 
     @staticmethod
