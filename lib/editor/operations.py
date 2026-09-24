@@ -56,6 +56,10 @@ def save_field(
 
     params: dict[str, Any] = {id_key: dbid, api_name: value}
 
+    # a song's mood is one string, read back split on Kodi's music item separator
+    if media_type == "song" and api_name == "mood" and isinstance(value, list):
+        params["mood"] = " / ".join(value)
+
     # Kodi ignores year if premiered exists, so set both (video types only)
     if field_name == "year" and isinstance(value, int) and media_type in (
         "movie", "tvshow", "episode", "musicvideo"
