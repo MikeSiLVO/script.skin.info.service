@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import xbmc
 import xbmcgui
 
@@ -25,7 +27,7 @@ class DialogImageViewer(InfoDialogBase):
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
         self.mark_topmost()
         try:
-            control: xbmcgui.ControlList = self.getControl(_IMAGES_CONTROL_ID)  # type: ignore[assignment]
+            control = cast(xbmcgui.ControlList, self.getControl(_IMAGES_CONTROL_ID))
             control.selectItem(self._selected_index)
         except Exception:
             pass
