@@ -5,7 +5,7 @@ import xbmc
 from collections import OrderedDict
 from typing import Optional, Dict, List, Any, Tuple
 
-from lib.data import database as db
+from lib.data.database import cache as db_cache
 from lib.data.api.tmdb import ApiTmdb, transform_tmdb_images
 from lib.data.api.fanarttv import ApiFanarttv
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
@@ -121,11 +121,11 @@ class ApiArtworkFetcher:
         if not tmdb_id:
             return {}
 
-        ttl_hours = db.get_cache_ttl_hours(release_date)
+        ttl_hours = db_cache.get_cache_ttl_hours(release_date)
         cache_marker_type = '_full_fetch_complete'
 
         if not bypass_cache:
-            cached_marker = db.get_cached_artwork(
+            cached_marker = db_cache.get_cached_artwork(
                 media_type, str(tmdb_id), 'system', cache_marker_type
             )
 
@@ -149,13 +149,13 @@ class ApiArtworkFetcher:
         for art_type, artworks in fanart_items.items():
             if artworks:
                 cache_id = str(tvdb_id) if tvdb_id and media_type == 'tvshow' else str(tmdb_id)
-                db.cache_artwork(
+                db_cache.cache_artwork(
                     media_type, cache_id, 'fanarttv', art_type, artworks, release_date, ttl_hours
                 )
                 all_art.setdefault(art_type, []).extend(artworks)
 
         if tmdb_id:
-            db.cache_artwork(
+            db_cache.cache_artwork(
                 media_type, str(tmdb_id), 'system', cache_marker_type,
                 [{'marker': 'complete'}], release_date, ttl_hours,
             )
@@ -183,7 +183,7 @@ class ApiArtworkFetcher:
         }
 
         from lib.artwork.config import CACHE_ART_TYPES
-        batch_results = db.get_cached_artwork_batch(media_type, media_ids, CACHE_ART_TYPES)
+        batch_results = db_cache.get_cached_artwork_batch(media_type, media_ids, CACHE_ART_TYPES)
 
         cached: Dict[str, List[dict]] = {}
         for (_source, art_type), artworks in batch_results.items():
@@ -195,7 +195,7 @@ class ApiArtworkFetcher:
         music_art_types = ['thumb', 'fanart', 'clearlogo', 'banner', 'discart']
         media_ids = {'fanarttv': mbid, 'theaudiodb': mbid}
 
-        batch_results = db.get_cached_artwork_batch(media_type, media_ids, music_art_types)
+        batch_results = db_cache.get_cached_artwork_batch(media_type, media_ids, music_art_types)
 
         cached: Dict[str, List[dict]] = {}
         for (_source, art_type), artworks in batch_results.items():
@@ -360,11 +360,11 @@ class ApiArtworkFetcher:
         if not mbid:
             return {}
 
-        ttl_hours = db.get_fanarttv_cache_ttl_hours()
+        ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
         cache_marker_type = '_full_fetch_complete'
 
         if not bypass_cache:
-            cached_marker = db.get_cached_artwork('artist', mbid, 'system', cache_marker_type)
+            cached_marker = db_cache.get_cached_artwork('artist', mbid, 'system', cache_marker_type)
             if cached_marker is not None:
                 cached_art = self._load_music_cached_artwork('artist', mbid)
                 return self._finalize_artwork('artist', cached_art)
@@ -374,7 +374,9 @@ class ApiArtworkFetcher:
         fanart_art = self.fanart_api.get_artist_artwork(mbid)
         for art_type, artworks in fanart_art.items():
             if art_type != 'albums' and artworks:
-                db.cache_artwork('artist', mbid, 'fanarttv', art_type, artworks, None, ttl_hours)
+                db_cache.cache_artwork(
+                    'artist', mbid, 'fanarttv', art_type, artworks, None, ttl_hours
+                )
                 all_art.setdefault(art_type, []).extend(artworks)
 
         if not bulk:
@@ -383,12 +385,12 @@ class ApiArtworkFetcher:
             audiodb_art = audiodb.get_artist_artwork(mbid)
             for art_type, artworks in audiodb_art.items():
                 if artworks:
-                    db.cache_artwork(
+                    db_cache.cache_artwork(
                         'artist', mbid, 'theaudiodb', art_type, artworks, None, ttl_hours
                     )
                     all_art.setdefault(art_type, []).extend(artworks)
 
-            db.cache_artwork(
+            db_cache.cache_artwork(
                 'artist', mbid, 'system', cache_marker_type,
                 [{'marker': 'complete'}], None, ttl_hours,
             )
@@ -420,10 +422,10 @@ class ApiArtworkFetcher:
             return {}
 
         cache_key = f"{artist_name}\0{title}".lower()
-        ttl_hours = db.get_fanarttv_cache_ttl_hours()
+        ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
 
         if not bypass_cache:
-            marker = db.get_cached_artwork(
+            marker = db_cache.get_cached_artwork(
                 'musicvideo', cache_key, 'system', '_full_fetch_complete'
             )
             if marker is not None:
@@ -448,7 +450,7 @@ class ApiArtworkFetcher:
                 track_art = audiodb.get_track_artwork_from_data(track_data)
                 for art_type, artworks in track_art.items():
                     if artworks:
-                        db.cache_artwork(
+                        db_cache.cache_artwork(
                             'musicvideo', cache_key, 'theaudiodb', art_type, artworks,
                             None, ttl_hours
                         )
@@ -463,7 +465,7 @@ class ApiArtworkFetcher:
                 fanart_art = self.fanart_api.get_artist_artwork(mbid)
                 for art_type, artworks in fanart_art.items():
                     if art_type != 'albums' and artworks:
-                        db.cache_artwork(
+                        db_cache.cache_artwork(
                             'musicvideo', cache_key, 'fanarttv', art_type, artworks, None, ttl_hours
                         )
                         all_art.setdefault(art_type, []).extend(artworks)
@@ -471,7 +473,7 @@ class ApiArtworkFetcher:
                 album_art = (fanart_art.get('albums') or {}).get(release_group_id or '', {})
                 for artworks in (album_art.get('thumb'),):
                     if artworks:
-                        db.cache_artwork(
+                        db_cache.cache_artwork(
                             'musicvideo', cache_key, 'fanarttv', 'thumb', artworks,
                             None, ttl_hours
                         )
@@ -493,7 +495,7 @@ class ApiArtworkFetcher:
                         tadb_art = audiodb.get_artist_artwork_from_data(audiodb_artist)
                         for art_type, artworks in tadb_art.items():
                             if artworks:
-                                db.cache_artwork(
+                                db_cache.cache_artwork(
                                     'musicvideo', cache_key, 'theaudiodb', art_type, artworks,
                                     None, ttl_hours,
                                 )
@@ -506,7 +508,7 @@ class ApiArtworkFetcher:
                     )
 
         if not bulk:
-            db.cache_artwork(
+            db_cache.cache_artwork(
                 'musicvideo', cache_key, 'system', '_full_fetch_complete',
                 [{'marker': 'complete'}], None, ttl_hours,
             )
@@ -515,7 +517,7 @@ class ApiArtworkFetcher:
     def _load_musicvideo_cached_artwork(self, cache_key: str) -> Dict[str, List[dict]]:
         art_types = ['thumb', 'fanart', 'clearlogo', 'banner', 'clearart', 'landscape']
         media_ids = {'fanarttv': cache_key, 'theaudiodb': cache_key}
-        batch_results = db.get_cached_artwork_batch('musicvideo', media_ids, art_types)
+        batch_results = db_cache.get_cached_artwork_batch('musicvideo', media_ids, art_types)
         cached: Dict[str, List[dict]] = {}
         for (_source, art_type), artworks in batch_results.items():
             cached.setdefault(art_type, []).extend(artworks)
@@ -556,11 +558,11 @@ class ApiArtworkFetcher:
             )
             return {}
 
-        ttl_hours = db.get_fanarttv_cache_ttl_hours()
+        ttl_hours = db_cache.get_fanarttv_cache_ttl_hours()
         cache_marker_type = '_full_fetch_complete'
 
         if not bypass_cache:
-            cached_marker = db.get_cached_artwork(
+            cached_marker = db_cache.get_cached_artwork(
                 'album', release_group_id, 'system', cache_marker_type
             )
             if cached_marker is not None:
@@ -600,7 +602,7 @@ class ApiArtworkFetcher:
 
         for art_type, artworks in album_art.items():
             if artworks:
-                db.cache_artwork(
+                db_cache.cache_artwork(
                     'album', release_group_id, 'fanarttv', art_type, artworks, None, ttl_hours
                 )
                 all_art.setdefault(art_type, []).extend(artworks)
@@ -632,12 +634,12 @@ class ApiArtworkFetcher:
 
         for art_type, artworks in audiodb_art.items():
             if artworks:
-                db.cache_artwork(
+                db_cache.cache_artwork(
                     'album', release_group_id, 'theaudiodb', art_type, artworks, None, ttl_hours
                 )
                 all_art.setdefault(art_type, []).extend(artworks)
 
-        db.cache_artwork(
+        db_cache.cache_artwork(
             'album', release_group_id, 'system', cache_marker_type,
             [{'marker': 'complete'}], None, ttl_hours,
         )
@@ -653,7 +655,7 @@ class ApiArtworkFetcher:
     ) -> tuple:
         """Resolve a MusicBrainz release group id the artwork services have not caught up to."""
         # Check cached mapping first
-        cached_old_ids = db.get_mb_id_aliases(canonical_id)
+        cached_old_ids = db_cache.get_mb_id_aliases(canonical_id)
         for old_id in cached_old_ids:
             if old_id in fanart_albums:
                 log(
@@ -704,7 +706,7 @@ class ApiArtworkFetcher:
             return None, search_result
 
         # Found an old ID, cache the mapping
-        db.save_mb_id_mapping(tadb_mbid, canonical_id)
+        db_cache.save_mb_id_mapping(tadb_mbid, canonical_id)
         log(
             "Artwork",
             f"Album {album_dbid}: resolved stale ID {tadb_mbid} -> {canonical_id} via TheAudioDB",

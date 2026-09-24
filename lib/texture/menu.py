@@ -6,7 +6,7 @@ import xbmcgui
 from datetime import datetime
 from typing import Optional, List, Union, Dict, Any
 
-from lib.data.database import init_database
+from lib.data.database._infrastructure import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog, DialogProgress
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS

@@ -15,7 +15,9 @@ from typing import Optional, List, Dict, Tuple, Any
 import xbmc
 import xbmcgui
 
-from lib.data import database as db
+from lib.data.database._infrastructure import init_database
+from lib.data.database import queue as db_queue
+from lib.data.database import workflow as db_workflow
 from lib.data.database.queue import QueueEntry, ArtItemEntry
 from lib.kodi.client import (
     request, extract_result, get_item_details, decode_image_url, KODI_GET_DETAILS_METHODS,
@@ -153,9 +155,11 @@ def _show_session_report(session_row) -> None:
         return _format_entry(entry, include_art_type=False, include_reason=True)
 
     session_id = session_row['id']
-    session_art_types = db.get_session_art_types(session_id)
-    session_media_types = db.get_session_media_types(session_id)
-    missing_count = db.count_pending_missing_art(session_media_types) if session_media_types else 0
+    session_art_types = db_workflow.get_session_art_types(session_id)
+    session_media_types = db_workflow.get_session_media_types(session_id)
+    missing_count = (
+        db_queue.count_pending_missing_art(session_media_types) if session_media_types else 0
+    )
 
     art_types_str = ', '.join(session_art_types) if session_art_types else 'all'
 
@@ -414,7 +418,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
         )
         return
 
-    db.init_database()
+    init_database()
 
     media_type = dbtype
     dbid_int = int(dbid)
@@ -662,7 +666,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
         )
         return
 
-    db.init_database()
+    init_database()
 
     dbid_int = int(dbid)
 
@@ -935,7 +939,7 @@ class ArtworkSelection:
             Dict with keys: status, cancelled, session_id, remaining, stats.
             None if queue is empty.
         """
-        pending_check = db.get_next_batch(
+        pending_check = db_queue.get_next_batch(
             batch_size=1,
             status='pending',
             media_types=self.media_filter,
@@ -947,7 +951,9 @@ class ArtworkSelection:
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
             pending_count = len(
-                db.get_next_batch(batch_size=1000, status='pending', media_types=self.media_filter)
+                db_queue.get_next_batch(
+                    batch_size=1000, status='pending', media_types=self.media_filter
+                )
             )
             log(
                 "Artwork",
@@ -969,7 +975,7 @@ class ArtworkSelection:
 
                 self._current_art_cache.clear()
 
-                queue_batch = db.get_next_batch(
+                queue_batch = db_queue.get_next_batch(
                     batch_size=25,
                     status='pending',
                     media_types=self.media_filter,
@@ -979,7 +985,7 @@ class ArtworkSelection:
                     break
 
                 keys = [(entry.media_type, entry.dbid) for entry in queue_batch]
-                art_items_by_queue = db.get_art_items_for_queue_batch(keys)
+                art_items_by_queue = db_queue.get_art_items_for_queue_batch(keys)
 
                 for queue_entry in queue_batch:
                     if self.loading_progress.is_cancelled():
@@ -1006,7 +1012,7 @@ class ArtworkSelection:
                     elif result == 'auto':
                         self.stats['auto'] += 1
 
-                    db.update_session_stats(
+                    db_workflow.update_session_stats(
                         self.session_id,
                         _serialise_session_stats(self._build_stats_payload()),
                     )
@@ -1026,17 +1032,17 @@ class ArtworkSelection:
         skipped_count = self.stats['skipped']
         auto_count = self.stats.get('auto', 0)
         manual_total = applied_count + skipped_count
-        remaining = db.count_queue_items(
+        remaining = db_queue.count_queue_items(
             status='pending',
             media_types=self.media_filter,
         )
         self.remaining_pending = remaining
 
         if cancelled:
-            db.update_session_stats(
+            db_workflow.update_session_stats(
                 self.session_id, _serialise_session_stats(self._build_stats_payload())
             )
-            db.cancel_session(self.session_id)
+            db_workflow.cancel_session(self.session_id)
             heading = (
                 f"Cancelled: manual {manual_total} "
                 f"(applied {applied_count}, skipped {skipped_count})"
@@ -1044,10 +1050,10 @@ class ArtworkSelection:
             message = f"Auto-skipped: {auto_count}"
             show_notification(heading, message, xbmcgui.NOTIFICATION_INFO, 5000)
         else:
-            db.update_session_stats(
+            db_workflow.update_session_stats(
                 self.session_id, _serialise_session_stats(self._build_stats_payload())
             )
-            db.complete_session(self.session_id)
+            db_workflow.complete_session(self.session_id)
             heading = (
                 f"Complete: manual {manual_total} "
                 f"(applied {applied_count}, skipped {skipped_count})"
@@ -1068,7 +1074,7 @@ class ArtworkSelection:
     def _initialize_session(self) -> None:
         """Create the manual review session."""
         if not self.session_id:
-            self.session_id = db.create_scan_session(
+            self.session_id = db_workflow.create_scan_session(
                 scan_type='manual_review',
                 media_types=self.media_filter or [],
                 art_types=[]
@@ -1082,7 +1088,7 @@ class ArtworkSelection:
     ) -> Tuple[List[ArtItemEntry], Dict[str, Any]]:
         """Return pending art items plus current artwork state for validation."""
         if art_items is None:
-            art_items = db.get_art_items_for_queue(queue_entry.media_type, queue_entry.dbid)
+            art_items = db_queue.get_art_items_for_queue(queue_entry.media_type, queue_entry.dbid)
         current_art = self._get_current_artwork(queue_entry.media_type, queue_entry.dbid)
 
         pending_items: List[ArtItemEntry] = []
@@ -1093,7 +1099,7 @@ class ArtworkSelection:
                 continue
 
             if current_art.get(art_item.art_type):
-                db.update_art_item_status(art_item.media_type, art_item.dbid,
+                db_queue.update_art_item_status(art_item.media_type, art_item.dbid,
                                           art_item.art_type, 'stale')
                 stale_reasons.append((art_item.art_type, "Artwork already set"))
                 continue
@@ -1102,7 +1108,7 @@ class ArtworkSelection:
 
         if not pending_items:
             if stale_reasons:
-                db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
+                db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return [], current_art
 
         return pending_items, current_art
@@ -1162,10 +1168,10 @@ class ArtworkSelection:
     def _handle_user_cancel(self, queue_entry: QueueEntry, applied_any: bool) -> str:
         """Handle user cancellation during review."""
         if applied_any:
-            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
+            db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return 'applied'
         else:
-            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'pending')
+            db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'pending')
             return 'cancel'
 
     def _apply_selected_artwork(
@@ -1181,7 +1187,7 @@ class ArtworkSelection:
 
         latest_art = self._get_current_artwork(queue_entry.media_type, queue_entry.dbid)
         if latest_art.get(art_type):
-            db.update_art_item_status(media_type, dbid, art_type, 'stale')
+            db_queue.update_art_item_status(media_type, dbid, art_type, 'stale')
             self._log_review_event('stale', {
                 'title': queue_entry.title,
                 'art_type': art_type,
@@ -1197,7 +1203,7 @@ class ArtworkSelection:
         if cache_key in self._current_art_cache:
             del self._current_art_cache[cache_key]
 
-        db.update_art_item(media_type, dbid, art_type, selected_art['url'])
+        db_queue.update_art_item(media_type, dbid, art_type, selected_art['url'])
         self._log_review_event('manual_applied', {
             'title': queue_entry.title,
             'art_type': art_type,
@@ -1235,7 +1241,7 @@ class ArtworkSelection:
             return ('cancel', applied_any)
 
         if action == 'skip':
-            db.update_art_item_status(art_item.media_type, art_item.dbid,
+            db_queue.update_art_item_status(art_item.media_type, art_item.dbid,
                                       art_item.art_type, 'skipped')
             self._log_review_event('manual_skipped', {
                 'title': queue_entry.title,
@@ -1262,10 +1268,10 @@ class ArtworkSelection:
     ) -> str:
         """Finalize queue status and return result after reviewing all art items."""
         if applied_any:
-            db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
+            db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return 'applied'
 
-        db.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'skipped')
+        db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'skipped')
         if not had_options and not auto_logged:
             for art_item in art_items:
                 self._log_review_event('manual_auto', {
@@ -1361,8 +1367,8 @@ class ArtworkManager:
         self.review_mode: str = REVIEW_MODE_MISSING
 
     def run(self) -> None:
-        db.init_database()
-        db.cleanup_old_queue_items()
+        init_database()
+        db_queue.cleanup_old_queue_items()
 
         if self.scope_arg:
             if not self._handle_scope_arg():
@@ -1433,7 +1439,7 @@ class ArtworkManager:
 
     def _view_scope_report(self, scope_label: str) -> None:
         """View report for current scope."""
-        last_session = db.get_last_manual_review_session(self.media_filter)
+        last_session = db_workflow.get_last_manual_review_session(self.media_filter)
         if last_session and last_session['stats']:
             _show_session_report(last_session)
         else:
@@ -1565,7 +1571,7 @@ class ArtworkManager:
 
     def _view_last_report_any_scope(self) -> None:
         """View the last report from any scope."""
-        last_session = db.get_last_manual_review_session(None)
+        last_session = db_workflow.get_last_manual_review_session(None)
         if last_session and last_session['stats']:
             _show_session_report(last_session)
         else:
@@ -1581,7 +1587,7 @@ class ArtworkManager:
         self.scope = scope
         self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope, None)
 
-        last_session = db.get_last_manual_review_session(self.media_filter)
+        last_session = db_workflow.get_last_manual_review_session(self.media_filter)
 
         if last_session and last_session['stats']:
             _show_session_report(last_session)
@@ -1595,9 +1601,9 @@ class ArtworkManager:
 
     def _clear_scope_queue(self) -> None:
         if self.media_filter:
-            db.clear_queue_for_media(self.media_filter)
+            db_queue.clear_queue_for_media(self.media_filter)
         else:
-            db.clear_queue_and_sessions()
+            db_queue.clear_queue_and_sessions()
         log("Artwork", "Cleared queue for scope")
 
     def _handle_auto_apply_missing(self, use_background: bool = False) -> None:
@@ -1642,7 +1648,7 @@ class ArtworkManager:
         if scanner.cancelled:
             return True
 
-        pending_total = db.count_queue_items(status='pending', media_types=self.media_filter)
+        pending_total = db_queue.count_queue_items(status='pending', media_types=self.media_filter)
 
         if pending_total == 0:
             show_ok(

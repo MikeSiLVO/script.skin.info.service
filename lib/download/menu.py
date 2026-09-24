@@ -7,7 +7,8 @@ from typing import Optional, List
 from lib.infrastructure.dialogs import show_ok, show_textviewer
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 
-from lib.data import database as db
+from lib.data.database._infrastructure import init_database
+from lib.data.database import workflow as db_workflow
 from lib.download.workflows import (
     LOG_DIR,
     download_scope_artwork,
@@ -19,7 +20,7 @@ from lib.kodi.client import ADDON
 
 def show_download_report() -> None:
     """Show the last download report from operation history."""
-    last_report = db.get_last_operation_stats('artwork_download')
+    last_report = db_workflow.get_last_operation_stats('artwork_download')
 
     if not last_report:
         show_ok(
@@ -77,13 +78,13 @@ def run_download_menu() -> None:
     """Show the download menu: scope-pick + download, plus a report viewer if history exists."""
     from lib.infrastructure.menus import Menu, MenuItem
 
-    db.init_database()
+    init_database()
 
     items = [
         MenuItem(ADDON.getLocalizedString(32290), _handle_download, loop=True),
     ]
 
-    if db.get_last_operation_stats('artwork_download'):
+    if db_workflow.get_last_operation_stats('artwork_download'):
         items.append(MenuItem(ADDON.getLocalizedString(32086), show_download_report, loop=True))
 
     menu = Menu(ADDON.getLocalizedString(32522), items)

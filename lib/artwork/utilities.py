@@ -306,18 +306,18 @@ def sync_feed_changes(fanart_api, feeds: List[str]) -> dict:
     """Queue rechecks for items each fanart.tv feed reports changed since its checkpoint."""
     import time
 
-    from lib.data import database as db
+    from lib.data.database import cache as db_cache
     from lib.kodi.client import log
     import xbmc
 
-    delay_hours = db.get_fanarttv_cache_ttl_hours()
+    delay_hours = db_cache.get_fanarttv_cache_ttl_hours()
     now = int(time.time())
     outcome = {}
 
     for feed in feeds:
-        since = db.get_feed_checkpoint(feed)
+        since = db_cache.get_feed_checkpoint(feed)
         if not since:
-            db.set_feed_checkpoint(feed, now)
+            db_cache.set_feed_checkpoint(feed, now)
             outcome[feed] = 'synced'
             continue
 
@@ -327,15 +327,15 @@ def sync_feed_changes(fanart_api, feeds: List[str]) -> dict:
             continue
 
         item_ids = sorted(_feed_item_ids(entries))
-        db.add_rechecks(feed, item_ids, now + delay_hours * 3600)
-        db.set_feed_checkpoint(feed, now)
+        db_cache.add_rechecks(feed, item_ids, now + delay_hours * 3600)
+        db_cache.set_feed_checkpoint(feed, now)
         outcome[feed] = 'synced'
         log("Artwork", f"Feed '{feed}': {len(item_ids)} changed since last scan", xbmc.LOGDEBUG)
 
     for feed in feeds:
-        due = db.take_due_rechecks(feed, now)
+        due = db_cache.take_due_rechecks(feed, now)
         if due:
-            cleared = db.clear_artwork_for_ids(due)
+            cleared = db_cache.clear_artwork_for_ids(due)
             log("Artwork", f"Feed '{feed}': cleared {cleared} cached rows for {len(due)} items",
                 xbmc.LOGDEBUG)
 

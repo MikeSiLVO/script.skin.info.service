@@ -9,7 +9,8 @@ import xbmc
 from time import time
 from typing import Optional, List, Tuple, Any, Sequence
 
-from lib.data import database as db
+from lib.data.database import queue as db_queue
+from lib.data.database import workflow as db_workflow
 from lib.kodi.client import get_library_items, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code
@@ -128,7 +129,7 @@ class ArtworkScanner:
 
         art_types_by_type = {mt: self._get_art_types_to_check(mt) for mt in media_types}
         all_art_types = sorted({at for types in art_types_by_type.values() for at in types})
-        session_id = db.create_scan_session("missing_art", media_types, all_art_types)
+        session_id = db_workflow.create_scan_session("missing_art", media_types, all_art_types)
 
         self._begin_scan_progress()
 
@@ -173,17 +174,17 @@ class ArtworkScanner:
         }
 
         if self.cancelled:
-            db.update_session_stats(session_id, stats)
-            db.cancel_session(session_id)
+            db_workflow.update_session_stats(session_id, stats)
+            db_workflow.cancel_session(session_id)
             return True
 
-        db.update_session_stats(session_id, stats)
+        db_workflow.update_session_stats(session_id, stats)
 
         if had_failure:
-            db.cancel_session(session_id)
+            db_workflow.cancel_session(session_id)
             return False
 
-        db.complete_session(session_id)
+        db_workflow.complete_session(session_id)
         return True
 
     def _scan_media_collection(
@@ -270,7 +271,7 @@ class ArtworkScanner:
             self._processed_items += 1
 
         if queue_items:
-            db.add_to_queue_batch(queue_items)
+            db_queue.add_to_queue_batch(queue_items)
             for item in queue_items:
                 for art_request in item['art_requests']:
                     art_items.append({
@@ -280,7 +281,7 @@ class ArtworkScanner:
                     })
 
             if art_items:
-                db.add_art_items_batch(art_items)
+                db_queue.add_art_items_batch(art_items)
 
             self.queued_count += len(queue_items)
 

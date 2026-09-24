@@ -14,7 +14,7 @@ from lib.kodi.client import request, log, ADDON, extract_result, MEDIA_TYPE_SPEC
 from lib.infrastructure import tasks as task_manager
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.infrastructure.menus import Menu, MenuItem
-from lib.data.database import init_database
+from lib.data.database._infrastructure import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.data.database import gif as gif_db
 

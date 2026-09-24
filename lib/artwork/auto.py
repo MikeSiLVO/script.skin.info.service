@@ -9,7 +9,7 @@ from lib.infrastructure.dialogs import show_ok, show_textviewer
 import xbmcgui
 from typing import Optional, List, Sequence
 
-from lib.data import database as db
+from lib.data.database import queue as db_queue
 from lib.data.database.queue import QueueEntry
 from lib.kodi.client import request, get_item_details, KODI_SET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
@@ -115,7 +115,7 @@ class ArtworkAuto:
         self.media_filter = tuple(media_types) if media_types else None
         batch_size = DEFAULT_BATCH_SIZE
 
-        initial_stats = db.get_queue_stats(media_types=self.media_filter)
+        initial_stats = db_queue.get_queue_stats(media_types=self.media_filter)
         self.total_items = initial_stats.get('pending', 0)
 
         scope_hint = f", scope={','.join(self.media_filter)}" if self.media_filter else ""
@@ -126,7 +126,7 @@ class ArtworkAuto:
 
         try:
             while True:
-                batch = db.get_next_batch(batch_size, media_types=self.media_filter)
+                batch = db_queue.get_next_batch(batch_size, media_types=self.media_filter)
                 if not batch:
                     break
 
@@ -175,7 +175,7 @@ class ArtworkAuto:
             dbid = queue_item.dbid
             title = queue_item.title
 
-            art_items = db.get_art_items_for_queue(media_type, dbid)
+            art_items = db_queue.get_art_items_for_queue(media_type, dbid)
 
             all_available_art = self.source_fetcher.fetch_all(media_type, dbid, bulk=True)
 
@@ -185,10 +185,10 @@ class ArtworkAuto:
 
             for art_item in art_items:
                 art_type = art_item.art_type
-                review_mode = art_item.review_mode or db.ARTITEM_REVIEW_MISSING
+                review_mode = art_item.review_mode or db_queue.ARTITEM_REVIEW_MISSING
 
                 # auto-process must never overwrite existing artwork
-                if review_mode != db.ARTITEM_REVIEW_MISSING:
+                if review_mode != db_queue.ARTITEM_REVIEW_MISSING:
                     continue
 
                 available = all_available_art.get(art_type, [])
@@ -210,15 +210,15 @@ class ArtworkAuto:
                 if best:
                     self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
                                     artwork_type=art_type, defer_pool_refresh=True)
-                    db.update_art_item(media_type, dbid, art_type, best['url'])
+                    db_queue.update_art_item(media_type, dbid, art_type, best['url'])
                     applied_any = True
                     self.stats['auto_applied'] += 1
                     self.applied_items.append((title, art_type, best['url']))
 
             if applied_any:
-                db.update_queue_status(media_type, dbid, 'completed')
+                db_queue.update_queue_status(media_type, dbid, 'completed')
             else:
-                db.update_queue_status(media_type, dbid, 'skipped')
+                db_queue.update_queue_status(media_type, dbid, 'skipped')
                 if no_art_available:
                     self.skipped_items.append((title, ADDON.getLocalizedString(32009)))
                 elif blocked_by_policy:
@@ -233,7 +233,7 @@ class ArtworkAuto:
         except Exception as e:
             log("Artwork", f"Error processing item: {str(e)}", xbmc.LOGERROR)
             self.stats['errors'] += 1
-            db.update_queue_status(queue_item.media_type, queue_item.dbid, 'error')
+            db_queue.update_queue_status(queue_item.media_type, queue_item.dbid, 'error')
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
                    artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:

@@ -11,7 +11,7 @@ from lib.kodi.client import log, get_item_details, ADDON
 from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.tmdb import ApiTmdb
 from lib.data.api.utilities import tmdb_image_url
-from lib.data import database as db
+from lib.data.database import cache as db_cache
 
 
 def build_person_props(person_data: dict) -> Dict[str, str]:
@@ -412,7 +412,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
 def get_person_data(person_id: int) -> Optional[dict]:
     """Get complete person data, using cache if available."""
-    cached = db.get_cached_person_data(person_id)
+    cached = db_cache.get_cached_person_data(person_id)
     if cached:
         log("Person", f"Loaded person {person_id} from cache", xbmc.LOGDEBUG)
         return cached
@@ -421,7 +421,7 @@ def get_person_data(person_id: int) -> Optional[dict]:
     data = api.get_person_details(person_id)
 
     if data:
-        db.cache_person_data(person_id, data)
+        db_cache.cache_person_data(person_id, data)
         log("Person", f"Fetched and cached person {person_id}", xbmc.LOGDEBUG)
 
     return data

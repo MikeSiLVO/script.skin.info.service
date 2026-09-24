@@ -18,7 +18,7 @@ from lib.infrastructure.tasks import TaskContext
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 from lib.artwork.config import REVIEW_MEDIA_FILTERS, REVIEW_SCOPE_LABELS
 from lib.kodi.client import log, ADDON, is_inherited_art
-from lib.data import database as db
+from lib.data.database import workflow as db_workflow
 
 # Log file paths
 LOG_DIR = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/')
@@ -503,7 +503,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                     f"of {len(jobs)} jobs (cancelled={cancelled}, stalled={stalled}) "
                     f"errors={final_stats.get('error_categories', {})}")
 
-                db.save_operation_stats('artwork_download', {
+                db_workflow.save_operation_stats('artwork_download', {
                     'total_jobs': len(jobs),
                     'total_items': len(items),
                     'downloaded': final_stats.get('downloaded', 0),

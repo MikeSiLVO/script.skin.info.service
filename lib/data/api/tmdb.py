@@ -188,16 +188,16 @@ class ApiTmdb(RatingSource):
 
     def get_collection(self, collection_id: int, abort_flag=None) -> list:
         """Member movies of a TMDB collection (franchise parts); cached ~30 days."""
-        from lib.data import database as db
+        from lib.data.database import cache as db_cache
         key = str(collection_id)
-        cached = db.get_cached_metadata('collection', key)
+        cached = db_cache.get_cached_metadata('collection', key)
         if cached:
             return cached.get('parts', [])
         data = self._make_request(f"/collection/{collection_id}", abort_flag)
         if not data:
             return []
         parts = data.get('parts', [])
-        db.cache_metadata('collection', key, {'parts': parts}, None, ttl_hours=720)
+        db_cache.cache_metadata('collection', key, {'parts': parts}, None, ttl_hours=720)
         return parts
 
     def get_season_images(self, tmdb_id: int, season_number: int, abort_flag=None) -> dict:
@@ -376,10 +376,10 @@ class ApiTmdb(RatingSource):
         if abort_flag and abort_flag.is_requested():
             return None
 
-        from lib.data import database as db
+        from lib.data.database import cache as db_cache
 
         if not force_refresh:
-            cached = db.get_cached_metadata(media_type, str(tmdb_id))
+            cached = db_cache.get_cached_metadata(media_type, str(tmdb_id))
             if cached:
                 return cached
 
@@ -406,7 +406,7 @@ class ApiTmdb(RatingSource):
         else:
             hints = {"is_library_item": False}
 
-        db.cache_metadata(media_type, str(tmdb_id), data, release_date, hints)
+        db_cache.cache_metadata(media_type, str(tmdb_id), data, release_date, hints)
 
         self._cache_components(media_type, tmdb_id, data, release_date, hints)
 
@@ -545,9 +545,9 @@ class ApiTmdb(RatingSource):
     def _cache_components(self, media_type: str, tmdb_id: int, data: dict,
                           release_date: Optional[str], hints: Optional[dict] = None) -> None:
         """Cache poster/backdrop/logo lists from a complete TMDB response into artwork_cache."""
-        from lib.data import database as db
+        from lib.data.database import cache as db_cache
 
-        ttl_hours = db.get_cache_ttl_hours(release_date, hints)
+        ttl_hours = db_cache.get_cache_ttl_hours(release_date, hints)
         images = data.get('images') or {}
         if not images:
             return
@@ -559,7 +559,7 @@ class ApiTmdb(RatingSource):
             formatted = [format_tmdb_image(img, preview_size) for img in entries]
             formatted = [img for img in formatted if img]
             if formatted:
-                db.cache_artwork(media_type, str(tmdb_id), 'tmdb', art_type,
+                db_cache.cache_artwork(media_type, str(tmdb_id), 'tmdb', art_type,
                                  formatted, release_date, ttl_hours)
 
     def _fetch_details_extended(self, endpoint: str, append: str,
@@ -609,10 +609,10 @@ class ApiTmdb(RatingSource):
     def get_season_details(self, tmdb_id: int, season_number: int, abort_flag=None,
                            force_refresh: bool = False) -> Optional[dict]:
         """Get season details (episodes + aggregate_credits) from cache, else API."""
-        from lib.data import database as db
+        from lib.data.database import cache as db_cache
 
         if not force_refresh:
-            cached = db.get_cached_season_metadata(str(tmdb_id), season_number)
+            cached = db_cache.get_cached_season_metadata(str(tmdb_id), season_number)
             if cached:
                 return cached
 
@@ -629,7 +629,7 @@ class ApiTmdb(RatingSource):
         )
 
         if data:
-            db.cache_season_metadata(str(tmdb_id), season_number, data)
+            db_cache.cache_season_metadata(str(tmdb_id), season_number, data)
 
         return data
 
@@ -745,10 +745,10 @@ class ApiTmdb(RatingSource):
 
     def get_genre_list(self, media_type: str, force_refresh: bool = False) -> Dict[int, str]:
         """Return TMDB genre id->name mapping for `movie` or `tv`. Cached 24h."""
-        from lib.data import database as db
+        from lib.data.database import cache as db_cache
 
         if not force_refresh:
-            cached = db.get_cached_tmdb_genre_list(media_type)
+            cached = db_cache.get_cached_tmdb_genre_list(media_type)
             if cached is not None:
                 return cached
 
@@ -762,7 +762,7 @@ class ApiTmdb(RatingSource):
             return {}
         mapping = {g["id"]: g["name"] for g in data.get("genres", []) if "id" in g and "name" in g}
         if mapping:
-            db.cache_tmdb_genre_list(media_type, mapping)
+            db_cache.cache_tmdb_genre_list(media_type, mapping)
         return mapping
 
     @staticmethod
