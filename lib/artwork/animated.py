@@ -1,7 +1,6 @@
 """Find and add animated GIF posters to library items."""
 from __future__ import annotations
 
-import os
 import time
 import xbmc
 import xbmcvfs
@@ -17,6 +16,7 @@ from lib.infrastructure.menus import Menu, MenuItem
 from lib.data.database._infrastructure import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.data.database import gif as gif_db
+from lib.infrastructure.paths import vfs_dirname, vfs_ensure_dir_slash, vfs_join, vfs_splitext
 
 
 def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) -> None:
@@ -334,6 +334,13 @@ def _get_scan_mode_from_setting() -> Optional[str]:
     return "incremental"
 
 
+def _media_folder(file_path: str) -> str:
+    """Get the folder a media path sits in; a TV show's path is already its folder."""
+    if file_path.endswith(('/', '\\')):
+        return file_path
+    return vfs_dirname(file_path)
+
+
 class ArtworkAnimated:
     """Scans for animated gif posters and updates Kodi's art database."""
 
@@ -438,7 +445,7 @@ class ArtworkAnimated:
                     log(
                         "Artwork",
                         f"GIF scan: No matching GIF found for {spec.id_key}={item_id} "
-                        f"({title}), folder={os.path.dirname(file_path)}",
+                        f"({title}), folder={_media_folder(file_path)}",
                         xbmc.LOGDEBUG,
                     )
 
@@ -472,33 +479,27 @@ class ArtworkAnimated:
                     file_path = hostname
 
             file_path = xbmcvfs.translatePath(file_path)
+            folder = _media_folder(file_path)
 
-            folder = os.path.dirname(file_path)
-
-            if not os.path.isdir(folder):
+            _, files = xbmcvfs.listdir(vfs_ensure_dir_slash(folder))
+            if not files:
                 return None
+            by_lower = {filename.lower(): filename for filename in files}
 
             for pattern in self.patterns:
-                gif_path = os.path.join(folder, pattern)
-                if os.path.isfile(gif_path):
-                    return gif_path
-
-            try:
-                files = os.listdir(folder)
-            except OSError as e:
-                log("Artwork", f"Cannot list directory '{folder}': {str(e)}", xbmc.LOGWARNING)
-                return None
+                if pattern.lower() in by_lower:
+                    return vfs_join(folder, by_lower[pattern.lower()])
 
             matches = []
             for pattern in self.patterns:
                 pattern_lower = pattern.lower()
-                pattern_base, pattern_ext = os.path.splitext(pattern_lower)
+                pattern_base, pattern_ext = vfs_splitext(pattern_lower)
 
                 if pattern_ext != '.gif':
                     pattern_base = pattern_lower
 
                 for filename in files:
-                    file_base, file_ext = os.path.splitext(filename)
+                    file_base, file_ext = vfs_splitext(filename)
 
                     if file_ext.lower() == '.gif' and file_base.lower().endswith(pattern_base):
                         matches.append((filename, len(filename)))
@@ -506,7 +507,7 @@ class ArtworkAnimated:
             # shortest match is the most specific
             if matches:
                 matches.sort(key=lambda x: x[1])
-                return os.path.join(folder, matches[0][0])
+                return vfs_join(folder, matches[0][0])
 
             return None
 
@@ -566,22 +567,19 @@ class ArtworkAnimated:
             return False
 
         try:
-            current_mtime = os.path.getmtime(gif_path)
+            current_mtime = xbmcvfs.Stat(gif_path).st_mtime()
             # Compare mtimes (allow 1 second tolerance for filesystem precision)
             if abs(current_mtime - float(cached_mtime)) < 1.0:
                 return True
-        except (OSError, ValueError):
+        except ValueError:
             return False
 
         return False
 
     def _update_cache(self, gif_path: str) -> None:
         """Update cache entry for a GIF file."""
-        try:
-            mtime = os.path.getmtime(gif_path)
-            gif_db.update_gif_cache(gif_path, mtime, int(time.time()))
-        except OSError:
-            pass
+        mtime = xbmcvfs.Stat(gif_path).st_mtime()
+        gif_db.update_gif_cache(gif_path, mtime, int(time.time()))
 
     def cleanup_stale_cache(self) -> int:
         """Remove cache entries for GIF files not found during this scan."""
