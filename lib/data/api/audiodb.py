@@ -203,7 +203,7 @@ class ApiAudioDb:
         """Extract music video screenshot artwork from an already-fetched track dict."""
         result: Dict[str, List[dict]] = {}
 
-        for i in [''] + list(range(2, 13)):
+        for i in range(1, 13):
             url = track.get(f'strMusicVidScreen{i}')
             if url:
                 result.setdefault('thumb', []).append(self._format_artwork_item(url))
