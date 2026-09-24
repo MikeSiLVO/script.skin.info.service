@@ -15,6 +15,7 @@ from lib.kodi.formatters import RATING_SOURCE_NORMALIZE, RT_SOURCE_TOMATOES, RT_
 BATCH_SIZE = 100
 STATUS_KEYWORDS = frozenset({
     "certified-fresh", "certified-hot", "fresh", "rotten", "metacritic-must-see",
+    "roger-ebert-thumbs-down",
 })
 
 AWARD_KEYWORDS = frozenset({
@@ -326,6 +327,9 @@ class ApiMdblist(RatingSource):
 
         if "metacritic-must-see" in keywords:
             result["metacritic"] = "MustSee"
+
+        if "roger-ebert-thumbs-down" in keywords:
+            result["rogerebert"] = "ThumbsDown"
 
         if "certified-hot" in keywords:
             result[RT_SOURCE_POPCORN] = "Hot"

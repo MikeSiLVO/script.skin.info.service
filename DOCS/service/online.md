@@ -398,6 +398,7 @@ Ratings from multiple sources. Each source provides three properties.
 | `Tomatometer` | "Certified", "Fresh", "Rotten" | Critics status |
 | `Popcornmeter` | "Hot", "Fresh", "Spilled" | Audience status |
 | `Metacritic` | "MustSee" | Metacritic Must-See (MDBList) |
+| `RogerEbert` | "ThumbsDown" | RogerEbert.com thumbs down, its zero-star review (MDBList) |
 
 ### Example
 

@@ -265,6 +265,7 @@ MDBList tags whether a title won or was nominated, never how many times. These s
 | `Tomatometer` | "Certified", "Fresh", "Rotten" | Critics status |
 | `Popcornmeter` | "Hot", "Fresh", "Spilled" | Audience status |
 | `Metacritic` | "MustSee" | Metacritic Must-See (MDBList) |
+| `RogerEbert` | "ThumbsDown" | RogerEbert.com thumbs down, its zero-star review (MDBList) |
 
 ### Common Sense Media
 

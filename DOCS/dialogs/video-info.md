@@ -165,6 +165,7 @@ case-insensitive.
 | `Tomatometer` | `Certified`, `Fresh`, `Rotten` |
 | `Popcornmeter` | `Hot`, `Fresh`, `Spilled` |
 | `Metacritic` | `MustSee` |
+| `RogerEbert` | `ThumbsDown` |
 
 ### Awards (OMDb)
 

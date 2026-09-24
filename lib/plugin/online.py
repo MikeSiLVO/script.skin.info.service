@@ -43,6 +43,7 @@ _STATUS_PROPS = {
     "tomatoes": "Tomatometer",
     "popcorn": "Popcornmeter",
     "metacritic": "Metacritic",
+    "rogerebert": "RogerEbert",
 }
 
 
