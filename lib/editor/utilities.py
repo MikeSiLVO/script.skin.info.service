@@ -209,9 +209,6 @@ def format_value_for_display(value: Any, field_type: FieldType) -> str:
     if field_type == FieldType.INTEGER:
         return str(value)
 
-    if field_type == FieldType.NUMBER:
-        return f"{value:.1f}"
-
     if field_type == FieldType.DATE:
         return str(value)
 

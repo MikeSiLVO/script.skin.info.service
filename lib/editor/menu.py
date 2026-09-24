@@ -97,7 +97,7 @@ def _show_main_menu(
             if not field_def:
                 continue
 
-            current = item.get(field_def["get_property"])
+            current = item.get(field_def["api_name"])
             display_name = get_display_name(field_def)
             field_type = field_def["field_type"]
 
@@ -149,7 +149,6 @@ _FIELD_TYPE_HANDLERS = {
     FieldType.TEXT:       lambda dn, cur, _mt, _f, _it: handle_text(dn, cur),
     FieldType.TEXT_LONG:  lambda dn, cur, _mt, _f, _it: handle_text(dn, cur),
     FieldType.INTEGER:    _dispatch_integer,
-    FieldType.NUMBER:     lambda dn, cur, _mt, _f, _it: handle_integer(dn, cur),
     FieldType.DATE:       lambda dn, cur, _mt, _f, _it: handle_date(dn, cur),
     FieldType.DATETIME:   lambda dn, cur, _mt, _f, _it: handle_lastplayed(dn, cur),
     FieldType.LIST:       lambda dn, cur, mt, f, _it: handle_list(dn, cur, mt, f),
@@ -169,7 +168,7 @@ def _edit_field(
     if not field_def:
         return True
 
-    current = item.get(field_def["get_property"])
+    current = item.get(field_def["api_name"])
     display_name = get_display_name(field_def)
     field_type = field_def["field_type"]
 
@@ -192,7 +191,7 @@ def _edit_field(
         if field_type == FieldType.UNIQUEIDS and isinstance(new_value, dict):
             # Nulls tell Kodi to remove
             stored = {k: v for k, v in new_value.items() if v is not None}
-        item[field_def["get_property"]] = stored
+        item[field_def["api_name"]] = stored
         # Also update premiered in local item when year changes since Kodi links them
         if field == "year" and isinstance(new_value, int):
             original = item.get("premiered", "")
