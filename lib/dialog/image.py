@@ -3,7 +3,7 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 
-from lib.info.dialogs.base import InfoDialogBase, ADDON_PATH
+from lib.dialog.base import InfoDialogBase, ADDON_PATH
 
 XML_FILE = 'script-skin-info-service-DialogImageViewer.xml'
 
@@ -11,6 +11,7 @@ _IMAGES_CONTROL_ID = 1520
 
 
 class DialogImageViewer(InfoDialogBase):
+    """Image browser bound to a plugin path, opened at the chosen item."""
 
     def __init__(self, *args, **kwargs):
         self._images_path: str = kwargs.pop('images_path', '')
@@ -20,6 +21,7 @@ class DialogImageViewer(InfoDialogBase):
             self.setProperty('container.viewer.path', self._images_path)
 
     def onInit(self) -> None:
+        """Mark topmost and jump the list to the item that was opened."""
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
         self.mark_topmost()
         try:
@@ -33,6 +35,7 @@ def open_image_viewer(
     images_path: str,
     selected_index: int = 0,
 ) -> None:
+    """Open the image viewer on a plugin path; an empty path opens nothing."""
     if not images_path:
         return
 

@@ -4,13 +4,14 @@ from typing import Dict, Optional
 
 import xbmc
 
-from lib.info.dialogs.base import InfoDialogBase, ADDON_PATH
+from lib.dialog.base import InfoDialogBase, ADDON_PATH
 from lib.kodi.client import log
 
 XML_FILE = 'script-skin-info-service-DialogVideoInfo.xml'
 
 
 class DialogVideoInfo(InfoDialogBase):
+    """Video info window driven by online data, with library containers when a dbid is known."""
 
     def __init__(self, *args, **kwargs):
         self._media_type: str = kwargs.pop('media_type', '')
@@ -22,6 +23,7 @@ class DialogVideoInfo(InfoDialogBase):
         self._set_load_properties()
 
     def onInit(self) -> None:
+        """Populate the dialog and start the poster and fanart blur once Kodi has built it."""
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
         self.mark_topmost()
         self._set_video_properties()
@@ -32,14 +34,14 @@ class DialogVideoInfo(InfoDialogBase):
         ])
 
     def _set_load_properties(self) -> None:
-        """Set only what the skin reads at load; heavier props wait for onInit to land after the
-        tree is built."""
+        """Set the properties the skin reads while loading; the rest wait for onInit."""
         props = {'mediatype': self._media_type}
         if self._dbid:
             props['dbid'] = self._dbid
         self.set_properties(props)
 
     def _set_video_properties(self) -> None:
+        """Set the dialog's online properties along with its media type and ids."""
         props = dict(self._online_props)
         props['mediatype'] = self._media_type
         if self._dbid:
@@ -51,13 +53,13 @@ class DialogVideoInfo(InfoDialogBase):
         self.set_properties(props)
 
     def _bind_containers(self) -> None:
+        """Point the skin's containers at plugin paths for cast, crew and related titles."""
         base_url = 'plugin://script.skin.info.service/'
         containers: Dict[str, str] = {}
 
         if not self._media_type:
             return
 
-        # tmdb_id takes precedence; dbid is the fallback when present.
         id_args = []
         if self._tmdb_id:
             id_args.append(f"tmdb_id={self._tmdb_id}")
@@ -95,6 +97,7 @@ def open_video_info(
     dbid: str = '',
     online_props: Optional[Dict[str, str]] = None,
 ) -> None:
+    """Open the video info dialog, fetching online data first when none was supplied."""
     if not online_props:
         if not tmdb_id and not imdb_id:
             log("General", "DialogVideoInfo: No tmdb_id or imdb_id", xbmc.LOGWARNING)

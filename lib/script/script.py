@@ -718,7 +718,7 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
         if not person_id:
             return
 
-    from lib.info.dialogs.actor import open_actor_info
+    from lib.dialog.actor import open_actor_info
     open_actor_info(
         person_id=person_id,
         person_name=name,
@@ -746,7 +746,7 @@ def _handle_dialog_image_viewer_inner(args: dict) -> None:
     except (ValueError, TypeError):
         selected_index = 0
 
-    from lib.info.dialogs.image import open_image_viewer
+    from lib.dialog.image import open_image_viewer
     open_image_viewer(images_path=images_path, selected_index=selected_index)
 
 
@@ -799,7 +799,7 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
         imdb_id = uniqueid.get("imdb", "")
         tmdb_id = uniqueid.get("tmdb", "")
 
-    from lib.info.dialogs.video import open_video_info
+    from lib.dialog.video import open_video_info
     open_video_info(
         tmdb_id=tmdb_id,
         imdb_id=imdb_id,

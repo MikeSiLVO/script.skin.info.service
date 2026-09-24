@@ -5,13 +5,14 @@ from typing import Dict, Optional
 
 import xbmc
 
-from lib.info.dialogs.base import InfoDialogBase, ADDON_PATH
+from lib.dialog.base import InfoDialogBase, ADDON_PATH
 from lib.kodi.client import log
 
 XML_FILE = 'script-skin-info-service-DialogActorInfo.xml'
 
 
 class DialogActorInfo(InfoDialogBase):
+    """Person info window backed by TMDB, with library and online filmography containers."""
 
     def __init__(self, *args, **kwargs):
         self._person_data: Dict = kwargs.pop('person_data', {})
@@ -20,6 +21,7 @@ class DialogActorInfo(InfoDialogBase):
         super().__init__(*args, **kwargs)
 
     def onInit(self) -> None:
+        """Populate the dialog and start the profile blur once Kodi has built it."""
         xbmc.executebuiltin('Dialog.Close(busydialog,true)')
         self.mark_topmost()
         self._set_person_properties()
@@ -27,6 +29,7 @@ class DialogActorInfo(InfoDialogBase):
         self._start_blur([('BlurredThumb', self.getProperty('ProfileImage'))])
 
     def _set_person_properties(self) -> None:
+        """Set the person's TMDB details and id as dialog properties."""
         from lib.data.api.person import build_person_props
 
         props = build_person_props(self._person_data)
@@ -34,6 +37,7 @@ class DialogActorInfo(InfoDialogBase):
         self.set_properties(props)
 
     def _bind_containers(self) -> None:
+        """Point the skin's containers at plugin paths for the person's credits and images."""
         base_url = 'plugin://script.skin.info.service/'
         pid = str(self._person_id)
         encoded_name = urllib.parse.quote(self._person_name)
@@ -67,6 +71,7 @@ def open_actor_info(
     person_name: str,
     person_data: Optional[Dict] = None,
 ) -> None:
+    """Open the actor info dialog, fetching the person data when none was supplied."""
     if not person_data:
         from lib.data.api.person import get_person_data
         person_data = get_person_data(person_id)
