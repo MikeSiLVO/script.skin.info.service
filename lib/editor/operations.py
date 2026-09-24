@@ -107,7 +107,7 @@ def fetch_library_tags(media_type: str) -> list[str]:
 
 
 def _aggregate_field_values(media_type: str, field: str) -> list[str]:
-    """Aggregate unique values for a field from library items."""
+    """Aggregate a field's unique values across every library item."""
     method_map = {
         "movie": ("VideoLibrary.GetMovies", "movies"),
         "tvshow": ("VideoLibrary.GetTVShows", "tvshows"),
@@ -123,7 +123,7 @@ def _aggregate_field_values(media_type: str, field: str) -> list[str]:
         return []
 
     method, result_key = method_info
-    response = request(method, {"properties": [field], "limits": {"end": 500}})
+    response = request(method, {"properties": [field]})
     items = extract_result(response, result_key, [])
 
     if not items:
