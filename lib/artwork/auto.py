@@ -11,13 +11,14 @@ from typing import Optional, List, Sequence
 
 from lib.data.database import queue as db_queue
 from lib.data.database.queue import QueueEntry
-from lib.kodi.client import request, get_item_details, KODI_SET_DETAILS_METHODS
+from lib.kodi.client import request, KODI_SET_DETAILS_METHODS
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
 from lib.artwork.utilities import compare_art_quality, sort_artwork_by_popularity
 from lib.data.api.tmdb import ApiTmdb
 from lib.data.api.fanarttv import ApiFanarttv
 from lib.artwork.config import AUTO_LANG_REQUIRED_TYPES, AUTO_NO_LANGUAGE_TYPES
+from lib.download.artwork import DownloadArtwork, download_item_art
 from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.kodi.client import log, ADDON
@@ -59,13 +60,18 @@ class ArtworkAuto:
         # One downloader for the whole run: a per-item instance resets the provider and
         # file-write error counters, so the blocking they exist for could never engage.
         self._downloader = None
-        self.savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
 
         if source_fetcher:
             self.source_fetcher = source_fetcher
         else:
             from lib.data.api.artwork import create_default_fetcher
             self.source_fetcher = create_default_fetcher()
+
+    def close(self) -> None:
+        """Release the run's download connections."""
+        if self._downloader is not None:
+            self._downloader.close()
+            self._downloader = None
 
     def _cancel_requested(self) -> bool:
         """True if the progress dialog was cancelled or the owning task aborted."""
@@ -146,9 +152,7 @@ class ArtworkAuto:
             self._update_progress(force=True)
         finally:
             self.progress.close()
-            if self._downloader is not None:
-                self._downloader.close()
-                self._downloader = None
+            self.close()
 
         self._show_summary()
 
@@ -210,7 +214,7 @@ class ArtworkAuto:
 
                 if best:
                     if not self._apply_art(media_type, dbid, {art_type: best['url']}, title=title,
-                                           artwork_type=art_type, defer_pool_refresh=True):
+                                           defer_pool_refresh=True):
                         apply_failed = True
                         continue
                     db_queue.update_art_item(media_type, dbid, art_type, best['url'])
@@ -243,9 +247,8 @@ class ArtworkAuto:
             db_queue.update_queue_status(queue_item.media_type, queue_item.dbid, 'error')
 
     def _apply_art(self, media_type: str, dbid: int, art_dict: dict, title: str = "",
-                   artwork_type: str = "", defer_pool_refresh: bool = False) -> bool:
-        """Apply artwork to a library item, optionally downloading it and deferring the
-        slideshow-pool refresh."""
+                   defer_pool_refresh: bool = False) -> bool:
+        """Apply art to the item, with optional download and slideshow pool deferral."""
         if media_type not in KODI_SET_DETAILS_METHODS:
             return False
 
@@ -260,10 +263,11 @@ class ArtworkAuto:
             if resp is None:
                 return False
 
-            if self.enable_download and artwork_type and art_dict.get(artwork_type):
-                url = art_dict[artwork_type]
-                if url.startswith('http'):
-                    self._download_artwork(media_type, dbid, artwork_type, url, title)
+            if self.enable_download:
+                if self._downloader is None:
+                    self._downloader = DownloadArtwork()
+                download_item_art(media_type, dbid, title, art_dict,
+                                  KodiSettings.existing_file_mode(), self._downloader)
 
             if not defer_pool_refresh and 'fanart' in art_dict:
                 from lib.service.slideshow import refresh_pool_item
@@ -274,88 +278,6 @@ class ArtworkAuto:
         except Exception as e:
             log("Artwork", f"Error applying art: {str(e)}", xbmc.LOGERROR)
             return False
-
-    def _download_artwork(self, media_type: str, dbid: int, artwork_type: str, url: str,
-                          title: str) -> None:
-        """Download artwork to filesystem after applying to library."""
-        try:
-            from lib.kodi.client import KODI_GET_DETAILS_METHODS
-            from lib.download.artwork import DownloadArtwork
-            from lib.infrastructure.paths import PathBuilder, use_basename_for
-
-            if media_type not in KODI_GET_DETAILS_METHODS:
-                return
-
-            properties = []
-            if media_type in ('movie', 'tvshow', 'episode', 'musicvideo'):
-                properties.append("file")
-            if media_type == 'season':
-                properties.extend(["season", "tvshowid"])
-            elif media_type == 'episode':
-                properties.extend(["season", "episode"])
-
-            if not properties:
-                return
-
-            item = get_item_details(media_type, dbid, properties)
-            if not isinstance(item, dict):
-                return
-
-            media_file = item.get("file", "")
-            season = item.get("season")
-
-            if not media_file and media_type not in ('season', 'tvshow', 'set', 'artist', 'album'):
-                log("Artwork", f"No file path for {media_type} '{title}', skipping download")
-                return
-
-            path_builder = PathBuilder()
-            use_basename = use_basename_for(media_type, self.savewith_basefilename)
-            local_path = path_builder.build_path(
-                media_type=media_type,
-                media_file=media_file,
-                artwork_type=artwork_type,
-                season_number=season,
-                use_basename=use_basename
-            )
-
-            # Art saved under the opposite naming convention still counts as present,
-            # otherwise flipping the setting re-downloads beside the old files.
-            alternate_path = None
-            if media_type in ('movie', 'musicvideo'):
-                alternate_path = path_builder.build_path(
-                    media_type=media_type,
-                    media_file=media_file,
-                    artwork_type=artwork_type,
-                    season_number=season,
-                    use_basename=not use_basename
-                )
-
-            if not local_path:
-                log("Artwork",
-                    f"Could not build download path for {media_type} '{title}' {artwork_type}")
-                return
-
-            existing_file_mode = KodiSettings.existing_file_mode()
-
-            if self._downloader is None:
-                self._downloader = DownloadArtwork()
-
-            success, error, bytes_downloaded, _ = self._downloader.download_artwork(
-                url=url,
-                local_path=local_path,
-                existing_file_mode=existing_file_mode,
-                alternate_path=alternate_path
-            )
-
-            if success:
-                log("Artwork",
-                    f"Downloaded {artwork_type} for '{title}': {local_path} "
-                    f"({bytes_downloaded} bytes)")
-            elif error:
-                log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
-
-        except Exception as e:
-            log("Artwork", f"Error downloading artwork: {str(e)}", xbmc.LOGWARNING)
 
     def _update_progress(self, force: bool = False) -> None:
         """Update progress dialog (throttled for performance)."""

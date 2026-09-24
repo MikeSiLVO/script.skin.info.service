@@ -20,8 +20,10 @@ from lib.data.database import queue as db_queue
 from lib.data.database import workflow as db_workflow
 from lib.data.database.queue import QueueEntry, ArtItemEntry
 from lib.kodi.client import (
-    request, extract_result, get_item_details, decode_image_url, KODI_GET_DETAILS_METHODS,
+    request, extract_result, get_item_details, decode_image_url, is_inherited_art,
+    KODI_GET_DETAILS_METHODS,
 )
+from lib.download.artwork import DownloadArtwork, download_item_art
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
@@ -262,133 +264,12 @@ def _show_session_report(session_row) -> None:
     show_textviewer(ADDON.getLocalizedString(32500), text, use_mono=True)
 
 
-def _download_selected_artwork(
-    media_type: str,
-    dbid: int,
-    title: str,
-    art_updates: Dict[str, str],
-    force_overwrite: bool = False
-) -> None:
-    """Download selected artwork to filesystem."""
-    from lib.download.artwork import DownloadArtwork
-    from lib.infrastructure.paths import PathBuilder, use_basename_for
-
-    if media_type not in KODI_GET_DETAILS_METHODS:
-        return
-
-    mbid: Optional[str] = None
-    season: Optional[int] = None
-
-    if media_type == 'set':
-        media_file = title
-    elif media_type == 'artist':
-        media_file = title
-        artist_details = get_item_details(media_type, dbid, ["musicbrainzartistid"])
-        if isinstance(artist_details, dict):
-            mbid = artist_details.get("musicbrainzartistid", "")
-            if isinstance(mbid, list):
-                mbid = mbid[0] if mbid else ""
-    elif media_type == 'album':
-        songs_resp = request("AudioLibrary.GetSongs", {
-            "filter": {"albumid": dbid},
-            "properties": ["file"],
-            "limits": {"start": 0, "end": 1}
-        })
-        songs = extract_result(songs_resp, "songs", [])
-        if songs and songs[0].get("file"):
-            from lib.infrastructure.paths import vfs_dirname
-            media_file = vfs_dirname(songs[0]["file"])
-        else:
-            media_file = ""
-    else:
-        properties = []
-        if media_type in ('movie', 'tvshow', 'episode', 'musicvideo'):
-            properties.append("file")
-        if media_type == 'season':
-            properties.extend(["season", "tvshowid"])
-        elif media_type == 'episode':
-            properties.extend(["season", "episode"])
-
-        if not properties:
-            return
-
-        item = get_item_details(media_type, dbid, properties)
-        if not isinstance(item, dict):
-            return
-
-        media_file = item.get("file", "")
-        season = item.get("season")
-
-        if media_type == 'season' and not media_file:
-            tvshowid = item.get("tvshowid")
-            if tvshowid:
-                tvshow = get_item_details("tvshow", tvshowid, ["file"])
-                if isinstance(tvshow, dict):
-                    media_file = tvshow.get("file", "")
-
-    if not media_file and media_type not in ('tvshow', 'set', 'artist'):
-        log("Artwork", f"No file path for {media_type} '{title}', skipping download")
-        return
-
-    if force_overwrite:
-        existing_file_mode = 'overwrite'
-    else:
-        existing_file_mode = KodiSettings.existing_file_mode()
-
-    savewith_basefilename = ADDON.getSettingBool('download.savewith_basefilename')
-
-    use_basename = use_basename_for(media_type, savewith_basefilename)
-
-    path_builder = PathBuilder()
-    downloader = DownloadArtwork()
-
-    for artwork_type, url in art_updates.items():
-        if not url or not url.startswith('http'):
-            continue
-
-        local_path = path_builder.build_path(
-            media_type=media_type,
-            media_file=media_file,
-            artwork_type=artwork_type,
-            season_number=season,
-            use_basename=use_basename,
-            mbid=mbid
-        )
-
-        if not local_path:
-            log(
-                "Artwork",
-                f"Could not build download path for {media_type} '{title}' {artwork_type}",
-            )
-            continue
-
-        success, error, bytes_downloaded, _ = downloader.download_artwork(
-            url=url,
-            local_path=local_path,
-            existing_file_mode=existing_file_mode
-        )
-
-        if success:
-            log(
-                "Artwork",
-                f"Downloaded {artwork_type} for '{title}': {local_path} ({bytes_downloaded} bytes)",
-            )
-        elif error:
-            log("Artwork", f"Failed to download {artwork_type} for '{title}': {error}")
-
-
-def _extract_downloadable_art(
-    art_dict: Dict[str, str],
-    skip_prefixes: Optional[List[str]] = None
-) -> Dict[str, str]:
-    """Extract HTTP URLs from art dict, optionally filtering by prefix."""
+def _extract_downloadable_art(media_type: str, art_dict: Dict[str, str]) -> Dict[str, str]:
+    """Extract the HTTP art URLs an item holds itself, decoded; inherited parent art is left out."""
     downloadable = {}
     for art_type, url in art_dict.items():
-        if not url:
+        if not url or is_inherited_art(media_type, art_type):
             continue
-        if skip_prefixes:
-            if any(art_type.startswith(prefix) for prefix in skip_prefixes):
-                continue
         decoded_url = decode_image_url(url)
         if decoded_url.startswith('http'):
             downloadable[art_type] = decoded_url
@@ -433,6 +314,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
     progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32290), ADDON.getLocalizedString(32297))
+    downloader = DownloadArtwork()
 
     try:
         if media_type == 'artist':
@@ -463,15 +345,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             title = details.get("title", details.get("label", "Unknown"))
         current_art = details.get("art", {})
 
-        skip_prefixes = None
-        if media_type == 'episode':
-            skip_prefixes = ["tvshow.", "season."]
-        elif media_type == 'season':
-            skip_prefixes = ["tvshow."]
-        elif media_type == 'movie':
-            skip_prefixes = ["set."]
-
-        downloadable_art = _extract_downloadable_art(current_art, skip_prefixes=skip_prefixes)
+        downloadable_art = _extract_downloadable_art(media_type, current_art)
 
         art_count = 0
         season_count = 0
@@ -486,8 +360,8 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
         if downloadable_art:
             progress.update(5, f"{title}\n{ADDON.getLocalizedString(32298)}")
-            _download_selected_artwork(media_type, dbid_int, title, downloadable_art)
-            art_count += len(downloadable_art)
+            art_count += download_item_art(
+                media_type, dbid_int, title, downloadable_art, existing_file_mode, downloader)
 
         if media_type == 'tvshow':
             if progress.iscanceled():
@@ -524,9 +398,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     continue
 
                 season_art = season.get("art", {})
-                season_downloadable = _extract_downloadable_art(
-                    season_art, skip_prefixes=["tvshow."]
-                )
+                season_downloadable = _extract_downloadable_art("season", season_art)
 
                 if season_downloadable:
                     season_id = season.get("seasonid")
@@ -535,11 +407,11 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     if season_id:
                         pct = 10 + int((processed / max(total_items, 1)) * 85)
                         progress.update(pct, f"{title}\n{season_title}")
-                        _download_selected_artwork(
-                            "season", season_id, f"{title} - {season_title}", season_downloadable
-                        )
-                        art_count += len(season_downloadable)
-                        season_count += 1
+                        written = download_item_art(
+                            "season", season_id, f"{title} - {season_title}",
+                            season_downloadable, existing_file_mode, downloader)
+                        art_count += written
+                        season_count += 1 if written else 0
 
                 processed += 1
 
@@ -553,9 +425,7 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     continue
 
                 episode_art = episode.get("art", {})
-                episode_downloadable = _extract_downloadable_art(
-                    episode_art, skip_prefixes=["tvshow.", "season."]
-                )
+                episode_downloadable = _extract_downloadable_art("episode", episode_art)
 
                 if episode_downloadable:
                     episode_id = episode.get("episodeid")
@@ -565,12 +435,11 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
                     if episode_id:
                         pct = 10 + int((processed / max(total_items, 1)) * 85)
                         progress.update(pct, f"{title}\n{ep_num} {ep_title}")
-                        _download_selected_artwork(
+                        written = download_item_art(
                             "episode", episode_id, f"{title} - {ep_num} {ep_title}",
-                            episode_downloadable,
-                        )
-                        art_count += len(episode_downloadable)
-                        episode_count += 1
+                            episode_downloadable, existing_file_mode, downloader)
+                        art_count += written
+                        episode_count += 1 if written else 0
 
                 processed += 1
 
@@ -601,6 +470,8 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
             3000
         )
         return
+    finally:
+        downloader.close()
 
     total_count = art_count + actor_count
     log(
@@ -856,9 +727,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
                 2000
             )
             if KodiSettings.download_after_manage_artwork():
-                _download_selected_artwork(
-                    dbtype, dbid_int, title, art_updates, force_overwrite=True
-                )
+                download_item_art(dbtype, dbid_int, title, art_updates, 'overwrite')
             refreshed_details = extract_result(
                 request(method_name, {id_key: dbid_int, "properties": ["art"]}),
                 result_key
@@ -1012,6 +881,7 @@ class ArtworkSelection:
                     )
         finally:
             self.loading_progress.close()
+            self.auto.close()
 
         enable_debug = KodiSettings.debug_enabled()
         if enable_debug:
@@ -1191,7 +1061,8 @@ class ArtworkSelection:
             })
             return False
 
-        if not self.auto._apply_art(media_type, dbid, {art_type: selected_art['url']}):
+        if not self.auto._apply_art(media_type, dbid, {art_type: selected_art['url']},
+                                    title=queue_entry.title):
             return False
 
         cache_key = (media_type, dbid)
@@ -1329,7 +1200,8 @@ class ArtworkSelection:
             )
 
             if queued_multiart:
-                self.auto._apply_art(queue_entry.media_type, queue_entry.dbid, queued_multiart)
+                self.auto._apply_art(queue_entry.media_type, queue_entry.dbid, queued_multiart,
+                                     title=queue_entry.title)
 
             flow_control, applied_any = self._process_dialog_action(
                 action, selected_art, queue_entry, art_item, applied_any

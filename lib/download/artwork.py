@@ -9,10 +9,12 @@ import xbmc
 import xbmcvfs
 from typing import Optional, Tuple, Dict, Callable
 
-from lib.kodi.client import log
+from lib.kodi.client import log, get_item_details, request, extract_result
+from lib.kodi.settings import KodiSettings
 from lib.data.api.client import ApiSession
 from lib.data.api.client import RetryableError
-from lib.infrastructure.paths import vfs_ensure_dir_slash, DirectoryListing
+from lib.infrastructure.paths import (
+    vfs_ensure_dir_slash, vfs_dirname, DirectoryListing, PathBuilder, use_basename_for)
 
 
 # Every chunk costs an abort check and a VFS write, both of which cross into Kodi.
@@ -259,3 +261,98 @@ class DownloadArtwork:
         finally:
             response.close()
         return bytes_written
+
+
+def _item_location(media_type: str, dbid: int,
+                   title: str) -> Tuple[str, Optional[int], Optional[str]]:
+    """Locate the media file, season number and artist MBID an item's art path is built from."""
+    if media_type == 'set':
+        return title, None, None
+    if media_type == 'artist':
+        details = get_item_details('artist', dbid, ['musicbrainzartistid'])
+        mbid = details.get('musicbrainzartistid', '') if isinstance(details, dict) else ''
+        if isinstance(mbid, list):
+            mbid = mbid[0] if mbid else ''
+        return title, None, mbid or None
+    if media_type == 'album':
+        songs = extract_result(request('AudioLibrary.GetSongs', {
+            'filter': {'albumid': dbid},
+            'properties': ['file'],
+            'limits': {'start': 0, 'end': 1},
+        }), 'songs', [])
+        if songs and songs[0].get('file'):
+            return vfs_dirname(songs[0]['file']), None, None
+        return '', None, None
+
+    if media_type == 'season':
+        properties = ['season', 'tvshowid']
+    elif media_type == 'episode':
+        properties = ['file', 'season']
+    elif media_type in ('movie', 'tvshow', 'musicvideo'):
+        properties = ['file']
+    else:
+        return '', None, None
+
+    item = get_item_details(media_type, dbid, properties)
+    if not isinstance(item, dict):
+        return '', None, None
+    media_file = item.get('file', '')
+    if media_type == 'season' and item.get('tvshowid'):
+        show = get_item_details('tvshow', item['tvshowid'], ['file'])
+        if isinstance(show, dict):
+            media_file = show.get('file', '')
+    return media_file, item.get('season'), None
+
+
+def download_item_art(media_type: str, dbid: int, title: str, art: dict,
+                      existing_file_mode: str, downloader: Optional[DownloadArtwork] = None) -> int:
+    """Download an item's art beside its media file; returns how many files were written."""
+    urls = {art_type: url for art_type, url in art.items() if url and url.startswith('http')}
+    if not urls:
+        return 0
+
+    media_file, season, mbid = _item_location(media_type, dbid, title)
+    if not media_file:
+        log("Download", f"No file path for {media_type} '{title}', skipping download")
+        return 0
+
+    use_basename = use_basename_for(
+        media_type, KodiSettings.get_bool('download.savewith_basefilename'))
+    path_builder = PathBuilder()
+    own_downloader = downloader is None
+    active = downloader or DownloadArtwork()
+    written = 0
+
+    try:
+        for art_type, url in urls.items():
+            local_path = path_builder.build_path(
+                media_type, media_file, art_type, season, use_basename, mbid)
+            if not local_path:
+                log("Download",
+                    f"Could not build download path for {media_type} '{title}' {art_type}")
+                continue
+
+            alternate_path = None
+            if media_type in ('movie', 'musicvideo'):
+                alternate_path = path_builder.build_path(
+                    media_type, media_file, art_type, season, not use_basename, mbid)
+
+            success, error, bytes_downloaded, _ = active.download_artwork(
+                url=url,
+                local_path=local_path,
+                existing_file_mode=existing_file_mode,
+                alternate_path=alternate_path,
+            )
+            if success:
+                written += 1
+                log("Download",
+                    f"Downloaded {art_type} for '{title}': {local_path} ({bytes_downloaded} bytes)")
+            elif error:
+                log("Download", f"Failed to download {art_type} for '{title}': {error}")
+    except Exception as e:
+        log("Download", f"Error downloading art for '{title}': {e}", xbmc.LOGWARNING)
+    finally:
+        if own_downloader:
+            active.close()
+
+    return written
