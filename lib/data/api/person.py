@@ -154,12 +154,7 @@ def _convert_external_id(external_id: str, source: str, media_type: str) -> Opti
 def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbtype: str,
                              dbid: int = 0, auto_search: bool = True,
                              online: bool = False) -> Optional[int]:
-    """Match actor to TMDB person ID using 5-stage strategy.
-
-    Shows dialog select on failure for user to choose correct person.
-    For episodes, tmdb_id is the tvshow TMDB ID. dbid is required for episodes/seasons.
-    online=True uses TMDB data directly; False matches Kodi scraper behavior.
-    """
+    """Match an actor to a TMDB person id, strictest matcher first, asking the user on a miss."""
     api = ApiTmdb()
     credits = []
 
@@ -248,10 +243,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
         if media_type == 'tvshow':
             aggregate = complete_data.get('aggregate_credits', {}).get('cast', [])
             if aggregate:
-                credits = [
-                    dict(actor, character=(actor.get('roles') or [{}])[0].get('character', ''))
-                    for actor in aggregate
-                ]
+                credits = _flatten_aggregate_credits(aggregate)
 
     match = exact_match(credits, actor_name, actor_role)
     if match:
@@ -435,7 +427,7 @@ def match_crew_to_person_id(
     dbtype: str,
     auto_search: bool = True
 ) -> Optional[int]:
-    """Match crew member to TMDB person ID. crew_type: 'director', 'writer', or 'creator'."""
+    """Match a director, writer or creator to a TMDB person id."""
     api = ApiTmdb()
     normalized_name = normalize_name(crew_name)
 
@@ -471,11 +463,8 @@ def match_crew_to_person_id(
 
         crew = data["credits"].get("crew") or []
 
-        if crew_type == "director":
-            job_filter = {"Director"}
-        elif crew_type == "writer":
-            job_filter = {"Writer", "Screenplay", "Story", "Original Story"}
-        else:
+        job_filter = _CREW_JOBS.get(crew_type)
+        if job_filter is None:
             log("Person", f"Unknown crew_type '{crew_type}'", xbmc.LOGWARNING)
             return None
 
@@ -498,6 +487,12 @@ def match_crew_to_person_id(
         return _search_with_dialog(crew_name, api)
 
     return None
+
+
+_CREW_JOBS = {
+    "director": {"Director"},
+    "writer": {"Writer", "Screenplay", "Story", "Original Story"},
+}
 
 
 _CREW_JOB_PRIORITY: dict[str, int] = {
@@ -531,13 +526,7 @@ def get_crew_from_tmdb(
     tmdb_id: int,
     dbtype: str
 ) -> list[dict]:
-    """Get crew members from TMDB.
-
-    `crew_type` may be `director`, `writer`, `creator`, or empty/`all` for full crew
-    (deduped by person, multiple jobs joined as `Director, Producer`).
-
-    Returns list of dicts with id, name, profile_path, job.
-    """
+    """Get one crew type from TMDB, or the whole crew deduped with their jobs joined."""
     api = ApiTmdb()
 
     if crew_type == "creator":
@@ -568,13 +557,8 @@ def get_crew_from_tmdb(
 
     crew = data["credits"].get("crew") or []
 
-    if crew_type == "director":
-        job_filter: Optional[set[str]] = {"Director"}
-    elif crew_type == "writer":
-        job_filter = {"Writer", "Screenplay", "Story", "Original Story"}
-    elif crew_type in ("", "all"):
-        job_filter = None
-    else:
+    job_filter = _CREW_JOBS.get(crew_type)
+    if job_filter is None and crew_type not in ("", "all"):
         return []
 
     if job_filter is None:

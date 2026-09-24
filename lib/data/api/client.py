@@ -678,6 +678,7 @@ class ApiSession:
         abort_flag=None,
         timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[requests.Response]:
+        """HEAD the endpoint, returning the Response; None on an error status."""
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
@@ -696,8 +697,8 @@ class ApiSession:
 
             if response.status_code == 429:
                 raise RateLimitHit(
-                self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
-            )
+                    self.service_name, _parse_retry_after(response.headers.get("Retry-After"))
+                )
 
             if response.status_code >= 400:
                 log(

@@ -382,10 +382,7 @@ class ApiMdblist(RatingSource):
         abort_flag=None
     ) -> Optional[Dict[str, Dict[str, float]]]:
         """Get all ratings from MDBList (fetches if not cached)."""
-        data = self.get_mdblist_data(media_type, ids)
-        if not data:
-            data = self.fetch_data(media_type, ids, abort_flag)
-
+        data = self._get_or_fetch(media_type, ids, abort_flag)
         if not data:
             return None
 

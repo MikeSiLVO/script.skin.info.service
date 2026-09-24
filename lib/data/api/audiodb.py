@@ -16,6 +16,11 @@ from typing import Optional, List, Dict
 from lib.data.api.client import ApiSession
 
 
+def _straight_quotes(text: str) -> str:
+    """Straighten the curly single quotes Kodi scrapers may store, for a TheAudioDB search."""
+    return text.replace('\u2018', "'").replace('\u2019', "'")
+
+
 class ApiAudioDb:
     """TheAudioDB API client with rate limiting."""
 
@@ -76,14 +81,9 @@ class ApiAudioDb:
         return tracks[0] if tracks else None
 
     def search_album(self, artist_name: str, album_name: str, abort_flag=None) -> Optional[dict]:
-        """Search for an album by artist and album name.
-
-        Useful as fallback when the MusicBrainz release group ID has been merged
-        and the old ID is needed for artwork services.
-        """
-        # Kodi scrapers may store smart quotes - normalize to ASCII for search
-        artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
-        album_name = album_name.replace('\u2018', "'").replace('\u2019', "'")
+        """Search for an album by artist and album name."""
+        artist_name = _straight_quotes(artist_name)
+        album_name = _straight_quotes(album_name)
 
         data = self.session.get(
             "/searchalbum.php",
@@ -101,8 +101,8 @@ class ApiAudioDb:
 
     def search_track(self, artist_name: str, track_name: str, abort_flag=None) -> Optional[dict]:
         """Search for a track by artist and track name."""
-        artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
-        track_name = track_name.replace('\u2018', "'").replace('\u2019', "'")
+        artist_name = _straight_quotes(artist_name)
+        track_name = _straight_quotes(track_name)
 
         data = self.session.get(
             "/searchtrack.php",
@@ -119,8 +119,8 @@ class ApiAudioDb:
         return tracks[0] if tracks else None
 
     def search_artist(self, artist_name: str, abort_flag=None) -> Optional[dict]:
-        """Search for an artist by name."""
-        artist_name = artist_name.replace('\u2018', "'").replace('\u2019', "'")
+        """Search for an artist, returning only an exact name match."""
+        artist_name = _straight_quotes(artist_name)
 
         data = self.session.get(
             "/search.php",

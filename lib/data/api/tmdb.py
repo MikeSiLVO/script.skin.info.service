@@ -231,10 +231,8 @@ class ApiTmdb(RatingSource):
         stills = data.get('stills', [])
         result = {}
         if stills:
-            result['thumb'] = [
-                format_tmdb_image(img, 'w300')
-                for img in stills if format_tmdb_image(img, 'w300')
-            ]
+            formatted = [format_tmdb_image(img, 'w300') for img in stills]
+            result['thumb'] = [img for img in formatted if img]
 
         return result
 
