@@ -93,9 +93,11 @@ def fetch_library_genres(media_type: str) -> list[str]:
     return [g.get("label", "") for g in genres if g.get("label")]
 
 
-def fetch_library_tags() -> list[str]:
+def fetch_library_tags(media_type: str) -> list[str]:
     """Fetch existing tags from library."""
-    response = request("VideoLibrary.GetTags", {"type": "movie"})
+    if media_type not in ("movie", "tvshow", "musicvideo"):
+        return []
+    response = request("VideoLibrary.GetTags", {"type": media_type})
     tags = extract_result(response, "tags", [])
 
     if not tags:
@@ -146,7 +148,7 @@ def fetch_library_values_for_field(
         return fetch_library_genres(media_type)
 
     if field_name == "tag":
-        return fetch_library_tags()
+        return fetch_library_tags(media_type)
 
     if field_name in ("studio", "director", "writer", "country"):
         return _aggregate_field_values(media_type, field_name)
