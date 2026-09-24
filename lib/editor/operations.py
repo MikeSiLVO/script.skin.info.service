@@ -148,19 +148,17 @@ def fetch_library_values_for_field(
     field_name: str, media_type: str
 ) -> list[str]:
     """Fetch existing library values for a list field."""
-    if field_name == "genre":
+    field_def = get_field_def(field_name)
+    api_name = field_def["api_name"] if field_def else field_name
+
+    if api_name == "genre":
         return fetch_library_genres(media_type)
 
-    if field_name == "tag":
+    if api_name == "tag":
         return fetch_library_tags(media_type)
 
-    if field_name in ("studio", "director", "writer", "country"):
-        return _aggregate_field_values(media_type, field_name)
-
-    if field_name in ("style", "mood", "instrument", "yearsactive", "theme"):
-        return _aggregate_field_values(media_type, field_name)
-
-    if field_name == "artistlist":
-        return _aggregate_field_values(media_type, "artist")
+    if api_name in ("studio", "director", "writer", "country", "artist",
+                    "style", "mood", "instrument", "yearsactive", "theme"):
+        return _aggregate_field_values(media_type, api_name)
 
     return []
