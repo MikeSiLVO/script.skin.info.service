@@ -318,17 +318,17 @@ class ApiMdblist(RatingSource):
         result: Dict[str, str] = {}
 
         if "certified-fresh" in keywords:
-            result[RT_SOURCE_TOMATOES] = "certified"
+            result[RT_SOURCE_TOMATOES] = "Certified"
         elif "fresh" in keywords:
-            result[RT_SOURCE_TOMATOES] = "fresh"
+            result[RT_SOURCE_TOMATOES] = "Fresh"
         elif "rotten" in keywords:
-            result[RT_SOURCE_TOMATOES] = "rotten"
+            result[RT_SOURCE_TOMATOES] = "Rotten"
 
         if "metacritic-must-see" in keywords:
-            result["metacritic"] = "mustsee"
+            result["metacritic"] = "MustSee"
 
         if "certified-hot" in keywords:
-            result[RT_SOURCE_POPCORN] = "hot"
+            result[RT_SOURCE_POPCORN] = "Hot"
         else:
             # certified-hot is the only audience keyword
             for r in data.get("ratings", []):
@@ -338,7 +338,7 @@ class ApiMdblist(RatingSource):
                 if RATING_SOURCE_NORMALIZE.get(source, source) == RT_SOURCE_POPCORN:
                     score = r.get("score")
                     if score is not None:
-                        result[RT_SOURCE_POPCORN] = "fresh" if score >= 60 else "spilled"
+                        result[RT_SOURCE_POPCORN] = "Fresh" if score >= 60 else "Spilled"
                     break
 
         return result or None

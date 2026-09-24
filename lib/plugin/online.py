@@ -40,9 +40,9 @@ _AWARD_PROPS = {
 }
 
 _STATUS_PROPS = {
-    "tomatoes": ("Tomatometer", {"certified": "Certified", "fresh": "Fresh", "rotten": "Rotten"}),
-    "popcorn": ("Popcornmeter", {"hot": "Hot", "fresh": "Fresh", "spilled": "Spilled"}),
-    "metacritic": ("Metacritic", {"mustsee": "MustSee"}),
+    "tomatoes": "Tomatometer",
+    "popcorn": "Popcornmeter",
+    "metacritic": "Metacritic",
 }
 
 
@@ -142,9 +142,9 @@ def fetch_mdblist_data(
 
         status = mdblist.get_rating_status(mdblist_media_type, ids, abort_flag=abort_flag)
         for source, state in (status or {}).items():
-            prop, labels = _STATUS_PROPS.get(source, (None, {}))
-            if prop and state in labels:
-                props[prop] = labels[state]
+            prop = _STATUS_PROPS.get(source)
+            if prop:
+                props[prop] = state
 
         for tag in mdblist.get_award_tags(mdblist_media_type, ids, abort_flag=abort_flag):
             prop = _AWARD_PROPS.get(tag)
