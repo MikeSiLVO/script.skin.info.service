@@ -2261,6 +2261,22 @@ msgctxt "#32735"
 msgid "Cancelling will stop the current task safely."
 msgstr ""
 
+msgctxt "#32736"
+msgid "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
+msgstr ""
+
+msgctxt "#32737"
+msgid "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
+msgstr ""
+
+msgctxt "#32738"
+msgid "Folder saved"
+msgstr ""
+
+msgctxt "#32739"
+msgid "Could not save the setting. Set the folder in Kodi's settings instead."
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

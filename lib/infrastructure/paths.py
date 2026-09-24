@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import threading
 
+import xbmc
 import xbmcgui
 import xbmcvfs
 from typing import Any, Optional, Tuple, Dict, List, Set
 
-from lib.kodi.client import request, get_library_items
+from lib.kodi.client import ADDON, request, get_library_items
 
 
 def vfs_get_separator(path: str) -> str:
@@ -279,16 +280,13 @@ class PathBuilder:
         if response and response.get("result") is True:
             dialog.notification(
                 heading,
-                "Folder configured successfully",
+                ADDON.getLocalizedString(32738),
                 xbmcgui.NOTIFICATION_INFO,
                 3000
             )
             return folder
 
-        dialog.ok(
-            "Error",
-            "Failed to save setting.[CR][CR]Please configure manually in Kodi settings."
-        )
+        dialog.ok(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32739))
         return None
 
     @staticmethod
@@ -296,11 +294,9 @@ class PathBuilder:
         """Configured movie sets folder, prompting once if unset."""
         return PathBuilder._resolve_named_item_folder(
             "videolibrary.moviesetsfolder",
-            "Movie Set Information Folder Not Configured",
-            "MSIF (Movie Set Information Folder) is not configured in Kodi settings.[CR][CR]"
-            "This folder stores artwork for movie sets (like 'The Matrix Collection').[CR][CR]"
-            "Would you like to select a folder now?",
-            "Select Movie Sets Folder"
+            xbmc.getLocalizedString(20226),
+            ADDON.getLocalizedString(32736),
+            xbmc.getLocalizedString(20226),
         )
 
     @staticmethod
@@ -308,11 +304,9 @@ class PathBuilder:
         """Configured artist information folder, prompting once if unset."""
         return PathBuilder._resolve_named_item_folder(
             "musiclibrary.artistsfolder",
-            "Artist Information Folder Not Configured",
-            "Artist Information Folder is not configured in Kodi settings.[CR][CR]"
-            "This folder stores artwork and metadata for music artists.[CR][CR]"
-            "Would you like to select a folder now?",
-            "Select Artist Information Folder"
+            xbmc.getLocalizedString(20223),
+            ADDON.getLocalizedString(32737),
+            xbmc.getLocalizedString(20223),
         )
 
     @staticmethod
