@@ -17,6 +17,7 @@ _AGE_BUCKET_LABELS = ('0-7', '8-30', '31-90', '91-180', '180+', 'unknown')
 _USAGE_BUCKET_BOUNDS = (5, 20, 50)
 _USAGE_BUCKET_LABELS = ('0', '1-5', '6-20', '21-50', '50+')
 
+
 def _bucket_age(days_ago: int) -> str:
     """Return the age-bucket label for `days_ago`."""
     for bound, label in zip(_AGE_BUCKET_BOUNDS, _AGE_BUCKET_LABELS):

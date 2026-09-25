@@ -68,6 +68,7 @@ def _skin_override(key: str) -> str:
     """Return `Skin.String(SkinInfo.Stinger.<key>)` if set, else empty string."""
     return xbmc.getInfoLabel(f"Skin.String(SkinInfo.Stinger.{key})") or ""
 
+
 STR_HEADING: Final = 32162
 STR_DURING: Final = 32163
 STR_AFTER: Final = 32164

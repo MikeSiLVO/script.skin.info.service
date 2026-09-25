@@ -450,7 +450,6 @@ class ArtworkAnimated:
                         xbmc.LOGDEBUG,
                     )
 
-
     def _find_gif(self, file_path: str) -> Optional[str]:
         """Look for gif files in the media file's folder.
 

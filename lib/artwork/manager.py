@@ -936,7 +936,6 @@ class ArtworkSelection:
 
         return current_art
 
-
     def _load_available_artwork(
         self, media_type: str, dbid: int, title: str
     ) -> Dict[str, List[Any]]:
@@ -1454,6 +1453,7 @@ class ArtworkManager:
             return False
 
         return True
+
 
 def run_artwork_manager(scope: Optional[str] = None) -> None:
     normalized = scope.lower().strip() if scope else None

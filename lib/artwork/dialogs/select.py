@@ -344,6 +344,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
 
         self._populate_artwork_list()
 
+
 def show_artwork_selection_dialog(
     title: str,
     art_type: str,

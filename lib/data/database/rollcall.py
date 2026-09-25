@@ -24,6 +24,7 @@ _DEPENDENT_TABLES: Dict[str, Tuple[Optional[str], str]] = {
     "tvshow_runtime": (None, "tvshowid"),
 }
 
+
 class _Item(NamedTuple):
     """One library row as Kodi reports it."""
     title: str

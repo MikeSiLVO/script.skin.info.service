@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional, Dict, Set, Union
 from lib.data.database._infrastructure import get_db, chunked_in_modify
 
+
 def get_cached_gif(gif_path: str) -> Optional[Dict[str, Union[float, str]]]:
     """Return `{mtime, scanned_at}` for a cached GIF path, or None if not cached."""
     with get_db() as cursor:

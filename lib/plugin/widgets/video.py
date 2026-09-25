@@ -1107,6 +1107,8 @@ def handle_similar(handle: int, params: dict) -> None:
 
     xbmcplugin.setContent(handle, 'movies' if target_dbtype == 'movie' else 'tvshows')
     xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+
 def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
     """Unwatched movies and shows for a genre, each tagged with its media type."""
     candidates = []

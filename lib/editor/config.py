@@ -243,6 +243,7 @@ TVSHOW_STATUS_VALUES = [
     "ended",
 ]
 
+
 def get_fields_for_media_type(media_type: str) -> list[str]:
     """Get list of editable fields for a media type.
 

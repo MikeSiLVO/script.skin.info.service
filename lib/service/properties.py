@@ -144,6 +144,7 @@ def media_path(path: Optional[str]) -> str:
         base = url2pathname(parts[0])
     return base
 
+
 _STATE = {
     "set_movies": 0,
     "artist_albums": 0,
