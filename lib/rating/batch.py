@@ -78,7 +78,6 @@ def build_retry_entry(state: ItemState, item_stats: Optional[Dict]) -> Optional[
 
     return RetryPoolEntry(
         dbid=state.dbid,
-        item=state.item,
         title=state.title,
         year=state.year,
         media_type=state.media_type,

@@ -63,7 +63,6 @@ class ItemState:
 class RetryPoolEntry:
     """An item finalized with partial results, awaiting retry of missing sources."""
     dbid: int
-    item: Dict
     title: str
     year: str
     media_type: str

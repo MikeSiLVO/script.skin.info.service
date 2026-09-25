@@ -37,9 +37,6 @@ _SCOPE_LABELS = {
 
 _SOURCE_MODE_LABELS = {
     "imdb": "IMDb Dataset",
-    "tmdb": "TMDB",
-    "trakt": "Trakt",
-    "aggregators": "Aggregators (MDBList, OMDB)",
     "multi_source": "All Sources",
 }
 
@@ -87,24 +84,21 @@ def run_ratings_menu() -> None:
 
 def _run_update(media_type: str) -> None:
     """Run ratings update for a media type."""
-    _select_mode_and_run(
-        [media_type], initialize_sources(), "multi_source")
+    _select_mode_and_run([media_type], initialize_sources())
 
 
 def _run_update_all() -> None:
     """Run ratings update for all media types."""
-    _select_mode_and_run(
-        ["movie", "tvshow", "episode"], initialize_sources(), "multi_source")
+    _select_mode_and_run(["movie", "tvshow", "episode"], initialize_sources())
 
 
-def _select_mode_and_run(media_types: List[str], sources: List, source_mode: str) -> None:
+def _select_mode_and_run(media_types: List[str], sources: List) -> None:
     """Show foreground/background picker, then run `update_library_ratings` per media type."""
     from lib.infrastructure.menus import run_with_mode_choice
 
     def run(use_background: bool) -> None:
         for media_type in media_types:
-            update_library_ratings(
-                media_type, sources, use_background=use_background, source_mode=source_mode)
+            update_library_ratings(media_type, sources, use_background=use_background)
 
     run_with_mode_choice("Update Library Ratings", run)
 

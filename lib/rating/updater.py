@@ -261,9 +261,7 @@ def update_library_ratings(
 
     # the user asked for this run, so the retry offer belongs at its end
     if retry_queue and not results.get("cancelled") and not results.get("all_sources_down"):
-        retry_count = prompt_and_process_retries(
-            retry_queue, media_type, sources, source_mode
-        )
+        retry_count = prompt_and_process_retries(retry_queue, sources)
         if retry_count > 0:
             results["retried"] = retry_count
 

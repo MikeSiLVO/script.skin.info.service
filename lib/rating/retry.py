@@ -19,7 +19,6 @@ from lib.rating.executor import (
     RetryPoolEntry, MAX_CONSECUTIVE_FAILURES, SHORT_HOLD,
 )
 from lib.rating.ids import build_external_ids
-from lib.rating.imdb import update_single_item_imdb
 
 
 MAX_PAUSE_WAIT = SHORT_HOLD[1]
@@ -166,8 +165,7 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
     return not still_missing
 
 
-def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], media_type: str,
-                               sources: List, source_mode: str) -> int:
+def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], sources: List) -> int:
     """Prompt user to retry items with missing/failed sources; reprocess if confirmed."""
     count = len(retry_queue)
 
@@ -211,7 +209,7 @@ def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], media_type: st
             show_textviewer(ADDON.getLocalizedString(32418), "\n".join(lines))
 
         elif result == 1:
-            return _process_retry_queue(retry_queue, media_type, sources, source_mode)
+            return _process_retry_queue(retry_queue, sources)
 
         else:
             log("Ratings",
@@ -220,8 +218,7 @@ def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], media_type: st
             return 0
 
 
-def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
-                         sources: List, source_mode: str) -> int:
+def _process_retry_queue(retry_queue: List[RetryPoolEntry], sources: List) -> int:
     """Run targeted retries for queued entries; only the missing sources are fetched.
 
     On 429, the offending source is paused for the remainder of this pass per
@@ -248,13 +245,10 @@ def _process_retry_queue(retry_queue: List[RetryPoolEntry], media_type: str,
             f"{ADDON.getLocalizedString(32311).format(i+1, total)}\n{entry.title}"
         )
 
-        if source_mode == "imdb":
-            success, _ = update_single_item_imdb(entry.item, media_type)
-        else:
-            success = retry_targeted(
-                entry, sources, paused_until, abort_flag=abort_flag,
-                is_cancelled=progress.iscanceled, refused=refused,
-                waited_for=waited_for, failures=failures)
+        success = retry_targeted(
+            entry, sources, paused_until, abort_flag=abort_flag,
+            is_cancelled=progress.iscanceled, refused=refused,
+            waited_for=waited_for, failures=failures)
 
         if success:
             success_count += 1
