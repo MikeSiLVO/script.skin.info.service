@@ -94,17 +94,6 @@ def _wait_until_video_idle(monitor: xbmc.Monitor) -> bool:
             return True
 
 
-def preserve_other_ratings(existing_ratings: Dict, kodi_ratings: Dict) -> None:
-    """Copy non-imdb ratings from existing into kodi_ratings during IMDb-only updates."""
-    for source_name, rating_data in existing_ratings.items():
-        if source_name != "imdb" and isinstance(rating_data, dict):
-            kodi_ratings[source_name] = {
-                "rating": rating_data.get("rating", 0),
-                "votes": int(rating_data.get("votes", 0)),
-                "default": False,
-            }
-
-
 def update_changed_imdb_ratings(
     media_type: str = "", monitor: Optional[xbmc.Monitor] = None
 ) -> Dict[str, int]:
@@ -703,7 +692,6 @@ def prepare_imdb_update(
             "default": True,
         }
     }
-    preserve_other_ratings(existing_ratings, kodi_ratings)
 
     return ImdbUpdate(dbid, kodi_ratings, imdb_id, new_rating, new_votes,
                       title, str(year) if year else "", is_add, old_rating, old_votes)
