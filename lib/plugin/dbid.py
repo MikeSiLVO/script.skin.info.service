@@ -499,7 +499,7 @@ def handle_dbid_query(handle: int, params: dict) -> None:
 
     list_item = xbmcgui.ListItem(label=item_data.get("Title", ""), offscreen=True)
 
-    is_music = media_type in ("artist", "album", "musicvideo")
+    is_music = media_type in ("artist", "album")
     video_tag = list_item.getVideoInfoTag() if not is_music else None
 
     art_dict = {}
