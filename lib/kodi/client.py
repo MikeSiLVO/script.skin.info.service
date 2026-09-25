@@ -584,23 +584,6 @@ def get_api_key(key_id: str) -> Optional[str]:
     return None
 
 
-_debug_enabled: Optional[bool] = None
-_debug_lock = threading.Lock()
-
-
-def _is_debug_enabled() -> bool:
-    """Check if debug logging is enabled (cached)."""
-    global _debug_enabled
-    if _debug_enabled is None:
-        with _debug_lock:
-            if _debug_enabled is None:
-                try:
-                    _debug_enabled = KodiSettings.debug_enabled()
-                except Exception:
-                    _debug_enabled = False
-    return _debug_enabled
-
-
 def format_item_label(item: Dict, media_type: str) -> str:
     """Display label for an item; episodes get show title with SxxExx."""
     if media_type == "episode":
@@ -614,6 +597,10 @@ def format_item_label(item: Dict, media_type: str) -> str:
 
 def log(category: str, message: str, level: int = xbmc.LOGDEBUG) -> None:
     """Log a categorized message; DEBUG escalates to INFO when the debug setting is on."""
-    if level == xbmc.LOGDEBUG and _is_debug_enabled():
-        level = xbmc.LOGINFO
+    if level == xbmc.LOGDEBUG:
+        try:
+            if KodiSettings.debug_enabled():
+                level = xbmc.LOGINFO
+        except Exception:
+            pass
     xbmc.log(f"script.skin.info.service: [{category}] {message}", level)
