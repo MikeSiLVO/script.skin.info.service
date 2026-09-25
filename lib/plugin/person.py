@@ -419,7 +419,7 @@ def _create_credit_listitem(credit: dict, library_dbids: Optional[dict] = None) 
     video_tag = item.getVideoInfoTag()
 
     media_type = credit.get('media_type', 'movie')
-    video_tag.setMediaType(media_type)
+    video_tag.setMediaType('tvshow' if media_type == 'tv' else media_type)
 
     video_tag.setTitle(title)
 
