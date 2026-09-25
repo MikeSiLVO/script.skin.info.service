@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 from typing import List, Optional
 
+from lib.kodi.client import ADDON
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import get_preferred_language_code, normalize_language_tag
 
@@ -177,7 +178,7 @@ def filter_artwork_by_language(
 def get_language_display_name(language_code: str) -> str:
     """Human-readable name for ISO 639-1 code; empty returns localized 'Text-free / Untagged'."""
     if not language_code or language_code == '':
-        return KodiSettings._get_addon().getLocalizedString(32122)
+        return ADDON.getLocalizedString(32122)
 
     language_names = {
         'en': 'English',

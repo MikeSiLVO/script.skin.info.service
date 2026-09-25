@@ -9,7 +9,7 @@ import xbmc
 import xbmcaddon
 from lib.kodi.settings import KodiSettings
 
-# Shared instance; don't instantiate a new xbmcaddon.Addon().
+# Kodi reloads only the first Addon() per id on a settings save
 ADDON = xbmcaddon.Addon()
 
 # Default TTL is short since Kodi state changes are user-driven (focus/playback).

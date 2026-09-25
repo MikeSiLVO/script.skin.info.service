@@ -1,35 +1,23 @@
 """Cached addon settings access."""
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import threading
-
-import xbmcaddon
 
 
 class KodiSettings:
-    """Cached addon settings accessor to reduce repeated xbmcaddon.Addon() instantiation."""
+    """Cached addon settings accessor, read through the process's one shared Addon."""
 
     _cache: Dict[str, Any] = {}
     _cache_lock = threading.Lock()
-    _addon: Optional[xbmcaddon.Addon] = None
-    _addon_lock = threading.Lock()
-
-    @classmethod
-    def _get_addon(cls) -> xbmcaddon.Addon:
-        """Get cached addon instance with thread safety."""
-        if cls._addon is None:
-            with cls._addon_lock:
-                if cls._addon is None:
-                    cls._addon = xbmcaddon.Addon()
-        return cls._addon
 
     @classmethod
     def get_bool(cls, key: str) -> bool:
         """Get boolean setting with caching."""
         with cls._cache_lock:
             if key not in cls._cache:
-                cls._cache[key] = cls._get_addon().getSettingBool(key)
+                from lib.kodi.client import ADDON
+                cls._cache[key] = ADDON.getSettingBool(key)
             return cls._cache[key]
 
     @classmethod
@@ -37,7 +25,8 @@ class KodiSettings:
         """Get string setting with caching."""
         with cls._cache_lock:
             if key not in cls._cache:
-                cls._cache[key] = cls._get_addon().getSetting(key).strip()
+                from lib.kodi.client import ADDON
+                cls._cache[key] = ADDON.getSetting(key).strip()
             return cls._cache[key]
 
     @classmethod
