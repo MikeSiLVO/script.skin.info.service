@@ -388,18 +388,15 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
     limit = int(params.get('limit', ['25'])[0])
     include_watched = params.get('include_watched', ['false'])[0].lower() == 'true'
 
-    tvshow_filter = None if include_watched else {
-        'field': 'playcount',
-        'operator': 'lessthan',
-        'value': '1'
-    }
-
-    result = request('VideoLibrary.GetTVShows', {
-        'filter': tvshow_filter,
+    show_params = {
         'properties': _FULL_SHOW_PROPERTIES,
         'sort': {'method': 'dateadded', 'order': 'descending'},
         'limits': {'start': 0, 'end': limit}
-    })
+    }
+    if not include_watched:
+        show_params['filter'] = {'field': 'playcount', 'operator': 'lessthan', 'value': '1'}
+
+    result = request('VideoLibrary.GetTVShows', show_params)
     shows = extract_result(result, 'tvshows', [])
 
     items = []
@@ -436,10 +433,10 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
             recent_eps = extract_result(recent_result, 'episodes', [])
 
             if len(recent_eps) >= 2:
-                date1 = recent_eps[0].get('dateadded', '').split('T')[0]
-                date2 = recent_eps[1].get('dateadded', '').split('T')[0]
+                date1 = recent_eps[0].get('dateadded', '')[:10]
+                date2 = recent_eps[1].get('dateadded', '')[:10]
 
-                if date1 == date2:
+                if date1 and date1 == date2:
                     listitem = _create_tvshow_listitem(show)
                     if show.get('season'):
                         listitem.setProperty('TotalSeasons', str(show['season']))
