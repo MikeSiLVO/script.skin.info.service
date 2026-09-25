@@ -238,7 +238,8 @@ def update_single_item(
 
     start_time = time.time()
 
-    with ThreadPoolExecutor(max_workers=len(sources)) as executor:
+    executor = ThreadPoolExecutor(max_workers=len(sources))
+    try:
         futures = {
             executor.submit(
                 source.fetch_ratings, media_type, ids, abort_flag, force_refresh
@@ -249,7 +250,6 @@ def update_single_item(
 
         while pending:
             if abort_flag and abort_flag.is_requested():
-                executor.shutdown(wait=False)
                 return None, None
 
             if (time.time() - start_time) > _MAX_TOTAL_WAIT:
@@ -260,7 +260,6 @@ def update_single_item(
                     log("Ratings",
                         f"   {source_name}: Timeout after {_MAX_TOTAL_WAIT}s",
                         xbmc.LOGDEBUG)
-                executor.shutdown(wait=False)
                 break
 
             try:
@@ -279,10 +278,8 @@ def update_single_item(
                         if action == "cancel_all":
                             if abort_flag:
                                 abort_flag.request()
-                            executor.shutdown(wait=False)
                             return None, None
                         if action == "cancel_batch":
-                            executor.shutdown(wait=False)
                             return None, None
                         if action == "retry":
                             retryable_failures.append(
@@ -299,6 +296,8 @@ def update_single_item(
 
             except FuturesTimeoutError:
                 continue
+    finally:
+        executor.shutdown(wait=False)
 
     return merge_and_apply_ratings(
         media_type=media_type,
