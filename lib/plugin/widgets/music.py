@@ -260,7 +260,9 @@ def handle_similar_artists(handle: int, params: dict) -> None:
                           for n in similar_names]},
         'properties': _ARTIST_PROPERTIES,
     })
-    matched = extract_result(result, 'artists', [])[:limit]
+    rank = {name.lower(): index for index, name in enumerate(similar_names)}
+    matched = sorted(extract_result(result, 'artists', []),
+                     key=lambda a: rank.get((a.get('artist') or '').lower(), len(rank)))[:limit]
 
     for artist in matched:
         item = _create_artist_listitem(artist)
