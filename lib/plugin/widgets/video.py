@@ -576,16 +576,14 @@ def _find_actor_role(cast: list, actor_name: str) -> str:
 
 
 def handle_by_actor(handle: int, params: dict) -> None:
-    """Plugin entry: library items featuring a random actor from the source item; `position`
-    takes a billing slot instead, `mix` picks movies+shows or matches `dbtype`, `lock` keeps the
-    random actor stable across refreshes."""
+    """Plugin entry: library titles featuring a random top-billed actor, or a given billing slot."""
     dbid_param = params.get('dbid', [''])[0]
-    if not dbid_param:
+    dbtype = params.get('dbtype', ['movie'])[0]
+    if not dbid_param or dbtype in ('set', 'season'):  # neither has a cast field
         xbmcplugin.endOfDirectory(handle)
         return
 
     dbid = int(dbid_param)
-    dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])
     cast_limit = int(params.get('cast_limit', ['4'])[0])
     position = _int_param(params, 'position', 0)
@@ -784,8 +782,7 @@ def _create_movie_listitem(movie: dict) -> xbmcgui.ListItem:
 
 
 def handle_by_director(handle: int, params: dict) -> None:
-    """Plugin entry: library items by a random director from the source item; `mix` returns
-    mixed movies+episodes or matches `dbtype`."""
+    """Plugin entry: library movies and episodes by a random director of the item."""
     dbid_param = params.get('dbid', [''])[0]
     if not dbid_param:
         xbmcplugin.endOfDirectory(handle)
@@ -797,7 +794,7 @@ def handle_by_director(handle: int, params: dict) -> None:
     director_limit = int(params.get('director_limit', ['3'])[0])
     mix = params.get('mix', ['true'])[0].lower() == 'true'
 
-    if dbtype in ('tvshow', 'set'):  # neither has a director field
+    if dbtype in ('tvshow', 'set', 'season'):  # none has a director field
         xbmcplugin.endOfDirectory(handle)
         return
 
