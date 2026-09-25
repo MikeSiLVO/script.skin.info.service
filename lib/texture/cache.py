@@ -76,7 +76,7 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
             media_types, progress_callback=progress_callback
         )
 
-        log("Artwork",f"Pre-cache: found {len(library_urls)} total library artwork URLs")
+        log("Artwork", f"Pre-cache: found {len(library_urls)} total library artwork URLs")
 
         if progress_dialog:
             progress_dialog.update(10, "Loading texture cache...")
@@ -127,7 +127,7 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
 
         try:
             queued = cache_queue.bulk_add_urls(urls_to_cache)
-            log("Artwork",f"Pre-cache: queued {queued} URLs for background processing")
+            log("Artwork", f"Pre-cache: queued {queued} URLs for background processing")
 
             last_update_time = time.time()
             last_percent = -1
@@ -186,7 +186,7 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
             clear_cached_urls_cache()
 
     except Exception as e:
-        log("Texture",f"Pre-cache failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Pre-cache failed: {str(e)}", xbmc.LOGERROR)
         stats['failed'] = stats['needed_caching']
         clear_cached_urls_cache()
 
@@ -305,7 +305,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
                     queued += 1
 
             stats['total_urls'] = queued
-            log("Artwork",f"Pre-cache+download: queued {queued} URLs for processing")
+            log("Artwork", f"Pre-cache+download: queued {queued} URLs for processing")
 
             last_update_time = time.time()
             last_percent = -1
@@ -390,7 +390,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
             clear_cached_urls_cache()
 
     except Exception as e:
-        log("Texture",f"Pre-cache+download failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Pre-cache+download failed: {str(e)}", xbmc.LOGERROR)
         clear_cached_urls_cache()
 
     return stats
@@ -415,7 +415,7 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
     monitor = xbmc.Monitor()
 
     try:
-        log("Artwork",f"Starting orphaned texture cleanup for media types: {media_types}")
+        log("Artwork", f"Starting orphaned texture cleanup for media types: {media_types}")
 
         def aborted() -> bool:
             return bool(
@@ -446,7 +446,7 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
 
         stats['orphaned_found'] = len(orphaned)
 
-        log("Artwork",f"Found {stats['orphaned_found']} orphaned textures")
+        log("Artwork", f"Found {stats['orphaned_found']} orphaned textures")
 
         if stats['orphaned_found'] > 0:
             dialog = xbmcgui.Dialog()
@@ -506,13 +506,13 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
                 progress_dialog.update(percent, f"Removed {idx + 1} / {stats['orphaned_found']}")
 
         status = "cancelled" if stats['cancelled'] else "complete"
-        log("Artwork",f"Cleanup {status}: {stats['removed']} removed, {stats['failed']} failed")
+        log("Artwork", f"Cleanup {status}: {stats['removed']} removed, {stats['failed']} failed")
 
     except LibraryScanAborted:
         stats['cancelled'] = True
         log("Artwork", "Orphaned cleanup cancelled during library scan")
 
     except Exception as e:
-        log("Texture",f"Orphaned cleanup failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Orphaned cleanup failed: {str(e)}", xbmc.LOGERROR)
 
     return stats

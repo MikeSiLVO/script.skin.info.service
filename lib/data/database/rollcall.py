@@ -51,6 +51,17 @@ def _build_content_key(uniqueid: dict) -> str:
 
 
 _PAGE_SIZE: Final = 5000
+_UPSERT_LIBRARY_ITEM: Final = (
+    "INSERT INTO library_item (media_type, dbid, title, imdb_id, tmdb_id, tvdb_id, "
+    "mbid, parent_dbid, season, episode, content_key, updated_at) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+    "ON CONFLICT (media_type, dbid) DO UPDATE SET "
+    "title = excluded.title, imdb_id = excluded.imdb_id, tmdb_id = excluded.tmdb_id, "
+    "tvdb_id = excluded.tvdb_id, mbid = excluded.mbid, "
+    "parent_dbid = excluded.parent_dbid, season = excluded.season, "
+    "episode = excluded.episode, content_key = excluded.content_key, "
+    "updated_at = excluded.updated_at"
+)
 
 
 def _fetch_paginated(method: str, result_key: str,
@@ -262,25 +273,13 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
                     sorted(gone),
                 )
 
-            _UPSERT = (
-                "INSERT INTO library_item (media_type, dbid, title, imdb_id, tmdb_id, tvdb_id, "
-                "mbid, parent_dbid, season, episode, content_key, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-                "ON CONFLICT (media_type, dbid) DO UPDATE SET "
-                "title = excluded.title, imdb_id = excluded.imdb_id, tmdb_id = excluded.tmdb_id, "
-                "tvdb_id = excluded.tvdb_id, mbid = excluded.mbid, "
-                "parent_dbid = excluded.parent_dbid, season = excluded.season, "
-                "episode = excluded.episode, content_key = excluded.content_key, "
-                "updated_at = excluded.updated_at"
-            )
-
             drifted = [
                 dbid for dbid in common - reused
                 if existing[dbid][1] != library_items[dbid].tmdb_id
             ]
             write = sorted(new) + sorted(reused) + sorted(drifted)
             if write:
-                cursor.executemany(_UPSERT, [
+                cursor.executemany(_UPSERT_LIBRARY_ITEM, [
                     (media_type, dbid, i.title, i.imdb_id, i.tmdb_id, i.tvdb_id, i.mbid,
                      i.parent_dbid, i.season, i.episode, i.content_key, now)
                     for dbid, i in ((d, library_items[d]) for d in write)

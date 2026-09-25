@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple
 
 import xbmc
 
@@ -21,6 +21,8 @@ from lib.rating.ids import (
     build_external_ids,
     get_tvshow_uniqueid,
 )
+
+_MAX_TOTAL_WAIT: Final = 30.0
 
 
 def resolve_item_ids(item: Dict, media_type: str) -> Optional[Dict]:
@@ -234,7 +236,6 @@ def update_single_item(
             existing_ratings=existing_ratings, retryable_failures=retryable_failures,
         )
 
-    MAX_TOTAL_WAIT = 30.0
     start_time = time.time()
 
     with ThreadPoolExecutor(max_workers=len(sources)) as executor:
@@ -251,13 +252,13 @@ def update_single_item(
                 executor.shutdown(wait=False)
                 return None, None
 
-            if (time.time() - start_time) > MAX_TOTAL_WAIT:
+            if (time.time() - start_time) > _MAX_TOTAL_WAIT:
                 for future in pending:
                     source = futures[future]
                     source_name = source.provider_name
                     retryable_failures.append({"source": source_name, "reason": "timeout"})
                     log("Ratings",
-                        f"   {source_name}: Timeout after {MAX_TOTAL_WAIT}s",
+                        f"   {source_name}: Timeout after {_MAX_TOTAL_WAIT}s",
                         xbmc.LOGDEBUG)
                 executor.shutdown(wait=False)
                 break

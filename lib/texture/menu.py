@@ -217,7 +217,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
                 progress.close()
             except Exception:
                 pass
-        log("Texture",f"Pre-cache failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Pre-cache failed: {str(e)}", xbmc.LOGERROR)
         dialog.ok(operation_name, f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
 
@@ -312,7 +312,7 @@ def _execute_standard_cleanup(use_background: bool) -> None:
                 progress.close()
             except Exception:
                 pass
-        log("Texture",f"Cleanup failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f"Cleanup failed: {str(e)}", xbmc.LOGERROR)
         dialog.ok(ADDON.getLocalizedString(32087),
                   f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
@@ -335,7 +335,7 @@ def _handle_stats() -> None:
             dialog.ok(ADDON.getLocalizedString(32180), ADDON.getLocalizedString(32181))
     except Exception as e:
         progress.close()
-        log("Texture",f" Stats failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f" Stats failed: {str(e)}", xbmc.LOGERROR)
         dialog.ok(ADDON.getLocalizedString(32180),
                   f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
@@ -434,7 +434,7 @@ def cleanup_textures_by_age(age_days: int,
             progress_dialog.update(100, ADDON.getLocalizedString(32426))
 
     except Exception as e:
-        log("Texture",f" Age cleanup failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f" Age cleanup failed: {str(e)}", xbmc.LOGERROR)
         raise
 
     return stats
@@ -525,7 +525,7 @@ def _execute_age_cleanup(age_days: int) -> None:
 
     except Exception as e:
         progress.close()
-        log("Texture",f" Analysis failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f" Analysis failed: {str(e)}", xbmc.LOGERROR)
         dialog.ok(ADDON.getLocalizedString(32184), f"Failed to analyze textures:[CR]{str(e)}")
         return
 
@@ -596,7 +596,7 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
                 progress.close()
             except Exception:
                 pass
-        log("Texture",f" Age cleanup failed: {str(e)}", xbmc.LOGERROR)
+        log("Texture", f" Age cleanup failed: {str(e)}", xbmc.LOGERROR)
         dialog.ok(ADDON.getLocalizedString(32087),
                   f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
