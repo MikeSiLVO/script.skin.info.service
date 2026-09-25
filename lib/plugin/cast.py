@@ -141,12 +141,12 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
     cast = []
 
     if dbtype == 'movie':
-        data = api.get_movie_details_extended(tmdb_id)
+        data = api.get_complete_data('movie', tmdb_id, is_library_item=bool(dbid))
         if data and 'credits' in data:
             cast = data['credits'].get('cast', [])
 
     elif dbtype == 'tvshow':
-        data = api.get_tv_details_extended(tmdb_id)
+        data = api.get_complete_data('tvshow', tmdb_id, is_library_item=bool(dbid))
         if data:
             cast = (data.get('credits', {}).get('cast', [])
                     or _season_regular_cast(api, tmdb_id, data)

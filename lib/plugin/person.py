@@ -566,7 +566,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
 
 
 def handle_tmdb_details(handle: int, params: dict) -> None:
-    """Plugin entry for TMDB details by ID (`type`: movie/tv/person, `tmdb_id`: int)."""
+    """Plugin entry for one TMDB movie, show or person as a ListItem, by `tmdb_id`."""
     from lib.data.api.tmdb import ApiTmdb
 
     media_type = params.get('type', ['movie'])[0]
@@ -597,10 +597,9 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
 
     api = ApiTmdb()
 
-    if media_type == 'movie':
-        data = api.get_movie_details_extended(tmdb_id)
-    elif media_type == 'tv':
-        data = api.get_tv_details_extended(tmdb_id)
+    if media_type in ('movie', 'tv'):
+        data = api.get_complete_data('movie' if media_type == 'movie' else 'tvshow', tmdb_id,
+                                     is_library_item=False)
     else:
         log("Plugin", f"TMDB Details: Invalid type '{media_type}'", xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
