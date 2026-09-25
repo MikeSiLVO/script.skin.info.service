@@ -17,17 +17,6 @@ from lib.kodi.settings import KodiSettings
 from lib.kodi.client import ADDON, log, request
 HOME = xbmcgui.Window(10000)
 
-MEDIA_TYPE_LABELS = {
-    'movie': 'Movies',
-    'tvshow': 'TV Shows',
-    'episode': 'Episodes',
-    'season': 'Seasons',
-    'set': 'Movie Sets',
-    'musicvideo': 'Music Videos',
-    'artist': 'Artists',
-    'album': 'Albums',
-}
-
 
 def resolve_infolabel(value: str) -> str:
     """Resolve a `$INFO[...]` or `$VAR[...]` wrapped string via Kodi, else pass through."""
