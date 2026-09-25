@@ -145,6 +145,13 @@ def get_item_data_by_dbid(media_type: str, dbid: int) -> Optional[dict]:
         return None
 
 
+def _with_raw_dates(data: dict, details: dict) -> dict:
+    """Add the library's own last-played and date-added values for the info tag setters."""
+    data["_lastplayed"] = details.get("lastplayed") or ""
+    data["_dateadded"] = details.get("dateadded") or ""
+    return data
+
+
 def _get_movie_data(movieid: int) -> Optional[dict]:
     """Get movie data as dictionary for ListItem."""
     details = get_item_details(
@@ -156,7 +163,7 @@ def _get_movie_data(movieid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
-    return build_movie_data(details)
+    return _with_raw_dates(build_movie_data(details), details)
 
 
 def _get_movieset_data(setid: int) -> Optional[dict]:
@@ -192,7 +199,7 @@ def _get_tvshow_data(tvshowid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
-    return build_tvshow_data(details)
+    return _with_raw_dates(build_tvshow_data(details), details)
 
 
 def _get_season_data(seasonid: int) -> Optional[dict]:
@@ -220,7 +227,7 @@ def _get_episode_data(episodeid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
-    return build_episode_data(details)
+    return _with_raw_dates(build_episode_data(details), details)
 
 
 def _get_musicvideo_data(musicvideoid: int) -> Optional[dict]:
@@ -236,7 +243,7 @@ def _get_musicvideo_data(musicvideoid: int) -> Optional[dict]:
 
     data = build_musicvideo_data(details)
     data.update(get_musicvideo_library_art(details))
-    return data
+    return _with_raw_dates(data, details)
 
 
 _artist_art_cache: "OrderedDict[str, Tuple[dict, object]]" = OrderedDict()
@@ -611,10 +618,10 @@ def handle_dbid_query(handle: int, params: dict) -> None:
             video_tag.setCountries(split_multivalue(item_data["Country"]))
         if "Trailer" in item_data:
             video_tag.setTrailer(item_data["Trailer"])
-        if "LastPlayed" in item_data:
-            video_tag.setLastPlayed(item_data["LastPlayed"])
-        if "DateAdded" in item_data:
-            video_tag.setDateAdded(item_data["DateAdded"])
+        if item_data.get("_lastplayed"):
+            video_tag.setLastPlayed(item_data["_lastplayed"])
+        if item_data.get("_dateadded"):
+            video_tag.setDateAdded(item_data["_dateadded"])
         if "Tag" in item_data:
             video_tag.setTags(split_multivalue(item_data["Tag"]))
         if "IMDBNumber" in item_data:
