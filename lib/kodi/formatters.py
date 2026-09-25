@@ -3,7 +3,7 @@ Formatters for converting API responses to Kodi-style property dicts.
 
 Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
-from typing import Dict, Tuple, Optional, Final
+from typing import Dict, List, Tuple, Optional, Final
 
 from lib.kodi.utilities import format_date
 from lib.kodi.utilities import MULTI_VALUE_SEP
@@ -77,10 +77,7 @@ def format_movie_props(data: dict) -> Dict[str, str]:
     if release_date:
         props["Premiered"] = release_date
         props["PremieredFormatted"] = format_date(release_date)
-        try:
-            props["Year"] = release_date[:4]
-        except (IndexError, TypeError):
-            pass
+        props["Year"] = release_date[:4]
 
     genres = data.get("genres") or []
     if genres:
@@ -130,10 +127,7 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
     if first_air:
         props["Premiered"] = first_air
         props["PremieredFormatted"] = format_date(first_air)
-        try:
-            props["Year"] = first_air[:4]
-        except (IndexError, TypeError):
-            pass
+        props["Year"] = first_air[:4]
 
     last_air = data.get("last_air_date") or ""
     if last_air:
@@ -335,7 +329,6 @@ def build_common_sense_summary(cs_data: dict) -> Tuple[str, str]:
 
     `summary` includes age rating + reasons phrase. `reasons` is the phrase alone.
     """
-    from typing import Dict, List
     from lib.kodi.client import ADDON
 
     age = cs_data.get("age", 0)
