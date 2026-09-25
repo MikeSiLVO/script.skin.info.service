@@ -230,10 +230,12 @@ def _filter_credits(credits: list, params: dict) -> list:
 
 
 def _sort_credits(credits: list, params: dict) -> list:
-    """Sort credits list."""
+    """Sort credits by popularity, date, rating or title; any other `sort` keeps TMDB's order."""
     sort_method = params.get('sort', ['popularity'])[0]
 
-    if sort_method == 'date_desc':
+    if sort_method == 'popularity':
+        credits.sort(key=lambda c: c.get('popularity') or 0, reverse=True)
+    elif sort_method == 'date_desc':
         credits.sort(
             key=lambda c: c.get('release_date') or c.get('first_air_date', '0000'),
             reverse=True,
