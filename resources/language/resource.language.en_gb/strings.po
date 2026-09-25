@@ -2282,6 +2282,28 @@ msgctxt "#32740"
 msgid "Profile Image {0}"
 msgstr ""
 
+#. {0} is a list of counts, such as "12 Movies, 3 TV shows"
+msgctxt "#32741"
+msgid "Missing IMDb IDs: {0}"
+msgstr ""
+
+#. {0} is a list of counts, such as "12 Movies, 3 TV shows"
+msgctxt "#32742"
+msgid "Invalid TMDB IDs: {0}"
+msgstr ""
+
+msgctxt "#32743"
+msgid "Fix these issues?"
+msgstr ""
+
+msgctxt "#32744"
+msgid "Added {0} IMDb IDs"
+msgstr ""
+
+msgctxt "#32745"
+msgid "Fixed {0} TMDB IDs"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

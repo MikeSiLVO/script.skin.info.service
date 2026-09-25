@@ -309,28 +309,28 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         if total_missing_imdb > 0:
             parts = []
             if missing_imdb_movies:
-                parts.append(f"{len(missing_imdb_movies):,} movies")
+                parts.append(f"{len(missing_imdb_movies):,} {xbmc.getLocalizedString(342)}")
             if missing_imdb_shows:
-                parts.append(f"{len(missing_imdb_shows):,} TV shows")
+                parts.append(f"{len(missing_imdb_shows):,} {xbmc.getLocalizedString(20343)}")
             if missing_imdb_episodes:
-                parts.append(f"{len(missing_imdb_episodes):,} episodes")
-            lines.append(f"Missing IMDb IDs: {', '.join(parts)}")
+                parts.append(f"{len(missing_imdb_episodes):,} {xbmc.getLocalizedString(20360)}")
+            lines.append(ADDON.getLocalizedString(32741).format(", ".join(parts)))
 
         if total_invalid_tmdb > 0:
             parts = []
             if invalid_tmdb_movies:
-                parts.append(f"{len(invalid_tmdb_movies):,} movies")
+                parts.append(f"{len(invalid_tmdb_movies):,} {xbmc.getLocalizedString(342)}")
             if invalid_tmdb_shows:
-                parts.append(f"{len(invalid_tmdb_shows):,} TV shows")
-            lines.append(f"Invalid TMDB IDs: {', '.join(parts)}")
+                parts.append(f"{len(invalid_tmdb_shows):,} {xbmc.getLocalizedString(20343)}")
+            lines.append(ADDON.getLocalizedString(32742).format(", ".join(parts)))
 
-        message = "\n".join(lines) + "\n\nFix these issues?"
+        message = "\n".join(lines) + "\n\n" + ADDON.getLocalizedString(32743)
 
         if not show_yesno(ADDON.getLocalizedString(32260), message):
             return
 
     progress = DialogProgress()
-    progress.create(ADDON.getLocalizedString(32260), "Starting...")
+    progress.create(ADDON.getLocalizedString(32260), ADDON.getLocalizedString(32336))
 
     total_imdb_fixed = 0
     total_tmdb_fixed = 0
@@ -343,12 +343,13 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         total_tmdb_fixed = tmdb_fixed
 
     if missing_imdb_movies and not progress.iscanceled():
-        matched = _fix_missing_ids_via_tmdb(missing_imdb_movies, "movie", progress, "movies")
+        matched = _fix_missing_ids_via_tmdb(
+            missing_imdb_movies, "movie", progress, xbmc.getLocalizedString(342))
         total_imdb_fixed += matched
 
     if missing_imdb_shows and not progress.iscanceled():
         matched = _fix_missing_ids_via_tmdb(
-            missing_imdb_shows, "tvshow", progress, "TV shows", show_imdb_map
+            missing_imdb_shows, "tvshow", progress, xbmc.getLocalizedString(20343), show_imdb_map
         )
         total_imdb_fixed += matched
 
@@ -369,9 +370,9 @@ def run_fix_library_ids(prompt: bool = True) -> None:
     if total_imdb_fixed > 0 or total_tmdb_fixed > 0:
         results = []
         if total_imdb_fixed > 0:
-            results.append(f"Added {total_imdb_fixed:,} IMDb IDs")
+            results.append(ADDON.getLocalizedString(32744).format(f"{total_imdb_fixed:,}"))
         if total_tmdb_fixed > 0:
-            results.append(f"Fixed {total_tmdb_fixed:,} TMDB IDs")
+            results.append(ADDON.getLocalizedString(32745).format(f"{total_tmdb_fixed:,}"))
         show_ok(ADDON.getLocalizedString(32260), "\n".join(results))
         xbmc.executebuiltin("Container.Refresh")
     else:
