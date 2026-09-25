@@ -447,10 +447,6 @@ class RatingBatchExecutor:
         now = time.time()
         return sorted(name for name, until in snapshot if until > now)
 
-    def active_sources(self) -> List[str]:
-        """Names of sources with a fetch in flight."""
-        return sorted(name for name, count in self.active_per_source.items() if count > 0)
-
     def all_sources_spent(self) -> bool:
         """True when every source is spent for this run."""
         names = list(self.active_per_source)
