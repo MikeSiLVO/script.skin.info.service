@@ -372,7 +372,11 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
 
         content_type = content.rstrip('s')
 
-        valid_types = ('movie', 'episode', 'musicvideo')
+        if content_type == 'musicvideo':
+            xbmcplugin.endOfDirectory(handle, succeeded=True)
+            return
+
+        valid_types = ('movie', 'episode')
         if content_type not in valid_types:
             log("Plugin",
                 f'Player Cast: Unsupported content type "{content_type}"',
