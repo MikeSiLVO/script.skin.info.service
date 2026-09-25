@@ -117,7 +117,8 @@ def update_library_ratings(
     sources: List,
     use_background: bool = False,
     source_mode: str = "multi_source",
-    gated: bool = False
+    gated: bool = False,
+    save_report: bool = True,
 ) -> Dict[str, int]:
     """Update ratings for all items of a media type."""
     start_time = time.time()
@@ -282,7 +283,8 @@ def update_library_ratings(
 
     results.pop("pending_corrections", None)
 
-    db.save_operation_stats('ratings_update', results, scope=media_type)
+    if save_report:
+        db.save_operation_stats('ratings_update', results, scope=media_type)
 
     if not use_background:
         cancelled_text = " (Cancelled)" if results.get("cancelled") else ""

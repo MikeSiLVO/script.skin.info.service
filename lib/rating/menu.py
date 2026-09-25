@@ -1,7 +1,7 @@
 """Ratings menu entry points, mode selection, and report display."""
 from __future__ import annotations
 
-from typing import List, Optional, Tuple, Final
+from typing import Dict, List, Optional, Tuple, Final
 import xbmc
 import xbmcgui
 
@@ -33,7 +33,14 @@ _SCOPE_LABELS = {
     "movie": "Movies",
     "tvshow": "TV Shows",
     "episode": "Episodes",
+    "all": "All",
 }
+
+_SUMMED_STATS = (
+    "updated", "failed", "skipped", "total_items", "elapsed_time", "pending_retries",
+    "retried", "total_ratings_added", "total_ratings_updated", "imdb_ids_added",
+    "imdb_ids_corrected",
+)
 
 _SOURCE_MODE_LABELS = {
     "imdb": "IMDb Dataset",
@@ -97,10 +104,34 @@ def _select_mode_and_run(media_types: List[str], sources: List) -> None:
     from lib.infrastructure.menus import run_with_mode_choice
 
     def run(use_background: bool) -> None:
+        runs = []
         for media_type in media_types:
-            update_library_ratings(media_type, sources, use_background=use_background)
+            results = update_library_ratings(
+                media_type, sources, use_background=use_background,
+                save_report=len(media_types) == 1)
+            runs.append(results)
+            if results.get("cancelled"):
+                break
+        if len(media_types) > 1:
+            db.save_operation_stats('ratings_update', _combine_runs(runs), scope="all")
 
     run_with_mode_choice("Update Library Ratings", run)
+
+
+def _combine_runs(runs: List[Dict]) -> Dict:
+    """Combine per-type run stats into one report."""
+    combined: Dict = {key: sum(r.get(key, 0) for r in runs) for key in _SUMMED_STATS}
+    combined["cancelled"] = any(r.get("cancelled") for r in runs)
+    combined["source_mode"] = "multi_source"
+    source_stats: Dict[str, Dict[str, int]] = {}
+    for run in runs:
+        for name, counts in run.get("source_stats", {}).items():
+            merged = source_stats.setdefault(name, {"fetched": 0, "failed": 0})
+            for key, count in counts.items():
+                merged[key] = merged.get(key, 0) + count
+    combined["source_stats"] = source_stats
+    combined["item_details"] = [d for r in runs for d in r.get("item_details", [])][-20:]
+    return combined
 
 
 def _resolve_single_item_target(
