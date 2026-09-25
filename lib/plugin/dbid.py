@@ -11,7 +11,7 @@ from lib.kodi.client import (
     request, extract_result, get_item_details, decode_image_url, KODI_MOVIE_PROPERTIES, log,
 )
 from lib.kodi.formatters import format_stars, RATING_SOURCE_NORMALIZE
-from lib.kodi.utilities import MULTI_VALUE_SEP
+from lib.kodi.utilities import MULTI_VALUE_SEP, tvshow_version_fields
 from lib.plugin.listitems import (
     build_movie_data,
     build_movieset_data,
@@ -70,7 +70,6 @@ _TVSHOW_PROPERTIES = [
     "watchedepisodes", "imdbnumber", "originaltitle", "sorttitle",
     "episodeguide", "tag", "art", "userrating", "ratings",
     "cast", "uniqueid", "dateadded", "file", "lastplayed", "playcount",
-    "trailer",
 ]
 
 _SEASON_PROPERTIES = [
@@ -193,7 +192,7 @@ def _get_tvshow_data(tvshowid: int) -> Optional[dict]:
     details = get_item_details(
         'tvshow',
         tvshowid,
-        _TVSHOW_PROPERTIES,
+        _TVSHOW_PROPERTIES + tvshow_version_fields(),
         cache_key=f"tvshow:{tvshowid}:details",
     )
     if not isinstance(details, dict):

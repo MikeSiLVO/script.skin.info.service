@@ -357,6 +357,11 @@ def is_kodi_piers_or_later() -> bool:
     return _piers_or_later
 
 
+def tvshow_version_fields() -> List[str]:
+    """TV show fields only Kodi v22 or newer can read over JSON-RPC; empty on older builds."""
+    return ["trailer"] if is_kodi_piers_or_later() else []
+
+
 def tvshow_status_gettable() -> bool:
     """True if this Kodi build exposes tvshow `status` as a readable JSON-RPC field.
 

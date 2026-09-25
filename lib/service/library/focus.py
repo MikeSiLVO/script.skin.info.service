@@ -13,7 +13,7 @@ from lib.kodi.client import (
 )
 from lib.kodi.utilities import (
     clear_group, gui_transition_settled, is_kodi_piers_or_later, modal_dialog_active,
-    normalize_dbtype,
+    normalize_dbtype, tvshow_version_fields,
 )
 from lib.service.properties import (
     set_artist_properties,
@@ -407,8 +407,7 @@ class FocusDispatcher:
                 "watchedepisodes", "imdbnumber", "originaltitle", "sorttitle",
                 "episodeguide", "tag", "art", "userrating", "ratings",
                 "cast", "uniqueid", "dateadded", "file", "lastplayed", "playcount",
-                "trailer",
-            ],
+            ] + tvshow_version_fields(),
             cache_key=f"tvshow:{tvshowid}:details",
         )
         if not isinstance(details, dict):

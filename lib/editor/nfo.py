@@ -36,7 +36,7 @@ _NFO_PROPERTIES = {
     'tvshow': [
         "title", "originaltitle", "sorttitle", "ratings", "userrating", "season", "episode",
         "plot", "runtime", "mpaa", "playcount", "lastplayed", "episodeguide", "imdbnumber",
-        "uniqueid", "genre", "tag", "premiered", "year", "studio", "trailer", "cast",
+        "uniqueid", "genre", "tag", "premiered", "year", "studio", "cast",
         "dateadded", "file",
     ],
     'episode': [
@@ -340,7 +340,11 @@ def write_nfo(media_type: str, dbid: int, forced: bool = False) -> bool:
     if media_type not in _ROOT_TAG:
         return False
 
-    details = get_item_details(media_type, dbid, _NFO_PROPERTIES[media_type])
+    properties = _NFO_PROPERTIES[media_type]
+    if media_type == 'tvshow':
+        from lib.kodi.utilities import tvshow_version_fields
+        properties = properties + tvshow_version_fields()
+    details = get_item_details(media_type, dbid, properties)
     if not isinstance(details, dict):
         log("Editor", f"NFO: no details for {media_type} {dbid}", xbmc.LOGWARNING)
         return False
