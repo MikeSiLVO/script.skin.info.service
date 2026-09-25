@@ -209,6 +209,8 @@ def handle_wrap(handle: int, params: dict) -> None:
 
         if 'type' in file_item:
             video_tag.setMediaType(file_item['type'])
+        if file_item.get('id'):
+            video_tag.setDbId(int(file_item['id']))
 
         if 'resume' in file_item:
             resume = file_item['resume']
