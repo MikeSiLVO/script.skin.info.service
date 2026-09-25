@@ -2277,6 +2277,11 @@ msgctxt "#32739"
 msgid "Could not save the setting. Set the folder in Kodi's settings instead."
 msgstr ""
 
+#. {0} is the image's position in the list
+msgctxt "#32740"
+msgid "Profile Image {0}"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

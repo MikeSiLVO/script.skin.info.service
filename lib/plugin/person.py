@@ -7,7 +7,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 
-from lib.kodi.client import log, extract_result
+from lib.kodi.client import ADDON, log, extract_result
 from lib.data.api.utilities import tmdb_image_url
 
 
@@ -90,7 +90,7 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
         if not file_path:
             continue
 
-        item = xbmcgui.ListItem(f"Profile Image {i+1}", offscreen=True)
+        item = xbmcgui.ListItem(ADDON.getLocalizedString(32740).format(i + 1), offscreen=True)
 
         image_url = tmdb_image_url(file_path)
         item.setArt({'thumb': image_url, 'icon': image_url})
