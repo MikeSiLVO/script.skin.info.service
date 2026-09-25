@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 import re
-from typing import Optional
+from typing import Optional, Final
 
 import xbmc
 import xbmcgui
@@ -39,9 +39,9 @@ _TAG_STOPLIST = frozenset({
     'emotional', 'sentimental', 'uplifting', 'entertaining', 'excited', 'admiring',
 })
 
-_TAG_WEIGHT = 8.0
-_TAG_FULL_MATCH = 0.08
-_SAME_SET_PENALTY = 12.0
+_TAG_WEIGHT: Final = 8.0
+_TAG_FULL_MATCH: Final = 0.08
+_SAME_SET_PENALTY: Final = 12.0
 _MAX_VOTE_LOG = math.log1p(1000000)
 
 _SIMILAR_MOVIE_SCORING = ['genre', 'year', 'mpaa', 'tag', 'director', 'writer', 'studio',
@@ -1619,7 +1619,7 @@ def _query_movies(movie_filter: dict, sort_method: str, limit: int) -> list:
     return extract_result(result, 'movies', [])
 
 
-_HALLOWEEN_HOLIDAY_RATIO = 0.62  # remainder is general horror-genre variety
+_HALLOWEEN_HOLIDAY_RATIO: Final = 0.62  # remainder is general horror-genre variety
 
 
 def _halloween_movies(limit: int, sort_method: str) -> list:

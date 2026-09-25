@@ -7,7 +7,7 @@ import urllib.parse
 import requests
 import xbmc
 import xbmcvfs
-from typing import Optional, Tuple, Dict, Callable
+from typing import Optional, Tuple, Dict, Callable, Final
 
 from lib.kodi.client import log, get_item_details, request, extract_result
 from lib.kodi.settings import KodiSettings
@@ -18,9 +18,9 @@ from lib.infrastructure.paths import (
 
 
 # Every chunk costs an abort check and a VFS write, both of which cross into Kodi.
-_CHUNK_SIZE = 256 * 1024
+_CHUNK_SIZE: Final = 256 * 1024
 # Generous enough for a large fanart on a slow link; only a stalled host should hit it.
-_STREAM_DEADLINE = 120.0
+_STREAM_DEADLINE: Final = 120.0
 
 
 class _StreamNetworkError(Exception):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from typing import Final
 
 import xbmc
 import xbmcplugin
@@ -12,7 +13,7 @@ _WINDOW_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
 
 _MEDIA_TYPES = ('movie', 'episode', 'musicvideo')
 
-_FILTER_CHUNK = 100
+_FILTER_CHUNK: Final = 100
 
 _LIBRARY_CALLS = {
     'movie': ('VideoLibrary.GetMovies', 'movies'),

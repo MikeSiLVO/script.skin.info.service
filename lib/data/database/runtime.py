@@ -1,12 +1,12 @@
 """TV show / season runtime cache (storage CRUD)."""
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Final
 
 from lib.data.database._infrastructure import get_db
 
 # season 0 is specials
-_WHOLE_SHOW = -1
+_WHOLE_SHOW: Final = -1
 
 
 def get_show_runtime(tvshowid: int) -> Optional[Tuple[int, int]]:

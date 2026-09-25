@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Dict, Optional
+from typing import Dict, Optional, Final
 
 import xbmc
 
 from lib.dialog.base import InfoDialogBase, ADDON_PATH
 from lib.kodi.client import log
 
-XML_FILE = 'script-skin-info-service-DialogActorInfo.xml'
+XML_FILE: Final = 'script-skin-info-service-DialogActorInfo.xml'
 
 
 class DialogActorInfo(InfoDialogBase):

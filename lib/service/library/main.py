@@ -7,6 +7,7 @@ runs the main loop.
 from __future__ import annotations
 
 import threading
+from typing import Final
 
 import xbmc
 
@@ -18,8 +19,8 @@ from lib.service.library.musicvideo import MusicVideoArt
 from lib.service.library.slideshow import SlideshowDriver
 from lib.service.library.focus import FocusDispatcher
 
-SERVICE_POLL_INTERVAL = 0.10
-MAX_CONSECUTIVE_ERRORS = 10
+SERVICE_POLL_INTERVAL: Final = 0.10
+MAX_CONSECUTIVE_ERRORS: Final = 10
 
 
 class LibraryMonitor(xbmc.Monitor):

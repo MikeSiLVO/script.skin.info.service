@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Optional, List, Dict, Tuple, Any, Final
 
 import xbmc
 import xbmcgui
@@ -46,7 +46,7 @@ from lib.artwork.config import (
 )
 from lib.artwork.scanner import ArtworkScanner
 
-MAX_REVIEW_LOG_ITEMS = 100
+MAX_REVIEW_LOG_ITEMS: Final = 100
 
 
 def _scan_scope(scope: str, use_background: bool = False,

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Final
 
 import xbmc
 
 from lib.dialog.base import InfoDialogBase, ADDON_PATH
 from lib.kodi.client import log
 
-XML_FILE = 'script-skin-info-service-DialogVideoInfo.xml'
+XML_FILE: Final = 'script-skin-info-service-DialogVideoInfo.xml'
 
 
 class DialogVideoInfo(InfoDialogBase):

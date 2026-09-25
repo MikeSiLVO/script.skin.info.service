@@ -1,7 +1,7 @@
 """Ratings menu entry points, mode selection, and report display."""
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Final
 import xbmc
 import xbmcgui
 
@@ -27,7 +27,7 @@ from lib.rating.updater import (
 from lib.rating.single import update_single_item
 
 
-_RATINGS_HEADING_ID = 32300
+_RATINGS_HEADING_ID: Final = 32300
 
 _SCOPE_LABELS = {
     "movie": "Movies",

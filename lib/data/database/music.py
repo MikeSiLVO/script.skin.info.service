@@ -7,7 +7,7 @@ from __future__ import annotations
 import random
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Final
 
 import xbmc
 
@@ -21,11 +21,11 @@ from lib.data.database._infrastructure import (
 from lib.kodi.client import log
 
 # a NUL here would truncate the bound LIKE pattern in invalidate_music_cache
-_KEY_SEP = '\x1f'
+_KEY_SEP: Final = '\x1f'
 
-SOURCE_AUDIODB = 'audiodb'
-SOURCE_LASTFM = 'lastfm'
-SOURCE_WIKIPEDIA = 'wikipedia'
+SOURCE_AUDIODB: Final = 'audiodb'
+SOURCE_LASTFM: Final = 'lastfm'
+SOURCE_WIKIPEDIA: Final = 'wikipedia'
 
 _SOURCE_MULTIPLIER = {
     SOURCE_AUDIODB: 0.5,

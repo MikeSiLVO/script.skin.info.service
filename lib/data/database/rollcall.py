@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 import time
-from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Final
 
 import xbmc
 
@@ -49,7 +49,7 @@ def _build_content_key(uniqueid: dict) -> str:
     return ""
 
 
-_PAGE_SIZE = 5000
+_PAGE_SIZE: Final = 5000
 
 
 def _fetch_paginated(method: str, result_key: str,

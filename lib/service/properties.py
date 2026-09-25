@@ -4,7 +4,7 @@ Optimized batch property operations for high-performance UI updates.
 """
 from __future__ import annotations
 
-from typing import Any, Optional, List, Tuple, Dict, Set
+from typing import Any, Optional, List, Tuple, Dict, Set, Final
 import os
 import xbmc
 
@@ -172,9 +172,9 @@ SET_ART_KEYS = (
 
 AUDIO_ART_KEYS = ("thumb", "fanart", "discart")
 
-_CR = "[CR]"
-_BOLD_OPEN = "[B]"
-_BOLD_CLOSE = "[/B]"
+_CR: Final = "[CR]"
+_BOLD_OPEN: Final = "[B]"
+_BOLD_CLOSE: Final = "[/B]"
 
 
 def _ordered_unique_push(seen: set, acc: list, items) -> None:

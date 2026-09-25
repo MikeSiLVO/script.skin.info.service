@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Optional, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain, CancelToken
 
 
-ONLINE_PREFIX = "SkinInfo.MusicVideo.Online."
+ONLINE_PREFIX: Final = "SkinInfo.MusicVideo.Online."
 
 _ONLINE_KEYS = (
     "Artist.Bio", "Artist.FanArt", "Artist.FanArt.Count",

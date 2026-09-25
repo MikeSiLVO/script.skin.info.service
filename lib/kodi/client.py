@@ -1,7 +1,7 @@
 """Kodi JSON-RPC interface with caching and rate limiting."""
 from __future__ import annotations
 
-from typing import Any, Dict, NamedTuple, Optional, Tuple, List, Callable, overload
+from typing import Any, Dict, NamedTuple, Optional, Tuple, List, Callable, overload, Final
 from time import monotonic
 import threading
 
@@ -13,10 +13,10 @@ from lib.kodi.settings import KodiSettings
 ADDON = xbmcaddon.Addon()
 
 # Default TTL is short since Kodi state changes are user-driven (focus/playback).
-CACHE_DEFAULT_TTL = 30
-CACHE_CLEANUP_INTERVAL = 60
-CACHE_CLEANUP_REQUEST_INTERVAL = 50
-CACHE_MAX_SIZE = 200
+CACHE_DEFAULT_TTL: Final = 30
+CACHE_CLEANUP_INTERVAL: Final = 60
+CACHE_CLEANUP_REQUEST_INTERVAL: Final = 50
+CACHE_MAX_SIZE: Final = 200
 
 
 class MediaTypeSpec(NamedTuple):

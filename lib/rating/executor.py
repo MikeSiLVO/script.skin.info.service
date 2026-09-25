@@ -8,7 +8,7 @@ from concurrent.futures import (
     ThreadPoolExecutor, as_completed, Future, TimeoutError as FuturesTimeoutError
 )
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Any
+from typing import Dict, List, Optional, Set, Any, Final
 import xbmc
 
 from lib.kodi.client import log
@@ -17,17 +17,17 @@ from lib.data.api.source import RatingSource
 from lib.infrastructure.tasks import MAX_REQUEST_SECONDS
 
 
-MAX_WORKERS = 8
-MAX_PER_SOURCE = 2
-POLL_INTERVAL = 1.0
+MAX_WORKERS: Final = 8
+MAX_PER_SOURCE: Final = 2
+POLL_INTERVAL: Final = 1.0
 # jittered so two sources pausing together do not resync
 SHORT_HOLD = (2.0, 5.0)
-MAX_REFUSALS = 3
-MAX_CONSECUTIVE_FAILURES = 8
+MAX_REFUSALS: Final = 3
+MAX_CONSECUTIVE_FAILURES: Final = 8
 # backstops a stalled TLS handshake, which the watcher cannot kill
 JOB_ABANDON_AFTER = MAX_REQUEST_SECONDS + 2.0
 
-MAX_SOURCE_BACKLOG = 15
+MAX_SOURCE_BACKLOG: Final = 15
 
 
 @dataclass

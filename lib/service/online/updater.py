@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
 
 
-UPDATER_PLAYBACK_POLL_S = 30
-UPDATER_IDLE_S = 3600
+UPDATER_PLAYBACK_POLL_S: Final = 30
+UPDATER_IDLE_S: Final = 3600
 
 
 class UpdaterHandler:

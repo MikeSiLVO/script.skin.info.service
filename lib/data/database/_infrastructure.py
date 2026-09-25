@@ -8,11 +8,11 @@ import zlib
 import xbmc
 import xbmcvfs
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any, Generator, Final
 from lib.data.database.schema import create_schema
 from lib.kodi.client import log
 
-DB_VERSION = 5
+DB_VERSION: Final = 5
 
 
 def compress_data(data: Any) -> bytes:
@@ -35,7 +35,7 @@ def as_int(value: Any) -> Any:
 
 
 # Kodi bundled SQLite has a parameter limit of 999; 900 leaves headroom
-SQL_PARAM_CHUNK_SIZE = 900
+SQL_PARAM_CHUNK_SIZE: Final = 900
 
 
 def sql_placeholders(count: int) -> str:
@@ -84,7 +84,7 @@ def chunked_in_modify(
     return total
 
 
-_DB_BASE = 'special://profile/addon_data/script.skin.info.service/skininfo'
+_DB_BASE: Final = 'special://profile/addon_data/script.skin.info.service/skininfo'
 DB_PATH = xbmcvfs.translatePath(f'{_DB_BASE}_v{DB_VERSION}.db')
 
 # leftover pre-v5 music cache

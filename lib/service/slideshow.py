@@ -7,14 +7,14 @@ import time
 import xbmc
 import xbmcvfs
 from collections import deque
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Final
 
 from lib.data.database import slideshow as db_slideshow
 from lib.kodi.utilities import set_prop, clear_prop, get_prop
 from lib.kodi.client import log, request, get_item_details
 
-MIN_SLIDESHOW_INTERVAL = 5
-MAX_SLIDESHOW_INTERVAL = 3600
+MIN_SLIDESHOW_INTERVAL: Final = 5
+MAX_SLIDESHOW_INTERVAL: Final = 3600
 
 
 def _cache_image_url(url: str) -> bool:
@@ -253,7 +253,7 @@ def clear_slideshow_properties() -> None:
         _clear_category_properties(category)
 
 
-_PLAYLIST_PREFIX = 'SkinInfo.Slideshow.Playlist.'
+_PLAYLIST_PREFIX: Final = 'SkinInfo.Slideshow.Playlist.'
 _PLAYLIST_PATHS = _PLAYLIST_PREFIX + 'Paths'
 _PLAYLIST_MUSIC_TYPES = {'song', 'album', 'artist'}
 _PLAYLIST_SUFFIXES = ('Title', 'FanArt', 'Plot', 'Year', 'Artist', 'Description')
@@ -269,12 +269,12 @@ _PLAYLIST_PROPS = ['art', 'title', 'plot', 'year', 'firstaired', 'displayartist'
 _FANART_KEYS = ('fanart', 'tvshow.fanart', 'artist.fanart', 'albumartist.fanart')
 
 # items are held whole
-_PLAYLIST_POOL_LIMIT = 200
+_PLAYLIST_POOL_LIMIT: Final = 200
 
 # a tiny or fanart-less pool wraps almost immediately
-_PLAYLIST_REFETCH_MIN_S = 60
+_PLAYLIST_REFETCH_MIN_S: Final = 60
 
-LOOKAHEAD_DEPTH = 2
+LOOKAHEAD_DEPTH: Final = 2
 
 
 def _detail_fanart(detail: Dict[str, Any]) -> str:
@@ -507,7 +507,7 @@ _LIBRARY_CATEGORIES = {
 }
 
 # sqrt damping for mixed-category type weighting: 1.0 = proportional, 0.0 = equal.
-_WEIGHT_ALPHA = 0.5
+_WEIGHT_ALPHA: Final = 0.5
 
 
 def _publish_library(category: str, row: Dict[str, Any]) -> None:

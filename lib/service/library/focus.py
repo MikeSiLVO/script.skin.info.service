@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from lib.service.library.main import ServiceMain
 
 
-CACHE_MOVIESET_TTL = 300
+CACHE_MOVIESET_TTL: Final = 300
 
 _ASSET_VIEW_PATH_RE = re.compile(r"^videodb://.*?/(\d+)/-?\d+/?(?:\?|$)")
 

@@ -16,7 +16,7 @@ import socket
 import time
 import threading
 import weakref
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Final
 from collections import deque
 
 import requests
@@ -108,7 +108,7 @@ class AbortRequested(Exception):
 _OPEN_CONNS: "weakref.WeakSet" = weakref.WeakSet()
 _CONN_LOCK = threading.Lock()
 _CONN_WATCHER_STARTED = False
-_WATCHER_IDLE_POLLS = 25
+_WATCHER_IDLE_POLLS: Final = 25
 # per-thread cancel token for the in-flight request, read by the connection on connect
 _REQUEST_TOKEN = threading.local()
 # per-thread wall-clock limit for the in-flight request, enforced by the watcher because a

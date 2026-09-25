@@ -5,7 +5,7 @@ import time
 import threading
 import xbmc
 from queue import Queue, Empty
-from typing import Optional, Set, List, Dict, Any
+from typing import Optional, Set, List, Dict, Any, Final
 from multiprocessing import cpu_count
 from lib.kodi.client import log
 
@@ -24,9 +24,9 @@ def get_optimal_worker_count() -> int:
 
 
 # Kodi serialises all NFS/SMB I/O on one global lock and caches textures one at a time.
-VFS_WORKER_COUNT = 2
+VFS_WORKER_COUNT: Final = 2
 
-STALL_TIMEOUT_SECONDS = 120
+STALL_TIMEOUT_SECONDS: Final = 120
 
 
 class WorkerQueue:

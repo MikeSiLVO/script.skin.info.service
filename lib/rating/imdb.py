@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Final
 
 import xbmc
 import xbmcgui
@@ -20,15 +20,15 @@ from lib.rating.ids import (get_tvshow_uniqueid, prefetch_tvshow_uniqueids,
 from lib.rating.merger import format_rating_change, rating_display_changed
 
 
-PROGRESS_SAVE_SECONDS = 60
+PROGRESS_SAVE_SECONDS: Final = 60
 
 _DRIP_DELAY = {
     "idle": {"movie": 0, "tvshow": 0, "episode": 0},
     "library": {"movie": 500, "tvshow": 1500, "episode": 1500},
 }
-_PLAYBACK_POLL_MS = 10000
-_RESUME_GRACE_S = 300
-_SYNC_FLUSH_SIZE = 50
+_PLAYBACK_POLL_MS: Final = 10000
+_RESUME_GRACE_S: Final = 300
+_SYNC_FLUSH_SIZE: Final = 50
 
 
 class ImdbUpdate(NamedTuple):

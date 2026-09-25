@@ -7,7 +7,7 @@ from __future__ import annotations
 import xbmc
 from lib.infrastructure.dialogs import show_ok, show_textviewer
 import xbmcgui
-from typing import Optional, List, Sequence
+from typing import Optional, List, Sequence, Final
 
 from lib.data.database import queue as db_queue
 from lib.data.database.queue import QueueEntry
@@ -23,7 +23,7 @@ from lib.data.api.artwork import ApiArtworkFetcher
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.kodi.client import log, ADDON
 
-DEFAULT_BATCH_SIZE = 100
+DEFAULT_BATCH_SIZE: Final = 100
 
 
 class ArtworkAuto:

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import Final
 
 import xbmc
 
@@ -11,7 +12,7 @@ from lib.kodi.client import ADDON, log
 from lib.kodi.utilities import setting_float
 
 
-IMDB_CHECK_INTERVAL = 86400  # 24 hours
+IMDB_CHECK_INTERVAL: Final = 86400  # 24 hours
 _BACKOFF_SECONDS = (3600, 14400, 86400)  # 1h, 4h, 24h after consecutive refresh failures
 
 

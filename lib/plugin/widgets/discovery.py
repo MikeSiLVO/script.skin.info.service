@@ -1,7 +1,7 @@
 """Discovery widgets for trending, popular, and upcoming content."""
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Final
 
 import xbmc
 import xbmcgui
@@ -239,8 +239,8 @@ def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: st
     return dispatch[action]()
 
 
-_AUTH_WARN_PROP = "SkinInfo.Trakt.AuthWarned"
-_AUTH_WARN_COOLDOWN = 10.0
+_AUTH_WARN_PROP: Final = "SkinInfo.Trakt.AuthWarned"
+_AUTH_WARN_COOLDOWN: Final = 10.0
 
 
 def _warn_trakt_auth() -> None:

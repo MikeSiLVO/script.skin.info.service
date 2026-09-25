@@ -1,11 +1,13 @@
 """Window property manipulation utilities for skin integration."""
+from typing import Final
+
 import xbmc
 
 from lib.kodi.client import request
 from lib.kodi.utilities import parse_pipe_list
 
 
-_LABEL_CHUNK = 1000
+_LABEL_CHUNK: Final = 1000
 
 
 def _copy_or_clear(prop_name: str, value: str, window: str) -> None:

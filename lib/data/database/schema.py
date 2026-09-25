@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import List
+from typing import List, Final
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION: Final = 1
 
 _KODI_SIDE: List[str] = [
     '''

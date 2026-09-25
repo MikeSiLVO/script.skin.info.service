@@ -6,7 +6,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 from collections import OrderedDict
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Final
 from lib.kodi.client import (
     request, extract_result, get_item_details, decode_image_url, KODI_MOVIE_PROPERTIES, log,
 )
@@ -241,7 +241,7 @@ def _get_musicvideo_data(musicvideoid: int) -> Optional[dict]:
 
 _artist_art_cache: "OrderedDict[str, Tuple[dict, object]]" = OrderedDict()
 _artist_albums_cache: "OrderedDict[Tuple[str, str], str]" = OrderedDict()
-_MAX_CACHE_ENTRIES = 200
+_MAX_CACHE_ENTRIES: Final = 200
 
 
 def _lru_set(cache: OrderedDict, key, value) -> None:

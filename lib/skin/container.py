@@ -1,7 +1,7 @@
 """Container manipulation utilities for skin integration."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Final
 import unicodedata
 import xbmc
 import xbmcgui
@@ -244,16 +244,16 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
             break
 
 
-_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
+_LETTERS: Final = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'
 
 # fixed, so repeat scans reuse registrations
-_LETTER_GRID = 16384
+_LETTER_GRID: Final = 16384
 _GRID_LEVELS = _LETTER_GRID.bit_length()
 
 _ALPHA_SORT_METHODS = (1, 7, 10, 29, 57)
 
 # below this a sweep is cheaper
-_SWEEP_MAX_ITEMS = 256
+_SWEEP_MAX_ITEMS: Final = 256
 
 
 def _letter_rank(letter: str) -> int:

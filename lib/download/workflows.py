@@ -7,7 +7,7 @@ import xbmc
 from lib.infrastructure.dialogs import show_ok, show_textviewer, DialogProgress
 import xbmcgui
 import xbmcvfs
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Optional, List, Dict, Tuple, Any, Final
 
 from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items
 from lib.download.queue import DownloadQueue
@@ -29,7 +29,7 @@ MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 ART_EXTENSIONS = ('jpg', 'png', 'gif', 'webp')
 
-_FOLDER_HEADING = "[B]Downloaded Files by Folder[/B]"
+_FOLDER_HEADING: Final = "[B]Downloaded Files by Folder[/B]"
 
 ERROR_CATEGORY_LABELS = {
     'network': "Network errors (timeouts / connection failures)",

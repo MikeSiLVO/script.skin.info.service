@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Final
 
 from lib.data.database._infrastructure import as_int, get_db, chunked_in_query
 
-_FIND_MISS_TTL_DAYS = 30
+_FIND_MISS_TTL_DAYS: Final = 30
 
 
 def save_id_mapping(

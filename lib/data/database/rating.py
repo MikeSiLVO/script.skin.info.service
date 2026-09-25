@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import time
-from typing import Optional, Set, Tuple
+from typing import Optional, Set, Tuple, Final
 
 from lib.data.database._infrastructure import (
     get_db,
@@ -12,7 +12,7 @@ from lib.data.database._infrastructure import (
 from lib.data.database.cache import get_cache_ttl_hours, get_title_ttl_hours
 from lib.data.database.mapping import get_tmdb_id_by_imdb
 
-_NO_PART = -1
+_NO_PART: Final = -1
 
 
 def get_provider_cache(provider: str, media_type: str, media_id: str,

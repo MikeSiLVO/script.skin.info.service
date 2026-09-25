@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, List
+from typing import Any, List, Final
 
 import xbmc
 
@@ -23,7 +23,7 @@ REVIEW_MEDIA_FILTERS = {
     'music': ['artist', 'album'],
 }
 
-REVIEW_MODE_MISSING = 'missing_only'
+REVIEW_MODE_MISSING: Final = 'missing_only'
 
 
 def scope_label(scope: str) -> str:

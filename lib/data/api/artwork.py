@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import xbmc
 from collections import OrderedDict
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any, Tuple, Final
 
 from lib.data.database import cache as db_cache
 from lib.data.api.tmdb import ApiTmdb, transform_tmdb_images
@@ -13,7 +13,7 @@ from lib.kodi.client import log
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
 # One entry per show, reused by every season and episode under it.
-_EXTERNAL_IDS_CACHE_SIZE = 256
+_EXTERNAL_IDS_CACHE_SIZE: Final = 256
 
 
 def _resolve_musicvideo_artist_mbid(

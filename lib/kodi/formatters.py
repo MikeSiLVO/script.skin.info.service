@@ -3,14 +3,14 @@ Formatters for converting API responses to Kodi-style property dicts.
 
 Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Final
 
 from lib.kodi.utilities import format_date
 from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.utilities import tmdb_image_url
 
-RT_SOURCE_TOMATOES = "tomatoes"
-RT_SOURCE_POPCORN = "popcorn"
+RT_SOURCE_TOMATOES: Final = "tomatoes"
+RT_SOURCE_POPCORN: Final = "popcorn"
 
 RATING_SOURCE_NORMALIZE = {
     "tomatometerallcritics": RT_SOURCE_TOMATOES,

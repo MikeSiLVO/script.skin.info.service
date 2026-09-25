@@ -1,7 +1,7 @@
 """Ratings updater orchestrator: full-library update, per-show update, batch coordination."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Final
 import time
 
 import xbmc
@@ -73,7 +73,7 @@ def update_tvshow_episodes(tvshow_dbid: int, sources: List) -> int:
 
 
 # one full Trakt rate-limit window
-TRAKT_PROMPT_THRESHOLD = 500
+TRAKT_PROMPT_THRESHOLD: Final = 500
 
 
 def _confirm_trakt(media_type: str, items: List[Dict], sources: List) -> Optional[List]:

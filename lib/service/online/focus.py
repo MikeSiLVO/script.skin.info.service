@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -30,10 +30,10 @@ if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
 
 
-ONLINE_PROPERTY_PREFIX = "SkinInfo.Online."
+ONLINE_PROPERTY_PREFIX: Final = "SkinInfo.Online."
 
 # a fetch that came back empty must not respawn a worker on the next tick
-FETCH_BACKOFF_S = 300
+FETCH_BACKOFF_S: Final = 300
 
 
 class FocusHandler:

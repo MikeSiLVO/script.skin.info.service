@@ -8,7 +8,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Final
 
 import xbmc
 import xbmcgui
@@ -56,22 +56,22 @@ class StingerInfo:
 
 
 # TMDB keyword names for stinger detection
-TMDB_KEYWORD_DURING = "duringcreditsstinger"
-TMDB_KEYWORD_AFTER = "aftercreditsstinger"
+TMDB_KEYWORD_DURING: Final = "duringcreditsstinger"
+TMDB_KEYWORD_AFTER: Final = "aftercreditsstinger"
 
 # Kodi's fullscreen video window. Stinger properties live here so they're
 # accessible during playback, surviving any focus changes in other windows.
-FULLSCREEN_VIDEO_WINDOW_ID = 12901
+FULLSCREEN_VIDEO_WINDOW_ID: Final = 12901
 
 
 def _skin_override(key: str) -> str:
     """Return `Skin.String(SkinInfo.Stinger.<key>)` if set, else empty string."""
     return xbmc.getInfoLabel(f"Skin.String(SkinInfo.Stinger.{key})") or ""
 
-STR_HEADING = 32162
-STR_DURING = 32163
-STR_AFTER = 32164
-STR_BOTH = 32165
+STR_HEADING: Final = 32162
+STR_DURING: Final = 32163
+STR_AFTER: Final = 32164
+STR_BOTH: Final = 32165
 
 
 def get_settings() -> Dict[str, Any]:

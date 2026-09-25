@@ -4,7 +4,7 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -17,8 +17,8 @@ if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
 
 
-PLAYER_MUSIC_ONLINE_PREFIX = "SkinInfo.Player.Online.Music."
-PLAYER_MUSICVIDEO_ONLINE_PREFIX = "SkinInfo.Player.Online.MusicVideo."
+PLAYER_MUSIC_ONLINE_PREFIX: Final = "SkinInfo.Player.Online.Music."
+PLAYER_MUSICVIDEO_ONLINE_PREFIX: Final = "SkinInfo.Player.Online.MusicVideo."
 
 
 @dataclass(frozen=True)

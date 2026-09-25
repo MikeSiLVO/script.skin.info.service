@@ -1,7 +1,7 @@
 """Base classes for the info dialogs."""
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Final
 import xbmcgui
 
 from lib.kodi.client import ADDON
@@ -9,7 +9,7 @@ from lib.kodi.client import ADDON
 
 ADDON_PATH = ADDON.getAddonInfo('path')
 
-_TOP_PROP = 'SkinInfo.DialogTopId'
+_TOP_PROP: Final = 'SkinInfo.DialogTopId'
 _CLOSE_ACTIONS = (xbmcgui.ACTION_NAV_BACK, xbmcgui.ACTION_PREVIOUS_MENU)
 
 

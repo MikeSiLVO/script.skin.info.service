@@ -10,15 +10,15 @@ Provides:
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List, Dict, Final
 
 from lib.data.api.client import ApiSession
 from lib.data.api.utilities import decode_key
 from lib.kodi.settings import KodiSettings
 
 # TV blobs run larger, so the TV cache is smaller.
-_MUSIC_BLOB_CACHE_SIZE = 32
-_TV_BLOB_CACHE_SIZE = 4
+_MUSIC_BLOB_CACHE_SIZE: Final = 32
+_TV_BLOB_CACHE_SIZE: Final = 4
 
 
 class ApiFanarttv:

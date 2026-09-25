@@ -1,11 +1,11 @@
 """Slideshow pool database operations."""
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Final
 
 from lib.data.database._infrastructure import get_db, sql_placeholders
 
-_POOL_INSERT_SQL = '''
+_POOL_INSERT_SQL: Final = '''
     INSERT INTO slideshow_pool (media_type, dbid, title, fanart, plot, year, artist)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (media_type, dbid) DO UPDATE SET

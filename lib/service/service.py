@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import threading
+from typing import Final
 
 import xbmc
 
@@ -9,10 +10,10 @@ from lib.kodi.client import ADDON, log
 from lib.kodi.utilities import clear_prop, set_prop, wait_for_kodi_ready, skin_bool
 from lib.kodi.utilities import kodi_build_version
 
-SKIN_BOOL = "SkinInfo.Service"
-SKIN_BOOL_LIBRARY = "SkinInfo.Service.Library"
-SKIN_BOOL_ONLINE = "SkinInfo.Service.Online"
-POLL_INTERVAL = 1.0
+SKIN_BOOL: Final = "SkinInfo.Service"
+SKIN_BOOL_LIBRARY: Final = "SkinInfo.Service.Library"
+SKIN_BOOL_ONLINE: Final = "SkinInfo.Service.Online"
+POLL_INTERVAL: Final = 1.0
 
 
 class OrchestratorMonitor(xbmc.Monitor):

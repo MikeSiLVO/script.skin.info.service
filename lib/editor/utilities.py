@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Any
+from typing import Any, Final
 
 from lib.kodi.client import ADDON
 from lib.editor.config import FieldType
 
 
-_INVALID = -1  # below every range check's lower bound
+_INVALID: Final = -1  # below every range check's lower bound
 
 
 def _range_check(value: float, lo: float, hi: float, error: str) -> tuple[bool, str]:
@@ -190,7 +190,7 @@ def format_ratings_display(ratings: dict[str, Any] | None) -> str:
     return ", ".join(parts[:3])
 
 
-_MENU_TEXT_TRUNCATE_LEN = 50
+_MENU_TEXT_TRUNCATE_LEN: Final = 50
 
 
 def format_value_for_display(value: Any, field_type: FieldType) -> str:

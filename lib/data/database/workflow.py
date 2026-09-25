@@ -5,7 +5,7 @@ import json
 import sqlite3
 import time
 from datetime import datetime
-from typing import Optional, Sequence, List, Dict, Set
+from typing import Optional, Sequence, List, Dict, Set, Final
 
 from lib.data.database._infrastructure import get_db, DB_PATH
 
@@ -35,7 +35,7 @@ def get_session_art_types(session_id: int) -> List[str]:
         return _unpack_types(row['art_types'] if row else None)
 
 
-_SESSIONS_KEPT = 2
+_SESSIONS_KEPT: Final = 2
 
 
 def create_scan_session(scan_type: str, media_types: List[str], art_types: List[str]) -> int:
@@ -162,7 +162,7 @@ def clear_imdb_update_progress(media_type: str) -> None:
         cursor.execute('DELETE FROM imdb_run_progress WHERE media_type = ?', (media_type,))
 
 
-_UPSERT_SYNC = (
+_UPSERT_SYNC: Final = (
     'INSERT INTO imdb_sync (media_type, dbid, imdb_id, rating, votes, synced_at) '
     'VALUES (?, ?, ?, ?, ?, ?) '
     'ON CONFLICT (media_type, dbid) DO UPDATE SET imdb_id = excluded.imdb_id, '

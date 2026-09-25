@@ -14,15 +14,15 @@ from contextlib import contextmanager
 from enum import Enum
 import xbmc
 import xbmcgui
-from typing import Generator, Optional
+from typing import Generator, Optional, Final
 
 from lib.data.api.client import ApiSession
 from lib.kodi.client import log
 from lib.data.database._infrastructure import get_bulk_db
 from lib.data.database import imdb as db_imdb
 
-_IMPORT_SLOT_PROP = "SkinInfo.ImdbImportRunning"
-_IMPORT_SLOT_STALE_S = 1800
+_IMPORT_SLOT_PROP: Final = "SkinInfo.ImdbImportRunning"
+_IMPORT_SLOT_STALE_S: Final = 1800
 
 
 @contextmanager
@@ -45,9 +45,9 @@ def _import_slot() -> Generator[bool, None, None]:
         window.clearProperty(_IMPORT_SLOT_PROP)
 
 
-DATASET_URL = "https://datasets.imdbws.com/title.ratings.tsv.gz"
-EPISODE_DATASET_URL = "https://datasets.imdbws.com/title.episode.tsv.gz"
-BATCH_SIZE = 10000
+DATASET_URL: Final = "https://datasets.imdbws.com/title.ratings.tsv.gz"
+EPISODE_DATASET_URL: Final = "https://datasets.imdbws.com/title.episode.tsv.gz"
+BATCH_SIZE: Final = 10000
 
 
 class RefreshResult(Enum):

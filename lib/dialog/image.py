@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import cast, Final
 
 import xbmc
 import xbmcgui
 
 from lib.dialog.base import InfoDialogBase, ADDON_PATH
 
-XML_FILE = 'script-skin-info-service-DialogImageViewer.xml'
+XML_FILE: Final = 'script-skin-info-service-DialogImageViewer.xml'
 
-_IMAGES_CONTROL_ID = 1520
+_IMAGES_CONTROL_ID: Final = 1520
 
 
 class DialogImageViewer(InfoDialogBase):

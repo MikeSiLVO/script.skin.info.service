@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
+from typing import Final
 
 import xbmc
 
@@ -11,8 +12,8 @@ from lib.kodi.client import ADDON, log
 from lib.kodi.utilities import setting_float
 
 
-TOP250_CHECK_INTERVAL = 86400  # Trakt rebuilds the list once a day
-TOP250_RECHECK_MARGIN = 3600
+TOP250_CHECK_INTERVAL: Final = 86400  # Trakt rebuilds the list once a day
+TOP250_RECHECK_MARGIN: Final = 3600
 _BACKOFF_SECONDS = (3600, 14400, 86400)  # 1h, 4h, 24h after consecutive fetch failures
 
 

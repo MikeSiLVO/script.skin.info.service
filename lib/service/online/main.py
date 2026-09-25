@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Optional
+from typing import Optional, Final
 
 import xbmc
 
@@ -14,9 +14,9 @@ from lib.service.online.musicvideo import MusicVideoFocusHandler
 from lib.service.online.updater import UpdaterHandler
 
 
-ONLINE_POLL_INTERVAL = 0.10
+ONLINE_POLL_INTERVAL: Final = 0.10
 
-MAX_REQUEST_SECONDS = 30.0  # runaway backstop; shutdown handled by the connection watcher
+MAX_REQUEST_SECONDS: Final = 30.0  # runaway backstop; shutdown handled by the connection watcher
 
 
 class ServiceAbortFlag:

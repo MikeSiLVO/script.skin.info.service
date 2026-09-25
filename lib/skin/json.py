@@ -14,7 +14,7 @@ Param format for the URL-passed `params` arg:
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Final
 
 import xbmc
 import xbmcgui
@@ -22,7 +22,7 @@ import xbmcgui
 from lib.kodi.client import log
 
 
-_DEFAULT_MODE = 'textviewer'
+_DEFAULT_MODE: Final = 'textviewer'
 
 
 def execute(

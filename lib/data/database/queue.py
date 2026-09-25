@@ -8,19 +8,19 @@ from __future__ import annotations
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence, Dict, List, Tuple
+from typing import Any, Optional, Sequence, Dict, List, Tuple, Final
 
 from lib.data.database._infrastructure import (
     get_db, DB_PATH, chunked_in_query,
     sql_placeholders as _build_placeholders)
 from lib.kodi.client import log
 
-ARTITEM_REVIEW_MISSING = 'missing'
+ARTITEM_REVIEW_MISSING: Final = 'missing'
 
-STATUS_PENDING = 'pending'
-STATUS_COMPLETED = 'completed'
-STATUS_SKIPPED = 'skipped'
-STATUS_ERROR = 'error'
+STATUS_PENDING: Final = 'pending'
+STATUS_COMPLETED: Final = 'completed'
+STATUS_SKIPPED: Final = 'skipped'
+STATUS_ERROR: Final = 'error'
 
 ItemKey = Tuple[str, int]
 

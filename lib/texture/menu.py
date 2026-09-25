@@ -4,14 +4,14 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 from datetime import datetime
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, List, Union, Dict, Any, Final
 
 from lib.data.database._infrastructure import init_database
 from lib.data.database.workflow import save_operation_stats, get_last_operation_stats
 from lib.infrastructure.dialogs import show_ok, show_textviewer, ProgressDialog, DialogProgress
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
 
-_RESUME_HINT = "[B]CANCEL TO RESUME LATER[/B]"
+_RESUME_HINT: Final = "[B]CANCEL TO RESUME LATER[/B]"
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
 from lib.texture.cache import (

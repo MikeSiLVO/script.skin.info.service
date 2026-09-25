@@ -5,10 +5,10 @@ chain. Helpers that need those should live in their owning API module instead.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Final
 
 
-TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
+TMDB_IMAGE_BASE: Final = "https://image.tmdb.org/t/p"
 
 
 def decode_key(blob: str) -> str:

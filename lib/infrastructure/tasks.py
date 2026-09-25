@@ -12,23 +12,23 @@ import time
 import uuid
 import xbmc
 import xbmcgui
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Final
 from lib.kodi.client import log, ADDON
 
 # Task is considered stale if no heartbeat for ~3x the heartbeat interval.
-HEARTBEAT_INTERVAL = 5
-STALE_TIMEOUT = 15
-STUCK_TIMEOUT = 60
-ABORT_POLL_INTERVAL = 1.0
-MAX_REQUEST_SECONDS = 8.0
+HEARTBEAT_INTERVAL: Final = 5
+STALE_TIMEOUT: Final = 15
+STUCK_TIMEOUT: Final = 60
+ABORT_POLL_INTERVAL: Final = 1.0
+MAX_REQUEST_SECONDS: Final = 8.0
 
 _lock = threading.RLock()
 # Window 10000 is the Kodi Home window; properties survive across script invocations.
 _home_window = xbmcgui.Window(10000)
 # Task properties are namespaced with `SkinInfo.` so cleanup_stale_tasks won't collide
 # with properties owned by other addons sharing the same home window.
-_PROPERTY_TASK = 'SkinInfo.ActiveTask'
-_PROPERTY_ABORT = 'SkinInfo.CurrentAbortFlag'
+_PROPERTY_TASK: Final = 'SkinInfo.ActiveTask'
+_PROPERTY_ABORT: Final = 'SkinInfo.CurrentAbortFlag'
 
 
 def _read_task_data() -> Optional[Dict[str, Any]]:

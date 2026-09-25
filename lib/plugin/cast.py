@@ -1,7 +1,7 @@
 """Plugin handlers for cast lists (library and player)."""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Final
 
 import xbmc
 import xbmcgui
@@ -11,7 +11,7 @@ from lib.kodi.client import log, extract_result
 from lib.data.api.utilities import tmdb_image_url
 
 
-_MAX_CAST_ITEMS = 2000
+_MAX_CAST_ITEMS: Final = 2000
 
 
 def _deduplicate_cast(items: list) -> list:
@@ -38,9 +38,9 @@ def _deduplicate_cast(items: list) -> list:
     return unique_cast
 
 
-_SEASONS_PER_CALL = 20
-_UNBILLED = 9999
-_MAX_SHOW_CAST = 200
+_SEASONS_PER_CALL: Final = 20
+_UNBILLED: Final = 9999
+_MAX_SHOW_CAST: Final = 200
 
 
 def _season_regular_cast(api, tmdb_id: int, show_data: dict) -> list:

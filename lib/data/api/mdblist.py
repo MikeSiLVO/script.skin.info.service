@@ -1,7 +1,7 @@
 """MDBList API - always uses batch endpoint for consistent data format."""
 from __future__ import annotations
 
-from typing import Optional, Dict, List, Set
+from typing import Optional, Dict, List, Set, Final
 import xbmc
 
 from lib.data.api.client import ApiSession
@@ -12,7 +12,7 @@ from lib.kodi.client import get_api_key, log
 from lib.kodi.formatters import RATING_SOURCE_NORMALIZE, RT_SOURCE_TOMATOES, RT_SOURCE_POPCORN
 
 
-BATCH_SIZE = 100
+BATCH_SIZE: Final = 100
 STATUS_KEYWORDS = frozenset({
     "certified-fresh", "certified-hot", "fresh", "rotten", "metacritic-must-see",
     "roger-ebert-thumbs-down",

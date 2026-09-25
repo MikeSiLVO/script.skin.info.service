@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Final
 
 import xbmc
 
@@ -12,11 +12,11 @@ from lib.kodi.client import log
 
 # Idle catch-all reconcile: runs at most once per interval, only after the box has been idle a
 # while - catches fanart changed outside our feature or a scan (Kodi GUI chooser, other apps).
-_RECONCILE_INTERVAL_S = 21600  # 6h
-_RECONCILE_IDLE_S = 60
+_RECONCILE_INTERVAL_S: Final = 21600  # 6h
+_RECONCILE_IDLE_S: Final = 60
 
 # shortest rotation is MIN_SLIDESHOW_INTERVAL
-_SETTINGS_TTL_S = 1.0
+_SETTINGS_TTL_S: Final = 1.0
 
 
 class SlideshowDriver:

@@ -10,7 +10,7 @@ import threading
 import time
 import xbmc
 import xbmcgui
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Final
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
@@ -62,7 +62,7 @@ class _TransitionGate:
 
 _transition_gate = _TransitionGate()
 
-WINDOW_INVALID = 9999
+WINDOW_INVALID: Final = 9999
 
 
 def gui_transition_settled() -> bool:
@@ -86,7 +86,7 @@ def parse_pipe_list(value: str, separator: str = '|') -> list:
 _CACHE_LOCK = threading.RLock()
 
 _PREV_PROPS: OrderedDict[str, str] = OrderedDict()
-_PREV_PROPS_MAX_SIZE = 500
+_PREV_PROPS_MAX_SIZE: Final = 500
 
 _DATE_FORMAT_CACHE: Dict[str, str] = {}
 
@@ -107,10 +107,10 @@ LANGUAGE_OPTIONS: List[str] = [
     'ko',      # Korean
     'ja',      # Japanese
 ]
-DEFAULT_LANGUAGE = 'en'
+DEFAULT_LANGUAGE: Final = 'en'
 
 # Kodi's join separator for multi-value strings (genres, directors, cast).
-MULTI_VALUE_SEP = " / "
+MULTI_VALUE_SEP: Final = " / "
 
 
 _CERT_RATED = re.compile(r'^rated\s*:?\s*', re.IGNORECASE)

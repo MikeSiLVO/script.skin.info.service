@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timezone
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple, Final
 
 import xbmc
 
@@ -17,7 +17,7 @@ from lib.kodi.client import (
 )
 from lib.infrastructure.dialogs import ProgressDialog, show_ok, show_yesno
 
-_BATCH_SIZE = 50
+_BATCH_SIZE: Final = 50
 
 
 class TraktRanks(NamedTuple):

@@ -1,7 +1,7 @@
 """Field type handlers for metadata editor."""
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Final
 
 import xbmc
 import xbmcgui
@@ -26,7 +26,7 @@ from lib.editor.utilities import (
 )
 
 # xbmc.Keyboard truncates the pre-filled default past 100 chars
-MAX_KEYBOARD_DEFAULT_LEN = 100
+MAX_KEYBOARD_DEFAULT_LEN: Final = 100
 
 _T = TypeVar("_T")
 
