@@ -609,7 +609,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
 
         if locked_dbid == str(dbid) and locked_actor:
             actor = locked_actor
-            log('Plugin', f"by_actor: Using locked actor '{actor}' for dbid={dbid}", xbmc.LOGINFO)
+            log('Plugin', f"by_actor: Using locked actor '{actor}' for dbid={dbid}", xbmc.LOGDEBUG)
         else:
             item = get_item_details(dbtype, dbid, ['cast', 'title'])
             if not item or not item.get('cast'):
@@ -625,7 +625,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
             window.setProperty(lock_property_actor, actor)
             window.setProperty(lock_property_dbid, str(dbid))
             log('Plugin', f"by_actor: Picked and locked actor '{actor}' for dbid={dbid}",
-                xbmc.LOGINFO)
+                xbmc.LOGDEBUG)
     else:
         window.clearProperty(lock_property_actor)
         window.clearProperty(lock_property_dbid)

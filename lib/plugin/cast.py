@@ -198,7 +198,7 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
             cast = episode_cast + episode_guests
 
     if not cast:
-        log("Plugin", f"Online Cast: No cast found for {dbtype} tmdb {tmdb_id}", xbmc.LOGINFO)
+        log("Plugin", f"Online Cast: No cast found for {dbtype} tmdb {tmdb_id}", xbmc.LOGDEBUG)
         return 0
 
     log("Plugin", f"Online Cast: Found {len(cast)} cast members for {dbtype} tmdb {tmdb_id}",
@@ -261,7 +261,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
             if items_added is None:
                 xbmcplugin.endOfDirectory(handle, succeeded=False)
                 return
-            log("Plugin", f"Online Cast: Created {items_added} ListItems", xbmc.LOGINFO)
+            log("Plugin", f"Online Cast: Created {items_added} ListItems", xbmc.LOGDEBUG)
             xbmcplugin.endOfDirectory(handle, succeeded=True)
             return
 
@@ -284,7 +284,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
 
             cast = details.get('cast', [])
             if not cast:
-                log("Plugin", f"Library Cast: No cast found for {dbtype} {dbid}", xbmc.LOGINFO)
+                log("Plugin", f"Library Cast: No cast found for {dbtype} {dbid}", xbmc.LOGDEBUG)
                 xbmcplugin.endOfDirectory(handle, succeeded=True)
                 return
 
@@ -332,7 +332,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
                 items = extract_result(result, 'episodes', [])
 
             if not items:
-                log("Plugin", f"Library Cast: No items found for {dbtype} {dbid}", xbmc.LOGINFO)
+                log("Plugin", f"Library Cast: No items found for {dbtype} {dbid}", xbmc.LOGDEBUG)
                 xbmcplugin.endOfDirectory(handle, succeeded=True)
                 return
 
@@ -347,7 +347,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
 
             items_added = _create_cast_listitems(handle, unique_cast)
 
-        log("Plugin", f"Library Cast: Created {items_added} ListItems", xbmc.LOGINFO)
+        log("Plugin", f"Library Cast: Created {items_added} ListItems", xbmc.LOGDEBUG)
         xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     except Exception as e:
@@ -416,7 +416,7 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
             log("Plugin", f"Player Cast: Getting cast for {content_type} {dbid}", xbmc.LOGDEBUG)
 
         if not items:
-            log("Plugin", "Player Cast: No items found", xbmc.LOGINFO)
+            log("Plugin", "Player Cast: No items found", xbmc.LOGDEBUG)
             xbmcplugin.endOfDirectory(handle, succeeded=True)
             return
 
@@ -430,7 +430,7 @@ def handle_get_cast_player(handle: int, params: dict) -> None:
 
         items_added = _create_cast_listitems(handle, unique_cast)
 
-        log("Plugin", f"Player Cast: Created {items_added} ListItems", xbmc.LOGINFO)
+        log("Plugin", f"Player Cast: Created {items_added} ListItems", xbmc.LOGDEBUG)
         xbmcplugin.endOfDirectory(handle, succeeded=True)
 
     except Exception as e:

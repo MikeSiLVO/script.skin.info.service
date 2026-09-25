@@ -337,7 +337,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=True)
 
         log("Plugin", f"Discover: {action} ({media_type}) returned {len(items)} items",
-            xbmc.LOGINFO)
+            xbmc.LOGDEBUG)
 
     except Exception as e:
         import traceback
@@ -426,7 +426,7 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
 
         log("Plugin",
             f"TMDB Recommendations: Returned {len(items)} items for {dbtype} tmdb={tmdb_id}",
-            xbmc.LOGINFO)
+            xbmc.LOGDEBUG)
 
     except Exception as e:
         import traceback

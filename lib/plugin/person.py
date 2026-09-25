@@ -529,7 +529,8 @@ def handle_crew_list(handle: int, params: dict) -> None:
     crew_list = person_api.get_crew_from_tmdb(crew_type, tmdb_id, dbtype)
 
     if not crew_list:
-        log("Plugin", f"Crew List: No {crew_type}s found for {dbtype} tmdb={tmdb_id}", xbmc.LOGINFO)
+        log("Plugin", f"Crew List: No {crew_type}s found for {dbtype} tmdb={tmdb_id}",
+            xbmc.LOGDEBUG)
         xbmcplugin.endOfDirectory(handle, succeeded=True)
         return
 
