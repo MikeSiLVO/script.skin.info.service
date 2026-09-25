@@ -14,7 +14,7 @@ from lib.data.database import workflow as db
 from lib.infrastructure.tasks import ShutdownAbortFlag, MAX_REQUEST_SECONDS
 from lib.infrastructure.dialogs import (
     show_textviewer, show_notification, show_yesnocustom, DialogProgress)
-from lib.rating.merger import merge_ratings, prepare_kodi_ratings
+from lib.rating.merger import merge_ratings, prepare_kodi_ratings, rating_owner
 from lib.rating.executor import (
     RetryPoolEntry, MAX_CONSECUTIVE_FAILURES, SHORT_HOLD,
 )
@@ -34,6 +34,17 @@ def _note_retry_failure(source_name: str, failures: Dict[str, int],
         log("Ratings",
             f"   {source_name}: {hits} retry failures in a row, dropped for this pass",
             xbmc.LOGINFO)
+
+
+def _retry_replaces(name: str, fresh: Set[str], prior: Set[str],
+                    votes: float, existing_votes: float) -> bool:
+    """True when a retried rating beats the applied one: its owner first, then vote count."""
+    owner = rating_owner(name)
+    incoming_is_owner = owner is not None and owner in fresh
+    existing_is_owner = owner is not None and owner in prior
+    if incoming_is_owner != existing_is_owner:
+        return incoming_is_owner
+    return votes > existing_votes
 
 
 def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
@@ -58,6 +69,7 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
 
     new_ratings: List[Dict] = []
     still_missing: Set[str] = set()
+    prior_sources = set(entry.sources_used)
 
     for index, source in enumerate(target_sources):
         source_name = source.provider_name
@@ -131,6 +143,7 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
         return False
 
     merged_new = merge_ratings(new_ratings)
+    fresh_sources = set(entry.sources_used) - prior_sources
     final_ratings = dict(entry.applied_ratings)
     for name, data in merged_new.items():
         new_val = data.get("rating")
@@ -138,7 +151,8 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
             continue
         new_votes = float(data.get("votes", 0))
         existing = final_ratings.get(name)
-        if existing is None or new_votes > float(existing.get("votes", 0)):
+        if existing is None or _retry_replaces(
+                name, fresh_sources, prior_sources, new_votes, float(existing.get("votes", 0))):
             final_ratings[name] = {"rating": new_val, "votes": new_votes}
 
     method_info = KODI_SET_DETAILS_METHODS.get(entry.media_type)

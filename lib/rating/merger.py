@@ -31,6 +31,11 @@ _RATING_ORIGIN: Dict[str, str] = {
 }
 
 
+def rating_owner(name: str) -> Optional[str]:
+    """Provider a rating belongs to, None for one no provider owns."""
+    return _RATING_ORIGIN.get(name)
+
+
 def _display_tenths(rating: float) -> int:
     """Rating in tenths, rounding half up so this matches SQLite's ROUND."""
     return int(rating * 10 + 0.5)
