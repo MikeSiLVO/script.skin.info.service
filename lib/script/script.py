@@ -325,7 +325,7 @@ def _handle_tmdb_search(args: dict) -> None:
 
     log("General", f"tmdb_search: Opening keyboard for {media_type} search", xbmc.LOGDEBUG)
 
-    keyboard = xbmcgui.Dialog().input(heading=f'Search {media_type.upper()}')
+    keyboard = xbmcgui.Dialog().input(heading=xbmc.getLocalizedString(137))
     if not keyboard:
         log("General", "tmdb_search: User cancelled keyboard", xbmc.LOGDEBUG)
         return
@@ -350,7 +350,8 @@ def _handle_tmdb_search(args: dict) -> None:
 
     if not results:
         xbmcgui.Dialog().notification(
-            'TMDB Search', 'No results found', xbmcgui.NOTIFICATION_INFO, 3000)
+            xbmc.getLocalizedString(137), xbmc.getLocalizedString(284),
+            xbmcgui.NOTIFICATION_INFO, 3000)
         log("General", f"tmdb_search: No results found for '{query}'", xbmc.LOGDEBUG)
         return
 
@@ -384,7 +385,8 @@ def _handle_tmdb_search(args: dict) -> None:
         listitem.setProperty('tmdb_id', str(result.get('id', '')))
         listitems.append(listitem)
 
-    selected_index = xbmcgui.Dialog().select(f'Search Results: {query}', listitems, useDetails=True)
+    selected_index = xbmcgui.Dialog().select(
+        f'{xbmc.getLocalizedString(283)}: {query}', listitems, useDetails=True)
 
     if selected_index < 0:
         log("General", "tmdb_search: User cancelled selection", xbmc.LOGDEBUG)
