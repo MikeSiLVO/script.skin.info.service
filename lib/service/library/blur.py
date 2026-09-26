@@ -19,6 +19,7 @@ class BlurHandler:
         self._player_thread: Optional[threading.Thread] = None
         self._player_last_source: Optional[str] = None
         self._player = xbmc.Player()
+        self._warned_source = ""
 
     def handle_focus(self) -> None:
         """Run a blur pass for the focused item's background."""
@@ -75,7 +76,9 @@ class BlurHandler:
                     self._set_last(slot, None)
                 return
 
-            if blur_source_infolabel.startswith('$'):
+            if (blur_source_infolabel.startswith('$')
+                    and blur_source_infolabel != self._warned_source):
+                self._warned_source = blur_source_infolabel
                 log("Blur",
                     f"{source_property} should not contain $INFO[], $VAR[], etc. "
                     f"Set raw infolabel instead. Got: {blur_source_infolabel}",
