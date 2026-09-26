@@ -14,6 +14,17 @@ from lib.kodi.utilities import setting_float
 
 IMDB_CHECK_INTERVAL: Final = 86400  # 24 hours
 _BACKOFF_SECONDS = (3600, 14400, 86400)  # 1h, 4h, 24h after consecutive refresh failures
+_SCOPE_TYPES: Final = {
+    "all": ("movie", "tvshow", "episode"),
+    "movies_tvshows": ("movie", "tvshow"),
+    "movies": ("movie",),
+}
+
+
+def _scope_types() -> tuple:
+    """Media types the auto-update scope setting covers."""
+    scope = ADDON.getSetting("imdb_auto_update_scope") or "movies_tvshows"
+    return _SCOPE_TYPES.get(scope, _SCOPE_TYPES["movies_tvshows"])
 
 
 class ImdbUpdateMonitor(xbmc.Monitor):
@@ -123,8 +134,11 @@ class ImdbUpdateService(threading.Thread):
         from lib.infrastructure.dialogs import notify_when_idle
         from lib.rating.imdb import update_changed_imdb_ratings
 
-        stats = update_changed_imdb_ratings(monitor=monitor)
-        updated = stats.get("updated", 0)
+        updated = 0
+        for media_type in _scope_types():
+            if monitor.abortRequested() or self.abort.is_set():
+                return
+            updated += update_changed_imdb_ratings(media_type, monitor).get("updated", 0)
         if updated > 0:
             message = ADDON.getLocalizedString(32319).format(updated)
         else:
@@ -134,15 +148,8 @@ class ImdbUpdateService(threading.Thread):
     def _run_full_update(self) -> None:
         from lib.rating.updater import update_library_ratings
 
-        scope = ADDON.getSetting("imdb_auto_update_scope") or "movies_tvshows"
-        log("Service", f"Starting IMDb full auto-update (scope={scope})", xbmc.LOGINFO)
-
-        if scope in ("all", "movies_tvshows", "movies"):
-            update_library_ratings("movie", [], use_background=True, source_mode="imdb",
-                                  gated=True)
-        if scope in ("all", "movies_tvshows"):
-            update_library_ratings("tvshow", [], use_background=True, source_mode="imdb",
-                                  gated=True)
-        if scope == "all":
-            update_library_ratings("episode", [], use_background=True, source_mode="imdb",
-                                  gated=True)
+        media_types = _scope_types()
+        log("Service", f"Starting IMDb full auto-update ({', '.join(media_types)})", xbmc.LOGINFO)
+        for media_type in media_types:
+            update_library_ratings(media_type, [], use_background=True, source_mode="imdb",
+                                   gated=True)
