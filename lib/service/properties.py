@@ -93,7 +93,7 @@ def media_streamdetails(filename: str, streamdetails: dict) -> Dict[str, str]:
     elif "4k" in name:
         info["videoresolution"] = "4k"
     else:
-        info["videoresolution"] = "1080"
+        info["videoresolution"] = ""
 
     info["hdrtype"] = (v0.get("hdrtype") or "") if v0 else ""
     info["subtitlelanguage"] = (subtitle[0].get("language") or "") if subtitle else ""
