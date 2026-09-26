@@ -35,6 +35,8 @@ _PERSON_PROP_KEYS = (
     'SkinInfo.Person.LibraryMovies',
     'SkinInfo.Person.LibraryTVShows',
     'SkinInfo.Person.SearchQuery',
+    'SkinInfo.Person.BlurredImage',
+    'SkinInfo.Person.BlurredImage.Original',
 )
 
 
