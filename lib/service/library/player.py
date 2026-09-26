@@ -69,7 +69,7 @@ class PlayerVideoTracker:
     def _set_movie(self, movieid: str) -> None:
         details = get_item_details(
             'movie', int(movieid), KODI_MOVIE_PROPERTIES,
-            cache_key=f"player:movie:{movieid}:details",
+            cache_key=f"movie:{movieid}:details",
         )
         if not isinstance(details, dict):
             return
@@ -79,7 +79,7 @@ class PlayerVideoTracker:
         details = get_item_details(
             'episode', int(episodeid),
             ["title", "ratings", "tvshowid", "season", "episode", "showtitle"],
-            cache_key=f"player:episode:{episodeid}:details",
+            cache_key=f"episode:{episodeid}:player",
         )
         if not isinstance(details, dict):
             return
@@ -98,7 +98,7 @@ class PlayerVideoTracker:
                 "watchedepisodes", "imdbnumber", "originaltitle",
                 "art", "userrating", "ratings",
             ],
-            cache_key=f"player:tvshow:{tvshowid}:details",
+            cache_key=f"tvshow:{tvshowid}:player",
         )
         if not isinstance(details, dict):
             return
@@ -125,7 +125,7 @@ class PlayerVideoTracker:
                 "tag", "playcount", "lastplayed", "resume", "dateadded",
                 "rating", "userrating", "uniqueid", "track",
             ],
-            cache_key=f"player:musicvideo:{musicvideoid}:details",
+            cache_key=f"musicvideo:{musicvideoid}:details",
         )
         if not isinstance(details, dict):
             return

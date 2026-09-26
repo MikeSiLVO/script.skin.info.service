@@ -477,7 +477,7 @@ class StingerService(threading.Thread):
             'movie',
             int(dbid),
             KODI_MOVIE_PROPERTIES,
-            cache_key=f"player:movie:{dbid}:details",
+            cache_key=f"movie:{dbid}:details",
         )
         if not isinstance(details, dict):
             return
