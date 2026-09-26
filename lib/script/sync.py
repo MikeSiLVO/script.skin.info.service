@@ -16,7 +16,6 @@ from lib.data.database.cache import (
 from lib.data.database.mapping import get_imdb_ids_batch
 from lib.infrastructure import tasks as task_manager
 from lib.infrastructure.dialogs import ProgressDialog
-from lib.infrastructure.menus import confirm_cancel_running_task
 from lib.service.online.fetchers import fetch_tmdb_online_data
 from lib.service.online.helpers import get_online_ttl, make_cache_key
 
@@ -33,13 +32,8 @@ def run_sync_tvshows() -> None:
 
     operation_name = ADDON.getLocalizedString(32988)
 
-    if task_manager.is_task_running():
-        if not confirm_cancel_running_task(operation_name):
-            return
-        task_manager.cancel_task()
-        monitor = xbmc.Monitor()
-        while task_manager.is_task_running() and not monitor.abortRequested():
-            monitor.waitForAbort(0.1)
+    if not task_manager.acquire_task_slot(operation_name, use_background=False):
+        return
 
     progress = None
     try:
