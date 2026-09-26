@@ -69,6 +69,9 @@ class PlayerHandler:
 
         if cache_key == self._last_key:
             return
+        if self._last_key:
+            clear_group(PLAYER_ONLINE_PROPERTY_PREFIX)
+            self._last_key = None
 
         if (self._fetch_thread and self._fetch_thread.is_alive()
                 and self._fetch_for_key == cache_key):
