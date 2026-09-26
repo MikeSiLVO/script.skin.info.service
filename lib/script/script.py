@@ -758,6 +758,9 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
     media_type = args.get('dbtype', '')
     if media_type == 'tv':
         media_type = 'tvshow'
+    if media_type and media_type not in ('movie', 'tvshow'):
+        log("General", f"dialog_video_info: Unsupported dbtype '{media_type}'", xbmc.LOGDEBUG)
+        return
     dbid = args.get('dbid', '')
     tmdb_id = args.get('tmdb_id', '')
     imdb_id = args.get('imdb_id', '')
@@ -775,14 +778,7 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
             log("General", f"dialog_video_info: Invalid dbid '{dbid}'", xbmc.LOGWARNING)
             return
 
-        if media_type == 'episode':
-            episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
-            if episode_details and episode_details.get("tvshowid"):
-                details = get_item_details("tvshow", episode_details["tvshowid"], ["uniqueid"])
-            else:
-                return
-        else:
-            details = get_item_details(media_type, dbid_int, ["uniqueid"])
+        details = get_item_details(media_type, dbid_int, ["uniqueid"])
 
         if not details:
             return
