@@ -41,6 +41,9 @@ Window properties and plugin paths for Kodi skins.
 
 ## Tools
 
+The Tools menu opens with `RunScript(script.skin.info.service,action=tools)`. While it is open,
+`Window(Home).Property(SkinInfo.ToolsMenuActive)` is `true`.
+
 | Document                                  | Description                       |
 |-------------------------------------------|-----------------------------------|
 | [Artwork Review](tools/artwork-review.md) | Browse and manage library artwork |
