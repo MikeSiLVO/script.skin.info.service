@@ -385,5 +385,7 @@ def handle_person_info_action(args: dict) -> None:
             return
 
     assert person_id is not None
-    person_api.get_person_data(person_id)
+    person_data = person_api.get_person_data(person_id)
+    if person_data and person_data.get('profile_path'):
+        _blur_person_profile(person_data['profile_path'])
     _set_person_properties(person_id, name, open_window)
