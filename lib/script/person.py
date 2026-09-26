@@ -23,7 +23,7 @@ from typing import Optional, Tuple
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import log
+from lib.kodi.client import ADDON, log
 
 
 _PERSON_PROP_KEYS = (
@@ -38,6 +38,13 @@ _PERSON_PROP_KEYS = (
     'SkinInfo.Person.BlurredImage',
     'SkinInfo.Person.BlurredImage.Original',
 )
+
+
+def _crew_heading(crew: str) -> str:
+    """Heading for the crew picker, Kodi's own label where it has one."""
+    if crew == 'creator':
+        return ADDON.getLocalizedString(32746)
+    return xbmc.getLocalizedString(20339 if crew == 'director' else 20417)
 
 
 def _clear_person_properties() -> None:
@@ -110,7 +117,7 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
             item.setArt({'thumb': image_url, 'icon': image_url})
         items.append(item)
 
-    selected = xbmcgui.Dialog().select(f"Select {crew.title()}", items, useDetails=True)
+    selected = xbmcgui.Dialog().select(_crew_heading(crew), items, useDetails=True)
     if selected < 0:
         log("General", f"person_info: User cancelled {crew} selection", xbmc.LOGDEBUG)
         return None
@@ -136,7 +143,7 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
     if len(names) == 1:
         selected_name = names[0]
     else:
-        selected = xbmcgui.Dialog().select(f"Select {crew.title()}", names)  # type: ignore[arg-type]
+        selected = xbmcgui.Dialog().select(_crew_heading(crew), names)  # type: ignore[arg-type]
         if selected < 0:
             log("General", f"person_info: User cancelled {crew} selection", xbmc.LOGDEBUG)
             return None
