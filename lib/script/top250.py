@@ -16,6 +16,7 @@ from lib.kodi.client import (
     extract_result,
 )
 from lib.infrastructure.dialogs import ProgressDialog, show_ok, show_yesno
+from lib.infrastructure.tasks import MAX_REQUEST_SECONDS, ShutdownAbortFlag
 
 _BATCH_SIZE: Final = 50
 
@@ -169,7 +170,7 @@ def run_top250_update() -> None:
     try:
         with ProgressDialog(heading=heading) as progress:
             progress.create(ADDON.getLocalizedString(32601))
-            ranks = fetch_ranks()
+            ranks = fetch_ranks(ShutdownAbortFlag(MAX_REQUEST_SECONDS))
             if ranks is None:
                 progress.close()
                 show_ok(heading, ADDON.getLocalizedString(32607))
