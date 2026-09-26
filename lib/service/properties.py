@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Any, Optional, List, Tuple, Dict, Set, Final
 import os
-import xbmc
 
 from lib.kodi.utilities import (
     clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
@@ -71,9 +70,7 @@ def media_streamdetails(filename: str, streamdetails: dict) -> Dict[str, str]:
 
     v0 = _best_video(video)
 
-    # Piers carries stereomode per stream; on Omega only the focused item's InfoLabel exists
-    stereo = v0.get("stereomode") if v0 and "stereomode" in v0 \
-        else xbmc.getInfoLabel("ListItem.StereoscopicMode")
+    stereo = v0.get("stereomode") if v0 else ""
 
     if (stereo or "mono") != "mono":
         info["videoresolution"] = "3d"
