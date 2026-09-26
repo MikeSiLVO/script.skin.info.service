@@ -206,7 +206,7 @@ def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbt
         encoded_role = urllib.parse.quote(role)
         search_command = (
             f"RunScript(script.skin.info.service,action=person_search,"
-            f"name={encoded_name},role={encoded_role},dbtype={dbtype},dbid={dbid}"
+            f"name={encoded_name},role={encoded_role},dbtype={source_dbtype},dbid={source_dbid}"
         )
         if open_window:
             search_command += f",open_window={open_window}"
