@@ -282,12 +282,13 @@ def _fetch_and_cache_artist_metadata(
     from lib.data.api.lastfm import ApiLastfm
 
     lang = KodiSettings.online_metadata_language()
+    cached_audiodb = get_cached_artist(SOURCE_AUDIODB, mbid=mbid) if mbid else None
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         audiodb_future = executor.submit(
             _fetch_source, "AudioDB artist metadata",
             lambda: get_audiodb().get_artist(mbid, abort_flag),
-            skip=not mbid)
+            skip=not mbid or cached_audiodb is not None)
         lastfm_future = executor.submit(
             _fetch_source, "Last.fm artist metadata",
             lambda: ApiLastfm().get_artist_info(name, mbid=mbid or None, lang=lang,
@@ -295,10 +296,9 @@ def _fetch_and_cache_artist_metadata(
         audiodb_data = audiodb_future.result()
         lastfm_data = lastfm_future.result()
 
-    if audiodb_data:
-        cache_artist(SOURCE_AUDIODB, audiodb_data, mbid=mbid, name=name)
-    else:
-        cache_artist(SOURCE_AUDIODB, {}, mbid=mbid, name=name)
+    if mbid and cached_audiodb is None:
+        cache_artist(SOURCE_AUDIODB, audiodb_data or {}, mbid=mbid, name=name)
+    audiodb_data = audiodb_data or cached_audiodb
 
     if lastfm_data:
         cache_artist(SOURCE_LASTFM, lastfm_data, mbid=mbid, name=name,
