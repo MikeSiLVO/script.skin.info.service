@@ -393,7 +393,7 @@ class StingerMonitor:
         if self.stinger_info and self.stinger_info.has_stinger:
             set_stinger_properties(self.stinger_info)
             log("Service",
-                f"Stinger detected (fallback): {self.stinger_info.stinger_type.value}",
+                f"Stinger detected: {self.stinger_info.stinger_type.value}",
                 xbmc.LOGDEBUG)
 
     def check_notification(self) -> None:

@@ -71,7 +71,7 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
                 if isinstance(info, dict) and "rating" in info and "votes" in info:
                     props.update(format_rating_props(source, info["rating"], int(info["votes"])))
     except Exception as e:
-        log("Plugin", f"OMDb fetch error: {e}", xbmc.LOGWARNING)
+        log("Service", f"OMDb fetch error: {e}", xbmc.LOGWARNING)
 
     return props
 
@@ -157,7 +157,7 @@ def fetch_mdblist_data(
             props.update(format_rating_props("mdblistscore", score, 0))
 
     except Exception as e:
-        log("Plugin", f"MDBList fetch error: {e}", xbmc.LOGWARNING)
+        log("Service", f"MDBList fetch error: {e}", xbmc.LOGWARNING)
 
     return props
 
@@ -204,7 +204,7 @@ def fetch_trakt_data(
             if subgenres:
                 props["Trakt.Subgenres"] = MULTI_VALUE_SEP.join(subgenres)
     except Exception as e:
-        log("Plugin", f"Trakt fetch error: {e}", xbmc.LOGWARNING)
+        log("Service", f"Trakt fetch error: {e}", xbmc.LOGWARNING)
 
     return props
 
