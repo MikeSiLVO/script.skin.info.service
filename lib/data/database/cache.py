@@ -530,14 +530,6 @@ def get_cached_online_properties_state(
         return props, row['expires_at']
 
 
-def get_mb_id_mapping(old_id: str) -> Optional[str]:
-    """Get canonical ID for an old/merged MusicBrainz release group ID."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute('SELECT canonical_id FROM mb_id_alias WHERE old_id = ?', (old_id,))
-        row = cursor.fetchone()
-        return row['canonical_id'] if row else None
-
-
 def get_mb_id_aliases(canonical_id: str) -> List[str]:
     """Get all known old IDs that redirect to this canonical ID."""
     with get_db(DB_PATH) as cursor:
