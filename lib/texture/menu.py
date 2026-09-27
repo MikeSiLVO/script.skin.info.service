@@ -227,19 +227,7 @@ def _show_cleanup_menu():
 
     menu = Menu(ADDON.getLocalizedString(32087), [
         MenuItem(ADDON.getLocalizedString(32088), _handle_standard_cleanup, loop=True),
-        MenuItem(ADDON.getLocalizedString(32092), _show_advanced_cleanup_menu, loop=True),
-    ])
-    return menu.show()
-
-
-def _show_advanced_cleanup_menu():
-    """Show advanced cleanup submenu and handle selection."""
-    from lib.infrastructure.menus import Menu, MenuItem
-
-    menu = Menu(ADDON.getLocalizedString(32092), [
         MenuItem(ADDON.getLocalizedString(32089), _handle_age_cleanup, loop=True),
-        MenuItem(ADDON.getLocalizedString(32090), _handle_usage_cleanup, loop=True),
-        MenuItem(ADDON.getLocalizedString(32091), _handle_pattern_cleanup, loop=True),
     ])
     return menu.show()
 
@@ -601,28 +589,6 @@ def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
                   f"{ADDON.getLocalizedString(32170)}:[CR]{str(e)}")
 
 
-def _handle_usage_cleanup() -> None:
-    """Handle usage-based texture cleanup."""
-    show_ok(
-        ADDON.getLocalizedString(32485),
-        f"{ADDON.getLocalizedString(32486)}[CR][CR]"
-        "Will remove textures accessed fewer than N times[CR]"
-        "(e.g., never used, used < 5 times)[CR][CR]"
-        "Useful for removing rarely-viewed images."
-    )
-
-
-def _handle_pattern_cleanup() -> None:
-    """Handle pattern-based force re-cache."""
-    show_ok(
-        ADDON.getLocalizedString(32487),
-        f"{ADDON.getLocalizedString(32486)}[CR][CR]"
-        "Will remove textures matching a URL pattern[CR]"
-        "(e.g., 'image.tmdb.org/t/p/original/')[CR][CR]"
-        "Forces Kodi to re-download matching images."
-    )
-
-
 def _format_completed_time(timestamp: str) -> str:
     """Best-effort ISO-string to `YYYY-MM-DD HH:MM`. Returns the input on parse failure."""
     try:
@@ -660,33 +626,34 @@ def _format_cleanup_report(stats: dict, timestamp: str) -> str:
     return "[CR]".join(lines)
 
 
+def _format_age_cleanup_report(stats: dict, timestamp: str) -> str:
+    """Format a `texture_age_cleanup` operation result for textviewer display."""
+    lines = [
+        f"[B]Operation: Clean Textures Unused for {stats.get('age_days', 0)} Days[/B]",
+        f"Completed: {_format_completed_time(timestamp)}",
+        (f"Removed: {stats.get('removed_count', 0)}/{stats.get('old_count', 0)} old "
+         f"of {stats.get('total_count', 0)} cached"),
+    ]
+    if stats.get('cancelled'):
+        lines.append("[B]Status: Cancelled[/B]")
+    return "[CR]".join(lines)
+
+
 _REPORT_FORMATTERS = {
     'texture_precache': _format_precache_report,
     'texture_cleanup': _format_cleanup_report,
+    'texture_age_cleanup': _format_age_cleanup_report,
 }
 
 
 def _show_last_report() -> None:
     """Show last operation report."""
-    precache_stats = get_last_operation_stats('texture_precache')
-    cleanup_stats = get_last_operation_stats('texture_cleanup')
-
-    last_stats = None
-    if precache_stats and cleanup_stats:
-        precache_time = datetime.fromisoformat(precache_stats['timestamp'])
-        cleanup_time = datetime.fromisoformat(cleanup_stats['timestamp'])
-        last_stats = precache_stats if precache_time > cleanup_time else cleanup_stats
-    elif precache_stats:
-        last_stats = precache_stats
-    elif cleanup_stats:
-        last_stats = cleanup_stats
-
-    if last_stats:
-        formatter = _REPORT_FORMATTERS.get(last_stats['operation'])
-        if formatter:
-            report_text = formatter(last_stats['stats'], last_stats['timestamp'])
-            show_textviewer(ADDON.getLocalizedString(32488), report_text)
-            return
+    runs = [run for run in map(get_last_operation_stats, _REPORT_FORMATTERS) if run]
+    if runs:
+        last = max(runs, key=lambda run: datetime.fromisoformat(run['timestamp']))
+        report_text = _REPORT_FORMATTERS[last['operation']](last['stats'], last['timestamp'])
+        show_textviewer(ADDON.getLocalizedString(32488), report_text)
+        return
 
     show_ok(
         ADDON.getLocalizedString(32086),
