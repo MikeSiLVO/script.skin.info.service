@@ -213,6 +213,17 @@ def _show_session_report(session_row) -> None:
     show_textviewer(ADDON.getLocalizedString(32500), text, use_mono=True)
 
 
+def _show_last_session_report(media_filter: Optional[List[str]], heading: int,
+                              message: str) -> None:
+    """Show the newest review session report for the media types, or say there is none."""
+    last_session = db_workflow.get_last_manual_review_session(media_filter)
+    if last_session and last_session['stats']:
+        _show_session_report(last_session)
+    else:
+        show_notification(ADDON.getLocalizedString(heading), message,
+                          xbmcgui.NOTIFICATION_INFO, 3000)
+
+
 def _extract_downloadable_art(media_type: str, art_dict: Dict[str, str]) -> Dict[str, str]:
     """Extract the HTTP art URLs an item holds itself, decoded; inherited parent art is left out."""
     downloadable = {}
@@ -1236,16 +1247,8 @@ class ArtworkManager:
 
     def _view_scope_report(self, label: str) -> None:
         """View report for current scope."""
-        last_session = db_workflow.get_last_manual_review_session(self.media_filter)
-        if last_session and last_session['stats']:
-            _show_session_report(last_session)
-        else:
-            show_notification(
-                ADDON.getLocalizedString(32282),
-                ADDON.getLocalizedString(32720).format(label),
-                xbmcgui.NOTIFICATION_INFO,
-                3000
-            )
+        _show_last_session_report(
+            self.media_filter, 32282, ADDON.getLocalizedString(32720).format(label))
 
     def _select_intent(self):
         """Show the artwork review main menu."""
@@ -1358,32 +1361,13 @@ class ArtworkManager:
 
     def _view_last_report_any_scope(self) -> None:
         """View the last report from any scope."""
-        last_session = db_workflow.get_last_manual_review_session(None)
-        if last_session and last_session['stats']:
-            _show_session_report(last_session)
-        else:
-            show_notification(
-                ADDON.getLocalizedString(32512),
-                ADDON.getLocalizedString(32721),
-                xbmcgui.NOTIFICATION_INFO,
-                3000
-            )
+        _show_last_session_report(None, 32512, ADDON.getLocalizedString(32721))
 
     def _view_report_for_scope(self, scope: str) -> None:
         """View report for a specific scope."""
         self._set_scope(scope)
-
-        last_session = db_workflow.get_last_manual_review_session(self.media_filter)
-
-        if last_session and last_session['stats']:
-            _show_session_report(last_session)
-        else:
-            show_notification(
-                ADDON.getLocalizedString(32512),
-                ADDON.getLocalizedString(32720).format(scope_label(scope)),
-                xbmcgui.NOTIFICATION_INFO,
-                3000
-            )
+        _show_last_session_report(
+            self.media_filter, 32512, ADDON.getLocalizedString(32720).format(scope_label(scope)))
 
     def _clear_scope_queue(self) -> None:
         if self.media_filter:
