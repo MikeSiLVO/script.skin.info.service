@@ -11,7 +11,7 @@ from lib.kodi.client import (
     request, extract_result, get_item_details, decode_image_url, KODI_MOVIE_PROPERTIES, log,
 )
 from lib.kodi.formatters import format_stars, RATING_SOURCE_NORMALIZE
-from lib.kodi.utilities import MULTI_VALUE_SEP, tvshow_version_fields
+from lib.kodi.utilities import MULTI_VALUE_SEP, parse_pipe_list, tvshow_version_fields
 from lib.plugin.listitems import (
     build_movie_data,
     build_movieset_data,
@@ -23,11 +23,6 @@ from lib.plugin.listitems import (
     build_album_data,
 )
 from lib.service.properties import join_multi
-
-
-def split_multivalue(value: str, separator: str = MULTI_VALUE_SEP) -> list[str]:
-    """Split multi-value string by separator, or return single-item list."""
-    return value.split(separator) if separator in value else [value]
 
 
 def _set_stream_details(video_tag: xbmc.InfoTagVideo, streamdetails: dict) -> None:
@@ -606,15 +601,15 @@ def handle_dbid_query(handle: int, params: dict) -> None:
         if "Premiered" in item_data:
             video_tag.setPremiered(item_data["Premiered"])
         if "Genre" in item_data:
-            video_tag.setGenres(split_multivalue(item_data["Genre"]))
+            video_tag.setGenres(parse_pipe_list(item_data["Genre"], MULTI_VALUE_SEP))
         if "Director" in item_data:
-            video_tag.setDirectors(split_multivalue(item_data["Director"]))
+            video_tag.setDirectors(parse_pipe_list(item_data["Director"], MULTI_VALUE_SEP))
         if "Writer" in item_data:
-            video_tag.setWriters(split_multivalue(item_data["Writer"]))
+            video_tag.setWriters(parse_pipe_list(item_data["Writer"], MULTI_VALUE_SEP))
         if "Studio" in item_data:
-            video_tag.setStudios(split_multivalue(item_data["Studio"]))
+            video_tag.setStudios(parse_pipe_list(item_data["Studio"], MULTI_VALUE_SEP))
         if "Country" in item_data:
-            video_tag.setCountries(split_multivalue(item_data["Country"]))
+            video_tag.setCountries(parse_pipe_list(item_data["Country"], MULTI_VALUE_SEP))
         if "Trailer" in item_data:
             video_tag.setTrailer(item_data["Trailer"])
         if item_data.get("_lastplayed"):
@@ -622,7 +617,7 @@ def handle_dbid_query(handle: int, params: dict) -> None:
         if item_data.get("_dateadded"):
             video_tag.setDateAdded(item_data["_dateadded"])
         if "Tag" in item_data:
-            video_tag.setTags(split_multivalue(item_data["Tag"]))
+            video_tag.setTags(parse_pipe_list(item_data["Tag"], MULTI_VALUE_SEP))
         if "IMDBNumber" in item_data:
             video_tag.setIMDBNumber(item_data["IMDBNumber"])
         if "ProductionCode" in item_data:
