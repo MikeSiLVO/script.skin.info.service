@@ -59,7 +59,7 @@ def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str
 
 def resolve_show_ids(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
     """Resolve the parent show's `(imdb_id, tmdb_id)` for a season or episode."""
-    from lib.kodi.client import get_item_details
+    from lib.kodi.client import get_item_details, get_item_uniqueids
     tvshowid = xbmc.getInfoLabel(f"{info_prefix}.TvShowDBID") or ""
     if not tvshowid or tvshowid == "-1":
         details = get_item_details(dbtype, int(dbid), ["tvshowid"])
@@ -68,7 +68,4 @@ def resolve_show_ids(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str
         tvshowid = str(details.get("tvshowid") or "")
     if not tvshowid or tvshowid == "-1":
         return "", ""
-    show = get_item_details("tvshow", int(tvshowid), ["uniqueid"],
-                            cache_key=f"tvshow:{tvshowid}:uniqueid")
-    uniqueid = show.get("uniqueid", {}) if isinstance(show, dict) else {}
-    return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")
+    return get_item_uniqueids("tvshow", tvshowid, cache_key=f"tvshow:{tvshowid}:uniqueid")

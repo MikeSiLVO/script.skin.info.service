@@ -338,9 +338,9 @@ def get_item_details(media_type: str, dbid: int, properties: List[str], cache_ke
     return extract_result(resp, result_key)
 
 
-def get_item_uniqueids(dbtype: str, dbid: str) -> Tuple[str, str]:
+def get_item_uniqueids(dbtype: str, dbid: str, cache_key: str = "") -> Tuple[str, str]:
     """Fetch `(imdb_id, tmdb_id)` for a library item via JSON-RPC `GetXDetails`."""
-    details = get_item_details(dbtype, int(dbid), ["uniqueid"])
+    details = get_item_details(dbtype, int(dbid), ["uniqueid"], cache_key=cache_key)
     if not details or not isinstance(details, dict):
         return "", ""
     uniqueid = details.get("uniqueid", {})
