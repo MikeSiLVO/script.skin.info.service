@@ -24,6 +24,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import ADDON, log
+from lib.kodi.utilities import set_window_prop
 
 
 _PERSON_PROP_KEYS = (
@@ -218,7 +219,7 @@ def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbt
         if open_window:
             search_command += f",open_window={open_window}"
         search_command += ")"
-        xbmc.executebuiltin(f'SetProperty(SkinInfo.Person.SearchQuery,{search_command},home)')
+        set_window_prop('SkinInfo.Person.SearchQuery', search_command, 'home')
         log(
             "General",
             f"person_info: Auto-match failed, set SearchQuery property for '{name}'",
@@ -234,7 +235,7 @@ def _set_person_properties(person_id: int, name: str, open_window: str) -> None:
     base_url = "plugin://script.skin.info.service/"
     encoded_name = urllib.parse.quote(name)
 
-    xbmc.executebuiltin(f'SetProperty(SkinInfo.person_id,{person_id},home)')
+    set_window_prop('SkinInfo.person_id', person_id, 'home')
 
     routes = (
         ('SkinInfo.Person.Details',
@@ -253,7 +254,7 @@ def _set_person_properties(person_id: int, name: str, open_window: str) -> None:
          f"&person_id={person_id}&person_name={encoded_name}"),
     )
     for prop, url in routes:
-        xbmc.executebuiltin(f'SetProperty({prop},{url},home)')
+        set_window_prop(prop, url, 'home')
 
     log("General", f"person_info: Set properties for person_id={person_id} ({name})", xbmc.LOGDEBUG)
 

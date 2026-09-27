@@ -20,6 +20,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import log
+from lib.kodi.utilities import set_window_prop
 
 
 _DEFAULT_MODE: Final = 'textviewer'
@@ -102,7 +103,7 @@ def _bind_properties(method: str, response: dict, prop_prefix: str) -> None:
 
 
 def _set_prop(name: str, value: Any) -> None:
-    xbmc.executebuiltin(f'SetProperty({name},{value},home)')
+    set_window_prop(name, value, 'home')
 
 
 def _parse_params(raw: str) -> Dict[str, Any]:

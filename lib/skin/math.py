@@ -4,6 +4,7 @@ import operator
 import re
 import xbmc
 from lib.kodi.client import log
+from lib.kodi.utilities import set_window_prop
 
 
 _ALLOWED_OPERATORS = {
@@ -76,6 +77,6 @@ def evaluate_math(expression, prefix='', window='home'):
     if result is not None:
         if isinstance(result, float) and result.is_integer():
             result = int(result)
-        xbmc.executebuiltin(f'SetProperty({prop_name},{result},{window})')
+        set_window_prop(prop_name, result, window)
     else:
         xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')

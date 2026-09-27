@@ -3,7 +3,9 @@ import sys
 import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
-from lib.kodi.utilities import set_prop, clear_prop, resolve_infolabel, normalize_dbtype
+from lib.kodi.utilities import (
+    set_prop, clear_prop, resolve_infolabel, normalize_dbtype, set_window_prop,
+)
 
 
 def _set_window_prop(key: str, value: str, window: str) -> None:
@@ -12,7 +14,7 @@ def _set_window_prop(key: str, value: str, window: str) -> None:
     if window == "home":
         set_prop(key, value)
     else:
-        xbmc.executebuiltin(f'SetProperty({key},{value},{window})')
+        set_window_prop(key, value, window)
 
 
 def _clear_window_prop(key: str, window: str) -> None:
@@ -398,7 +400,7 @@ def _handle_tmdb_search(args: dict) -> None:
     xbmc.executebuiltin(f'ClearProperty({property_name},{window})')
 
     details_url = f"plugin://script.skin.info.service/?action=tmdb_details&type={media_type}&tmdb_id={tmdb_id}"
-    xbmc.executebuiltin(f'SetProperty({property_name},{details_url},{window})')
+    set_window_prop(property_name, details_url, window)
 
     log("General", f"tmdb_search: Set property {property_name}={details_url}", xbmc.LOGDEBUG)
 
@@ -641,7 +643,7 @@ def _handle_online_fetch(args: dict) -> None:
         plugin_url += f"&imdb_id={imdb_id}"
 
     log("General", f"online_fetch: Setting {property_name}={plugin_url} on {window}", xbmc.LOGDEBUG)
-    xbmc.executebuiltin(f"SetProperty({property_name},{plugin_url},{window})")
+    set_window_prop(property_name, plugin_url, window)
 
 
 def _restore_focus(args: dict, dialog_xml: str) -> None:

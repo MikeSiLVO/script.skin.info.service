@@ -4,7 +4,7 @@ from typing import Final
 import xbmc
 
 from lib.kodi.client import request
-from lib.kodi.utilities import parse_pipe_list
+from lib.kodi.utilities import parse_pipe_list, set_window_prop
 
 
 _LABEL_CHUNK: Final = 1000
@@ -13,7 +13,7 @@ _LABEL_CHUNK: Final = 1000
 def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
     """Set the property when `value` is truthy; clear it otherwise."""
     if value:
-        xbmc.executebuiltin(f'SetProperty({prop_name},{value},{window})')
+        set_window_prop(prop_name, value, window)
     else:
         xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
 
@@ -53,7 +53,7 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
         num_items = 0
 
     if num_items == 0:
-        xbmc.executebuiltin(f'SetProperty({prefix}.{infolabel}s,,{window})')
+        set_window_prop(f'{prefix}.{infolabel}s', '', window)
         return
 
     labels = [f'Container({container}).ListItem({i}).{infolabel}' for i in range(num_items)]
@@ -71,7 +71,7 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
 
     aggregated = separator.join(values) if values else ''
     prop_name = f'{prefix}.{infolabel}s'
-    xbmc.executebuiltin(f'SetProperty({prop_name},{aggregated},{window})')
+    set_window_prop(prop_name, aggregated, window)
 
 
 def refresh_counter(uid, prefix='SkinInfo'):
@@ -87,4 +87,4 @@ def refresh_counter(uid, prefix='SkinInfo'):
 
     value += 1
 
-    xbmc.executebuiltin(f'SetProperty({prop_name},{value},{window})')
+    set_window_prop(prop_name, value, window)

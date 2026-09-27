@@ -236,6 +236,15 @@ def batch_set_props(props: Dict[str, Optional[str]]) -> None:
             _enforce_props_size_limit()
 
 
+def set_window_prop(key: str, value: object, window: str = 'home') -> None:
+    """Set a property on a named window, the value quoted so commas and brackets survive."""
+    if window.lower() in ('home', '10000'):
+        HOME.setProperty(key, str(value))
+        return
+    escaped = str(value).replace('\\', '\\\\').replace('"', '\\"')
+    xbmc.executebuiltin(f'SetProperty({key},"{escaped}",{window})')
+
+
 def clear_prop(key: str) -> None:
     """Clear a single home-window property."""
     with _CACHE_LOCK:

@@ -2,10 +2,12 @@
 import xbmc
 import xbmcvfs
 
+from lib.kodi.utilities import set_window_prop
+
 
 def _set_not_found(prop_base: str, window: str) -> None:
     """Set Exists=false and clear Path."""
-    xbmc.executebuiltin(f'SetProperty({prop_base}.Exists,false,{window})')
+    set_window_prop(f'{prop_base}.Exists', 'false', window)
     xbmc.executebuiltin(f'ClearProperty({prop_base}.Path,{window})')
 
 
@@ -19,8 +21,8 @@ def check_file_exists(paths, separator='|', prefix='', window='home'):
 
     for path in (p.strip() for p in paths.split(separator) if p.strip()):
         if xbmcvfs.exists(path):
-            xbmc.executebuiltin(f'SetProperty({prop_base}.Exists,true,{window})')
-            xbmc.executebuiltin(f'SetProperty({prop_base}.Path,{path},{window})')
+            set_window_prop(f'{prop_base}.Exists', 'true', window)
+            set_window_prop(f'{prop_base}.Path', path, window)
             return
 
     _set_not_found(prop_base, window)
