@@ -33,6 +33,13 @@ def _resolve_musicvideo_artist_mbid(
     return mbids[0] if mbids else None
 
 
+_MUSIC_CACHE_ART_TYPES: Final = {
+    'artist': ['thumb', 'fanart', 'clearlogo', 'banner', 'discart'],
+    'album': ['thumb', 'fanart', 'clearlogo', 'banner', 'discart'],
+    'musicvideo': ['thumb', 'fanart', 'clearlogo', 'banner', 'clearart', 'landscape'],
+}
+
+
 class ApiArtworkFetcher:
     """Retrieves and caches artwork from TMDB and fanart.tv."""
 
@@ -191,11 +198,12 @@ class ApiArtworkFetcher:
 
         return cached
 
-    def _load_music_cached_artwork(self, media_type: str, mbid: str) -> Dict[str, List[dict]]:
-        music_art_types = ['thumb', 'fanart', 'clearlogo', 'banner', 'discart']
-        media_ids = {'fanarttv': mbid, 'theaudiodb': mbid}
+    def _load_music_cached_artwork(self, media_type: str, key: str) -> Dict[str, List[dict]]:
+        """Cached music art from both providers, keyed by MusicBrainz id or music video key."""
+        art_types = _MUSIC_CACHE_ART_TYPES[media_type]
+        media_ids = {'fanarttv': key, 'theaudiodb': key}
 
-        batch_results = db_cache.get_cached_artwork_batch(media_type, media_ids, music_art_types)
+        batch_results = db_cache.get_cached_artwork_batch(media_type, media_ids, art_types)
 
         cached: Dict[str, List[dict]] = {}
         for (_source, art_type), artworks in batch_results.items():
@@ -430,7 +438,7 @@ class ApiArtworkFetcher:
             )
             if marker is not None:
                 return self._finalize_artwork(
-                    'musicvideo', self._load_musicvideo_cached_artwork(cache_key)
+                    'musicvideo', self._load_music_cached_artwork('musicvideo', cache_key)
                 )
 
         from lib.data.api.audiodb import get_audiodb
@@ -513,15 +521,6 @@ class ApiArtworkFetcher:
                 [{'marker': 'complete'}], None, ttl_hours,
             )
         return self._finalize_artwork('musicvideo', all_art)
-
-    def _load_musicvideo_cached_artwork(self, cache_key: str) -> Dict[str, List[dict]]:
-        art_types = ['thumb', 'fanart', 'clearlogo', 'banner', 'clearart', 'landscape']
-        media_ids = {'fanarttv': cache_key, 'theaudiodb': cache_key}
-        batch_results = db_cache.get_cached_artwork_batch('musicvideo', media_ids, art_types)
-        cached: Dict[str, List[dict]] = {}
-        for (_source, art_type), artworks in batch_results.items():
-            cached.setdefault(art_type, []).extend(artworks)
-        return cached
 
     def _fetch_album_artwork(
         self, album_dbid: int, bypass_cache: bool = False, bulk: bool = False
