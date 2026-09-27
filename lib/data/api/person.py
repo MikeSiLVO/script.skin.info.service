@@ -367,7 +367,7 @@ def match_credit(credits: list, name: str, role: str,
 
 def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
     """Search TMDB by name and let the user pick; None when nothing is found or chosen."""
-    results = api.search_person(name)
+    results = api.search(name, 'person')
 
     if not results:
         xbmcgui.Dialog().notification(

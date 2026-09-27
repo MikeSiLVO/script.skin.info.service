@@ -313,10 +313,9 @@ class ApiTmdb(RatingSource):
         "episode": "tv_episode_results",
     }
 
-    def _find(self, external_id: str, source: str, media_type: str,
-              abort_flag=None) -> Optional[dict]:
-        """Hit TMDB /find/{external_id}; checks the id_mappings cache first for movie/tvshow,
-        episodes always hit the API."""
+    def find_by_external_id(self, external_id: str, source: str, media_type: str = "movie",
+                            abort_flag=None) -> Optional[dict]:
+        """Find an external id via the id_mappings cache, then /find; a cache hit is id-only."""
         if media_type in ("movie", "tvshow") and source in ("imdb_id", "tvdb_id"):
             from lib.data.database.mapping import (
                 get_tmdb_id_by_imdb, get_tmdb_id_by_tvdb,
@@ -355,7 +354,7 @@ class ApiTmdb(RatingSource):
         if not imdb_id or not imdb_id.startswith("tt"):
             return None
         try:
-            result = self._find(imdb_id, "imdb_id", media_type, abort_flag)
+            result = self.find_by_external_id(imdb_id, "imdb_id", media_type, abort_flag)
             return result.get("id") if result else None
         except Exception as e:
             log("TMDB", f"Find by IMDB error: {str(e)}", xbmc.LOGWARNING)
@@ -662,16 +661,6 @@ class ApiTmdb(RatingSource):
             abort_flag=abort_flag
         )
 
-    def find_by_external_id(
-        self,
-        external_id: str,
-        source: str,
-        media_type: str = "movie",
-        abort_flag=None
-    ) -> Optional[dict]:
-        """Look up TMDB entry by external ID (imdb_id or tvdb_id)."""
-        return self._find(external_id, source, media_type, abort_flag)
-
     def search(
         self,
         query: str,
@@ -697,10 +686,6 @@ class ApiTmdb(RatingSource):
 
         data = self.session.get(endpoint, params=params, abort_flag=abort_flag)
         return data.get('results', []) if data else []
-
-    def search_person(self, name: str) -> list[dict]:
-        """Search for a person by name."""
-        return self.search(name, 'person')
 
     def _get_list(
         self,
