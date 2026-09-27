@@ -664,8 +664,8 @@ def dialog_progress(
             if not is_background and dialog_normal and dialog_normal.iscanceled():
                 break
 
-            progress_str = (xbmc.getInfoLabel(progress_info)
-                            if progress_info.startswith('$') else progress_info)
+            progress_str = (progress_info if progress_info.isdigit()
+                            else xbmc.getInfoLabel(progress_info))
             try:
                 progress_val = int(progress_str)
             except (ValueError, TypeError):
