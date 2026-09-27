@@ -253,8 +253,7 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '',
         _show_error(f'Invalid color format: {current_color} (expected AARRGGBB)')
         return
 
-    if not colors:
-        colors = xbmcvfs.translatePath('special://xbmc/system/colors.xml')
+    colors = xbmcvfs.translatePath(colors or 'special://xbmc/system/colors.xml')
 
     palette_colors = []
     if os.path.exists(colors):
