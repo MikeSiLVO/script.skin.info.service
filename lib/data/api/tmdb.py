@@ -453,19 +453,24 @@ class ApiTmdb(RatingSource):
                 continue
             for number in chunk:
                 season = data.get(f"season/{number}")
-                if not isinstance(season, dict):
-                    continue
-                for ep in season.get("episodes") or []:
-                    rating, votes = ep.get("vote_average"), ep.get("vote_count")
-                    if rating is None or not votes:
-                        continue
-                    self.cache_data(
-                        "episode",
-                        self._episode_rating_key(tmdb_id, number, ep.get("episode_number")),
-                        {"rating": float(rating), "votes": float(votes)},
-                        ep.get("air_date") or None,
-                    )
-                    stored += 1
+                if isinstance(season, dict):
+                    stored += self.store_episode_ratings(tmdb_id, number, season)
+        return stored
+
+    def store_episode_ratings(self, tmdb_id: int, number: int, season: dict) -> int:
+        """Store the rating of every voted episode in a TMDB season response; returns the count."""
+        stored = 0
+        for ep in season.get("episodes") or []:
+            rating, votes = ep.get("vote_average"), ep.get("vote_count")
+            if rating is None or not votes:
+                continue
+            self.cache_data(
+                "episode",
+                self._episode_rating_key(tmdb_id, number, ep.get("episode_number")),
+                {"rating": float(rating), "votes": float(votes)},
+                ep.get("air_date") or None,
+            )
+            stored += 1
         return stored
 
     def _extract_release_date(self, data: dict, media_type: str) -> Optional[str]:

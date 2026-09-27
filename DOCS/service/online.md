@@ -46,7 +46,7 @@ The online service fetches metadata from external APIs when library items are fo
 <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Rating.imdb)]</label>
 ```
 
-Supported media types: `movie`, `tvshow`, `episode`, `musicvideo`
+Supported media types: `movie`, `tvshow`, `season`, `episode`, `musicvideo`. A season or episode carries its show's properties.
 
 ---
 
@@ -387,6 +387,21 @@ Ratings from multiple sources. Each source provides three properties.
 <label>TMDb: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tmdb)]</label>
 <label>IMDb: $INFO[Window(Home).Property(SkinInfo.Online.Rating.imdb)]</label>
 <label>RT Critics: $INFO[Window(Home).Property(SkinInfo.Online.Rating.Tomatoes.Percent)]%</label>
+```
+
+### Episode Ratings
+
+An episode also gets its own ratings under `Episode.`, beside its show's properties. The sources are
+`imdb`, `tmdb` and `trakt`. `imdb` needs the IMDb dataset, which a ratings update downloads.
+
+| Property Pattern | Description |
+|------------------|-------------|
+| `Episode.Rating.{source}` | Rating value (0-10 scale) |
+| `Episode.Rating.{source}.Votes` | Vote count |
+| `Episode.Rating.{source}.Percent` | Rating as percentage (0-100) |
+
+```xml
+<label>$INFO[Window(Home).Property(SkinInfo.Online.Episode.Rating.trakt)]</label>
 ```
 
 ---

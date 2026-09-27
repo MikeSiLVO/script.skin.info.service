@@ -21,10 +21,11 @@ from lib.data.database.cache import (
 from lib.service.online.helpers import (
     get_online_ttl,
     make_cache_key,
+    infolabel_imdb_id,
     resolve_ids_from,
-    resolve_season_ids,
+    resolve_show_ids,
 )
-from lib.service.online.fetchers import fetch_all_online_data
+from lib.service.online.fetchers import EpisodeRatings, fetch_all_online_data
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
@@ -54,6 +55,7 @@ class FocusHandler:
         self._empty_for_key: Optional[CacheKey] = None
         self._empty_at: float = 0.0
         self._empty_generation: int = -1
+        self._episode = EpisodeRatings(ONLINE_PROPERTY_PREFIX, service.capped_abort_flag)
 
     def process(self) -> None:
         """Read focused ListItem; set cached props or kick off a background fetch."""
@@ -75,14 +77,17 @@ class FocusHandler:
                 self._empty_for_key = None
             return
 
+        if dbtype != "episode":
+            self._episode.reset()
+
         item_id = f"{dbtype}:{dbid}"
         generation = online_cache_generation()
         if (item_id == self._last_item_id and generation == self._last_generation
                 and time.time() < self._last_expires_at):
             return
 
-        if dbtype == "season":
-            imdb_id, tmdb_id = resolve_season_ids(dbid)
+        if dbtype in ("season", "episode"):
+            imdb_id, tmdb_id = resolve_show_ids(dbtype, dbid, "ListItem")
             effective_type = "tvshow"
         else:
             imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem")
@@ -90,6 +95,11 @@ class FocusHandler:
 
         if not imdb_id and not tmdb_id:
             return
+
+        if dbtype == "episode":
+            self._episode.update(
+                dbid, xbmc.getInfoLabel("ListItem.Season"), xbmc.getInfoLabel("ListItem.Episode"),
+                infolabel_imdb_id("ListItem"), imdb_id, tmdb_id)
 
         cache_key = make_cache_key(effective_type, imdb_id, tmdb_id)
         if not cache_key:
@@ -205,3 +215,4 @@ class FocusHandler:
 
     def _clear_properties(self) -> None:
         clear_group(ONLINE_PROPERTY_PREFIX)
+        self._episode.forget()

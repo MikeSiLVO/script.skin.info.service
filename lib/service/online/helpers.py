@@ -30,15 +30,20 @@ def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str,
     return CacheKey(media_type, item_id, scope) if item_id else None
 
 
-def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
-    """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> ID map -> JSON-RPC fallback."""
+def infolabel_imdb_id(info_prefix: str) -> str:
+    """IMDb id from the InfoLabels; `IMDBNumber` holds the default id, which may be another kind."""
     imdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(imdb)") or ""
-    tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
-
     if not imdb_id:
         imdbnumber = xbmc.getInfoLabel(f"{info_prefix}.IMDBNumber") or ""
         if imdbnumber.startswith("tt"):
             imdb_id = imdbnumber
+    return imdb_id
+
+
+def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
+    """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> ID map -> JSON-RPC fallback."""
+    imdb_id = infolabel_imdb_id(info_prefix)
+    tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
 
     if not imdb_id and tmdb_id:
         from lib.data.database.mapping import get_imdb_id
@@ -52,13 +57,18 @@ def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str
     return imdb_id, tmdb_id
 
 
-def resolve_season_ids(seasonid: str) -> Tuple[str, str]:
-    """Resolve IMDb/TMDb IDs for a season via its parent tvshow."""
-    from lib.kodi.client import get_item_details, get_item_uniqueids
-    details = get_item_details('season', int(seasonid), ["tvshowid"])
-    if not details or not isinstance(details, dict):
+def resolve_show_ids(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
+    """Resolve the parent show's `(imdb_id, tmdb_id)` for a season or episode."""
+    from lib.kodi.client import get_item_details
+    tvshowid = xbmc.getInfoLabel(f"{info_prefix}.TvShowDBID") or ""
+    if not tvshowid or tvshowid == "-1":
+        details = get_item_details(dbtype, int(dbid), ["tvshowid"])
+        if not details or not isinstance(details, dict):
+            return "", ""
+        tvshowid = str(details.get("tvshowid") or "")
+    if not tvshowid or tvshowid == "-1":
         return "", ""
-    tvshowid = details.get("tvshowid")
-    if not tvshowid or tvshowid == -1:
-        return "", ""
-    return get_item_uniqueids("tvshow", str(tvshowid))
+    show = get_item_details("tvshow", int(tvshowid), ["uniqueid"],
+                            cache_key=f"tvshow:{tvshowid}:uniqueid")
+    uniqueid = show.get("uniqueid", {}) if isinstance(show, dict) else {}
+    return uniqueid.get("imdb", ""), str(uniqueid.get("tmdb", "") or "")

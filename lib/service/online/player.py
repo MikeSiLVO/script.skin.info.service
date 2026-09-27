@@ -11,10 +11,12 @@ from lib.kodi.client import log
 from lib.kodi.utilities import clear_group, batch_set_props
 from lib.data.database.cache import CacheKey
 from lib.service.online.helpers import (
+    infolabel_imdb_id,
     make_cache_key,
     resolve_ids_from,
+    resolve_show_ids,
 )
-from lib.service.online.fetchers import fetch_all_online_data
+from lib.service.online.fetchers import EpisodeRatings, fetch_all_online_data
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
@@ -37,6 +39,7 @@ class PlayerHandler:
         self._fetch_for_key: Optional[CacheKey] = None
         self._empty_for_key: Optional[CacheKey] = None
         self._empty_at: float = 0.0
+        self._episode = EpisodeRatings(PLAYER_ONLINE_PROPERTY_PREFIX, service.capped_abort_flag)
 
     def process(self) -> None:
         """Read VideoPlayer state; fetch and apply online props for movies/episodes."""
@@ -57,11 +60,22 @@ class PlayerHandler:
             self._clear_if_active()
             return
 
-        imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "VideoPlayer")
+        if dbtype == "episode":
+            imdb_id, tmdb_id = resolve_show_ids(dbtype, dbid, "VideoPlayer")
+        else:
+            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "VideoPlayer")
+            self._episode.reset()
 
         if not imdb_id and not tmdb_id:
             self._clear_if_active()
             return
+
+        if dbtype == "episode":
+            self._episode.update(
+                dbid, xbmc.getInfoLabel("VideoPlayer.Season"),
+                xbmc.getInfoLabel("VideoPlayer.Episode"),
+                infolabel_imdb_id("VideoPlayer"), imdb_id, tmdb_id)
+            dbtype = "tvshow"
 
         cache_key = make_cache_key(dbtype, imdb_id, tmdb_id, "player")
         if not cache_key:
@@ -71,6 +85,7 @@ class PlayerHandler:
             return
         if self._last_key:
             clear_group(PLAYER_ONLINE_PROPERTY_PREFIX)
+            self._episode.forget()
             self._last_key = None
 
         if (self._fetch_thread and self._fetch_thread.is_alive()
@@ -121,4 +136,5 @@ class PlayerHandler:
         if self._last_key:
             clear_group(PLAYER_ONLINE_PROPERTY_PREFIX)
             self._last_key = None
+        self._episode.reset()
         self._empty_for_key = None
