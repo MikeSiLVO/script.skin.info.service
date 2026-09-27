@@ -7,16 +7,14 @@ from lib.kodi.utilities import set_window_prop
 def split_string(string, separator='|', prefix='', window='home'):
     """Split `string` and write `SkinInfo.Split[.{prefix}].{Count, 1, 2, ...}` window properties."""
     prop_base = f'SkinInfo.Split.{prefix}' if prefix else 'SkinInfo.Split'
+    previous = xbmc.getInfoLabel(f'Window({window}).Property({prop_base}.Count)')
+    parts = string.split(separator) if string else []
 
-    if not string:
-        set_window_prop(f'{prop_base}.Count', '0', window)
-        return
-
-    parts = string.split(separator)
     set_window_prop(f'{prop_base}.Count', len(parts), window)
-
     for idx, part in enumerate(parts, start=1):
         set_window_prop(f'{prop_base}.{idx}', part.strip(), window)
+    for idx in range(len(parts) + 1, int(previous) + 1 if previous.isdigit() else 0):
+        xbmc.executebuiltin(f'ClearProperty({prop_base}.{idx},{window})')
 
 
 def urlencode(string, prefix='', window='home'):
