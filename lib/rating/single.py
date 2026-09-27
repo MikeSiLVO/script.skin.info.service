@@ -8,13 +8,14 @@ from typing import Dict, Final, List, Optional, Tuple
 import xbmc
 
 from lib.kodi.client import request, log, KODI_SET_DETAILS_METHODS
+from lib.kodi.settings import KodiSettings
 from lib.data.api.tmdb import resolve_tmdb_id
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
 from lib.infrastructure.tasks import ShutdownAbortFlag
-from lib.rating.merger import (merge_ratings, prepare_kodi_ratings, has_alias_drift,
+from lib.rating.merger import (merge_ratings, prepare_kodi_ratings, has_alias_drift, default_moved,
                                format_rating_change, rating_display_changed)
 from lib.rating.ids import (
     get_imdb_id_from_tmdb,
@@ -153,7 +154,8 @@ def merge_and_apply_ratings(
             added_ratings.append(f"{rating_name} ({new_val:.1f})")
 
     supplied = set(merged)
-    kodi_ratings = prepare_kodi_ratings(final_ratings, default_source="imdb", supplied=supplied)
+    kodi_ratings = prepare_kodi_ratings(
+        final_ratings, default_source=KodiSettings.ratings_default_source(), supplied=supplied)
 
     if added_ratings:
         log("Ratings", f"Added ratings: {', '.join(added_ratings)}", xbmc.LOGDEBUG)
@@ -161,7 +163,8 @@ def merge_and_apply_ratings(
         log("Ratings", f"Updated ratings: {' | '.join(updated_ratings)}", xbmc.LOGDEBUG)
 
     if (not added_ratings and not updated_ratings
-            and not has_alias_drift(existing_ratings, supplied)):
+            and not has_alias_drift(existing_ratings, supplied)
+            and not default_moved(existing_ratings, kodi_ratings)):
         db.update_synced_ratings(
             media_type, dbid, final_ratings, build_external_ids(ids, media_type))
         return True, {

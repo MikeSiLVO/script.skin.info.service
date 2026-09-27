@@ -61,6 +61,11 @@ class KodiSettings:
         return cls.get_bool('ratings_source_trakt')
 
     @classmethod
+    def ratings_default_source(cls) -> str:
+        """Get the rating Kodi shows by default, IMDb when unset."""
+        return cls.get_string('ratings_default_source') or 'imdb'
+
+    @classmethod
     def prefer_fanart_language(cls) -> bool:
         """Check if fanart language preference is enabled."""
         return cls.get_bool('prefer_fanart_language')

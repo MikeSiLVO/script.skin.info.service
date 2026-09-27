@@ -129,6 +129,8 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
     use different scraper keys and skins may check either.
     """
     kodi_ratings = {}
+    if default_source not in merged_ratings and _KEY_ALIASES.get(default_source) in merged_ratings:
+        default_source = _KEY_ALIASES[default_source]
 
     for source_name, rating_data in merged_ratings.items():
         rating = rating_data["rating"]
@@ -150,12 +152,6 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
             "default": source_name == default_source
         }
 
-    if default_source in kodi_ratings:
-        kodi_ratings[default_source]["default"] = True
-    elif kodi_ratings:
-        first_source = next(iter(kodi_ratings))
-        kodi_ratings[first_source]["default"] = True
-
     for src, alias in _KEY_ALIASES.items():
         if src not in kodi_ratings:
             continue
@@ -170,6 +166,13 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
             kodi_ratings[alias]["votes"] = kodi_ratings[src]["votes"]
 
     return kodi_ratings
+
+
+def default_moved(existing: Dict[str, Dict[str, Any]],
+                  kodi_ratings: Dict[str, Dict[str, Any]]) -> bool:
+    """True when the ratings flag a default that Kodi does not hold as its default."""
+    new_default = next((name for name, data in kodi_ratings.items() if data["default"]), None)
+    return new_default is not None and not (existing.get(new_default) or {}).get("default")
 
 
 def has_alias_drift(ratings: Dict[str, Dict[str, Any]], supplied: Set[str]) -> bool:

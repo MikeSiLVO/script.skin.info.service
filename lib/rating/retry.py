@@ -8,6 +8,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import request, log, KODI_SET_DETAILS_METHODS, ADDON
+from lib.kodi.settings import KodiSettings
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api.source import RatingSource
 from lib.data.database import workflow as db
@@ -162,7 +163,8 @@ def retry_targeted(entry: RetryPoolEntry, sources: List[RatingSource],
     method, id_key = method_info
 
     kodi_ratings = prepare_kodi_ratings(
-        final_ratings, default_source="imdb", supplied=set(merged_new))
+        final_ratings, default_source=KodiSettings.ratings_default_source(),
+        supplied=set(merged_new))
     response = request(method, {id_key: entry.dbid, "ratings": kodi_ratings})
 
     if response is None:

@@ -13,6 +13,7 @@ from lib.kodi.client import (
     KODI_SET_DETAILS_METHODS, ADDON,
 )
 from lib.data.api.imdb import get_imdb_dataset
+from lib.kodi.settings import KodiSettings
 from lib.data.database import workflow as db
 from lib.infrastructure.dialogs import show_textviewer, show_yesnocustom
 from lib.rating.ids import (get_tvshow_uniqueid, prefetch_tvshow_uniqueids,
@@ -145,6 +146,7 @@ def update_changed_imdb_ratings(
         monitor = xbmc.Monitor()
 
     sync_batch: List[tuple] = []
+    imdb_default = KodiSettings.ratings_default_source() == "imdb"
     heading = ADDON.getLocalizedString(32318)
     progress = xbmcgui.DialogProgressBG()
     progress.create(heading)
@@ -184,7 +186,8 @@ def update_changed_imdb_ratings(
         response = request(set_method, {
             set_id_key: item["dbid"],
             "ratings": {
-                "imdb": {"rating": item["new_rating"], "votes": item["new_votes"], "default": True}
+                "imdb": {"rating": item["new_rating"], "votes": item["new_votes"],
+                         "default": imdb_default}
             }
         })
 
@@ -689,7 +692,7 @@ def prepare_imdb_update(
         "imdb": {
             "rating": new_rating,
             "votes": new_votes,
-            "default": True,
+            "default": KodiSettings.ratings_default_source() == "imdb",
         }
     }
 
