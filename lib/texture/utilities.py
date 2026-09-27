@@ -5,7 +5,9 @@ import re
 import urllib.parse
 from lib.kodi.client import decode_image_url
 
-_SYSTEM_PATH_MARKERS = ('/addons/', '\\addons\\', '/system/', '\\system\\')
+_SYSTEM_PATH_MARKERS = (
+    '/addons/', '\\addons\\', '/system/', '\\system\\', '/userdata/', '\\userdata\\',
+)
 
 
 def _parse_image_url(url: str) -> str:
@@ -43,9 +45,7 @@ def should_precache_url(url: str) -> bool:
     return not _is_system_artwork(decoded)
 
 
-# `D:` through `Z:` are valid library drive letters; `C:` is excluded because that's where
-# Kodi (and addon system) lives; a path on `C:` is almost certainly system, not library.
-_LIBRARY_DRIVE_RE = re.compile(r'^[D-Z]:', re.IGNORECASE)
+_LOCAL_PATH_RE = re.compile(r'^([A-Z]:|/)', re.IGNORECASE)
 
 
 def is_library_artwork_url(url: str) -> bool:
@@ -73,7 +73,7 @@ def is_library_artwork_url(url: str) -> bool:
     if url.startswith('image://') and '@' in inner_url:
         return True
 
-    if _LIBRARY_DRIVE_RE.match(decoded_url):
+    if _LOCAL_PATH_RE.match(decoded_url):
         return True
 
     if decoded_url.startswith('\\\\') or decoded_url.startswith('smb://') or decoded_url.startswith('nfs://'):
