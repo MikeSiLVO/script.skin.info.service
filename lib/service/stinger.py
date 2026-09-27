@@ -75,7 +75,7 @@ STR_AFTER: Final = 32164
 STR_BOTH: Final = 32165
 
 
-def get_settings() -> Dict[str, Any]:
+def get_stinger_settings() -> Dict[str, Any]:
     """Return stinger settings as `{enabled, minutes_before_end, notification_duration}`."""
     return {
         "enabled": ADDON.getSettingBool("stinger_enabled"),
@@ -347,8 +347,8 @@ def is_near_credits(minutes_before_end: int = 8) -> bool:
         return False
 
 
-class StingerMonitor:
-    """Monitors playback for stinger notification timing."""
+class StingerTracker:
+    """Tracks movie playback to time the stinger notification."""
 
     def __init__(self):
         self.current_movie_id: Optional[str] = None
@@ -369,7 +369,7 @@ class StingerMonitor:
     def settings(self) -> Dict[str, Any]:
         """Get cached settings."""
         if self._settings is None:
-            self._settings = get_settings()
+            self._settings = get_stinger_settings()
         return self._settings
 
     def on_playback_start(
@@ -431,7 +431,7 @@ class StingerService(threading.Thread):
         monitor = xbmc.Monitor()
         log("Service", "Stinger service started", xbmc.LOGINFO)
 
-        stinger = StingerMonitor()
+        stinger = StingerTracker()
         current_dbid: Optional[str] = None
         fetched = False
 
@@ -440,7 +440,7 @@ class StingerService(threading.Thread):
                 break
 
             movie_playing = (
-                get_settings()["enabled"]
+                get_stinger_settings()["enabled"]
                 and xbmc.getCondVisibility("Player.HasVideo")
                 and xbmc.getCondVisibility("VideoPlayer.Content(movies)")
             )
@@ -472,7 +472,7 @@ class StingerService(threading.Thread):
         stinger.reset()
         log("Service", "Stinger service stopped", xbmc.LOGINFO)
 
-    def _fetch_stinger_info(self, stinger: StingerMonitor, dbid: str) -> None:
+    def _fetch_stinger_info(self, stinger: StingerTracker, dbid: str) -> None:
         details = get_item_details(
             'movie',
             int(dbid),
