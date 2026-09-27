@@ -7,7 +7,7 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import request, ADDON
+from lib.kodi.client import request, extract_result, ADDON
 from lib.infrastructure.dialogs import show_notification
 
 
@@ -29,8 +29,9 @@ def _play_directory(path: str, shuffled: bool) -> None:
     media_type = _detect_media_type(path)
     playlistid = 0 if media_type == 'music' else 1
 
-    items = request('Files.GetDirectory', {'directory': path, 'media': media_type})
-    if not items or not items.get('files'):
+    items = extract_result(
+        request('Files.GetDirectory', {'directory': path, 'media': media_type}), 'files')
+    if not items:
         show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32271),
                           xbmcgui.NOTIFICATION_ERROR, 3000)
         return
