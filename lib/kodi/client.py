@@ -548,40 +548,15 @@ API_KEY_CONFIG = {
         "get_url": "https://www.omdbapi.com/apikey.aspx",
         "setting_path": "omdb_api_key"
     },
-    "trakt_access_token": {
-        "name": "Trakt",
-        "get_url": None,
-        "setting_path": "trakt_access_token",
-        "token_file": "trakt_tokens.json"
-    }
 }
 
 
 def get_api_key(key_id: str) -> Optional[str]:
-    """Get an API key by `API_KEY_CONFIG` id. Falls back to the token file for Trakt."""
+    """Get an API key by `API_KEY_CONFIG` id; None when unknown or unset."""
     config = API_KEY_CONFIG.get(key_id)
     if not config:
         return None
-
-    key = KodiSettings.get_string(config["setting_path"])
-    if key:
-        return key
-
-    if key_id == "trakt_access_token":
-        token_file = config.get("token_file")
-        if token_file:
-            import xbmcvfs
-            token_path = xbmcvfs.translatePath(f"special://profile/addon_data/script.skin.info.service/{token_file}")
-            if xbmcvfs.exists(token_path):
-                try:
-                    import json
-                    with open(token_path, 'r') as f:
-                        tokens = json.load(f)
-                        return tokens.get("access_token")
-                except Exception:
-                    pass
-
-    return None
+    return KodiSettings.get_string(config["setting_path"]) or None
 
 
 def format_item_label(item: Dict, media_type: str) -> str:
