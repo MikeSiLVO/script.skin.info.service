@@ -8,6 +8,7 @@ import xbmcgui
 import xbmcplugin
 
 from lib.kodi.client import log, request
+from lib.kodi.utilities import clear_window_prop
 
 
 _SMS_MAP = {
@@ -216,7 +217,7 @@ def _focus_next_containers(next_focus: str, next_position: Optional[str],
 def _clear_cm_focus_props(properties_found: list) -> None:
     """Clear `SkinInfo.CM_Focus.{i}` for each `(i, _)` in `properties_found`."""
     for i, _ in properties_found:
-        xbmc.executebuiltin(f'ClearProperty(SkinInfo.CM_Focus.{i},home)', True)
+        clear_window_prop(f'SkinInfo.CM_Focus.{i}')
 
 
 def jump_letter(letter: str, container_id: Optional[str] = None) -> None:

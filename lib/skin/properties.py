@@ -4,7 +4,7 @@ from typing import Final
 import xbmc
 
 from lib.kodi.client import request
-from lib.kodi.utilities import parse_pipe_list, set_window_prop
+from lib.kodi.utilities import parse_pipe_list, set_window_prop, clear_window_prop
 
 
 _LABEL_CHUNK: Final = 1000
@@ -15,7 +15,7 @@ def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
     if value:
         set_window_prop(prop_name, value, window)
     else:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)
 
 
 def copy_container_item(container, infolabels='', artwork='', prefix='', window='home'):

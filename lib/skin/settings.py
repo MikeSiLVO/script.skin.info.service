@@ -4,7 +4,7 @@ from __future__ import annotations
 import xbmc
 import xbmcgui
 from lib.kodi.client import request
-from lib.kodi.utilities import set_window_prop
+from lib.kodi.utilities import set_window_prop, clear_window_prop
 
 # Kodi resets these to default on skin change (ApplicationSkinHandling.cpp),
 # so they are skin-scoped and the only settings allowed to bypass confirmation.
@@ -40,7 +40,7 @@ def get_setting(setting: str, prefix: str = 'SkinInfo', window: str = 'home') ->
         value = result['result']['value']
         set_window_prop(prop_name, value, window)
     else:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)
 
 
 def set_setting(setting: str, value: str | int | bool, noconfirm: bool = False) -> None:

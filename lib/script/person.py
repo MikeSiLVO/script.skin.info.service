@@ -24,7 +24,7 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import ADDON, log
-from lib.kodi.utilities import set_window_prop
+from lib.kodi.utilities import set_window_prop, clear_window_prop
 
 
 _PERSON_PROP_KEYS = (
@@ -51,7 +51,7 @@ def _crew_heading(crew: str) -> str:
 def _clear_person_properties() -> None:
     """Clear all `SkinInfo.Person.*` and `SkinInfo.person_id` properties on the home window."""
     for key in _PERSON_PROP_KEYS:
-        xbmc.executebuiltin(f'ClearProperty({key},home)')
+        clear_window_prop(key)
 
 
 def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, crew: str,

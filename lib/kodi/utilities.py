@@ -245,6 +245,14 @@ def set_window_prop(key: str, value: object, window: str = 'home') -> None:
     xbmc.executebuiltin(f'SetProperty({key},"{escaped}",{window})')
 
 
+def clear_window_prop(key: str, window: str = 'home') -> None:
+    """Clear a property on a named window."""
+    if window.lower() in ('home', '10000'):
+        clear_prop(key)
+        return
+    xbmc.executebuiltin(f'ClearProperty({key},{window})')
+
+
 def clear_prop(key: str) -> None:
     """Clear a single home-window property."""
     with _CACHE_LOCK:

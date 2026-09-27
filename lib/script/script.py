@@ -4,31 +4,14 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    set_prop, clear_prop, resolve_infolabel, normalize_dbtype, set_window_prop,
+    resolve_infolabel, normalize_dbtype, set_window_prop, clear_window_prop,
 )
-
-
-def _set_window_prop(key: str, value: str, window: str) -> None:
-    """Set a window property. Routes home-window writes through the cached helper to avoid
-    desync with service-layer writes that share the same property name."""
-    if window == "home":
-        set_prop(key, value)
-    else:
-        set_window_prop(key, value, window)
-
-
-def _clear_window_prop(key: str, window: str) -> None:
-    """Clear a window property. Routes home-window clears through the cached helper."""
-    if window == "home":
-        clear_prop(key)
-    else:
-        xbmc.executebuiltin(f'ClearProperty({key},{window})')
 
 
 def _clear_blur_properties(blur_key: str, orig_key: str, window: str) -> None:
     """Clear both blur properties on the target window."""
-    _clear_window_prop(blur_key, window)
-    _clear_window_prop(orig_key, window)
+    clear_window_prop(blur_key, window)
+    clear_window_prop(orig_key, window)
 
 
 def _blur_image_and_set_property(source: str, prefix: str = "",
@@ -50,8 +33,8 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
 
         if blurred_path:
             log("Blur", f"Setting {blur_key} on window {window} to: {blurred_path}", xbmc.LOGDEBUG)
-            _set_window_prop(blur_key, blurred_path, window)
-            _set_window_prop(orig_key, source, window)
+            set_window_prop(blur_key, blurred_path, window)
+            set_window_prop(orig_key, source, window)
         else:
             log("Blur", "Blur failed, clearing properties", xbmc.LOGDEBUG)
             _clear_blur_properties(blur_key, orig_key, window)
@@ -397,7 +380,7 @@ def _handle_tmdb_search(args: dict) -> None:
     tmdb_id = listitems[selected_index].getProperty('tmdb_id')
     log("General", f"tmdb_search: User selected {media_type} with tmdb_id={tmdb_id}", xbmc.LOGDEBUG)
 
-    xbmc.executebuiltin(f'ClearProperty({property_name},{window})')
+    clear_window_prop(property_name, window)
 
     details_url = f"plugin://script.skin.info.service/?action=tmdb_details&type={media_type}&tmdb_id={tmdb_id}"
     set_window_prop(property_name, details_url, window)

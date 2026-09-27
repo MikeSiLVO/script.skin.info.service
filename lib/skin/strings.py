@@ -1,7 +1,7 @@
 """String manipulation utilities for skin integration."""
 import xbmc
 
-from lib.kodi.utilities import set_window_prop
+from lib.kodi.utilities import set_window_prop, clear_window_prop
 
 
 def split_string(string, separator='|', prefix='', window='home'):
@@ -14,7 +14,7 @@ def split_string(string, separator='|', prefix='', window='home'):
     for idx, part in enumerate(parts, start=1):
         set_window_prop(f'{prop_base}.{idx}', part.strip(), window)
     for idx in range(len(parts) + 1, int(previous) + 1 if previous.isdigit() else 0):
-        xbmc.executebuiltin(f'ClearProperty({prop_base}.{idx},{window})')
+        clear_window_prop(f'{prop_base}.{idx}', window)
 
 
 def urlencode(string, prefix='', window='home'):
@@ -22,7 +22,7 @@ def urlencode(string, prefix='', window='home'):
     prop_name = f'SkinInfo.Encoded.{prefix}' if prefix else 'SkinInfo.Encoded'
 
     if not string:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)
         return
 
     from urllib.parse import quote
@@ -35,7 +35,7 @@ def urldecode(string, prefix='', window='home'):
     prop_name = f'SkinInfo.Decoded.{prefix}' if prefix else 'SkinInfo.Decoded'
 
     if not string:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)
         return
 
     from urllib.parse import unquote

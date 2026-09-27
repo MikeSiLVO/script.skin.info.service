@@ -8,7 +8,7 @@ import xbmcgui
 import xbmcvfs
 
 from lib.kodi.client import log, ADDON
-from lib.kodi.utilities import resolve_infolabel as _resolve_infolabel
+from lib.kodi.utilities import clear_window_prop, resolve_infolabel as _resolve_infolabel
 
 
 def _show_error(message: str) -> None:
@@ -261,7 +261,7 @@ def colorpicker(setting: str = '', default: str = '', colors: str = '',
     ):
         monitor.waitForAbort(0.1)
 
-    xbmc.executebuiltin('ClearProperty(SkinInfo.ColorPicker.CustomMode,home)')
-    xbmc.executebuiltin('ClearProperty(SkinInfo.ColorPicker.Preview,home)')
+    clear_window_prop('SkinInfo.ColorPicker.CustomMode')
+    clear_window_prop('SkinInfo.ColorPicker.Preview')
 
     del dialog

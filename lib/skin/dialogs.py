@@ -8,6 +8,7 @@ from lib.kodi.client import log, ADDON
 from lib.kodi.utilities import (
     resolve_infolabel as _resolve_infolabel,
     parse_pipe_list as _parse_list,
+    clear_window_prop,
 )
 from lib.infrastructure.dialogs import DialogProgress
 
@@ -56,10 +57,10 @@ def _format_template(template: str, index: int, value: str) -> str:
 def _clear_dialog_properties(window: str = 'home') -> None:
     """Clear all Dialog.N.* properties used in property mode."""
     for i in range(1, 100):
-        xbmc.executebuiltin(f'ClearProperty(Dialog.{i}.Label,{window})')
-        xbmc.executebuiltin(f'ClearProperty(Dialog.{i}.Label2,{window})')
-        xbmc.executebuiltin(f'ClearProperty(Dialog.{i}.Icon,{window})')
-        xbmc.executebuiltin(f'ClearProperty(Dialog.{i}.Builtin,{window})')
+        clear_window_prop(f'Dialog.{i}.Label', window)
+        clear_window_prop(f'Dialog.{i}.Label2', window)
+        clear_window_prop(f'Dialog.{i}.Icon', window)
+        clear_window_prop(f'Dialog.{i}.Builtin', window)
 
 
 def _show_error(message: str) -> None:

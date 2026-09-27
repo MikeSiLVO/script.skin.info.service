@@ -4,7 +4,7 @@ import operator
 import re
 import xbmc
 from lib.kodi.client import log
-from lib.kodi.utilities import set_window_prop
+from lib.kodi.utilities import set_window_prop, clear_window_prop
 
 
 _ALLOWED_OPERATORS = {
@@ -60,7 +60,7 @@ def evaluate_math(expression, prefix='', window='home'):
     prop_name = f'SkinInfo.Math.{prefix}.Result' if prefix else 'SkinInfo.Math.Result'
 
     if not expression:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)
         return
 
     resolved_expression = expression
@@ -79,4 +79,4 @@ def evaluate_math(expression, prefix='', window='home'):
             result = int(result)
         set_window_prop(prop_name, result, window)
     else:
-        xbmc.executebuiltin(f'ClearProperty({prop_name},{window})')
+        clear_window_prop(prop_name, window)

@@ -5,6 +5,7 @@ from typing import Dict, Final
 import xbmcgui
 
 from lib.kodi.client import ADDON
+from lib.kodi.utilities import clear_window_prop
 
 
 ADDON_PATH = ADDON.getAddonInfo('path')
@@ -42,12 +43,11 @@ class InfoDialogBase(DialogBase):
 
     def mark_topmost(self) -> None:
         """Flag this dialog as topmost (`istop`), remembering the prior holder for close."""
-        import xbmc
         import xbmcgui
         home = xbmcgui.Window(10000)
         self._parent_win = home.getProperty(_TOP_PROP)
         if self._parent_win:
-            xbmc.executebuiltin(f'ClearProperty(istop,{self._parent_win})')
+            clear_window_prop('istop', self._parent_win)
         home.setProperty(_TOP_PROP, str(xbmcgui.getCurrentWindowDialogId()))
         self.setProperty('istop', '1')
 
