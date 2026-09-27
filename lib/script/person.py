@@ -74,7 +74,7 @@ def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, cr
         log("General", f"person_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
         return None
 
-    tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
+    tmdb_id = person_api.library_tmdb_id(dbtype, dbid_int)
     if not tmdb_id:
         log(
             "General",
@@ -197,7 +197,7 @@ def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbt
         resolve_dbtype = dbtype
         resolve_dbid = dbid_int
 
-    tmdb_id = person_api.resolve_tmdb_id(resolve_dbtype, resolve_dbid)
+    tmdb_id = person_api.library_tmdb_id(resolve_dbtype, resolve_dbid)
     if not tmdb_id:
         log("General", f"person_info: Could not resolve TMDB ID for {dbtype} {dbid}", xbmc.LOGERROR)
         return None
@@ -280,7 +280,7 @@ def _resolve_search_auto_match(person_api, name: str, role: str,
         log("General", f"person_search: Invalid dbid '{dbid}'", xbmc.LOGERROR)
         return None
 
-    tmdb_id = person_api.resolve_tmdb_id(dbtype, dbid_int)
+    tmdb_id = person_api.library_tmdb_id(dbtype, dbid_int)
     if not tmdb_id:
         return None
 

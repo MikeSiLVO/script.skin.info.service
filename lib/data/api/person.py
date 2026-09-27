@@ -96,7 +96,7 @@ def build_person_props(person_data: dict) -> Dict[str, str]:
     return props
 
 
-def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
+def library_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
     """Get a library item's TMDB id, converting an IMDb or TVDB id when that is all it has."""
     if dbtype in ('season', 'episode'):
         details = get_item_details(dbtype, dbid, ['tvshowid'])
@@ -105,7 +105,7 @@ def resolve_tmdb_id(dbtype: str, dbid: int) -> Optional[int]:
         tvshow_id = details.get('tvshowid')
         if not tvshow_id:
             return None
-        return resolve_tmdb_id('tvshow', tvshow_id)
+        return library_tmdb_id('tvshow', tvshow_id)
 
     details = get_item_details(dbtype, dbid, ['uniqueid'])
     if not details:

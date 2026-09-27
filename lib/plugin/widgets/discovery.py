@@ -371,10 +371,10 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
                 tmdb_id = 0
 
         if not tmdb_id and dbid_str:
-            from lib.data.api.person import resolve_tmdb_id
+            from lib.data.api.person import library_tmdb_id
             try:
                 dbid = int(dbid_str)
-                resolved = resolve_tmdb_id(dbtype, dbid)
+                resolved = library_tmdb_id(dbtype, dbid)
                 tmdb_id = resolved or 0
             except (ValueError, TypeError):
                 tmdb_id = 0

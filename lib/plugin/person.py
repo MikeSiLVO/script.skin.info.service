@@ -469,7 +469,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
     """Plugin entry for crew listings (director/writer/creator); accepts `tmdb_id` directly for
     TMDB-only items with no library entry."""
     from lib.data.api import person as person_api
-    from lib.data.api.person import resolve_tmdb_id
+    from lib.data.api.person import library_tmdb_id
 
     crew_type = params.get('crew_type', [''])[0]
     dbtype = params.get('dbtype', [''])[0]
@@ -515,7 +515,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
             xbmcplugin.endOfDirectory(handle, succeeded=False)
             return
 
-        resolved = resolve_tmdb_id(dbtype, dbid)
+        resolved = library_tmdb_id(dbtype, dbid)
         tmdb_id = resolved or 0
         if not tmdb_id:
             log(

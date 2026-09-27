@@ -118,15 +118,15 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
     """Fetch and add cast ListItems from TMDB; returns None if the TMDB ID can't be resolved."""
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
-    from lib.data.api.person import resolve_tmdb_id
+    from lib.data.api.person import library_tmdb_id
 
     api = ApiTmdb()
 
     if dbid and dbtype in ('season', 'episode'):
         # a skin can only reach the episode's own id here, and TMDB needs the show's
-        tmdb_id = resolve_tmdb_id(dbtype, dbid) or tmdb_id
+        tmdb_id = library_tmdb_id(dbtype, dbid) or tmdb_id
     elif not tmdb_id and dbid:
-        tmdb_id = resolve_tmdb_id(dbtype, dbid) or 0
+        tmdb_id = library_tmdb_id(dbtype, dbid) or 0
     if not tmdb_id and imdb_id:
         find_type = 'movie' if dbtype == 'movie' else 'tvshow'
         tmdb_id = api.find_by_imdb(imdb_id, find_type) or 0
