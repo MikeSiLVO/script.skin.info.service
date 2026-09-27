@@ -2308,6 +2308,10 @@ msgctxt "#32746"
 msgid "Creator"
 msgstr ""
 
+msgctxt "#32747"
+msgid "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
+msgstr ""
+
 msgctxt "#32901"
 msgid "Enable Debug Output"
 msgstr ""

@@ -172,51 +172,20 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
     def _enter_hex_code(self) -> None:
         """Prompt user to enter hex color code and update sliders/preview."""
         dialog = xbmcgui.Dialog()
-        hex_input = dialog.input(
-            'Enter Hex Color Code',
-            type=xbmcgui.INPUT_ALPHANUM
-        )
-
+        hex_input = dialog.input(ADDON.getLocalizedString(32661), type=xbmcgui.INPUT_ALPHANUM)
         if not hex_input:
             return
 
-        hex_input = hex_input.strip().upper()
-
-        if hex_input.startswith('#'):
-            hex_input = hex_input[1:]
-
+        hex_input = hex_input.strip().upper().lstrip('#')
         if len(hex_input) == 6:
             hex_input = 'FF' + hex_input
-        elif len(hex_input) != 8:
-            dialog.notification(
-                'Invalid Hex Code',
-                'Please enter 6 (RRGGBB) or 8 (AARRGGBB) hex digits',
-                xbmcgui.NOTIFICATION_ERROR,
-                3000
-            )
+        if len(hex_input) != 8 or not all(c in '0123456789ABCDEF' for c in hex_input):
+            dialog.notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32747),
+                                xbmcgui.NOTIFICATION_ERROR, 3000)
             return
 
-        if not all(c in '0123456789ABCDEF' for c in hex_input):
-            dialog.notification(
-                'Invalid Hex Code',
-                'Hex code must contain only 0-9 and A-F',
-                xbmcgui.NOTIFICATION_ERROR,
-                3000
-            )
-            return
-
-        try:
-            self._parse_and_set_sliders(hex_input)
-            self._update_preview()
-            log("General", f'Color Picker: Applied hex code {hex_input}', xbmc.LOGDEBUG)
-        except Exception as e:
-            log("General", f'Color Picker: Failed to apply hex code: {e}', xbmc.LOGERROR)
-            dialog.notification(
-                'Error',
-                'Failed to apply hex code',
-                xbmcgui.NOTIFICATION_ERROR,
-                3000
-            )
+        self._parse_and_set_sliders(hex_input)
+        self._update_preview()
 
     def onClick(self, controlId: int) -> None:
         if controlId == 200:
