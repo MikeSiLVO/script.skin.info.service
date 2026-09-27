@@ -17,8 +17,6 @@ TEST_DEFAULTS = {
     'text': ('This is test text content.\nLine 2\nLine 3\n'
              'You can test the scrolling and appearance of the text viewer dialog.'),
     'items': 'Option 1|Option 2|Option 3|Option 4|Option 5',
-    'nolabel': 'No',
-    'yeslabel': 'Yes',
     'customlabel': 'Custom',
 }
 
@@ -112,8 +110,6 @@ def dialog_yesno(
     """Show Yes/No dialog. `yesaction`/`noaction`/`cancel_action` are pipe-separated builtins."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
-    yeslabel = yeslabel or TEST_DEFAULTS['yeslabel']
-    nolabel = nolabel or TEST_DEFAULTS['nolabel']
     autoclose_ms = _parse_int(autoclose, 0)
 
     log('Dialogs', f"dialog_yesno: heading='{heading}', autoclose={autoclose_ms}", xbmc.LOGDEBUG)
@@ -154,8 +150,6 @@ def dialog_yesnocustom(
     """Show a Yes/No/Custom 3-button dialog. `*action` args are pipe-separated builtins."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
-    yeslabel = yeslabel or TEST_DEFAULTS['yeslabel']
-    nolabel = nolabel or TEST_DEFAULTS['nolabel']
     customlabel = customlabel or TEST_DEFAULTS['customlabel']
     autoclose_ms = _parse_int(autoclose, 0)
 
