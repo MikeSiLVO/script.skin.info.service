@@ -231,40 +231,38 @@ def library_artist_mbid(artist_name: str) -> Optional[str]:
     return mbid or None
 
 
-def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> List[int]:
+def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> Tuple[List[int], int]:
+    """Get the runtimes of a show's episodes that have one, and how many episodes there are."""
     props = ["runtime"] if is_kodi_piers_or_later() else ["runtime", "streamdetails"]
     params: Dict = {"tvshowid": tvshowid, "properties": props}
-    cache_key = f"tvshow:{tvshowid}:episode_runtimes"
     if season is not None:
         params["season"] = season
-        cache_key = f"tvshow:{tvshowid}:s{season}:episode_runtimes"
-    resp = request("VideoLibrary.GetEpisodes", params, cache_key=cache_key)
-    episodes = extract_result(resp, "episodes")
-    return [e["runtime"] for e in episodes if e.get("runtime", 0) > 0]
+    episodes = extract_result(request("VideoLibrary.GetEpisodes", params), "episodes")
+    return [e["runtime"] for e in episodes if e.get("runtime", 0) > 0], len(episodes)
 
 
-def resolve_show_runtime(tvshowid: int) -> Tuple[int, int]:
-    """Return (total_runtime, avg_episode_runtime); cache-miss fetches via GetEpisodes."""
+def resolve_show_runtime(tvshowid: int, episode_count: Optional[int] = None) -> Tuple[int, int]:
+    """Resolve (total, average episode) runtime; a cached entry must match the episode count."""
     from lib.data.database import runtime as runtime_cache
-    cached = runtime_cache.get_show_runtime(tvshowid)
+    cached = runtime_cache.get_show_runtime(tvshowid, episode_count)
     if cached is not None:
         return cached
-    runtimes = _get_episode_runtimes(tvshowid)
+    runtimes, count = _get_episode_runtimes(tvshowid)
     total = sum(runtimes)
     avg = total // len(runtimes) if runtimes else 0
-    runtime_cache.save_show_runtime(tvshowid, total, avg, len(runtimes))
+    runtime_cache.save_show_runtime(tvshowid, total, avg, count)
     return total, avg
 
 
-def resolve_season_runtime(tvshowid: int, season: int) -> int:
-    """Return season total_runtime; cache-miss fetches via GetEpisodes."""
+def resolve_season_runtime(tvshowid: int, season: int, episode_count: Optional[int] = None) -> int:
+    """Resolve a season's total runtime; a cached entry must match the episode count."""
     from lib.data.database import runtime as runtime_cache
-    cached = runtime_cache.get_season_runtime(tvshowid, season)
+    cached = runtime_cache.get_season_runtime(tvshowid, season, episode_count)
     if cached is not None:
         return cached
-    runtimes = _get_episode_runtimes(tvshowid, season)
+    runtimes, count = _get_episode_runtimes(tvshowid, season)
     total = sum(runtimes)
-    runtime_cache.save_season_runtime(tvshowid, season, total, len(runtimes))
+    runtime_cache.save_season_runtime(tvshowid, season, total, count)
     return total
 
 

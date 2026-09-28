@@ -104,7 +104,7 @@ class PlayerVideoTracker:
             return
 
         from lib.kodi.library import resolve_show_runtime, resolve_watch_minutes
-        total, avg = resolve_show_runtime(int(tvshowid))
+        total, avg = resolve_show_runtime(int(tvshowid), details.get("episode"))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total

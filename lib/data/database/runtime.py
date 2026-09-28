@@ -9,28 +9,31 @@ from lib.data.database._infrastructure import get_db
 _WHOLE_SHOW: Final = -1
 
 
-def get_show_runtime(tvshowid: int) -> Optional[Tuple[int, int]]:
+def get_show_runtime(tvshowid: int,
+                     episodes: Optional[int] = None) -> Optional[Tuple[int, int]]:
     """Return (total_runtime_seconds, avg_episode_runtime_seconds) or None if not cached."""
     with get_db() as cursor:
         cursor.execute(
-            "SELECT total, avg FROM tvshow_runtime WHERE tvshowid = ? AND season = ?",
+            "SELECT total, avg, episodes FROM tvshow_runtime WHERE tvshowid = ? AND season = ?",
             (tvshowid, _WHOLE_SHOW),
         )
         row = cursor.fetchone()
-        if not row:
+        if not row or (episodes is not None and row["episodes"] != episodes):
             return None
         return row["total"], row["avg"]
 
 
-def get_season_runtime(tvshowid: int, season: int) -> Optional[int]:
+def get_season_runtime(tvshowid: int, season: int, episodes: Optional[int] = None) -> Optional[int]:
     """Return total_runtime_seconds for a season, or None if not cached."""
     with get_db() as cursor:
         cursor.execute(
-            "SELECT total FROM tvshow_runtime WHERE tvshowid = ? AND season = ?",
+            "SELECT total, episodes FROM tvshow_runtime WHERE tvshowid = ? AND season = ?",
             (tvshowid, season),
         )
         row = cursor.fetchone()
-        return row["total"] if row else None
+        if not row or (episodes is not None and row["episodes"] != episodes):
+            return None
+        return row["total"]
 
 
 def save_show_runtime(tvshowid: int, total: int, avg: int, episode_count: int) -> None:

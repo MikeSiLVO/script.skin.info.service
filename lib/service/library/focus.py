@@ -382,7 +382,7 @@ class FocusDispatcher:
         if not isinstance(details, dict):
             return False
 
-        total, avg = resolve_show_runtime(int(tvshowid))
+        total, avg = resolve_show_runtime(int(tvshowid), details.get("episode"))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total
@@ -440,7 +440,8 @@ class FocusDispatcher:
             if avg:
                 details["runtime"] = avg
             if season_num is not None:
-                details["total_runtime"] = resolve_season_runtime(int(tvshowid), int(season_num))
+                details["total_runtime"] = resolve_season_runtime(
+                    int(tvshowid), int(season_num), details.get("episode"))
 
         pending: Optional[Tuple[int, int]] = None
         if tvshowid and tvshowid != -1:
