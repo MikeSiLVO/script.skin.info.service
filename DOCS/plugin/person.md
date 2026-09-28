@@ -163,6 +163,7 @@ Window properties on Home window:
 | `SkinInfo.Person.LibraryMovies`  | `plugin://script.skin.info.service/?action=person_library&info_type=movies&person_id=N&person_name=<encoded>`  |
 | `SkinInfo.Person.LibraryTVShows` | `plugin://script.skin.info.service/?action=person_library&info_type=tvshows&person_id=N&person_name=<encoded>` |
 | `SkinInfo.Person.BlurredImage`   | `<blurred profile image path>`                                                                     |
+| `SkinInfo.Person.BlurredImage.Original` | `<profile image the blur was made from>`                                                    |
 
 Skinners typically reference these via `$INFO[Window(Home).Property(SkinInfo.Person.Crew)]`
 in `<content>` tags, but the raw paths above can also be hand-built when you need to add
@@ -221,16 +222,17 @@ Single ListItem with biography and metadata.
 | `TopTVShows`         | Top 5 TV shows              |
 | `person_id`          | TMDB person ID              |
 | `imdb_id`            | IMDB ID                     |
-| `Gender`             | Gender (1=Female, 2=Male)   |
+| `Gender`             | `Female` or `Male`          |
 | `Instagram`          | Instagram handle            |
 | `Twitter`            | Twitter handle              |
 | `Facebook`           | Facebook profile            |
 | `TikTok`             | TikTok handle               |
 | `YouTube`            | YouTube channel ID          |
+| `ProfileImage`       | Profile image URL           |
 
 ### Details Artwork
 
-`thumb`, `fanart` - Profile image
+`thumb`, `icon` - Profile image
 
 ---
 
@@ -302,18 +304,15 @@ Acting credits with filtering options.
 
 | Property      | Description                                                |
 |---------------|------------------------------------------------------------|
-| `Title`       | Title                                                      |
 | `Role`        | Character name (also set as `ListItem.Label2`)             |
 | `MediaType`   | "movie" or "tv"                                            |
-| `Year`        | Release year                                               |
-| `Rating`      | TMDB rating                                                |
-| `Votes`       | Vote count                                                 |
-| `Overview`    | Plot summary                                               |
 | `ReleaseDate` | Release date                                               |
-| `Popularity`  | Popularity score                                           |
 | `tmdb_id`     | TMDB ID of the movie or show                               |
 | `in_library`  | `true` when the item is in the Kodi library (else not set) |
 | `dbid`        | Library ID, set only alongside `in_library`                |
+
+Title, year, TMDB rating and overview are in `ListItem.Title`, `ListItem.Year`,
+`ListItem.Rating` and `ListItem.Plot`.
 
 Use `in_library` to mark or filter owned items, and `dbid` to open the library entry:
 
@@ -323,7 +322,7 @@ Use `in_library` to mark or filter owned items, and `dbid` to open the library e
 
 ### Filmography Artwork
 
-`thumb` - Poster, `fanart` - Backdrop
+`poster` - Poster, `fanart` - Backdrop
 
 ---
 
@@ -454,6 +453,10 @@ Each ListItem additionally has:
 
 | Property      | Description                                          |
 |---------------|------------------------------------------------------|
+| `Title`       | Title                                                |
+| `Year`        | Release year                                         |
+| `Rating`      | Library rating, one decimal                          |
+| `Playcount`   | Times played, set only once played                   |
 | `Role`        | Character name (also `Label2`)                       |
 
 | Parameter     | Required | Description                                                     |

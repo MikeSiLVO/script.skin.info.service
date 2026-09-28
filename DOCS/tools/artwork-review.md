@@ -309,6 +309,10 @@ Kodi will automatically use your skin's version if it exists, otherwise falls ba
 - **Window.Property(show_change_language)**: "true" or "false"
 - **Window.Property(show_sort_button)**: "true" or "false"
 - **Window.Property(show_source_button)**: "true" or "false"
+- **Window.Property(sort_mode)**: `popularity` or `resolution`
+- **Window.Property(sort_label)**: Translated label for the sort mode (e.g., "Sort: Popularity")
+- **Window.Property(source_pref)**: `all`, `tmdb` or `fanart`
+- **Window.Property(source_label)**: Translated label for the source filter (e.g., "Source: TMDB")
 - **Window.Property(multiart_queued)**: "true" once a multi-art selection has been queued via the Multi-Art button (otherwise empty)
 
 **ListItem Properties (List 100 - artwork options):**
@@ -413,6 +417,10 @@ This dialog uses a "working set" approach for managing extra art slots (fanart1+
 - **Window.Property(count_selected)**: Number of selected images (numeric string)
 - **Window.Property(show_sort_button)**: "true" or "false"
 - **Window.Property(show_source_button)**: "true" or "false"
+- **Window.Property(sort_mode)**: `popularity` or `resolution`
+- **Window.Property(sort_label)**: Translated label for the sort mode (e.g., "Sort: Popularity")
+- **Window.Property(source_pref)**: `all`, `tmdb` or `fanart`
+- **Window.Property(source_label)**: Translated label for the source filter (e.g., "Source: TMDB")
 
 ### Testing Your Dialog XML
 

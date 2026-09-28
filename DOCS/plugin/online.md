@@ -309,6 +309,7 @@ Each source provides three properties:
 - `Popcorn` - RT Audience
 - `rogerebert` - Roger Ebert
 - `myanimelist` - MyAnimeList
+- `mdblistscore` - MDBList's own aggregate of the other sources, with no vote count
 
 ### Example
 

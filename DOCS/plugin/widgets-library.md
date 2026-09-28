@@ -9,6 +9,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 ## Table of Contents
 
 - [Localized Labels](#localized-labels)
+- [TV Show Items](#tv-show-items)
 - [Next Up](#next-up)
 - [Next Up (Favourites)](#next-up-favourites)
 - [Continue Watching](#continue-watching)
@@ -82,6 +83,22 @@ Widgets with no row set the category from their source item instead:
 | Artist Albums | the artist's name |
 | Artist Music Videos | the artist's name |
 | Genre Artists | the genre |
+
+---
+
+## TV Show Items
+
+Every TV show row these widgets return carries:
+
+| Property | Description |
+|----------|-------------|
+| `TotalEpisodes` | Episode count |
+| `WatchedEpisodes` | Watched episode count |
+| `UnWatchedEpisodes` | Unwatched episode count |
+| `WatchedEpisodePercent` | Watched episodes as a percentage |
+
+`TotalSeasons`, the show's season count, is also set on the TV show rows of Recent Videos and
+Recommended For You, and on every row of Recent Episodes Grouped.
 
 ---
 
@@ -501,6 +518,12 @@ Items by a random director from the source item.
 
 - **mix=true**: Mixed widget (movie + episode)
 - **mix=false**: Movie or Episode widget
+
+### Per-Item Properties
+
+| Property   | Description                                                |
+|------------|------------------------------------------------------------|
+| `Director` | Name of the picked director (same value on every result)   |
 
 ---
 

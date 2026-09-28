@@ -18,6 +18,7 @@ Window properties set automatically by the service when library items are focuse
 - [Music Videos](#music-videos)
 - [Artists](#artists)
 - [Albums](#albums)
+- [Video Player](#video-player)
 - [Music Player](#music-player)
 - [Property Clearing](#property-clearing)
 
@@ -61,13 +62,13 @@ Media-type-agnostic properties that work regardless of what item is focused.
 
 ### Time Watched (Video)
 
-Total time spent watching an item, equal to `Runtime × PlayCount`. `Runtime` is rounded to whole minutes to match Kodi's `$INFO[ListItem.Duration(mins)]`, so `WatchTime` reconciles when done by hand. Empty when unwatched.
+Total time spent watching an item, equal to `Runtime × PlayCount`. `Runtime` is rounded to whole minutes to match Kodi's `$INFO[ListItem.Duration(mins)]`, so `WatchTime` reconciles when done by hand. For a TV show or season it is the sum of its episodes' `WatchTime`. Empty when unwatched.
 
 | Property | Description | Available For |
 |----------|-------------|---------------|
-| `WatchTime` | Total minutes watched | Movie, Episode, MusicVideo |
-| `WatchTime.Hours` | Hours component | Movie, Episode, MusicVideo |
-| `WatchTime.Minutes` | Minutes component | Movie, Episode, MusicVideo |
+| `WatchTime` | Total minutes watched | Movie, TVShow, Season, Episode, MusicVideo |
+| `WatchTime.Hours` | Hours component | Movie, TVShow, Season, Episode, MusicVideo |
+| `WatchTime.Minutes` | Minutes component | Movie, TVShow, Season, Episode, MusicVideo |
 
 ### Duration
 
@@ -90,8 +91,8 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Rating.{source}.Votes` | Vote count for source | Movie, TVShow, Episode |
 | `Rating.{source}.Percent` | Source rating as percentage | Movie, TVShow, Episode |
 | `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 | Movie, TVShow, Episode |
-| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) | Movie, TVShow |
-| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) | Movie, TVShow |
+| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) | Movie, TVShow, Episode |
+| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) | Movie, TVShow, Episode |
 
 ### Example
 
@@ -136,6 +137,10 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Runtime.Minutes` | Runtime minutes component |
 | `Premiered` | Premiere date |
 | `PercentPlayed` | Playback progress percentage |
+| `IsResumable` | `true` when there is a resume point |
+| `WatchTime` | Total minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 
 ### Movie Set
 
@@ -349,12 +354,16 @@ Use `%d` as placeholder for index (1-based):
 | `Episode` | Total episode count |
 | `Season` | Total season count |
 | `WatchedEpisodes` | Number of watched episodes |
+| `WatchedEpisodePercent` | Watched episodes as a percentage |
 | `Runtime` | Average episode runtime in minutes (calculated from library) |
 | `Runtime.Hours` | Hours component of average runtime |
 | `Runtime.Minutes` | Minutes component of average runtime |
 | `TotalRuntime` | Total runtime of all episodes in minutes |
 | `TotalRuntime.Hours` | Hours component of total runtime |
 | `TotalRuntime.Minutes` | Minutes component of total runtime |
+| `WatchTime` | Minutes watched across all episodes |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 | `EpisodeGuide` | Episode guide URL |
 | `Trailer` | Trailer URL |
 
@@ -370,6 +379,15 @@ Use `%d` as placeholder for index (1-based):
 | `UniqueID.IMDB` | IMDB unique ID |
 | `UniqueID.TMDB` | TMDB unique ID |
 | `UniqueID.TVDB` | TVDB unique ID |
+
+### Ratings
+
+`SkinInfo.TVShow.Rating.{source}` and its `.Votes`, `.Percent` and `.Stars`, as in the movie [Ratings](#ratings-1).
+
+| Property | Description |
+|----------|-------------|
+| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### Credits
 
@@ -413,6 +431,9 @@ Use `%d` as placeholder for index (1-based):
 | `TotalRuntime` | Total runtime of all season episodes in minutes |
 | `TotalRuntime.Hours` | Hours component of total runtime |
 | `TotalRuntime.Minutes` | Minutes component of total runtime |
+| `WatchTime` | Minutes watched across the season's episodes |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 | `Playcount` | Play count |
 | `UserRating` | User's rating (0-10) |
 | `TVShowID` | Parent TV show database ID |
@@ -458,6 +479,9 @@ Use `%d` as placeholder for index (1-based):
 | `Runtime` | Runtime in minutes |
 | `Runtime.Hours` | Runtime hours component |
 | `Runtime.Minutes` | Runtime minutes component |
+| `WatchTime` | Total minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 | `ProductionCode` | Production code |
 | `TVShowID` | Parent TV show database ID |
 | `SeasonID` | Season database ID |
@@ -473,6 +497,17 @@ Use `%d` as placeholder for index (1-based):
 | `UniqueID.IMDB` | IMDB unique ID |
 | `UniqueID.TMDB` | TMDB unique ID |
 | `UniqueID.TVDB` | TVDB unique ID |
+| `PercentPlayed` | Playback progress percentage |
+| `IsResumable` | `true` when there is a resume point |
+
+### Ratings
+
+`SkinInfo.Episode.Rating.{source}` and its `.Votes`, `.Percent` and `.Stars`, as in the movie [Ratings](#ratings-1).
+
+| Property | Description |
+|----------|-------------|
+| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### Credits
 
@@ -488,6 +523,8 @@ Use `%d` as placeholder for index (1-based):
 
 | Property | Description |
 |----------|-------------|
+| `FileName` | File name without path |
+| `FileExtension` | File extension (mkv, mp4, etc.) |
 | `Codec` | Video codec |
 | `Resolution` | Video resolution (480, 720, 1080, 4k, 8k) |
 | `Aspect` | Aspect ratio |
@@ -534,6 +571,9 @@ Use `%d` as placeholder for index (1-based):
 | `Duration.Seconds` | Runtime in seconds |
 | `Premiered` | Release date |
 | `Track` | Track number |
+| `WatchTime` | Total minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours` | Hours component |
+| `WatchTime.Minutes` | Minutes component |
 
 ### Library Data
 
@@ -547,6 +587,10 @@ Use `%d` as placeholder for index (1-based):
 | `UserRating` | User's rating (0-10) |
 | `UniqueID.IMDB` | IMDB unique ID |
 | `UniqueID.TMDB` | TMDB unique ID |
+| `PercentPlayed` | Playback progress percentage |
+| `IsResumable` | `true` when there is a resume point |
+| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### Credits
 
@@ -561,6 +605,8 @@ Use `%d` as placeholder for index (1-based):
 
 | Property | Description |
 |----------|-------------|
+| `FileName` | File name without path |
+| `FileExtension` | File extension (mkv, mp4, etc.) |
 | `Codec` | Video codec |
 | `Resolution` | Video resolution |
 | `Aspect` | Aspect ratio |
@@ -734,8 +780,21 @@ Use `%d` as placeholder for index (1-based):
 |----------|-------------|
 | `Song.%d.Title` | Song title |
 | `Song.%d.Duration` | Duration in seconds |
-| `Song.%d.Track` | Track number |
+| `Song.%d.TrackNumber` | Track number |
 | `Song.%d.FileExtension` | File extension |
+
+---
+
+## Video Player
+
+Set during video playback of a library item, cleared when playback stops.
+
+| Prefix | Playing | Properties |
+|--------|---------|------------|
+| `SkinInfo.Player.Rating.*` | Movie or episode | `{source}`, `{source}.Votes`, `{source}.Percent`, `{source}.Stars`, as in the movie [Ratings](#ratings-1) |
+| `SkinInfo.Player.TVShow.*` | Episode | The parent show's [Basic Information](#tv-shows), Show Details and `WatchTime` |
+| `SkinInfo.Player.TVShow.Rating.*` | Episode | The parent show's ratings, as `SkinInfo.Player.Rating.*` |
+| `SkinInfo.Player.MusicVideo.*` | Music video | Every [Music Videos](#music-videos) property except artwork, plus its Music Library Cross-Reference |
 
 ---
 

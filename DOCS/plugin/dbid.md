@@ -62,6 +62,8 @@ through a hidden container.
 | `dbtype`  | Yes      | `movie`, `tvshow`, `season`, `episode`, `musicvideo`, |
 |           |          | `artist`, `album`, `set`                              |
 
+Every item also carries `DBID`.
+
 ---
 
 ## Movies
@@ -117,6 +119,12 @@ through a hidden container.
 | `Aspect`         | Aspect ratio        |
 | `AudioCodec`     | Audio codec         |
 | `AudioChannels`  | Audio channels      |
+| `AudioLanguage`  | Language of the audio track shown |
+| `HDRType`        | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount`  | Number of subtitle tracks |
+| `Tomatometer`    | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter`   | "Fresh" or "Spilled" (based on ≥60%) |
 | `PercentPlayed`  | Progress percentage |
 | `IsResumable`    | Has resume data     |
 | `FileName`       | File name           |
@@ -199,9 +207,11 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `Runtime`         | Episode runtime in minutes |
 | `Runtime.Hours`   | Hours component   |
 | `Runtime.Minutes` | Minutes component |
-| `WatchTime`       | Minutes watched (`Runtime × Playcount`) |
-| `WatchTime.Hours` | Hours component   |
-| `WatchTime.Minutes` | Minutes component |
+| `TotalRuntime`    | Total runtime of all episodes in minutes |
+| `TotalRuntime.Hours` | Hours component |
+| `TotalRuntime.Minutes` | Minutes component |
+| `Tomatometer`    | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter`   | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### TV Show Artwork
 
@@ -213,6 +223,8 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 - `ListItem.Art(banner)`
 - `ListItem.Art(clearart)`
 - `ListItem.Art(thumb)`
+
+Ratings: `ListItem.Rating(<source>)` and the same properties as [Movie Ratings](#movie-ratings).
 
 ---
 
@@ -236,6 +248,12 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `Playcount`       | Play count        |
 | `UserRating`      | User rating       |
 | `TVShowID`        | Parent show DBID  |
+| `Runtime`         | Average episode runtime in minutes |
+| `Runtime.Hours`   | Hours component   |
+| `Runtime.Minutes` | Minutes component |
+| `TotalRuntime`    | Total runtime of the season's episodes in minutes |
+| `TotalRuntime.Hours` | Hours component |
+| `TotalRuntime.Minutes` | Minutes component |
 
 ### Season Artwork
 
@@ -270,7 +288,12 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `Rating`         | Rating          |
 | `Votes`          | Votes           |
 | `FirstAired`     | Air date        |
-| `Runtime`        | Runtime         |
+| `Runtime`        | Runtime in minutes |
+| `Runtime.Hours`  | Hours component |
+| `Runtime.Minutes`| Minutes component |
+| `WatchTime`      | Minutes watched (`Runtime × Playcount`) |
+| `WatchTime.Hours`| Hours component |
+| `WatchTime.Minutes` | Minutes component |
 | `Director`       | Directors       |
 | `Writer`         | Writers         |
 | `Cast`           | Cast            |
@@ -293,6 +316,12 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `Aspect`         | Aspect ratio    |
 | `AudioCodec`     | Audio codec     |
 | `AudioChannels`  | Audio channels  |
+| `AudioLanguage`  | Language of the audio track shown |
+| `HDRType`        | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount`  | Number of subtitle tracks |
+| `Tomatometer`    | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter`   | "Fresh" or "Spilled" (based on ≥60%) |
 | `PercentPlayed`  | Progress        |
 | `IsResumable`    | Has resume      |
 | `FileName`       | File name       |
@@ -308,6 +337,8 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 - `ListItem.Art(banner)`
 - `ListItem.Art(clearart)`
 - `ListItem.Art(thumb)`
+
+Ratings: `ListItem.Rating(<source>)` and the same properties as [Movie Ratings](#movie-ratings).
 
 ---
 
@@ -355,6 +386,11 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `Genres`          | All genres              |
 | `Countries`       | All countries           |
 | `Studios`         | All studios             |
+| `Writers.%d`      | Individual writer       |
+| `Directors.%d`    | Individual director     |
+| `Genres.%d`       | Individual genre        |
+| `Countries.%d`    | Individual country      |
+| `Studios.%d`      | Primary studio per movie |
 
 ### Per-Movie Properties
 
@@ -366,14 +402,17 @@ Use `%d` as index (1-based):
 - `Movie.%d.Year`
 - `Movie.%d.Runtime`
 - `Movie.%d.Plot`
+- `Movie.%d.PlotOutline`
 - `Movie.%d.Genre`
 - `Movie.%d.Director`
 - `Movie.%d.Writer`
 - `Movie.%d.Studio`
+- `Movie.%d.StudioPrimary`
 - `Movie.%d.Country`
 - `Movie.%d.VideoResolution`
+- `Movie.%d.HDRType`
 - `Movie.%d.MPAA`
-- `Movie.%d.Art(poster)`
+- `Movie.%d.Art.<type>`, for each type in [Movie Artwork](#movie-artwork)
 
 ---
 
@@ -409,6 +448,11 @@ Use `%d` as index (1-based):
 | `SongGenres`    | Song genres    |
 | `DateAdded`     | Date added     |
 
+### Artist Artwork
+
+- `ListItem.Art(thumb)`
+- `ListItem.Art(fanart)`
+
 ### Artist Album Aggregates
 
 - `Albums.Newest`
@@ -426,8 +470,8 @@ Use `%d` as index (1-based):
 - `Album.%d.Label`
 - `Album.%d.Playcount`
 - `Album.%d.Rating`
-- `Album.%d.Art(thumb)`
-- `Album.%d.Art(discart)`
+- `Album.%d.Art.thumb`
+- `Album.%d.Art.discart`
 
 ---
 
@@ -478,7 +522,7 @@ Use `%d` as index (1-based):
 
 - `Song.%d.Title`
 - `Song.%d.Duration`
-- `Song.%d.Track`
+- `Song.%d.TrackNumber`
 - `Song.%d.FileExtension`
 
 ---
@@ -526,6 +570,18 @@ Use `%d` as index (1-based):
 | `Aspect`        | Aspect ratio   |
 | `AudioCodec`    | Audio codec    |
 | `AudioChannels` | Audio channels |
+| `AudioLanguage`  | Language of the audio track shown |
+| `HDRType`        | `dolbyvision`, `hdr10`, `hdr10plus`, `hlg`, or empty |
+| `SubtitleLanguage` | Language of the first subtitle track |
+| `SubtitleCount`  | Number of subtitle tracks |
+| `Tomatometer`    | "Fresh" or "Rotten" (based on ≥60%) |
+| `Popcornmeter`   | "Fresh" or "Spilled" (based on ≥60%) |
+| `UniqueID.IMDB`  | IMDB unique ID |
+| `UniqueID.TMDB`  | TMDB unique ID |
+| `PercentPlayed`  | Progress percentage |
+| `IsResumable`    | Has resume data |
+| `FileName`       | File name      |
+| `FileExtension`  | Extension      |
 
 ### Music Video Artwork
 
@@ -537,6 +593,8 @@ Use `%d` as index (1-based):
 - `ListItem.Art(banner)`
 - `ListItem.Art(clearart)`
 - `ListItem.Art(thumb)`
+
+Ratings: `ListItem.Rating(<source>)` and the same properties as [Movie Ratings](#movie-ratings).
 
 ### Music Library Cross-Reference
 
