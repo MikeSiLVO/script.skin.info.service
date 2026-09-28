@@ -147,7 +147,7 @@ def _handle_online_musicvideo(handle: int, params: dict) -> None:
         extract_track_properties,
         extract_album_properties,
     )
-    from lib.kodi.properties import join_multi
+    from lib.kodi.utilities import join_multi
 
     dbid = params.get("dbid", [""])[0]
     if not dbid:
@@ -221,7 +221,7 @@ def _handle_online_musicvideo(handle: int, params: dict) -> None:
 
 def handle_musicvideo_node(handle: int, params: dict, media_type: str) -> None:
     """Handle musicvideo artist/album node queries using name-based library lookup."""
-    from lib.plugin.dbid import get_musicvideo_node_data
+    from lib.kodi.library import get_musicvideo_node_data
 
     artist_name = params.get("artist", [""])[0]
     album_name = params.get("album", [""])[0]

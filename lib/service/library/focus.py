@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import threading
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Final
+from typing import Optional, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -14,6 +14,10 @@ from lib.kodi.client import (
 from lib.kodi.utilities import (
     clear_group, gui_transition_settled, is_kodi_piers_or_later, modal_dialog_active,
     normalize_dbtype, tvshow_version_fields,
+)
+from lib.kodi.library import (
+    cached_watch_minutes, cached_watched_episodes, resolve_season_runtime, resolve_show_runtime,
+    resolve_watch_minutes,
 )
 from lib.kodi.properties import (
     set_artist_properties,
@@ -83,109 +87,6 @@ _MEDIA_TYPE_PREFIXES = {
     "musicvideo_album": "SkinInfo.MusicVideo.",
     "player": "SkinInfo.Player.",
 }
-
-
-def _get_episode_runtimes(tvshowid: int, season: Optional[int] = None) -> List[int]:
-    props = ["runtime"] if is_kodi_piers_or_later() else ["runtime", "streamdetails"]
-    params: Dict = {"tvshowid": tvshowid, "properties": props}
-    cache_key = f"tvshow:{tvshowid}:episode_runtimes"
-    if season is not None:
-        params["season"] = season
-        cache_key = f"tvshow:{tvshowid}:s{season}:episode_runtimes"
-    resp = request("VideoLibrary.GetEpisodes", params, cache_key=cache_key)
-    episodes = extract_result(resp, "episodes")
-    return [e["runtime"] for e in episodes if e.get("runtime", 0) > 0]
-
-
-def resolve_show_runtime(tvshowid: int) -> Tuple[int, int]:
-    """Return (total_runtime, avg_episode_runtime); cache-miss fetches via GetEpisodes."""
-    from lib.data.database import runtime as runtime_cache
-    cached = runtime_cache.get_show_runtime(tvshowid)
-    if cached is not None:
-        return cached
-    runtimes = _get_episode_runtimes(tvshowid)
-    total = sum(runtimes)
-    avg = total // len(runtimes) if runtimes else 0
-    runtime_cache.save_show_runtime(tvshowid, total, avg, len(runtimes))
-    return total, avg
-
-
-def _resolve_season_runtime(tvshowid: int, season: int) -> int:
-    """Return season total_runtime; cache-miss fetches via GetEpisodes."""
-    from lib.data.database import runtime as runtime_cache
-    cached = runtime_cache.get_season_runtime(tvshowid, season)
-    if cached is not None:
-        return cached
-    runtimes = _get_episode_runtimes(tvshowid, season)
-    total = sum(runtimes)
-    runtime_cache.save_season_runtime(tvshowid, season, total, len(runtimes))
-    return total
-
-
-_WATCH_MINUTES: Dict[int, Dict[Optional[int], int]] = {}
-_WATCHED_EPISODES: Dict[int, Dict[int, int]] = {}
-_watch_generation = 0
-
-
-def cached_watch_minutes(tvshowid: int, season: Optional[int] = None) -> Optional[int]:
-    """Cached minutes watched for a show, or one of its seasons; None when not fetched yet."""
-    show = _WATCH_MINUTES.get(tvshowid)
-    if show is None:
-        return None
-    return show.get(season, 0)
-
-
-def cached_watched_episodes(tvshowid: int, season: int) -> Optional[int]:
-    """Cached count of a season's watched episodes; None when the show is not fetched yet."""
-    show = _WATCHED_EPISODES.get(tvshowid)
-    if show is None:
-        return None
-    return show.get(season, 0)
-
-
-def resolve_watch_minutes(tvshowid: int, season: Optional[int] = None) -> int:
-    """Resolve the minutes watched for a show or season, one fetch covering all its seasons."""
-    cached = cached_watch_minutes(tvshowid, season)
-    if cached is not None:
-        return cached
-    generation = _watch_generation
-    props = ["runtime", "playcount", "season"] if is_kodi_piers_or_later() else [
-        "runtime", "playcount", "season", "streamdetails"]
-    resp = request("VideoLibrary.GetEpisodes", {
-        "tvshowid": tvshowid, "properties": props,
-        "filter": {"field": "playcount", "operator": "greaterthan", "value": "0"},
-    })
-    if resp is None:
-        return 0
-    totals: Dict[Optional[int], int] = {None: 0}
-    watched: Dict[int, int] = {}
-    for episode in extract_result(resp, "episodes"):
-        minutes = round((episode.get("runtime") or 0) / 60) * (episode.get("playcount") or 0)
-        number = episode.get("season")
-        totals[None] += minutes
-        totals[number] = totals.get(number, 0) + minutes
-        watched[number] = watched.get(number, 0) + 1
-    if generation == _watch_generation:
-        _WATCH_MINUTES[tvshowid] = totals
-        _WATCHED_EPISODES[tvshowid] = watched
-    return totals.get(season, 0)
-
-
-def watch_minutes_cached() -> bool:
-    """Whether any show's watch times are cached."""
-    return bool(_WATCH_MINUTES)
-
-
-def forget_watch_minutes(tvshowid: Optional[int] = None) -> None:
-    """Forget one show's cached watch times, or every show's when the show is not known."""
-    global _watch_generation
-    _watch_generation += 1
-    if tvshowid is None:
-        _WATCH_MINUTES.clear()
-        _WATCHED_EPISODES.clear()
-    else:
-        _WATCH_MINUTES.pop(tvshowid, None)
-        _WATCHED_EPISODES.pop(tvshowid, None)
 
 
 _CONTAINER_CONTENT_TYPES = {
@@ -454,13 +355,13 @@ class FocusDispatcher:
             set_movieset_properties(base_details, movies)
 
     def _set_artist(self, artistid: str) -> None:
-        from lib.plugin.dbid import fetch_artist_details
+        from lib.kodi.library import fetch_artist_details
         result = fetch_artist_details(int(artistid))
         if result:
             set_artist_properties(*result)
 
     def _set_album(self, albumid: str) -> None:
-        from lib.plugin.dbid import fetch_album_details
+        from lib.kodi.library import fetch_album_details
         result = fetch_album_details(int(albumid))
         if result:
             set_album_properties(*result)
@@ -539,7 +440,7 @@ class FocusDispatcher:
             if avg:
                 details["runtime"] = avg
             if season_num is not None:
-                details["total_runtime"] = _resolve_season_runtime(int(tvshowid), int(season_num))
+                details["total_runtime"] = resolve_season_runtime(int(tvshowid), int(season_num))
 
         pending: Optional[Tuple[int, int]] = None
         if tvshowid and tvshowid != -1:

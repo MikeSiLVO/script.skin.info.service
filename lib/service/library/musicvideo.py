@@ -38,7 +38,7 @@ class MusicVideoArt:
 
     def invalidate_for(self, musicvideoid: int) -> None:
         """Drop cached music data for the artist/track/album of this music video."""
-        from lib.kodi.properties import join_multi
+        from lib.kodi.utilities import join_multi
         details = get_item_details(
             'musicvideo', musicvideoid, ["title", "artist", "album"],
             cache_key=f"musicvideo:{musicvideoid}:invalidate",
@@ -76,7 +76,7 @@ class MusicVideoArt:
 
     def set_library_art(self, details: dict, prefix: str = "SkinInfo.MusicVideo.") -> None:
         """Set local artist art plus deferred album thumb."""
-        from lib.plugin.dbid import get_musicvideo_artist_art
+        from lib.kodi.library import get_musicvideo_artist_art
 
         self._art_generation += 1
         artist_art, artist_id = get_musicvideo_artist_art(details)
@@ -89,7 +89,7 @@ class MusicVideoArt:
                            generation: int) -> None:
         def _worker() -> None:
             try:
-                from lib.plugin.dbid import get_musicvideo_album_art
+                from lib.kodi.library import get_musicvideo_album_art
                 album_thumb = get_musicvideo_album_art(details, artist_id)
                 # focus can move while the lookup runs; a late write lands on the wrong item
                 if generation != self._art_generation:

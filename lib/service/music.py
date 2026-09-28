@@ -31,30 +31,6 @@ from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
 
-def library_artist_mbid(artist_name: str) -> Optional[str]:
-    """MusicBrainz ID for an artist from Kodi's music library, or None if not there."""
-    from lib.kodi.client import request, extract_result
-
-    primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
-    if not primary_name:
-        return None
-
-    artists = extract_result(
-        request("AudioLibrary.GetArtists", {
-            "properties": ["musicbrainzartistid"],
-            "filter": {"field": "artist", "operator": "is", "value": primary_name},
-        }),
-        "artists",
-    )
-    if not artists:
-        return None
-
-    mbid = artists[0].get("musicbrainzartistid")
-    if isinstance(mbid, list):
-        mbid = mbid[0] if mbid else None
-    return mbid or None
-
-
 def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
                          album: Optional[str] = None, track: Optional[str] = None,
                          abort_flag=None) -> Tuple[List[str], Optional[dict]]:

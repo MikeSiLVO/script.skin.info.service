@@ -10,7 +10,7 @@ import threading
 import time
 import xbmc
 import xbmcgui
-from typing import Dict, Optional, List, Tuple, Final
+from typing import Any, Dict, Final, List, Optional, Tuple
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
@@ -100,6 +100,13 @@ DEFAULT_LANGUAGE: Final = 'en'
 
 # Kodi's join separator for multi-value strings (genres, directors, cast).
 MULTI_VALUE_SEP: Final = " / "
+
+
+def join_multi(items: Optional[List[Any]], separator: str = MULTI_VALUE_SEP) -> str:
+    """Join a list into a Kodi-style multi-value string, dropping falsy entries."""
+    if not items:
+        return ""
+    return separator.join(str(i) for i in items if i)
 
 
 _CERT_RATED = re.compile(r'^rated\s*:?\s*', re.IGNORECASE)

@@ -5,7 +5,7 @@ from typing import Any, Optional, List, Tuple, Dict, Set, Final
 import os
 
 from lib.kodi.utilities import (
-    clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, MULTI_VALUE_SEP
+    clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, join_multi,
 )
 from lib.kodi.formatters import format_number, format_stars, RATING_SOURCE_NORMALIZE
 
@@ -180,13 +180,6 @@ def _ordered_unique_push(seen: set, acc: list, items) -> None:
         if x and x not in seen:
             seen.add(x)
             acc.append(x)
-
-
-def join_multi(items: Optional[List[Any]], separator: str = MULTI_VALUE_SEP) -> str:
-    """Join a list into a Kodi-style multi-value string, dropping falsy entries."""
-    if not items:
-        return ""
-    return separator.join(str(i) for i in items if i)
 
 
 def _first_or_empty(value) -> str:

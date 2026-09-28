@@ -41,7 +41,7 @@ class LibraryMonitor(xbmc.Monitor):
             self.service_main.focus.invalidate_asset_view()
         if method in ('AudioLibrary.OnUpdate', 'AudioLibrary.OnScanFinished',
                       'AudioLibrary.OnCleanFinished'):
-            from lib.plugin.dbid import clear_musicvideo_library_art_cache
+            from lib.kodi.library import clear_musicvideo_library_art_cache
             clear_musicvideo_library_art_cache()
         if method == 'VideoLibrary.OnRemove':
             self._on_video_remove(data)
@@ -72,7 +72,7 @@ class LibraryMonitor(xbmc.Monitor):
         from lib.data.database.rollcall import remove_dbid
         remove_dbid(media_type, dbid)
         if media_type in ('episode', 'tvshow'):
-            from lib.service.library.focus import forget_watch_minutes
+            from lib.kodi.library import forget_watch_minutes
             forget_watch_minutes(int(dbid) if media_type == 'tvshow' else None)
         if media_type == 'tvshow':
             from lib.data.database.runtime import invalidate_show_runtime
@@ -92,7 +92,7 @@ class LibraryMonitor(xbmc.Monitor):
             return
         if media_type == 'episode' and ('playcount' in info or 'item' not in info):
             from lib.kodi.client import get_item_details
-            from lib.service.library.focus import forget_watch_minutes, watch_minutes_cached
+            from lib.kodi.library import forget_watch_minutes, watch_minutes_cached
             tvshowid = None
             if watch_minutes_cached():
                 episode = get_item_details('episode', int(dbid), ['tvshowid'])
