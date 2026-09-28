@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from lib.service.properties import (
+from lib.kodi.properties import (
     build_movie_data as _build_movie_base,
     build_movieset_data as _build_movieset_base,
     build_tvshow_data as _build_tvshow_base,

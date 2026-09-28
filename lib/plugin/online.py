@@ -147,7 +147,7 @@ def _handle_online_musicvideo(handle: int, params: dict) -> None:
         extract_track_properties,
         extract_album_properties,
     )
-    from lib.service.properties import join_multi
+    from lib.kodi.properties import join_multi
 
     dbid = params.get("dbid", [""])[0]
     if not dbid:

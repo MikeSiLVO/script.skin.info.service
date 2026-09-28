@@ -15,7 +15,7 @@ from lib.kodi.utilities import (
     clear_group, gui_transition_settled, is_kodi_piers_or_later, modal_dialog_active,
     normalize_dbtype, tvshow_version_fields,
 )
-from lib.service.properties import (
+from lib.kodi.properties import (
     set_artist_properties,
     set_album_properties,
     set_movie_properties,

@@ -38,7 +38,7 @@ class MusicVideoArt:
 
     def invalidate_for(self, musicvideoid: int) -> None:
         """Drop cached music data for the artist/track/album of this music video."""
-        from lib.service.properties import join_multi
+        from lib.kodi.properties import join_multi
         details = get_item_details(
             'musicvideo', musicvideoid, ["title", "artist", "album"],
             cache_key=f"musicvideo:{musicvideoid}:invalidate",
@@ -57,7 +57,7 @@ class MusicVideoArt:
 
     def set_focus_details(self, musicvideoid: str) -> None:
         """Fetch musicvideo details + set library art for a focused item."""
-        from lib.service.properties import set_musicvideo_properties
+        from lib.kodi.properties import set_musicvideo_properties
         details = get_item_details(
             'musicvideo', int(musicvideoid),
             [

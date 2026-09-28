@@ -22,7 +22,7 @@ from lib.plugin.listitems import (
     build_artist_data,
     build_album_data,
 )
-from lib.service.properties import join_multi
+from lib.kodi.properties import join_multi
 
 
 def _set_stream_details(video_tag: xbmc.InfoTagVideo, streamdetails: dict) -> None:

@@ -1,7 +1,4 @@
-"""Window property setters for movies, sets, artists, albums, and ratings.
-
-Optimized batch property operations for high-performance UI updates.
-"""
+"""Window property builders and setters for every library type, plus ratings."""
 from __future__ import annotations
 
 from typing import Any, Optional, List, Tuple, Dict, Set, Final

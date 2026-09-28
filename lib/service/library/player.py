@@ -12,7 +12,7 @@ from lib.kodi.client import (
 from lib.kodi.utilities import (
     batch_set_props, clear_group, MULTI_VALUE_SEP,
 )
-from lib.service.properties import set_ratings_properties
+from lib.kodi.properties import set_ratings_properties
 
 if TYPE_CHECKING:
     from lib.service.library.main import ServiceMain
@@ -111,7 +111,7 @@ class PlayerVideoTracker:
         if details.get("watchedepisodes"):
             details["watch_minutes"] = resolve_watch_minutes(int(tvshowid))
 
-        from lib.service.properties import build_tvshow_data
+        from lib.kodi.properties import build_tvshow_data
         data = build_tvshow_data(details)
         props = {f"SkinInfo.Player.TVShow.{k}": v for k, v in data.items() if not k.startswith("_")}
         batch_set_props(props)
@@ -132,7 +132,7 @@ class PlayerVideoTracker:
         if not isinstance(details, dict):
             return
 
-        from lib.service.properties import build_musicvideo_data
+        from lib.kodi.properties import build_musicvideo_data
         data = build_musicvideo_data(details)
         props = {
             f"SkinInfo.Player.MusicVideo.{k}": v
