@@ -24,6 +24,7 @@ class OrchestratorMonitor(xbmc.Monitor):
         self.settings_dirty = True  # force initial evaluation
 
     def onSettingsChanged(self) -> None:
+        """Drop the cached settings and flag them for re-evaluation."""
         from lib.kodi.settings import KodiSettings
         KodiSettings.clear_cache()
         self.settings_dirty = True
@@ -41,6 +42,7 @@ class Orchestrator:
         self._stinger_thread = None
 
     def run(self) -> None:
+        """Run the service orchestrator until Kodi aborts, then stop everything it started."""
         from lib.data.database._infrastructure import init_database
         from lib.service.slideshow import SlideshowMonitor
 
@@ -70,9 +72,9 @@ class Orchestrator:
             log("Service", "Orchestrator stopped", xbmc.LOGINFO)
 
     def _start_housekeeping(self) -> None:
-        """Expired cache cleanup in a daemon thread after startup."""
+        """Start housekeeping 30s after startup: expired cache cleanup and a first DBID sync."""
         def _run() -> None:
-            # Delay so services get DB access first; avoids competing for locks during startup
+            # the services get the database first
             if self.monitor.waitForAbort(30):
                 return
             from lib.data.database.cache import clear_expired_cache
@@ -86,6 +88,7 @@ class Orchestrator:
         threading.Thread(target=_run, daemon=True).start()
 
     def _evaluate(self) -> None:
+        """Start or stop each sub-service to match the skin bools and settings."""
         any_enabled = skin_bool(SKIN_BOOL)
         library_enabled = any_enabled or skin_bool(SKIN_BOOL_LIBRARY)
         online_enabled = any_enabled or skin_bool(SKIN_BOOL_ONLINE)
@@ -96,7 +99,7 @@ class Orchestrator:
             self._manage_setting_services()
 
     def _ensure_started(self, attr: str, factory) -> None:
-        """Start thread on `self.<attr>` if not running. `factory` returns a new thread instance."""
+        """Start a service thread unless the one in that slot is still running."""
         thread = getattr(self, attr)
         if thread is None or not thread.is_alive():
             thread = factory()
@@ -138,6 +141,7 @@ class Orchestrator:
             clear_prop("SkinInfo.Service.Running")
 
     def _manage_setting_services(self) -> None:
+        """Start or stop the services that only settings control."""
         imdb_enabled = ADDON.getSetting("imdb_auto_update") != "off"
         top250_enabled = ADDON.getSetting("top250_auto_update") not in ("", "off")
         stinger_enabled = ADDON.getSettingBool("stinger_enabled")
@@ -161,8 +165,7 @@ class Orchestrator:
             self._ensure_stopped('_stinger_thread')
 
     def _stop_all(self) -> None:
-        # Signal abort on all threads first so they can shut down in parallel,
-        # then join to wait.
+        """Abort every service thread, then wait for them all."""
         attrs = ('_stinger_thread', '_top250_thread', '_imdb_thread',
                  '_online_thread', '_library_thread')
         for attr in attrs:

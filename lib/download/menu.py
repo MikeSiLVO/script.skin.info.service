@@ -1,4 +1,4 @@
-"""Download artwork menu UI handlers."""
+"""Artwork download menu and its last-run report."""
 from __future__ import annotations
 
 import xbmc
@@ -77,7 +77,7 @@ def show_download_report() -> None:
 
 
 def run_download_menu() -> None:
-    """Show the download menu: scope-pick + download, plus a report viewer if history exists."""
+    """Show the download menu, with the last-run report once a run has been recorded."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     init_database()
@@ -94,7 +94,7 @@ def run_download_menu() -> None:
 
 
 def _handle_download():
-    """Show the scope-selection menu (all / movies / tvshows / music)."""
+    """Handle the download entry: pick a scope of all, movies, TV shows or music."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     scope_menu = Menu(ADDON.getLocalizedString(32523), [
@@ -110,7 +110,7 @@ def _handle_download():
 
 
 def _select_mode(scope: str, media_filter: Optional[List[str]]):
-    """Show foreground/background run-mode menu, then kick off the download."""
+    """Select foreground or background mode, then start the scope's download."""
     from lib.infrastructure.menus import run_with_mode_choice
 
     return run_with_mode_choice(

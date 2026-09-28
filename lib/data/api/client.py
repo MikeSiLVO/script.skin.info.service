@@ -1,13 +1,4 @@
-"""Robust HTTP client with connection pooling, retry, and abort support.
-
-Uses requests library with:
-- Session-based connection pooling
-- Configurable automatic retry with exponential backoff
-- Separate connect/read timeouts
-- Abort flag integration for cancellation
-- Rate limiting with sliding window
-- Both GET and POST support
-"""
+"""HTTP client shared by every provider: pooling, retry, rate limiting and abortable sockets."""
 from __future__ import annotations
 
 import xbmc
@@ -34,7 +25,7 @@ _USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
 
 
 def _parse_retry_after(value: Optional[str]) -> Optional[float]:
-    """Parse a Retry-After header (integer-seconds form only)."""
+    """Parse a Retry-After header's seconds form; None for the HTTP-date form."""
     if not value:
         return None
     try:
@@ -44,11 +35,7 @@ def _parse_retry_after(value: Optional[str]) -> Optional[float]:
 
 
 class RateLimitHit(Exception):
-    """Exception raised when a provider's API rate limit is reached.
-
-    `retry_after_seconds` carries the server's Retry-After header value if present;
-    callers can use it to schedule precise pause durations.
-    """
+    """Raised on a provider's 429, carrying its Retry-After when one was named."""
     def __init__(self, provider: str, retry_after_seconds: Optional[float] = None):
         self.provider = provider
         self.retry_after_seconds = retry_after_seconds
@@ -64,7 +51,7 @@ class RetryableError(Exception):
 
 
 class RateLimiter:
-    """Sliding window rate limiter for proactive rate limiting."""
+    """Sliding-window limiter that paces requests under a provider's cap."""
 
     def __init__(self, max_requests: int, window_seconds: float):
         self.max_requests = max_requests
@@ -73,7 +60,7 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def wait_if_needed(self, service_name: str = "API") -> None:
-        """Wait if rate limit would be exceeded."""
+        """Wait until this request fits the window and record it; returns early on Kodi abort."""
         while True:
             now = time.time()
             with self._lock:
@@ -101,7 +88,6 @@ class RateLimiter:
 
 class AbortRequested(Exception):
     """Raised when abort flag is set."""
-    pass
 
 
 # a blocked read cannot check its own abort flag, so a watcher closes the socket from outside
@@ -109,20 +95,15 @@ _OPEN_CONNS: "weakref.WeakSet" = weakref.WeakSet()
 _CONN_LOCK = threading.Lock()
 _CONN_WATCHER_STARTED = False
 _WATCHER_IDLE_POLLS: Final = 25
-# per-thread cancel token for the in-flight request, read by the connection on connect
+# per-thread cancel token and wall-clock limit for the in-flight request, copied onto its connection
 _REQUEST_TOKEN = threading.local()
-# per-thread wall-clock limit for the in-flight request, enforced by the watcher because a
-# thread blocked inside a chunk read cannot check anything itself
 _REQUEST_DEADLINE = threading.local()
 
 
 def _stamp_request(abort_flag, deadline_seconds: Optional[float] = None) -> None:
-    """Publish this thread's cancel token and wall-clock limit for the connection to pick up.
-
-    Always sets both: these are thread-locals, and a deadline left over from an earlier
-    streamed request would have the watcher kill the next healthy connection instantly.
-    """
+    """Publish this thread's cancel token and wall-clock limit for the connection to pick up."""
     _REQUEST_TOKEN.token = abort_flag
+    # clear any deadline an earlier streamed request left
     _REQUEST_DEADLINE.value = (
         time.monotonic() + deadline_seconds if deadline_seconds else None
     )
@@ -166,7 +147,7 @@ def _close_all_conns() -> None:
 
 
 def _conn_watcher() -> None:
-    """Close a connection when its request is cancelled; close all on Kodi abort."""
+    """Close a connection whose request is cancelled or past its deadline; all on Kodi abort."""
     global _CONN_WATCHER_STARTED
     monitor = xbmc.Monitor()
     idle_polls = 0
@@ -213,32 +194,32 @@ def _ensure_conn_watcher() -> None:
 
 
 def _register_conn(conn) -> None:
-    """Track a live connection so the watcher can close its socket on abort."""
+    """Track a live connection for the watcher, starting the watcher if it is not running."""
     with _CONN_LOCK:
         _OPEN_CONNS.add(conn)
     _ensure_conn_watcher()
 
 
 def _unregister_conn(conn) -> None:
-    """Drop a connection from the tracker when it closes."""
+    """Stop tracking a connection that has no request in flight."""
     with _CONN_LOCK:
         _OPEN_CONNS.discard(conn)
 
 
 class _TrackedConnection(HTTPConnection):
-    """Registers the connection so the watcher can close its socket for abort."""
+    """Connection that registers itself so the watcher can close its socket on abort."""
 
     _raw_dup: Optional[socket.socket] = None
     _cancel_token: Any = None
     _deadline: Optional[float] = None
 
     def _tag_request(self) -> None:
-        """Copy this thread's cancel token and deadline onto the connection."""
+        """Copy this thread's cancel token and deadline onto the connection for the watcher."""
         self._cancel_token = getattr(_REQUEST_TOKEN, "token", None)
         self._deadline = getattr(_REQUEST_DEADLINE, "value", None)
 
     def _drop_raw_dup(self) -> None:
-        """Release the duplicated socket handle."""
+        """Close the raw-socket dup so its fd does not outlive the connection."""
         raw, self._raw_dup = self._raw_dup, None
         if raw is not None:
             try:
@@ -247,7 +228,7 @@ class _TrackedConnection(HTTPConnection):
                 pass
 
     def request(self, *args, **kwargs):
-        """Retag with the current request's token (covers keep-alive reuse), then send."""
+        """Retag and re-register for the current request (a pooled connection rests untracked)."""
         self._tag_request()
         _register_conn(self)
         return super().request(*args, **kwargs)
@@ -311,6 +292,7 @@ class _TrackedAdapter(HTTPAdapter):
     """Adapter whose connections register their socket so the watcher can close them."""
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        """Install the tracked pool classes so sockets can be closed on abort."""
         super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
         self.poolmanager.pool_classes_by_scheme = {
             "http": _TrackedHTTPConnectionPool,
@@ -319,11 +301,7 @@ class _TrackedAdapter(HTTPAdapter):
 
 
 class ApiSession:
-    """HTTP client with connection pooling, retry, rate limiting, and abort support.
-
-    Automatic retry with exponential backoff for server errors.
-    429 raises RateLimitHit for caller to handle.
-    """
+    """One provider's HTTP session; a 429 raises RateLimitHit, a set abort flag AbortRequested."""
 
     def __init__(
         self,
@@ -384,27 +362,21 @@ class ApiSession:
         self._tls = threading.local()
 
     def _build_url(self, endpoint: str) -> str:
-        """Build full URL from endpoint."""
+        """Build the full URL, leaving an absolute endpoint as-is."""
         if endpoint.startswith("http://") or endpoint.startswith("https://"):
             return endpoint
         return f"{self.base_url}/{endpoint.lstrip('/')}" if self.base_url else endpoint
 
     def _check_abort(self, abort_flag) -> None:
-        """Check abort flag and raise if requested."""
+        """Check the abort flag, raising AbortRequested when it is set."""
         if abort_flag and abort_flag.is_requested():
             raise AbortRequested("Request aborted by user")
 
     def _get_capped(self, url, params, headers, request_timeout, cap, abort_flag):
-        """GET that polls abort while reading the body, so a request in flight at
-        shutdown can be dropped (a blocked read can't otherwise be interrupted).
-
-        raw.read1 returns whatever has arrived, so a big response avoids the
-        byte-by-byte cost of iter_content(1); Accept-Encoding is pinned to gzip so the
-        body decodes with stdlib. The API's read timeout applies; cap backstops a
-        runaway. Falls back to iter_content(1) where read1 is missing.
-        """
+        """Stream the body in abort-polled reads so an in-flight request can drop at shutdown."""
         deadline = time.time() + cap
         req_headers = dict(headers or {})
+        # raw.read1 bypasses requests' content decoding
         req_headers["Accept-Encoding"] = "gzip"
         response = self.session.get(
             url, params=params, headers=req_headers, timeout=request_timeout, stream=True,
@@ -414,6 +386,7 @@ class ApiSession:
             if hasattr(raw, "read1"):
                 chunks, gunzip = iter(lambda: raw.read1(65536), b""), True
             else:
+                # a larger chunk blocks until filled
                 chunks, gunzip = response.iter_content(chunk_size=1), False
 
             body = bytearray()
@@ -448,12 +421,7 @@ class ApiSession:
         response: requests.Response,
         abort_flag=None
     ) -> Optional[Dict[str, Any]]:
-        """Handle response, raising appropriate exceptions. Returns JSON dict, or None on 404.
-
-        Raises:
-            RateLimitHit: On 429 (caller decides what to do).
-            RetryableError: On retryable failures after exhausting retries.
-        """
+        """Handle the response: JSON on success, None on a non-retryable error, else a raise."""
         self._check_abort(abort_flag)
 
         if response.status_code == 429:
@@ -492,13 +460,7 @@ class ApiSession:
         abort_flag=None,
         timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Make GET request. Returns JSON response dict, or None on error.
-
-        Raises:
-            RateLimitHit: On 429 response.
-            RetryableError: On retryable failures.
-            AbortRequested: If abort flag is set.
-        """
+        """GET the endpoint as JSON; None on a non-retryable error, RetryableError otherwise."""
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
@@ -560,16 +522,7 @@ class ApiSession:
         abort_flag=None,
         timeout: Optional[ConnectReadTimeout] = None,
     ) -> Optional[Any]:
-        """Make POST request. Returns JSON response (dict or list), or None on error.
-
-        json_data sets Content-Type: application/json automatically;
-        data and json_data are mutually exclusive.
-
-        Raises:
-            RateLimitHit: On 429 response.
-            RetryableError: On retryable failures.
-            AbortRequested: If abort flag is set.
-        """
+        """POST a form or JSON body, never both; the JSON reply, None on a non-retryable error."""
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
@@ -619,15 +572,7 @@ class ApiSession:
         stream: bool = False,
         deadline_seconds: Optional[float] = None,
     ) -> Optional[requests.Response]:
-        """Make GET request returning raw Response object.
-
-        Useful for streaming downloads or non-JSON responses.
-
-        Raises:
-            RateLimitHit: On 429 response.
-            RetryableError: On retryable failures.
-            AbortRequested: If abort flag is set.
-        """
+        """GET the endpoint as an open Response for streaming; None on an error status."""
         self._check_abort(abort_flag)
 
         if self.rate_limiter:
@@ -646,7 +591,7 @@ class ApiSession:
                 stream=stream
             )
 
-            # A streamed response pins its pooled connection until closed.
+            # a streamed response pins its pooled connection until closed
             if response.status_code == 429:
                 retry_after = _parse_retry_after(response.headers.get("Retry-After"))
                 response.close()
@@ -720,7 +665,7 @@ class ApiSession:
             raise RetryableError(self.service_name, str(e)) from e
 
     def close(self) -> None:
-        """Close the session and release connections."""
+        """Close the session, dropping its pooled connections."""
         self.session.close()
 
     def __enter__(self):

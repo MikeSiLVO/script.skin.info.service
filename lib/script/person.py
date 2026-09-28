@@ -1,20 +1,4 @@
-"""`action=person_info` and `action=person_search` handlers.
-
-Both resolve a TMDB person and set `SkinInfo.Person.{Details,Images,Filmography,Crew,
-LibraryMovies,LibraryTVShows}` plugin URLs on the home window.
-
-`person_info` input modes:
-- `person_id=N` provided directly
-- `crew=director|writer|creator` plus `dbid`/`dbtype` (TMDB-driven crew lookup)
-- `name`/`role` plus `dbid`/`dbtype` (actor matching)
-
-`person_search` input modes:
-- `name`+`dbid`+`dbtype`: auto-match against the item's TMDB credits, fall back to
-  search dialog on miss
-- `query` (or `name`) only: TMDB search dialog
-- After resolution, blurs the person's TMDB profile image into a separate window
-  property for skin background use.
-"""
+"""RunScript `person_info` and `person_search`: resolve a TMDB person, publish its paths."""
 from __future__ import annotations
 
 import urllib.parse
@@ -163,8 +147,7 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
 def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbtype: str,
                       auto_search: bool, online: bool, sourceid: Optional[str],
                       open_window: str, set_search_query: bool = True) -> Optional[int]:
-    """Resolve a person_id via actor name+role match; `set_search_query=False` skips the
-    SearchQuery fallback for callers that don't read window props."""
+    """Resolve a person id by actor name and role, publishing a manual search command on a miss."""
     if not name or not dbid:
         log("General", "person_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
         return None
@@ -311,7 +294,7 @@ def _resolve_search_dialog(person_api, query: str) -> Optional[Tuple[int, dict]]
 
 
 def handle_person_search_action(args: dict) -> None:
-    """Entry point for `action=person_search`; see module docstring for input modes."""
+    """Entry point for `action=person_search`: match the actor on the item, else ask via search."""
     from lib.data.api import person as person_api
     from lib.data.database._infrastructure import init_database
 
@@ -352,7 +335,7 @@ def handle_person_search_action(args: dict) -> None:
 
 
 def handle_person_info_action(args: dict) -> None:
-    """Entry point for `action=person_info`; see module docstring for input modes."""
+    """Entry point for `action=person_info`: by person id, crew lookup or actor match."""
     from lib.data.api import person as person_api
     from lib.data.database._infrastructure import init_database
 

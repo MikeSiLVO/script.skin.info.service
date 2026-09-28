@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 from lib.kodi.client import log, ADDON
 from lib.texture.utilities import is_library_artwork_url
 
-# Age and usage bucket boundaries (inclusive upper bound per bucket).
+# bucket boundaries, each an inclusive upper bound
 _AGE_BUCKET_BOUNDS = (7, 30, 90, 180)
 _AGE_BUCKET_LABELS = ('0-7', '8-30', '31-90', '91-180', '180+', 'unknown')
 _USAGE_BUCKET_BOUNDS = (5, 20, 50)
@@ -19,7 +19,7 @@ _USAGE_BUCKET_LABELS = ('0', '1-5', '6-20', '21-50', '50+')
 
 
 def _bucket_age(days_ago: int) -> str:
-    """Return the age-bucket label for `days_ago`."""
+    """Return the age-bucket label for a number of days since last use."""
     for bound, label in zip(_AGE_BUCKET_BOUNDS, _AGE_BUCKET_LABELS):
         if days_ago <= bound:
             return label
@@ -27,7 +27,7 @@ def _bucket_age(days_ago: int) -> str:
 
 
 def _bucket_usage(usecount: int) -> str:
-    """Return the usage-bucket label for `usecount`."""
+    """Return the usage-bucket label for a use count."""
     if usecount == 0:
         return _USAGE_BUCKET_LABELS[0]
     for bound, label in zip(_USAGE_BUCKET_BOUNDS, _USAGE_BUCKET_LABELS[1:]):
@@ -49,7 +49,7 @@ def _classify_texture_type(url: str) -> str:
 
 def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
                        usage_buckets: Dict[str, int]) -> None:
-    """Update `age_buckets` and `usage_buckets` in place from a single size record."""
+    """Update the age and usage buckets in place from a single size record."""
     lastusetime = size.get('lastused')
     usecount = size.get('usecount', 0)
 
@@ -66,7 +66,7 @@ def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
 
 
 def _calculate_disk_usage(thumbnails_path: str) -> int:
-    """Sum the on-disk size of every file under `thumbnails_path`. Returns 0 on walk error."""
+    """Calculate the on-disk size of every file under a folder; 0 on a walk error."""
     disk_usage = 0
     try:
         for root, _dirs, files in os.walk(thumbnails_path):

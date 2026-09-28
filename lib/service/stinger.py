@@ -1,8 +1,4 @@
-"""Stinger (post-credits scene) detection for movies.
-
-Detects and notifies about post-credits scenes during movie playback.
-Uses TMDB keywords as primary source, Trakt as fallback.
-"""
+"""Post-credits scene detection and notice for the playing movie, from TMDB, tags or Trakt."""
 from __future__ import annotations
 
 import threading
@@ -17,7 +13,7 @@ import xbmcvfs
 from lib.kodi.client import log, ADDON, get_item_details, KODI_MOVIE_PROPERTIES
 from lib.kodi.utilities import extract_media_ids
 
-# Default icon path (skinners can override via Skin.String)
+# a skin can override it through Skin.String
 DEFAULT_STINGER_ICON = xbmcvfs.translatePath(
     "special://home/addons/script.skin.info.service/resources/icons/stinger.png"
 )
@@ -55,12 +51,10 @@ class StingerInfo:
         return self.has_during or self.has_after
 
 
-# TMDB keyword names for stinger detection
 TMDB_KEYWORD_DURING: Final = "duringcreditsstinger"
 TMDB_KEYWORD_AFTER: Final = "aftercreditsstinger"
 
-# Kodi's fullscreen video window. Stinger properties live here so they're
-# accessible during playback, surviving any focus changes in other windows.
+# fullscreen video window, so the properties survive focus changes elsewhere
 FULLSCREEN_VIDEO_WINDOW_ID: Final = 12901
 
 
@@ -85,12 +79,7 @@ def get_stinger_settings() -> Dict[str, Any]:
 
 
 def get_stinger_from_tmdb(ids: Dict[str, Optional[str]]) -> Optional[StingerInfo]:
-    """Fetch stinger info from TMDB via cached complete movie data.
-
-    Independent of the online service: fetches directly so stinger detection
-    works whether or not the main service is enabled. Uses cached `get_complete_data`,
-    so this hits the cache when the online service has already fetched.
-    """
+    """Fetch stinger info from the movie's cached TMDB keywords, online service or not."""
     tmdb_id = ids.get("tmdb")
     if not tmdb_id:
         return None
@@ -125,7 +114,6 @@ def get_stinger_from_trakt(ids: Dict[str, Optional[str]]) -> Optional[StingerInf
     """Fetch stinger info from Trakt for a movie identified by IMDb/TMDB/Trakt-slug IDs."""
     from lib.data.api.trakt import ApiTrakt
 
-    # Filter out None values for Trakt API
     clean_ids = {k: v for k, v in ids.items() if v is not None}
     if not clean_ids:
         return None
@@ -189,11 +177,7 @@ def get_stinger_info(ids: Optional[Dict[str, Optional[str]]] = None,
 
 def set_stinger_properties(
         info: Optional[StingerInfo], window_id: int = FULLSCREEN_VIDEO_WINDOW_ID) -> None:
-    """Set `SkinInfo.Stinger.*` on `window_id`. Pass `info=None` to clear.
-
-    Properties: `HasDuring`, `HasAfter`, `Type` (during/after/both/none),
-    `Source` (tmdb/trakt/kodi_tags).
-    """
+    """Set `SkinInfo.Stinger.*` on the window, or clear them when there is no stinger."""
     window = xbmcgui.Window(window_id)
 
     if info and info.has_stinger:
@@ -235,14 +219,7 @@ def _get_notification_icon() -> str:
 
 
 def _get_notification_text(stinger_type: StingerType) -> Tuple[str, str]:
-    """Get notification heading and message, checking skin overrides first.
-
-    Skinners can override via:
-    - Skin.String(SkinInfo.Stinger.Heading)
-    - Skin.String(SkinInfo.Stinger.MessageDuring)
-    - Skin.String(SkinInfo.Stinger.MessageAfter)
-    - Skin.String(SkinInfo.Stinger.MessageBoth)
-    """
+    """Get the notification heading and message, the skin's `SkinInfo.Stinger.*` strings first."""
     heading = _skin_override("Heading") or ADDON.getLocalizedString(STR_HEADING)
 
     type_to_string_id = {
@@ -260,33 +237,15 @@ def _get_notification_text(stinger_type: StingerType) -> Tuple[str, str]:
 
 
 def _skin_handles_notification() -> bool:
-    """Check if skin has opted in to handle stinger notifications.
-
-    Skins can opt in by setting: Skin.SetBool(SkinInfo.Stinger.CustomNotification)
-
-    When opted in, the addon skips Dialog().notification() and the skin
-    handles display using window properties (SkinInfo.Stinger.ShowNotify, etc).
-    """
+    """True when the skin sets `SkinInfo.Stinger.CustomNotification` to show its own notice."""
     return xbmc.getCondVisibility("Skin.HasSetting(SkinInfo.Stinger.CustomNotification)")
 
 
 def show_notification(info: StingerInfo, duration_seconds: int = 4) -> None:
-    """Show Kodi notification for stinger.
-
-    If skin has opted in via Skin.SetBool(SkinInfo.Stinger.CustomNotification),
-    skips Kodi notification and relies on skin to display using properties.
-
-    Otherwise, skinners can customize the Kodi notification via Skin.String:
-    - SkinInfo.Stinger.NotificationIcon: Custom icon path
-    - SkinInfo.Stinger.Heading: Custom heading text
-    - SkinInfo.Stinger.MessageDuring: Custom message for during-credits scene
-    - SkinInfo.Stinger.MessageAfter: Custom message for after-credits scene
-    - SkinInfo.Stinger.MessageBoth: Custom message for both types
-    """
+    """Show Kodi's notification for the stinger, unless the skin shows its own."""
     if info.stinger_type == StingerType.NONE:
         return
 
-    # Skin handles its own notification display
     if _skin_handles_notification():
         log("Service", "Skin handles stinger notification, skipping Kodi dialog", xbmc.LOGDEBUG)
         return
@@ -306,11 +265,7 @@ def show_notification(info: StingerInfo, duration_seconds: int = 4) -> None:
 
 
 def is_near_credits(minutes_before_end: int = 8) -> bool:
-    """Check if playback is near the end (credits).
-
-    Uses chapter detection combined with time-based check. If chapters exist,
-    requires both last chapter AND within configured minutes of end.
-    """
+    """True within the set minutes of the end, and on the last chapter when there are chapters."""
     on_last_chapter = False
     has_chapters = False
     try:
@@ -325,7 +280,6 @@ def is_near_credits(minutes_before_end: int = 8) -> bool:
     except (ValueError, TypeError):
         pass
 
-    # Not on last chapter yet, no need to check time
     if has_chapters and not on_last_chapter:
         return False
 
@@ -473,6 +427,7 @@ class StingerService(threading.Thread):
         log("Service", "Stinger service stopped", xbmc.LOGINFO)
 
     def _fetch_stinger_info(self, stinger: StingerTracker, dbid: str) -> None:
+        """Fetch the playing movie's details for the stinger lookup."""
         details = get_item_details(
             'movie',
             int(dbid),

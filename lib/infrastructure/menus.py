@@ -1,4 +1,4 @@
-"""Menu helper utilities with automatic navigation and task cancellation support."""
+"""Select-dialog menus with nested navigation and a cancel row for the running task."""
 from __future__ import annotations
 
 from typing import Sequence, Tuple, Optional, Any, Callable
@@ -9,17 +9,11 @@ import xbmcgui
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import ADDON
 
-# Sentinel value to signal "return to main menu" vs "go back one level"
 RETURN_TO_MAIN_SENTINEL = object()
 
 
 class MenuItem:
-    """Menu row with a label and an action.
-
-    `action` can be a callable (executed), another `Menu` (shown as submenu),
-    or a plain value (returned as-is). `loop=True` re-shows the parent menu
-    after the action completes.
-    """
+    """Menu row whose action is run, opened as a submenu or returned as the result."""
 
     def __init__(self, label: str, action, loop: bool = False):
         self.label = label
@@ -28,10 +22,7 @@ class MenuItem:
 
 
 class Menu:
-    """Declarative menu with back/cancel/task-cancel handling and nested-submenu navigation.
-
-    `is_main_menu=True` makes the top-level Cancel exit to Kodi instead of bubbling up.
-    """
+    """Select-dialog menu with nested submenus; Cancel in a submenu returns to the main menu."""
 
     def __init__(self, title: str, items: Sequence[MenuItem], is_main_menu: bool = False):
         self.title = title
@@ -40,7 +31,7 @@ class Menu:
         self._last_selected_idx: Optional[int] = None
 
     def show(self, preselect: Optional[int] = None) -> Any:
-        """Show menu and run navigation. Returns action result, or None on back/ESC/abort."""
+        """Show the menu until an action returns a result; None on back or abort."""
         monitor = xbmc.Monitor()
 
         while not monitor.abortRequested():
@@ -107,11 +98,7 @@ class Menu:
 
 
 def run_with_mode_choice(operation_name: str, run: Callable[[bool], None]) -> Any:
-    """Foreground/background picker, then claim the task slot and run in the chosen mode.
-
-    `run` gets the chosen use_background bool and owns its own dialog and work; it must
-    not claim the slot itself.
-    """
+    """Run after a foreground/background choice, claiming the task slot for the callback first."""
     def _start(use_background: bool) -> None:
         if task_manager.acquire_task_slot(operation_name, use_background):
             run(use_background)

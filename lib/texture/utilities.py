@@ -18,7 +18,7 @@ def _parse_image_url(url: str) -> str:
 
 
 def _is_system_artwork(text: str) -> bool:
-    """True if `text` looks like an addon/system path or a Kodi `Default*.png` placeholder."""
+    """True if the text looks like an add-on or system path, or Kodi's `Default*.png` icon."""
     if any(marker in text for marker in _SYSTEM_PATH_MARKERS):
         return True
     if 'Default' in text and text.endswith('.png'):
@@ -27,10 +27,7 @@ def _is_system_artwork(text: str) -> bool:
 
 
 def should_precache_url(url: str) -> bool:
-    """True for cacheable library artwork URLs.
-
-    Skips auto-generated `video@`/`music@` thumbnails, addon icons, plugin URLs, and system files.
-    """
+    """True for library artwork worth caching, not generated thumbs, add-on icons or plugins."""
     if not url:
         return False
 

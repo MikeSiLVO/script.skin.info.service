@@ -20,7 +20,7 @@ def _range_check(value: float, lo: float, hi: float, error: str) -> tuple[bool, 
 
 
 def validate_date(value: str) -> tuple[bool, str]:
-    """Validate YYYY-MM-DD date format."""
+    """Validate a YYYY-MM-DD date; an empty value passes as unset."""
     if not value:
         return True, ""
 
@@ -39,12 +39,7 @@ def validate_date(value: str) -> tuple[bool, str]:
 
 
 def normalize_date(value: str) -> str:
-    """Normalize unambiguous YYYY-first date input to YYYY-MM-DD.
-
-    Accepts `/`, `.` or space separators and single-digit month/day. Ambiguous or
-    unrecognized input (DD/MM/YYYY, bare year, month names) is returned unchanged so
-    validate_date rejects it rather than guessing.
-    """
+    """Normalize YYYY-first date input to YYYY-MM-DD; anything else is returned unchanged."""
     value = value.strip()
     match = re.match(r"^(\d{4})[-/. ](\d{1,2})[-/. ](\d{1,2})$", value)
     if not match:
@@ -71,7 +66,7 @@ def validate_duration(value: int) -> tuple[bool, str]:
 
 
 def parse_rating(text: str) -> float:
-    """Rating text as a float, comma decimal separator accepted."""
+    """Parse rating text as a float, comma decimal separator accepted."""
     try:
         return float(text.strip().replace(",", "."))
     except ValueError:
@@ -109,7 +104,7 @@ def format_runtime_for_edit(seconds: int) -> str:
 
 
 def parse_runtime_from_edit(minutes_str: str) -> int:
-    """Minutes string as runtime seconds."""
+    """Parse a minutes string as runtime seconds."""
     if not minutes_str:
         return 0
     try:
@@ -128,7 +123,7 @@ def format_duration_for_edit(seconds: int) -> str:
 
 
 def parse_duration_from_edit(text: str) -> int:
-    """MM:SS or plain seconds as duration seconds."""
+    """Parse MM:SS, H:MM:SS or plain seconds as duration seconds."""
     if not text:
         return 0
     text = text.strip()
@@ -145,7 +140,7 @@ def parse_duration_from_edit(text: str) -> int:
 
 
 def format_list_display(values: list[str] | None, max_items: int = 3) -> str:
-    """Format list values for display in menu."""
+    """Format list values for the menu, the first few then a count of the rest."""
     if not values:
         return ADDON.getLocalizedString(32392)
 
@@ -172,7 +167,7 @@ def format_uniqueids_display(uniqueids: dict[str, Any] | None) -> str:
 
 
 def format_ratings_display(ratings: dict[str, Any] | None) -> str:
-    """Format external ratings dict for display."""
+    """Format external ratings for display, the first three sources only."""
     if not ratings:
         return ADDON.getLocalizedString(32392)
 

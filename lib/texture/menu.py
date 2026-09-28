@@ -64,7 +64,7 @@ def run_texture_maintenance() -> None:
 
 
 def _handle_precache():
-    """Handle pre-cache library artwork operation."""
+    """Handle pre-cache: pick a library scope, then a mode."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     scope_menu = Menu(ADDON.getLocalizedString(32441), [
@@ -82,7 +82,7 @@ def _handle_precache():
 
 
 def _handle_precache_download():
-    """Handle pre-cache + download library artwork operation."""
+    """Handle pre-cache plus download: pick a library scope, then a mode."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     scope_menu = Menu(ADDON.getLocalizedString(32451), [
@@ -100,7 +100,7 @@ def _handle_precache_download():
 
 
 def _run_precache(selected_types: Optional[List[str]], enable_download: bool):
-    """Execute precache with selected scope and mode."""
+    """Run pre-cache for the scope once the user picks foreground or background."""
     from lib.infrastructure.menus import run_with_mode_choice
 
     return run_with_mode_choice(
@@ -111,7 +111,7 @@ def _run_precache(selected_types: Optional[List[str]], enable_download: bool):
 
 def _execute_precache(selected_types: Optional[List[str]], enable_download: bool,
                       use_background: bool) -> None:
-    """Execute the actual precache operation."""
+    """Execute pre-cache as a task with progress, then show and save its report."""
     from lib.infrastructure import tasks as task_manager
 
     progress: Optional[ProgressDialog] = None
@@ -222,7 +222,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
 
 
 def _show_cleanup_menu():
-    """Show cleanup submenu and handle selection."""
+    """Show the cleanup menu: orphaned textures or the advanced options."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     menu = Menu(ADDON.getLocalizedString(32087), [
@@ -233,7 +233,7 @@ def _show_cleanup_menu():
 
 
 def _handle_standard_cleanup():
-    """Handle standard orphaned texture cleanup."""
+    """Handle orphaned texture cleanup once the user picks a mode."""
     from lib.infrastructure.menus import run_with_mode_choice
 
     return run_with_mode_choice(
@@ -243,7 +243,7 @@ def _handle_standard_cleanup():
 
 
 def _execute_standard_cleanup(use_background: bool) -> None:
-    """Execute standard cleanup with selected mode."""
+    """Execute orphaned texture cleanup as a task, then save its stats and show the result."""
     from lib.infrastructure import tasks as task_manager
 
     progress: Optional[ProgressDialog] = None
@@ -333,10 +333,7 @@ def cleanup_textures_by_age(age_days: int,
                                                             xbmcgui.DialogProgressBG]] = None,
                             task_context: Optional[Any] = None,
                             textures: Optional[List[Dict[str, Any]]] = None) -> Dict[str, int]:
-    """Remove cached textures unused in the last `age_days`. Returns counts.
-
-    `textures`: pre-fetched texture list; fetched fresh when omitted.
-    """
+    """Remove cached textures unused for the given days, fetching the list unless given one."""
     from datetime import datetime, timedelta
 
     stats = {
@@ -429,7 +426,7 @@ def cleanup_textures_by_age(age_days: int,
 
 
 def _handle_age_cleanup():
-    """Handle age-based texture cleanup."""
+    """Handle age cleanup: pick how many days unused counts as old."""
     from lib.infrastructure.menus import Menu, MenuItem
 
     menu = Menu(ADDON.getLocalizedString(32473), [
@@ -443,7 +440,7 @@ def _handle_age_cleanup():
 
 
 def _execute_age_cleanup(age_days: int) -> None:
-    """Execute age-based cleanup."""
+    """Execute age cleanup: find textures unused past the cutoff, confirm, then pick a mode."""
     dialog = xbmcgui.Dialog()
     progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32330), ADDON.getLocalizedString(32331))
@@ -529,7 +526,7 @@ def _execute_age_cleanup(age_days: int) -> None:
 
 def _execute_age_cleanup_with_mode(age_days: int, use_background: bool,
                                    textures: Optional[List[Dict[str, Any]]] = None) -> None:
-    """Execute age cleanup with selected mode."""
+    """Execute age cleanup as a task, then save its stats and show the result."""
     from lib.infrastructure import tasks as task_manager
 
     progress: Optional[Union[xbmcgui.DialogProgress, xbmcgui.DialogProgressBG]] = None
@@ -649,7 +646,7 @@ _REPORT_FORMATTERS = {
 
 
 def _show_last_report() -> None:
-    """Show last operation report."""
+    """Show the newest of the last pre-cache, cleanup and age cleanup reports."""
     runs = [run for run in map(get_last_operation_stats, _REPORT_FORMATTERS) if run]
     if runs:
         last = max(runs, key=lambda run: datetime.fromisoformat(run['timestamp']))

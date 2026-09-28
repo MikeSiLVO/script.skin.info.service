@@ -1,8 +1,4 @@
-"""Lightweight API helpers with no heavy dependencies.
-
-Importing from this module is cheap; it pulls no API client, database, or HTTP
-chain. Helpers that need those should live in their owning API module instead.
-"""
+"""API helpers that import no client, database or HTTP layer."""
 from __future__ import annotations
 
 from typing import Optional, Final
@@ -18,11 +14,7 @@ def decode_key(blob: str) -> str:
 
 
 def tmdb_image_url(path: Optional[str], size: str = "original") -> str:
-    """Build a TMDB CDN URL for `path` at `size`. Empty string if path is missing.
-
-    Common sizes: w185 (small thumb), w500 (poster), w780 (fanart), original (full).
-    `path` is the leading-slash form TMDB returns (e.g. `/abc.jpg`).
-    """
+    """Build a TMDB CDN URL for an image path at one size; empty when there is no path."""
     if not path:
         return ""
     return f"{TMDB_IMAGE_BASE}/{size}{path}"

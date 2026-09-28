@@ -1,8 +1,4 @@
-"""Queue CRUD operations for artwork review workflow.
-
-Manages art_queue and art_item tables. Handles adding items to queue,
-retrieving batches, updating status, and cleanup.
-"""
+"""Artwork review queue: library items awaiting art and the art types each one lacks."""
 from __future__ import annotations
 
 import sqlite3
@@ -90,7 +86,7 @@ def clear_queue_for_media(media_types: Sequence[str]) -> None:
 
 
 def add_to_queue_batch(items: List[dict]) -> None:
-    """Upsert queue rows from `{media_type, dbid, title, year?}` dicts."""
+    """Add `{media_type, dbid, title, year?}` queue rows; existing ones reset to pending."""
     if not items:
         return
     now = int(time.time())
@@ -108,7 +104,7 @@ def add_to_queue_batch(items: List[dict]) -> None:
 
 
 def add_art_items_batch(art_items: List[dict]) -> None:
-    """Upsert art rows from `{media_type, dbid, art_type}` dicts."""
+    """Add `{media_type, dbid, art_type}` art rows; existing ones reset to pending."""
     if not art_items:
         return
     with get_db(DB_PATH) as cursor:
@@ -122,7 +118,7 @@ def add_art_items_batch(art_items: List[dict]) -> None:
 
 def get_next_batch(batch_size: int = 100, status: str = STATUS_PENDING,
                    media_types: Optional[Sequence[str]] = None) -> List[QueueEntry]:
-    """Fetch up to `batch_size` queue entries filtered by status (and optionally media types)."""
+    """Get the oldest queue entries with one status, optionally limited to some media types."""
     with get_db(DB_PATH) as cursor:
         query = 'SELECT * FROM art_queue WHERE status = ?'
         params: List[Any] = [status]
@@ -148,7 +144,7 @@ def get_art_items_for_queue(media_type: str, dbid: int) -> List[ArtItemEntry]:
 
 
 def get_art_items_for_queue_batch(keys: Sequence[ItemKey]) -> Dict[ItemKey, List[ArtItemEntry]]:
-    """Return `(media_type, dbid) -> [ArtItemEntry]` for multiple queue entries."""
+    """Get `(media_type, dbid) -> [ArtItemEntry]` for multiple queue entries."""
     if not keys:
         return {}
 
@@ -171,7 +167,7 @@ def get_art_items_for_queue_batch(keys: Sequence[ItemKey]) -> Dict[ItemKey, List
 
 
 def update_queue_status(media_type: str, dbid: int, status: str) -> None:
-    """Update queue item status."""
+    """Update a queue item's status, stamping it processed now."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'UPDATE art_queue SET status = ?, date_processed = ? '
@@ -180,7 +176,7 @@ def update_queue_status(media_type: str, dbid: int, status: str) -> None:
 
 
 def update_art_item(media_type: str, dbid: int, art_type: str, selected_url: str) -> None:
-    """Update art item with selected URL."""
+    """Update an art item's selected URL and mark it completed."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'UPDATE art_item SET selected_url = ?, status = ? '
@@ -197,7 +193,7 @@ def update_art_item_status(media_type: str, dbid: int, art_type: str, status: st
 
 
 def get_queue_stats(media_types: Optional[Sequence[str]] = None) -> Dict[str, int]:
-    """Return `status -> count` across the queue (optionally filtered by media types)."""
+    """Get `status -> count` across the queue, optionally limited to some media types."""
     with get_db(DB_PATH) as cursor:
         query = 'SELECT status, COUNT(*) as count FROM art_queue'
         params: List[Any] = []
@@ -257,8 +253,7 @@ def count_queue_items(status: Optional[str] = None,
 
 
 def cleanup_old_queue_items(days_old: int = 30) -> int:
-    """Delete queue items older than `days_old`: processed ones by `date_processed`, and pending
-    ones a run left behind by `date_added`."""
+    """Clean up queue items processed, or left pending, more than the given days ago."""
     cutoff = int(time.time()) - days_old * 86400
     with get_db(DB_PATH) as cursor:
         cursor.execute(

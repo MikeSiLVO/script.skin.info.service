@@ -9,8 +9,7 @@ from lib.kodi.client import log
 
 
 def handle_online(handle: int, params: dict) -> None:
-    """Plugin entry for the online-data ListItem; library mode needs `dbid`+`dbtype`, direct mode
-    needs `tmdb_id` or `imdb_id`."""
+    """Plugin entry for the online-data ListItem, by `dbid`+`dbtype` or by `tmdb_id`/`imdb_id`."""
     from lib.data.online import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
@@ -93,7 +92,7 @@ def handle_online(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
-    # Episodes use parent show's data for online lookups
+    # an episode's online data is its show's
     if is_episode:
         media_type = "tvshow"
 

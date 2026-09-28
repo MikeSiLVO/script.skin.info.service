@@ -10,7 +10,7 @@ from lib.kodi.client import ADDON
 
 
 class FieldType(Enum):
-    """Types of editable fields."""
+    """Types of editable fields, each with its own edit handler and display format."""
 
     TEXT = "text"
     TEXT_LONG = "text_long"
@@ -38,7 +38,7 @@ def field(api: str, display: int | str, ftype: FieldType) -> FieldDef:
 
 
 def get_display_name(field_def: FieldDef) -> str:
-    """Field label: str verbatim (Kodi terminology), 32000-32999 is ours, else a core string."""
+    """Get the field label: a str as-is, 32000-32999 from our strings, else Kodi's own."""
     name = field_def["display_name"]
     if isinstance(name, str):
         return name
@@ -245,11 +245,7 @@ TVSHOW_STATUS_VALUES = [
 
 
 def get_fields_for_media_type(media_type: str) -> list[str]:
-    """Get list of editable fields for a media type.
-
-    tvshow `status` is included only on Kodi builds that can read it back (xbmc/xbmc#28520);
-    older builds reject it on Get, so exposing it would break the field's load/preselect.
-    """
+    """Get the editable fields for a media type; tvshow status only where Kodi can read it back."""
     fields = list(MEDIA_TYPE_FIELDS.get(media_type, []))
     if media_type == "tvshow":
         from lib.kodi.utilities import tvshow_status_gettable
@@ -260,7 +256,7 @@ def get_fields_for_media_type(media_type: str) -> list[str]:
 
 
 def get_field_def(field_name: str) -> FieldDef | None:
-    """Get field definition by name."""
+    """Get a field's definition, None for a name the editor does not know."""
     return FIELD_DEFINITIONS.get(field_name)
 
 
@@ -289,7 +285,6 @@ def get_properties_for_media_type(media_type: str) -> list[str]:
     return properties
 
 
-# Validate at module load that every name in MEDIA_TYPE_FIELDS exists in FIELD_DEFINITIONS.
 for _mt, _fields in MEDIA_TYPE_FIELDS.items():
     for _f in _fields:
         if _f not in FIELD_DEFINITIONS:

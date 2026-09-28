@@ -106,6 +106,7 @@ class PlayerHandler:
 
     def _fetch_worker(self, media_type: str, imdb_id: str, tmdb_id: str,
                       cache_key: CacheKey) -> None:
+        """Fetch online data for the playing item, discarding it if playback has moved on."""
         try:
             abort_flag = self._service.capped_abort_flag
             if abort_flag.is_requested():
@@ -133,6 +134,7 @@ class PlayerHandler:
             log("Service", f"Online player fetch error: {e}", xbmc.LOGWARNING)
 
     def _clear_if_active(self) -> None:
+        """Clear the player's online properties if any are still set."""
         if self._last_key:
             clear_group(PLAYER_ONLINE_PROPERTY_PREFIX)
             self._last_key = None

@@ -1,4 +1,4 @@
-"""MDBList API - always uses batch endpoint for consistent data format."""
+"""MDBList API client; single items use the batch endpoint too, so every reply has one shape."""
 from __future__ import annotations
 
 from typing import Optional, Dict, List, Set, Final
@@ -34,7 +34,7 @@ _KEPT_KEYWORDS = STATUS_KEYWORDS | AWARD_KEYWORDS
 
 
 def _keep_status_keywords(item: dict) -> None:
-    """Strip the keyword list to the status tags."""
+    """Strip the keyword list to the status and award tags."""
     keywords = item.get("keywords")
     if not isinstance(keywords, list):
         return
@@ -45,7 +45,7 @@ def _keep_status_keywords(item: dict) -> None:
 
 
 class ApiMdblist(RatingSource):
-    """MDBList API - uses batch endpoint for all requests."""
+    """MDBList rating source that also serves the site's extra metadata."""
 
     BASE_URL = "https://api.mdblist.com"
 
@@ -62,7 +62,7 @@ class ApiMdblist(RatingSource):
         )
 
     def _get_cache_key(self, provider: str, media_id: str) -> str:
-        """Generate cache key for MDBList data."""
+        """Cache identity for MDBList data: the id provider and the id."""
         return f"{provider}_{media_id}"
 
     def _batch_request(
@@ -72,10 +72,7 @@ class ApiMdblist(RatingSource):
         provider: str = "tmdb",
         abort_flag=None
     ) -> List[dict]:
-        """Make batch POST request to MDBList API.
-
-        provider: "tmdb" or "imdb". media_type: "movie" or "tvshow".
-        """
+        """POST one batch of ids; [] without a key, while MDBList is skipped, or on a bad reply."""
         if not self.api_key or not ids:
             return []
 
@@ -112,11 +109,7 @@ class ApiMdblist(RatingSource):
         abort_flag=None,
         force_refresh: bool = False
     ) -> Optional[dict]:
-        """Fetch MDBList data for a single item using batch endpoint.
-
-        ids prefers "tmdb", falls back to "imdb". force_refresh bypasses cache read
-        but still writes to cache.
-        """
+        """Fetch full MDBList data for one item by TMDB id, else IMDb id; a refresh still caches."""
         if not self.supports(media_type):
             return None
 
@@ -152,7 +145,7 @@ class ApiMdblist(RatingSource):
         return None
 
     def get_mdblist_data(self, media_type: str, ids: Dict[str, str]) -> Optional[dict]:
-        """Get cached MDBList data (does not fetch if missing)."""
+        """Get cached MDBList data, never fetching."""
         if not self.supports(media_type):
             return None
 
@@ -182,7 +175,7 @@ class ApiMdblist(RatingSource):
         return self._extract_ratings(data, media_type)
 
     def _extract_ratings(self, data: dict, media_type: str) -> Dict[str, Dict[str, float]]:
-        """Extract ratings from MDBList response. Converts 0-100 scores to 0-10 for Kodi."""
+        """Extract ratings from the MDBList response, every scale converted to 0-10."""
         result: Dict[str, Dict[str, float]] = {}
 
         ratings_data = data.get("ratings", [])
@@ -217,6 +210,7 @@ class ApiMdblist(RatingSource):
             if source == "imdb":
                 result["imdb"] = {"rating": rating, "votes": float(votes)}
             elif source == "tmdb":
+                # Kodi's TMDB scrapers key the rating themoviedb for movies and tmdb for shows
                 key = "themoviedb" if media_type == "movie" else "tmdb"
                 result[key] = {"rating": rating, "votes": float(votes)}
             elif source == "trakt":
@@ -242,6 +236,7 @@ class ApiMdblist(RatingSource):
     def _get_or_fetch(
         self, media_type: str, ids: Dict[str, str], abort_flag=None
     ) -> Optional[dict]:
+        """Cached MDBList data, fetched from the API when absent."""
         data = self.get_mdblist_data(media_type, ids)
         if not data:
             data = self.fetch_data(media_type, ids, abort_flag)
@@ -253,10 +248,7 @@ class ApiMdblist(RatingSource):
         ids: Dict[str, str],
         abort_flag=None
     ) -> Optional[dict]:
-        """Get additional metadata from MDBList (fetches if not cached).
-
-        Returns dict with trailer and certification.
-        """
+        """Get the trailer and certification from MDBList, fetching if not cached."""
         data = self._get_or_fetch(media_type, ids, abort_flag)
         if not data:
             return None
@@ -279,7 +271,7 @@ class ApiMdblist(RatingSource):
         ids: Dict[str, str],
         abort_flag=None
     ) -> Optional[dict]:
-        """Get Common Sense Media data from MDBList (fetches if not cached)."""
+        """Get Common Sense Media data from MDBList, fetching if not cached."""
         data = self._get_or_fetch(media_type, ids, abort_flag)
         if not data:
             return None
@@ -353,7 +345,7 @@ class ApiMdblist(RatingSource):
         ids: Dict[str, str],
         abort_flag=None
     ) -> Optional[float]:
-        """MDBList's own aggregate on a 0-10 scale, their plain mean when they have no aggregate."""
+        """MDBList's own aggregate on a 0-10 scale, their plain mean when there is none."""
         data = self._get_or_fetch(media_type, ids, abort_flag)
         if not data:
             return None
@@ -395,10 +387,7 @@ class ApiMdblist(RatingSource):
         provider: str = "tmdb",
         abort_flag=None
     ) -> Dict[str, dict]:
-        """Fetch MDBList data for multiple items in a single request.
-
-        items is a list of dicts with an 'id' key. Returns dict mapping provider IDs to responses.
-        """
+        """Fetch many items in 100-id batches, cache first, keyed by provider id."""
         if not self.api_key or not items:
             return {}
 

@@ -59,6 +59,7 @@ def _best_audio(streams: list) -> Optional[dict]:
 
 
 def media_streamdetails(filename: str, streamdetails: dict) -> Dict[str, str]:
+    """Stream properties for the skin; falls back to filename guesses with no video stream."""
     info: Dict[str, str] = {}
     video = streamdetails.get("video") or []
     audio = streamdetails.get("audio") or []
@@ -183,6 +184,7 @@ def _ordered_unique_push(seen: set, acc: list, items) -> None:
 
 
 def _first_or_empty(value) -> str:
+    """First entry of a list, or the value itself."""
     if isinstance(value, list):
         return value[0] if value else ""
     return value or ""
@@ -291,11 +293,7 @@ def _build_listitem_unified_data(
     userrating: Optional[int] = None,
     ratings_dict: Optional[dict] = None,
 ) -> dict:
-    """Build `ListItem.*` property dict shared across media types.
-
-    Video types pass `runtime_minutes`; music/musicvideo pass `duration_seconds`.
-    Artist uses `title` for the artist name.
-    """
+    """Build the `ListItem.*` property dict shared across media types, runtime or duration."""
     data: Dict[str, str] = {}
 
     data["ListItem.Title"] = title
@@ -407,6 +405,7 @@ def _extract_file_extension(file_path: Optional[str]) -> str:
 
 def _set_art_props(prefix: str, art: Optional[Dict[str, Any]], keys: Tuple[str, ...],
                    fallbacks: Optional[Dict[str, Any]] = None) -> None:
+    """Set Art(key) properties for the given keys, falling back per key."""
     art = art or {}
     fallbacks = fallbacks or {}
 
@@ -419,6 +418,7 @@ def _set_art_props(prefix: str, art: Optional[Dict[str, Any]], keys: Tuple[str, 
 
 
 def _trim_indexed(prefix: str, prev: int, now: int) -> None:
+    """Clear indexed properties left over when the count shrinks."""
     if now >= prev:
         return
     suffixes = (
@@ -460,6 +460,7 @@ def _trim_indexed(prefix: str, prev: int, now: int) -> None:
 
 
 def _trim_simple_index(prefix: str, prev: int, now: int) -> None:
+    """Clear the plain numbered properties left over when the count shrinks."""
     if now >= prev:
         return
     for i in range(now + 1, prev + 1):
@@ -467,7 +468,7 @@ def _trim_simple_index(prefix: str, prev: int, now: int) -> None:
 
 
 def build_movie_data(details: dict) -> dict:
-    """Build the property dict for a movie ListItem from a JSON-RPC movie details payload."""
+    """Build the property dict for a movie from its JSON-RPC details."""
     data = {}
 
     path = media_path(details.get("file"))
@@ -556,7 +557,7 @@ def build_movie_data(details: dict) -> dict:
 
 
 def set_movie_properties(details: dict) -> None:
-    """Set movie window properties with SkinInfo prefix."""
+    """Set movie window properties with the SkinInfo.Movie prefix."""
     data = build_movie_data(details)
     props = {f"SkinInfo.Movie.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
@@ -595,7 +596,7 @@ def set_movie_extras_aggregates(count: int, total_runtime: int, unwatched: int,
 
 
 def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
-    """Build movie set data dictionary for ListItem properties."""
+    """Build the property dict for a movie set from its details and member movies."""
     data = {}
 
     title = set_details.get("title") or set_details.get("label") or ""
@@ -731,7 +732,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
 
 
 def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
-    """Set movie set window properties with SkinInfo.Set prefix."""
+    """Set movie set window properties with the SkinInfo.Set prefix."""
     data = build_movieset_data(set_details, movies)
 
     metadata = data.pop("_metadata")
@@ -777,7 +778,7 @@ def set_movieset_properties(set_details: dict, movies: List[dict]) -> None:
 
 
 def build_artist_data(artist: dict, albums: List[dict]) -> dict:
-    """Build artist data dictionary for ListItem properties."""
+    """Build the property dict for an artist from its details and albums."""
     data = {}
 
     data["Artist"] = artist.get("artist") or ""
@@ -849,7 +850,7 @@ def build_artist_data(artist: dict, albums: List[dict]) -> dict:
 
 
 def set_artist_properties(artist: dict, albums: List[dict]) -> None:
-    """Set artist window properties with SkinInfo.Artist prefix."""
+    """Set artist window properties with the SkinInfo.Artist prefix."""
     data = build_artist_data(artist, albums)
 
     metadata = data.pop("_metadata")
@@ -886,7 +887,7 @@ def set_artist_properties(artist: dict, albums: List[dict]) -> None:
 
 
 def build_album_data(album: dict, songs: List[dict]) -> dict:
-    """Build album data dictionary for ListItem properties."""
+    """Build the property dict for an album from its details and songs."""
     data = {}
 
     album_year = album.get("year")
@@ -965,7 +966,7 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
 
 
 def set_album_properties(album: dict, songs: List[dict]) -> None:
-    """Set album window properties with SkinInfo.Album prefix."""
+    """Set album window properties with the SkinInfo.Album prefix."""
     data = build_album_data(album, songs)
 
     metadata = data.pop("_metadata")
@@ -1003,6 +1004,7 @@ _LISTITEM_RATING_STATE: Set[str] = set()
 
 
 def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
+    """Set per-source rating properties, blanking any source that has since disappeared."""
     ratings = item.get("ratings") or {}
     prefix = f"SkinInfo.{media_type}.Rating"
     props: Dict[str, Optional[str]] = {}
@@ -1041,7 +1043,7 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
 
 
 def build_tvshow_data(details: dict) -> dict:
-    """Build the property dict for a TV show ListItem from a JSON-RPC show details payload."""
+    """Build the property dict for a TV show from its JSON-RPC details."""
     data = {}
 
     year = details.get("year")
@@ -1120,7 +1122,7 @@ def build_tvshow_data(details: dict) -> dict:
 
 
 def set_tvshow_properties(details: dict) -> None:
-    """Set TV show window properties with SkinInfo.TVShow prefix."""
+    """Set TV show window properties with the SkinInfo.TVShow prefix."""
     data = build_tvshow_data(details)
     props = {f"SkinInfo.TVShow.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
@@ -1143,7 +1145,7 @@ def set_tvshow_properties(details: dict) -> None:
 
 
 def build_season_data(details: dict) -> dict:
-    """Build season data dictionary for ListItem properties."""
+    """Build the property dict for a season from its JSON-RPC details."""
     data = {}
 
     season = details.get("season")
@@ -1181,7 +1183,7 @@ def build_season_data(details: dict) -> dict:
 
 
 def set_season_properties(details: dict) -> None:
-    """Set season window properties with SkinInfo.Season prefix."""
+    """Set season window properties with the SkinInfo.Season prefix."""
     data = build_season_data(details)
     props = {f"SkinInfo.Season.{k}": v for k, v in data.items()}
     batch_set_props(props)
@@ -1198,7 +1200,7 @@ def set_season_properties(details: dict) -> None:
 
 
 def build_episode_data(details: dict) -> dict:
-    """Build episode data dictionary for ListItem properties."""
+    """Build the property dict for an episode from its JSON-RPC details."""
     data = {}
 
     path = media_path(details.get("file"))
@@ -1278,7 +1280,7 @@ def build_episode_data(details: dict) -> dict:
 
 
 def set_episode_properties(details: dict) -> None:
-    """Set `SkinInfo.Episode.*` window properties from a JSON-RPC episode details payload."""
+    """Set episode window properties with the SkinInfo.Episode prefix."""
     data = build_episode_data(details)
     props = {f"SkinInfo.Episode.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)
@@ -1300,7 +1302,7 @@ def set_episode_properties(details: dict) -> None:
 
 
 def build_musicvideo_data(details: dict) -> dict:
-    """Build music video data dictionary for ListItem properties."""
+    """Build the property dict for a music video from its JSON-RPC details."""
     data = {}
 
     path = media_path(details.get("file"))
@@ -1371,7 +1373,7 @@ def build_musicvideo_data(details: dict) -> dict:
 
 
 def set_musicvideo_properties(details: dict) -> None:
-    """Set music video window properties with SkinInfo.MusicVideo prefix."""
+    """Set music video window properties with the SkinInfo.MusicVideo prefix."""
     data = build_musicvideo_data(details)
     props = {f"SkinInfo.MusicVideo.{k}": v for k, v in data.items() if not k.startswith("_")}
     batch_set_props(props)

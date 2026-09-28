@@ -1,8 +1,4 @@
-"""Library scanning for missing artwork.
-
-Scans Kodi library for items with missing artwork from APIs.
-Builds queue for manual review or auto-processing.
-"""
+"""Library scanning for missing artwork."""
 from __future__ import annotations
 
 import xbmc
@@ -21,7 +17,7 @@ from lib.kodi.client import log, ADDON
 
 
 class ArtworkScanner:
-    """Scans library for missing artwork, builds queue for review."""
+    """Scans the library for missing artwork and queues what it finds for review."""
 
     def __init__(self, fetcher: Optional[ApiArtworkFetcher] = None,
                  use_background: bool = False, abort_flag=None, task_context=None):
@@ -74,7 +70,7 @@ class ArtworkScanner:
             self._total_items += count
 
     def _update_fetch_progress(self, progress_title: str, done: int, total: int) -> None:
-        """Keep the bar moving while library data is still being fetched (seasons are per-show)."""
+        """Update the progress dialog during the library fetch; seasons are per-show."""
         percent = min(100, int((done * 100) / total)) if total else 0
         loading = f"{ADDON.getLocalizedString(32350)} {done}/{total}"
         self.progress.update(percent, f"{progress_title}[CR]{loading}")
@@ -194,7 +190,7 @@ class ArtworkScanner:
         scope_label: str,
         progress_title: str,
     ) -> bool:
-        """Scan a collection of media items for missing artwork."""
+        """Scan already-fetched items, queueing the art each lacks; False only on a fatal error."""
         if not items:
             return True
 
@@ -305,8 +301,7 @@ class ArtworkScanner:
         enabled = {art_type.strip() for art_type in setting_value.split(",") if art_type.strip()}
         return [art_type for art_type in supported if art_type in enabled]
 
-    # Per-type scan configuration: properties to fetch, title/year keys, Kodi's type name.
-    # Music sorts by artist so one artist's items queue together and share a single fetch.
+    # music sorts by artist so one artist's items share a single fetch
     _SCAN_CONFIGS = {
         'movie': {
             'fetch_media_type': 'movie', 'id_key': 'movieid',
@@ -356,6 +351,7 @@ class ArtworkScanner:
 
     def _scan_collection(self, media_type: str, art_types: List[str], session_id: int,
                          scope_label: str) -> bool:
+        """Fetch one media type's items and queue whatever art is missing."""
         cfg = self._SCAN_CONFIGS[media_type]
         type_name = xbmc.getLocalizedString(cfg['type_name'])
         progress_title = ADDON.getLocalizedString(32704).format(type_name)

@@ -11,7 +11,7 @@ def _set_not_found(prop_base: str, window: str) -> None:
 
 
 def check_file_exists(paths, separator='|', prefix='', window='home'):
-    """Set `SkinInfo.File[.{prefix}].{Exists,Path}` for the first existing path in `paths`."""
+    """Check the paths in order, setting `SkinInfo.File[.prefix].*` for the first found."""
     prop_base = f'SkinInfo.File.{prefix}' if prefix else 'SkinInfo.File'
 
     if not paths:

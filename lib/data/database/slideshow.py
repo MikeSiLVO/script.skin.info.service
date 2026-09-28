@@ -1,4 +1,4 @@
-"""Slideshow pool database operations."""
+"""Slideshow pool: one row per library item with fanart, for the background rotators."""
 from __future__ import annotations
 
 from typing import List, Optional, Final
@@ -13,11 +13,11 @@ _POOL_INSERT_SQL: Final = '''
         year = excluded.year, artist = excluded.artist
 '''
 
-# Bumped after each repopulate (post-swap) so cursors rebuild against a whole pool, not a partial.
 _pool_generation = 0
 
 
 def _bump_generation() -> None:
+    """Invalidate cached pool readers by moving the generation on."""
     global _pool_generation
     _pool_generation += 1
 
@@ -34,7 +34,7 @@ def populate_pool(*record_sets: List[tuple]) -> None:
 
 def upsert_pool_item(media_type: str, dbid: int, title: str, fanart: str,
                      plot: str, year: Optional[int], artist: str = '') -> None:
-    """Insert or replace one pool row (keyed on media_type+dbid), then bump generation."""
+    """Upsert one pool row, then bump the generation."""
     with get_db() as cursor:
         cursor.execute(_POOL_INSERT_SQL,
                        (media_type, dbid, title, fanart, plot, year, artist))
@@ -42,7 +42,7 @@ def upsert_pool_item(media_type: str, dbid: int, title: str, fanart: str,
 
 
 def delete_pool_item(media_type: str, dbid: int) -> None:
-    """Drop one pool row (its fanart was cleared); bump generation only if a row was removed."""
+    """Delete one pool row, bumping the generation only if a row was removed."""
     with get_db() as cursor:
         cursor.execute('DELETE FROM slideshow_pool WHERE media_type = ? AND dbid = ?',
                        (media_type, dbid))
@@ -52,7 +52,7 @@ def delete_pool_item(media_type: str, dbid: int) -> None:
 
 
 def get_pool_compare_fields(media_types: tuple) -> dict:
-    """`(media_type, dbid) -> (title, fanart, plot, year, artist)`, for the reconcile diff."""
+    """Get `(media_type, dbid) -> (title, fanart, plot, year, artist)` for the reconcile diff."""
     if not media_types:
         return {}
     placeholders = sql_placeholders(len(media_types))
@@ -65,10 +65,7 @@ def get_pool_compare_fields(media_types: tuple) -> dict:
 
 
 def apply_pool_diff(upserts: List[tuple], deletes: List[tuple]) -> None:
-    """Apply a reconcile diff in one transaction; bump generation once iff anything changed.
-
-    `upserts` are full pool-row tuples; `deletes` are (media_type, dbid) keys.
-    """
+    """Apply a reconcile diff of full-row upserts and key deletes in one transaction."""
     if not upserts and not deletes:
         return
     with get_db() as cursor:
@@ -81,19 +78,19 @@ def apply_pool_diff(upserts: List[tuple], deletes: List[tuple]) -> None:
 
 
 def pool_generation() -> int:
-    """Monotonic counter that changes whenever the pool is repopulated."""
+    """Counter that moves on every pool change, so rotation cursors know to rebuild."""
     return _pool_generation
 
 
 def get_all_pool_rows() -> list:
-    """Return every pool row (all types), for building in-memory rotation cursors."""
+    """Get every pool row of every type, for building the rotation cursors."""
     with get_db() as cursor:
         cursor.execute('SELECT media_type, title, fanart, plot, year, artist FROM slideshow_pool')
         return cursor.fetchall()
 
 
 def get_artist_description(dbid: int) -> str:
-    """Cached artist bio, for a song/album background carrying no description of its own."""
+    """Get an artist's cached bio, for a song or album background with none of its own."""
     with get_db() as cursor:
         cursor.execute(
             "SELECT plot FROM slideshow_pool WHERE media_type = 'artist' AND dbid = ?",

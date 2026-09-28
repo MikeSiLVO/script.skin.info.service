@@ -42,10 +42,7 @@ class ImdbUpdateMonitor(xbmc.Monitor):
 
 
 class ImdbUpdateService(threading.Thread):
-    """Auto-updates IMDb ratings. Gated by `imdb_auto_update` setting only.
-
-    Runs periodic dataset checks and reacts to `VideoLibrary.OnScanFinished`.
-    """
+    """Background IMDb rating updater, run daily or after a library scan as the setting chooses."""
 
     def __init__(self):
         super().__init__(daemon=True)
@@ -55,6 +52,7 @@ class ImdbUpdateService(threading.Thread):
         self._next_retry_at = 0.0
 
     def _set_last_check(self) -> None:
+        """Stamp the daily check time in the settings."""
         ADDON.setSetting("imdb_last_auto_check", str(time.time()))
 
     def run(self) -> None:
@@ -78,6 +76,7 @@ class ImdbUpdateService(threading.Thread):
         log("Service", "IMDb auto-update service stopped", xbmc.LOGINFO)
 
     def _on_library_scan_finished(self) -> None:
+        """Start an IMDb update after a library scan when the setting asks for it."""
         setting = ADDON.getSetting("imdb_auto_update")
         if setting in ("library_scan", "both"):
             threading.Thread(
@@ -87,12 +86,7 @@ class ImdbUpdateService(threading.Thread):
             ).start()
 
     def _run_update(self, monitor: xbmc.Monitor) -> bool:
-        """Returns True if the daily-check timestamp should advance, False otherwise.
-
-        Returns False on collision (another task running) or transient dataset-refresh
-        failures; in the failure case `_next_retry_at` is set so the run loop backs off
-        (1h, 4h, then 24h) instead of hammering on every 5s tick.
-        """
+        """Run one pass; True when the daily check may advance, False on a collision or failure."""
         if task_manager.is_task_running():
             log("Service", "IMDb update deferred: another task is running", xbmc.LOGDEBUG)
             return False
@@ -131,6 +125,7 @@ class ImdbUpdateService(threading.Thread):
         return True
 
     def _run_incremental(self, monitor: xbmc.Monitor) -> None:
+        """Update only the IMDb ratings that changed, notifying when any moved."""
         from lib.infrastructure.dialogs import notify_when_idle
         from lib.rating.imdb import update_changed_imdb_ratings
 
@@ -146,6 +141,7 @@ class ImdbUpdateService(threading.Thread):
         notify_when_idle(ADDON.getLocalizedString(32318), message, monitor, self.abort)
 
     def _run_full_update(self) -> None:
+        """Run the IMDb rating update across whichever media the scope setting names."""
         from lib.rating.updater import update_library_ratings
 
         media_types = _scope_types()

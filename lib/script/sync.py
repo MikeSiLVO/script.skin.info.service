@@ -62,6 +62,7 @@ def run_sync_tvshows() -> None:
 
 
 def _execute_sync(progress: ProgressDialog, ctx: task_manager.TaskContext) -> Dict[str, int]:
+    """Fetch TMDB data for every library show with no cached online properties yet."""
     stats = {"fetched": 0, "skipped": 0, "failed": 0, "cancelled": False}
     monitor = xbmc.Monitor()
 

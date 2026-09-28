@@ -17,7 +17,7 @@ _NO_PART: Final = -1
 
 def get_provider_cache(provider: str, media_type: str, media_id: str,
                        season: int = _NO_PART, episode: int = _NO_PART) -> Optional[dict]:
-    """Cached provider response; an expiry set before the title was known is re-derived."""
+    """Get a cached provider response; an expiry set before the title was known is re-derived."""
     key = (provider, media_type, media_id, season, episode)
     with get_db() as cursor:
         cursor.execute(
@@ -81,7 +81,7 @@ def cached_provider_keys(provider: str, media_type: str) -> Set[Tuple[str, int, 
 def save_provider_cache(provider: str, media_type: str, media_id: str, data: dict,
                         release_date: Optional[str] = None,
                         season: int = _NO_PART, episode: int = _NO_PART) -> None:
-    """Upsert a compressed provider response under an expiry fixed at fetch time."""
+    """Save a compressed provider response under an expiry fixed at fetch time."""
     now = int(time.time())
     expires_at = now + _provider_ttl_hours(media_id, release_date) * 3600
     with get_db() as cursor:

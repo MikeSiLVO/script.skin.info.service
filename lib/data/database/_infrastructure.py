@@ -39,11 +39,7 @@ SQL_PARAM_CHUNK_SIZE: Final = 900
 
 
 def sql_placeholders(count: int) -> str:
-    """Build a comma-separated placeholder string for SQL IN-lists, e.g. `'?,?,?'`.
-
-    Raises for lists too long to bind in one statement, rather than leaving it to fail on a
-    user's library; feed caller-sized lists through `chunked_in_query`/`chunked_in_modify`.
-    """
+    """Build a `?,?,?` placeholder list for an IN clause; raises past the chunk size."""
     if count > SQL_PARAM_CHUNK_SIZE:
         raise ValueError(
             f"{count} placeholders exceeds the {SQL_PARAM_CHUNK_SIZE} parameter budget - "
@@ -74,7 +70,7 @@ def chunked_in_modify(
     values: list,
     chunk_size: int = SQL_PARAM_CHUNK_SIZE,
 ) -> int:
-    """Execute a chunked DELETE/UPDATE with an IN list. Returns total `rowcount` across chunks."""
+    """Execute an IN-list DELETE or UPDATE in {placeholders} chunks; returns the total rowcount."""
     total = 0
     for start in range(0, len(values), chunk_size):
         chunk = values[start:start + chunk_size]
@@ -98,6 +94,7 @@ _OLD_DB_PATHS = [
 
 
 def _ensure_addon_data_folder() -> None:
+    """Create the addon data folder if it is missing."""
     folder = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/')
     if not xbmcvfs.exists(folder):
         xbmcvfs.mkdirs(folder)
@@ -189,9 +186,8 @@ def close_connections() -> None:
 
 
 def _cleanup_old_databases() -> None:
-    """Delete old database versions if they exist."""
+    """Delete old database versions and the pre-v5 music cache, with their WAL files."""
     for base in _OLD_DB_PATHS + [_MUSIC_DB_PATH]:
-        # the -wal can be the larger half, and it outlives the file it belonged to
         for path in (base, base + '-wal', base + '-shm'):
             if not xbmcvfs.exists(path):
                 continue
@@ -210,7 +206,7 @@ def init_database() -> None:
     cursor = conn.cursor()
 
     try:
-        # WAL is persistent at the DB level; apply once during init.
+        # WAL mode persists in the database file
         cursor.execute('PRAGMA journal_mode = WAL')
         create_schema(cursor)
         conn.commit()

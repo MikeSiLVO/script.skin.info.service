@@ -31,7 +31,6 @@ def handle_rate_limit_error(provider: str) -> str:
     choice = dialog.select(ADDON.getLocalizedString(32313).format(provider.upper()), list(choices))
 
     if choice == 0:
-        # Wait 60 seconds then retry
         import xbmc
         monitor = xbmc.Monitor()
         progress = DialogProgress()
@@ -61,17 +60,17 @@ def handle_rate_limit_error(provider: str) -> str:
 
 
 def is_batch_cancelled() -> bool:
-    """True once the user chose to stop this run at a rate-limit prompt."""
+    """True once a rate-limit prompt has cancelled this run."""
     return _session_batch_cancelled
 
 
 def is_provider_skipped(provider: str) -> bool:
-    """Check if provider is skipped for this session."""
+    """Whether the user chose to continue without this provider for the session."""
     return provider.lower() in _session_skip_providers
 
 
 def reset_session_skip() -> None:
-    """Clear session skip flags."""
+    """Clear the skipped providers and the cancelled-run flag."""
     global _session_batch_cancelled
     _session_batch_cancelled = False
     _session_skip_providers.clear()

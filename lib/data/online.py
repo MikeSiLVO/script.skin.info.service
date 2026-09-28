@@ -288,8 +288,7 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
             except Exception as e:
                 log("Service", f"Online fetch error ({source}): {e}", xbmc.LOGWARNING)
 
-    # Merge in priority order: MDBList (richer aggregator) wins shared rating keys, OMDb
-    # only backfills.
+    # a later source wins a shared key, so MDBList's ratings override OMDb's
     for source in ("tmdb", "omdb", "mdblist", "trakt"):
         if source in results:
             props.update(results[source])

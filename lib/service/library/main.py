@@ -1,9 +1,4 @@
-"""SkinInfo background service for property updates.
-
-Coordinator for the library-focus service. Composes per-concern handlers
-(refresh, blur, player, music_player, musicvideo, slideshow, focus) and
-runs the main loop.
-"""
+"""Library service: the poll loop over the focus, player, blur, slideshow and refresh handlers."""
 from __future__ import annotations
 
 import threading
@@ -55,11 +50,13 @@ class LibraryMonitor(xbmc.Monitor):
 
     @staticmethod
     def _sync_dbids() -> None:
+        """Sync the DBID registry off the notification thread."""
         from lib.data.database.rollcall import sync_dbids
         sync_dbids()
 
     @staticmethod
     def _on_video_remove(data: str) -> None:
+        """Drop cached data for an item removed from the library."""
         try:
             import json
             info = json.loads(data)
@@ -79,6 +76,7 @@ class LibraryMonitor(xbmc.Monitor):
             invalidate_show_runtime(int(dbid))
 
     def _on_video_update(self, data: str) -> None:
+        """Invalidate cached data for an updated item; a playcount-only change stops early."""
         try:
             import json
             info = json.loads(data)

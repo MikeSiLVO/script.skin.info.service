@@ -1,4 +1,4 @@
-"""Helper classes and utilities for artwork fetching."""
+"""Helper utilities for artwork fetching."""
 from __future__ import annotations
 
 import math
@@ -10,7 +10,7 @@ from lib.kodi.utilities import get_preferred_language_code, normalize_language_t
 
 
 def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
-    """Find highest quality artwork from list based on resolution (width x height)."""
+    """Pick the highest-resolution artwork from a list; None when the list is empty."""
     if not art_list:
         return None
 
@@ -18,6 +18,7 @@ def compare_art_quality(art_list: List[dict]) -> Optional[dict]:
         return art_list[0]
 
     def get_pixel_count(art: dict) -> int:
+        """Area in pixels, zero when either dimension is missing."""
         width = int(art.get('width', 0) or 0)
         height = int(art.get('height', 0) or 0)
         return width * height
@@ -53,6 +54,7 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
         use_language_preference = False
 
     def get_sort_key(art: dict) -> tuple:
+        """Sort tuple for the chosen mode; every field is negated to sort descending."""
         width = int(art.get('width', 0) or 0)
         height = int(art.get('height', 0) or 0)
         pixels = width * height
@@ -90,10 +92,7 @@ def sort_artwork_by_popularity(art_list: List[dict], art_type: str = '',
 
 
 def get_available_languages(artwork_list: List[dict]) -> List[str]:
-    """Extract unique language codes from artwork list.
-
-    Returned list is sorted, with empty string (text-free) first if present.
-    """
+    """Unique language codes, sorted, with text-free first."""
     if not artwork_list:
         return []
 
@@ -117,17 +116,7 @@ def filter_artwork_by_language(
     language_code: Optional[str] = None,
     include_no_language: bool = True
 ) -> List[dict]:
-    """Filter artwork based on art type rules and language preferences.
-
-    Art type filtering rules:
-    - AUTO_NO_LANGUAGE_TYPES (fanart, keyart): Only text-free items (unless
-      prefer_fanart_language=True).
-    - AUTO_LANG_REQUIRED_TYPES (poster, clearlogo, etc.): Preferred language + text-free,
-      fallback to all.
-    - Other types or explicit language_code: Filter to specified language.
-
-    When language_code is None, uses the preferred language from settings.
-    """
+    """Keep art matching the wanted language; fanart and keyart take text-free only."""
     if not artwork_list:
         return []
 
@@ -235,15 +224,12 @@ def get_language_display_name(language_code: str) -> str:
 
 
 def parse_art_slot_index(slot_name: str) -> int:
-    """Parse 0-based index from art slot name ('fanart' -> 0, 'fanart1' -> 1).
-
-    Returns -1 if not a fanart slot.
-    """
+    """0-based slot index ('fanart' is 0, 'fanart1' is 1), or -1 if not a fanart slot."""
     if slot_name == 'fanart':
         return 0
     elif slot_name.startswith('fanart'):
         try:
-            return int(slot_name[6:])  # Extract number after 'fanart'
+            return int(slot_name[6:])
         except (ValueError, IndexError):
             return -1
     return -1

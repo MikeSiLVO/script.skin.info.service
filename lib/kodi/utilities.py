@@ -1,8 +1,4 @@
-"""Utility functions for properties, settings, date formatting, and language handling.
-
-`set_prop`/`batch_set_props`/`clear_prop`/`clear_group` cache-diff writes to the home window
-only. Route any property also written by the service through these to avoid cache desync.
-"""
+"""Kodi helpers for window properties, dates, language codes and build checks."""
 from __future__ import annotations
 
 import re
@@ -26,9 +22,7 @@ def resolve_infolabel(value: str) -> str:
 
 
 class _TransitionGate:
-    """Holds back ListItem/Container reads from other threads until a window or dialog change
-    finishes; reading them while Kodi is still building the window can crash.
-    """
+    """Gate holding off-thread ListItem reads until a window change settles; early reads crash."""
 
     _SETTLE_SECONDS = 0.2
 
@@ -38,7 +32,7 @@ class _TransitionGate:
         self._settle_until = 0.0
 
     def settled(self) -> bool:
-        """False while a window/dialog transition is within the settle window."""
+        """True once the window and dialog ids have held steady for the settle time."""
         ids = (xbmcgui.getCurrentWindowId(), xbmcgui.getCurrentWindowDialogId())
         now = time.monotonic()
         with self._lock:
@@ -60,8 +54,7 @@ def gui_transition_settled() -> bool:
 
 
 def modal_dialog_active() -> bool:
-    """True while a modal dialog is on top, where ListItem.* answers from that dialog's own list
-    instead of the underlying window."""
+    """True while a modal dialog is on top, when ListItem.* answers from the dialog's own list."""
     return xbmcgui.getCurrentWindowDialogId() != WINDOW_INVALID
 
 
@@ -98,7 +91,7 @@ LANGUAGE_OPTIONS: List[str] = [
 ]
 DEFAULT_LANGUAGE: Final = 'en'
 
-# Kodi's join separator for multi-value strings (genres, directors, cast).
+# Kodi's join separator for multi-value strings such as genres and cast
 MULTI_VALUE_SEP: Final = " / "
 
 
@@ -150,8 +143,7 @@ def validate_sort_method(method: str, fallback: str) -> str:
 
 
 def normalize_certificate(value: Optional[str]) -> Tuple[str, str]:
-    """Normalize a certificate to `(country, rating)` for comparison; an empty rating never
-    matches, and countries must agree so `NL:16` stays distinct from `GR:16`."""
+    """Normalize a certificate to `(country, rating)` for comparison, so `NL:16` != `GR:16`."""
     text = _CERT_RATED.sub('', (value or '').strip()).strip().upper()
     if not text:
         return '', ''
@@ -165,8 +157,7 @@ def normalize_certificate(value: Optional[str]) -> Tuple[str, str]:
 
 
 def normalize_language_tag(value: Optional[str]) -> str:
-    """Normalize to lowercase ISO 639-1; placeholder codes (`00`, `null`, `xx`) become empty and
-    country codes get remapped (`cz` -> `cs`)."""
+    """Normalize to lowercase ISO 639-1, emptying placeholders like `xx`; `cz` becomes `cs`."""
     normalized = (value or '').strip().lower()
 
     if normalized in ('00', 'null', 'none', 'xx', 'n/a'):
@@ -180,7 +171,7 @@ def normalize_language_tag(value: Optional[str]) -> str:
 
 
 def get_preferred_language_code() -> str:
-    """Return the configured preferred language code."""
+    """Return the preferred language code, stored as a code or a list index; English when unset."""
     try:
         value = normalize_language_tag(KodiSettings.preferred_language())
     except Exception:
@@ -207,7 +198,7 @@ def _enforce_props_size_limit() -> None:
 
 
 def set_prop(key: str, val: Optional[str]) -> None:
-    """Set a home-window property, skipping the write if the cached value is unchanged."""
+    """Set a home-window property, skipping the write when this process last set the same value."""
     sval = "" if val is None else str(val)
 
     needs_update = False
@@ -256,7 +247,7 @@ def batch_set_props(props: Dict[str, Optional[str]]) -> None:
 
 
 def set_window_prop(key: str, value: object, window: str = 'home') -> None:
-    """Set a property on a named window, the value quoted so commas and brackets survive."""
+    """Set a property on a named window, keeping any commas and brackets in the value."""
     if window.lower() in ('home', '10000'):
         HOME.setProperty(key, str(value))
         return
@@ -280,7 +271,7 @@ def clear_prop(key: str) -> None:
 
 
 def clear_group(prefix: str) -> None:
-    """Clear all tracked home-window properties whose key starts with `prefix`."""
+    """Clear all tracked home-window properties under a key prefix."""
     with _CACHE_LOCK:
         keys_to_clear = [k for k in _PREV_PROPS.keys() if k.startswith(prefix)]
         for k in keys_to_clear:
@@ -298,10 +289,7 @@ def extract_cast_names(cast_list) -> List[str]:
 
 
 def extract_media_ids(item: dict) -> Dict[str, Optional[str]]:
-    """Return `{tmdb, imdb, tvdb, trakt}` IDs from a Kodi item, normalizing to string or None.
-
-    Kodi's TMDB scraper writes the TMDB id into `imdbnumber`; only `uniqueid` is trusted here.
-    """
+    """Return `{tmdb, imdb, tvdb, trakt}` from a Kodi item's `uniqueid` only, as strings or None."""
     uniqueid = item.get("uniqueid", {})
 
     tmdb_id = uniqueid.get("tmdb") or uniqueid.get("themoviedb")
@@ -399,10 +387,7 @@ def tvshow_version_fields() -> List[str]:
 
 
 def tvshow_status_gettable() -> bool:
-    """True if this Kodi build exposes tvshow `status` as a readable JSON-RPC field.
-
-    `status` was write-only until xbmc/xbmc#28520; older builds return Invalid params on Get.
-    """
+    """True if this Kodi build can read tvshow `status` over JSON-RPC; older builds reject it."""
     global _tvshow_status_gettable
     if _tvshow_status_gettable is None:
         resp = request(

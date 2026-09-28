@@ -32,11 +32,7 @@ class Top250UpdateMonitor(xbmc.Monitor):
 
 
 class Top250UpdateService(threading.Thread):
-    """Auto-updates IMDb Top 250 ranks. Gated by `top250_auto_update` setting only.
-
-    Aims each check an hour past Trakt's next daily rebuild, learned from the list itself,
-    and skips the library pass entirely while the list's contents are unchanged.
-    """
+    """Background Top 250 updater, checking an hour after Trakt's daily list rebuild."""
 
     def __init__(self):
         super().__init__(daemon=True)

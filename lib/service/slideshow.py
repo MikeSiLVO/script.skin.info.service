@@ -36,8 +36,7 @@ def _cache_image_url(url: str) -> bool:
         return False
 
 
-# category -> ((skin property, pool row field), ...). Music takes the artist name from the row's
-# title column, MusicVideo from its own artist column.
+# category -> ((skin property, pool row field), ...); an artist row's name is its title
 _CATEGORY_PROPS = {
     'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
     'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
@@ -105,6 +104,7 @@ def _artist_description(artist_id: Any) -> str:
 
 
 def _year_of(detail: Dict[str, Any]) -> str:
+    """Year from the item, falling back to the first-aired date."""
     year = detail.get('year')
     if year:
         return str(year)
@@ -236,6 +236,7 @@ class PlaylistRotator:
         return cursor.wrapped() or not cursor
 
     def _display(self) -> None:
+        """Advance every slot's cursor and publish the item it lands on."""
         for name, slot in self._slots.items():
             entry = slot['cursor'].pop()
             if entry is None:
@@ -265,6 +266,7 @@ class PlaylistRotator:
 
     @staticmethod
     def _publish_video(name: str, entry: Dict[str, Any]) -> None:
+        """Publish one playlist slot's video properties."""
         detail = entry['detail']
         prefix = f'{_PLAYLIST_PREFIX}{name}.'
         set_prop(prefix + 'Title', detail.get('title', '') or detail.get('label', ''))
@@ -274,6 +276,7 @@ class PlaylistRotator:
 
     @staticmethod
     def _publish_music(name: str, entry: Dict[str, Any]) -> None:
+        """Publish one playlist slot's music properties, preferring the display artist."""
         detail = entry['detail']
         prefix = f'{_PLAYLIST_PREFIX}{name}.'
         artist = detail.get('displayartist', '')
@@ -286,13 +289,13 @@ class PlaylistRotator:
 
     @staticmethod
     def _clear_name(name: str) -> None:
+        """Clear every property of one playlist slot."""
         prefix = f'{_PLAYLIST_PREFIX}{name}.'
         for suffix in _PLAYLIST_SUFFIXES:
             clear_prop(prefix + suffix)
 
 
-# category -> eligible pool types. Mixed categories (Video/Global) weight the type pick by
-# pool size; see LibrarySlideshow.
+# category -> eligible pool types; a mixed category weights its type pick by pool size
 _LIBRARY_CATEGORIES = {
     'Movie':      ('movie',),
     'TV':         ('tvshow',),
@@ -302,7 +305,7 @@ _LIBRARY_CATEGORIES = {
     'Global':     ('movie', 'tvshow', 'artist', 'musicvideo'),
 }
 
-# sqrt damping for mixed-category type weighting: 1.0 = proportional, 0.0 = equal.
+# damping for the mixed-category type pick: 1.0 proportional to pool size, 0.0 equal
 _WEIGHT_ALPHA: Final = 0.5
 
 
@@ -341,6 +344,7 @@ class LibrarySlideshow:
         self._generation = -1
 
     def _rebuild(self) -> None:
+        """Rebuild the rotation cursors from the pool, clearing categories that no longer fill."""
         self._generation = db_slideshow.pool_generation()
         pool: Dict[str, list] = {}
         for row in db_slideshow.get_all_pool_rows():
@@ -360,6 +364,7 @@ class LibrarySlideshow:
             _clear_category_properties(category)
 
     def _pick_type(self, category: str, cursors: Dict[str, _RotationCursor]) -> Optional[str]:
+        """Pick a ready media type for the category, weighted by pool size."""
         ready = [t for t in cursors if cursors[t].has_ready()]
         if not ready:
             return None
@@ -369,6 +374,7 @@ class LibrarySlideshow:
         return random.choices(ready, weights=[weights[t] for t in ready])[0]
 
     def _display(self) -> None:
+        """Publish one item per category, picking a type from that category's pool."""
         for category, cursors in self._categories.items():
             media_type = self._pick_type(category, cursors)
             if not media_type:
@@ -378,6 +384,7 @@ class LibrarySlideshow:
                 _publish_library(category, entry)
 
     def _refill(self) -> None:
+        """Force-cache each cursor's next fanart and fill the lookaheads."""
         for cursors in self._categories.values():
             for cursor in cursors.values():
                 for row in cursor.wanted():
@@ -388,6 +395,7 @@ class SlideshowMonitor(xbmc.Monitor):
     """Reconciles the pool for the library a scan or clean just changed, off the callback thread."""
 
     def _reconcile(self, library: str, reason: str) -> None:
+        """Reconcile the slideshow pool for one library kind."""
         scope = ('artist',) if library == 'music' else ('movie', 'tvshow', 'musicvideo')
         try:
             log("Service", f"Slideshow: {reason}, reconciling {scope}...", xbmc.LOGDEBUG)
@@ -396,9 +404,11 @@ class SlideshowMonitor(xbmc.Monitor):
             log("Service", f"Slideshow: Error reconciling pool: {e}", xbmc.LOGERROR)
 
     def onScanFinished(self, library: str) -> None:
+        """Reconcile the scanned library's pool types."""
         threading.Thread(target=self._reconcile,
                          args=(library, f"Library scan finished ({library})"), daemon=True).start()
 
     def onCleanFinished(self, library: str) -> None:
+        """Reconcile the cleaned library's pool types."""
         threading.Thread(target=self._reconcile,
                          args=(library, f"Library clean finished ({library})"), daemon=True).start()

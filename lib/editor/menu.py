@@ -39,7 +39,7 @@ from lib.editor.utilities import (
 
 
 def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
-    """Main entry point for metadata editor."""
+    """Run the metadata editor on an item, the focused ListItem when none is given."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
     dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
@@ -85,7 +85,7 @@ def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
 def _show_main_menu(
     dbid: int, media_type: str, item: dict[str, Any], title: str
 ) -> None:
-    """Show flattened field menu with all editable fields."""
+    """Show every editable field with its current value until the user backs out."""
     fields = get_fields_for_media_type(media_type)
     last_selected = 0
     monitor = xbmc.Monitor()
@@ -129,7 +129,6 @@ def _show_main_menu(
         last_selected = menu._last_selected_idx or 0
 
 
-# Per-field overrides for INTEGER fields that need a specialized handler.
 _INTEGER_FIELD_OVERRIDES = {
     "runtime": lambda dn, cur, _mt, _f: handle_runtime(dn, cur),
     "duration": lambda dn, cur, _mt, _f: handle_duration(dn, cur),
@@ -139,6 +138,7 @@ _INTEGER_FIELD_OVERRIDES = {
 
 
 def _dispatch_integer(display_name: str, current, media_type: str, field: str, _item):
+    """Edit an integer field through its override handler when one exists."""
     handler = _INTEGER_FIELD_OVERRIDES.get(field)
     if handler:
         return handler(display_name, current, media_type, field)
@@ -163,7 +163,7 @@ _FIELD_TYPE_HANDLERS = {
 def _edit_field(
     dbid: int, media_type: str, item: dict[str, Any], field: str
 ) -> bool:
-    """Edit a single field. Returns True to keep menu open."""
+    """Edit one field, then save it and update the NFO; True keeps the menu open."""
     field_def = get_field_def(field)
     if not field_def:
         return True
@@ -189,10 +189,10 @@ def _edit_field(
     if save_field(dbid, media_type, field, new_value, item):
         stored = new_value
         if field_type == FieldType.UNIQUEIDS and isinstance(new_value, dict):
-            # Nulls tell Kodi to remove
+            # a null tells Kodi to remove the id
             stored = {k: v for k, v in new_value.items() if v is not None}
         item[field_def["api_name"]] = stored
-        # Also update premiered in local item when year changes since Kodi links them
+        # Kodi links year and premiered
         if field == "year" and isinstance(new_value, int):
             original = item.get("premiered", "")
             if original and len(original) >= 10:

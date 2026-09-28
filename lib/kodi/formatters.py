@@ -1,8 +1,4 @@
-"""
-Formatters for converting API responses to Kodi-style property dicts.
-
-Maps API field names to Kodi InfoLabel equivalents where applicable.
-"""
+"""Formatters that turn TMDB and ratings responses into Kodi-style property dicts."""
 from typing import Dict, List, Tuple, Optional, Final
 
 from lib.kodi.settings import KodiSettings
@@ -25,7 +21,7 @@ _STAR_SCALES = {"rogerebert": (4, 0.5), "letterboxd": (5, 0.0)}
 
 
 def format_stars(source: Optional[str], rating: float) -> str:
-    """The rating back on its own star scale; empty unless the source uses one."""
+    """Format the rating on the source's own star scale; empty unless the source uses one."""
     scale = _STAR_SCALES.get(source) if source else None
     if not scale or not rating:
         return ""
@@ -320,7 +316,6 @@ def add_keywords_props(props: Dict[str, str], data: dict) -> None:
         props["Tag"] = MULTI_VALUE_SEP.join(tag_names)
 
 
-# Common Sense Media severity and category mappings
 _CS_SEVERITY = {5: 32200, 4: 32201, 3: 32202, 2: 32203, 1: 32204}
 _CS_CATEGORIES = [
     ("violence", 32210),
@@ -331,15 +326,11 @@ _CS_CATEGORIES = [
 
 
 def build_common_sense_summary(cs_data: dict) -> Tuple[str, str]:
-    """Build localized Common Sense `(summary, reasons)` strings, grouping categories by severity.
-
-    `summary` includes age rating + reasons phrase. `reasons` is the phrase alone.
-    """
+    """Build localized Common Sense `(summary, reasons)`; the summary adds the age rating."""
     from lib.kodi.client import ADDON
 
     age = cs_data.get("age", 0)
 
-    # Group categories by severity level
     by_level: Dict[int, List[str]] = {}
     for cat_key, string_id in _CS_CATEGORIES:
         score = cs_data.get(cat_key, 0)

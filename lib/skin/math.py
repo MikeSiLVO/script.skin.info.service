@@ -26,6 +26,7 @@ def safe_eval_math(expression):
         node = ast.parse(expression, mode='eval').body
 
         def _eval(node):
+            """Evaluate one AST node, refusing anything outside the allowed operators."""
             if isinstance(node, ast.Constant):
                 return node.value
             elif isinstance(node, ast.BinOp):
@@ -52,11 +53,7 @@ def safe_eval_math(expression):
 
 
 def evaluate_math(expression, prefix='', window='home'):
-    """Evaluate a math expression and write the result to a window property.
-
-    `$INFO[]`/`$VAR[]` references in `expression` are resolved before evaluation.
-    Result goes to `SkinInfo.Math[.{prefix}].Result`.
-    """
+    """Evaluate a math expression, `$INFO` and `$VAR` resolved, into `SkinInfo.Math.*.Result`."""
     prop_name = f'SkinInfo.Math.{prefix}.Result' if prefix else 'SkinInfo.Math.Result'
 
     if not expression:

@@ -1,4 +1,4 @@
-"""Single artwork file downloader with error tracking and retry logic."""
+"""Artwork file downloads, backing off a host or the disk after repeated failures."""
 from __future__ import annotations
 
 import os
@@ -17,9 +17,8 @@ from lib.infrastructure.paths import (
     vfs_ensure_dir_slash, vfs_dirname, DirectoryListing, PathBuilder, use_basename_for)
 
 
-# Every chunk costs an abort check and a VFS write, both of which cross into Kodi.
+# every chunk costs an abort check and a VFS write into Kodi
 _CHUNK_SIZE: Final = 256 * 1024
-# Generous enough for a large fanart on a slow link; only a stalled host should hit it.
 _STREAM_DEADLINE: Final = 120.0
 
 
@@ -205,21 +204,17 @@ class DownloadArtwork:
             return False, f"Unexpected error: {str(e)}", 0, self.ERROR_UNEXPECTED
 
     def _find_existing_with_extension(self, base_path: str) -> Optional[str]:
-        """Return the first existing file at `base_path.<ext>` for any known extension, or None."""
+        """Find an existing file at this base path with any known image extension, or None."""
         return self.listing.find_with_extension(base_path, self.CONTENT_TYPE_MAP.values())
 
     def _get_extension(self, response) -> Optional[str]:
-        """Extract file extension from the response's Content-Type, or None if unrecognized."""
+        """Get the file extension for the response's Content-Type, or None if unrecognized."""
         content_type = response.headers.get('Content-Type', '').split(';')[0].strip()
         return self.CONTENT_TYPE_MAP.get(content_type)
 
     def _write_file_stream(self, path: str, response, abort_flag=None,
                            progress_callback: Optional[Callable[[int], None]] = None) -> int:
-        """Stream `response` body to `path`.
-
-        Deletes partial file on error. Raises `_StreamNetworkError` if the body transfer drops
-        mid-stream, `_DownloadAborted` on abort, `IOError` on write failure.
-        """
+        """Write the response body to a file, deleting it on failure; returns the bytes written."""
         bytes_written = 0
         cap = getattr(abort_flag, 'max_request_seconds', None) if abort_flag else None
         deadline = time.monotonic() + (cap or _STREAM_DEADLINE)
@@ -235,7 +230,7 @@ class DownloadArtwork:
                     except StopIteration:
                         break
                     except requests.exceptions.RequestException as e:
-                        # The watcher closes the socket on cancel, surfacing here first.
+                        # on cancel the watcher closes the socket, which raises here first
                         if abort_flag and abort_flag.is_requested():
                             raise _DownloadAborted("Download aborted") from None
                         raise _StreamNetworkError(str(e)) from e
@@ -243,8 +238,7 @@ class DownloadArtwork:
                     if abort_flag and abort_flag.is_requested():
                         raise _DownloadAborted("Download aborted")
 
-                    # The read timeout is per chunk, so a drip-feeding host is otherwise
-                    # never cut off and its worker outlives the whole batch.
+                    # the read timeout resets on every chunk
                     if time.monotonic() > deadline:
                         raise _StreamNetworkError("stream exceeded time limit")
                     if chunk:

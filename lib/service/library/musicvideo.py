@@ -87,11 +87,11 @@ class MusicVideoArt:
 
     def _defer_album_thumb(self, details: dict, artist_id: object, prefix: str,
                            generation: int) -> None:
+        """Look up the album thumb off-thread and publish it if focus has not moved."""
         def _worker() -> None:
             try:
                 from lib.kodi.library import get_musicvideo_album_art
                 album_thumb = get_musicvideo_album_art(details, artist_id)
-                # focus can move while the lookup runs; a late write lands on the wrong item
                 if generation != self._art_generation:
                     return
                 props: Dict[str, Optional[str]] = {f"{prefix}Album.Thumb": album_thumb}

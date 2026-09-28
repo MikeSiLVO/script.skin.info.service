@@ -1,4 +1,4 @@
-"""OMDb API integration."""
+"""OMDb ratings and awards for a title, looked up by IMDb id."""
 from __future__ import annotations
 
 from typing import Optional, Dict
@@ -13,7 +13,7 @@ from lib.kodi.formatters import RT_SOURCE_TOMATOES
 
 
 class ApiOmdb(RatingSource):
-    """OMDb API implementation."""
+    """OMDb rating source that also serves a title's awards."""
 
     BASE_URL = "https://www.omdbapi.com"
 
@@ -30,7 +30,7 @@ class ApiOmdb(RatingSource):
 
     def fetch_data(self, media_type: str, imdb_id: str, abort_flag=None,
                    force_refresh: bool = False) -> Optional[dict]:
-        """Fetch full OMDb data for an item; `force_refresh` skips cache read but still writes."""
+        """Fetch full OMDb data for an item; a forced refresh still caches."""
         if not self.api_key:
             return None
 
@@ -71,7 +71,7 @@ class ApiOmdb(RatingSource):
             return None
 
     def get_omdb_data(self, media_type: str, imdb_id: str) -> Optional[dict]:
-        """Get full cached OMDb response."""
+        """Get cached OMDb data, never fetching."""
         return self.get_cached_data(media_type, imdb_id)
 
     def fetch_ratings(
@@ -108,7 +108,7 @@ class ApiOmdb(RatingSource):
         return awards if awards and awards != "N/A" else None
 
     def _extract_ratings(self, data: dict) -> Dict[str, Dict[str, float]]:
-        """Extract ratings dict from full OMDb response."""
+        """Extract ratings from the OMDb response, every scale converted to 0-10."""
         result: Dict[str, Dict[str, float]] = {}
 
         imdb_rating = data.get("imdbRating")

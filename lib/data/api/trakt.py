@@ -1,4 +1,4 @@
-"""Trakt ratings source with OAuth support."""
+"""Trakt API client and the standalone IMDb Top 250 fetch."""
 from __future__ import annotations
 
 from typing import Any, Optional, Dict, Set, Tuple
@@ -35,7 +35,7 @@ TRAKT_CLIENT_SECRET = decode_key(
 
 
 class ApiTrakt(RatingSource):
-    """Trakt ratings source implementation with OAuth."""
+    """Trakt client for ratings, subgenres and discovery lists, with OAuth for recommendations."""
 
     BASE_URL = "https://api.trakt.tv"
 
@@ -62,11 +62,11 @@ class ApiTrakt(RatingSource):
         self._refreshed_seasons: Set[str] = set()
 
     def is_authorized(self) -> bool:
-        """True when a stored OAuth token exists; auth-gated widgets check this before fetching."""
+        """True when a stored OAuth token exists, expired or not."""
         return self._load_tokens() is not None
 
     def _load_tokens(self) -> Optional[Dict]:
-        """Load tokens from file."""
+        """Load the stored OAuth tokens; None when the file is missing or unreadable."""
         if not xbmcvfs.exists(self.token_path):
             return None
 
@@ -77,7 +77,7 @@ class ApiTrakt(RatingSource):
             return None
 
     def _save_tokens(self, access_token: str, refresh_token: str, expires_in: int) -> None:
-        """Save tokens to file."""
+        """Save OAuth tokens with an absolute expiry; a write failure is only logged."""
         expires_at = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
 
         tokens = {
@@ -93,7 +93,7 @@ class ApiTrakt(RatingSource):
             log("Ratings", f"Failed to save Trakt tokens: {str(e)}", xbmc.LOGERROR)
 
     def _delete_tokens(self) -> None:
-        """Delete token file."""
+        """Delete the stored OAuth tokens, ignoring failures."""
         if xbmcvfs.exists(self.token_path):
             try:
                 xbmcvfs.delete(self.token_path)
@@ -101,12 +101,12 @@ class ApiTrakt(RatingSource):
                 pass
 
     def _auth_headers(self, abort_flag=None) -> Dict[str, str]:
-        """Build the Authorization header dict for an authenticated Trakt request."""
+        """Build the Authorization header for an authenticated request; empty without a token."""
         token = self._get_valid_token(abort_flag)
         return {"Authorization": f"Bearer {token}"} if token else {}
 
     def _token_after_failed_refresh(self, sent_refresh: str) -> Optional[str]:
-        """A refresh token is single-use, so only the one actually rejected is safe to delete."""
+        """Access token a concurrent refresh already stored, else None after deleting the tokens."""
         stored = self._load_tokens()
         if stored and stored.get("refresh_token") != sent_refresh:
             return stored.get("access_token")
@@ -157,8 +157,7 @@ class ApiTrakt(RatingSource):
         abort_flag=None,
         force_refresh: bool = False
     ) -> Optional[dict]:
-        """Fetch complete Trakt data (extended=full); episodes fetch their whole season in one
-        call, so a season's episodes cost a single request."""
+        """Fetch full Trakt data for an item, cached; an episode fetches its whole season."""
         if usage_tracker.is_provider_skipped("trakt"):
             return None
 
@@ -240,12 +239,7 @@ class ApiTrakt(RatingSource):
         self, trakt_id: str, season: str, cache_key: Tuple[str, int, int],
         headers: Dict[str, str], abort_flag=None, force_refresh: bool = False,
     ) -> Optional[dict]:
-        """Fetch the episode's whole season in one call, caching every episode so only the
-        first hits the API.
-
-        `force_refresh` re-fetches a season once per run, not once per episode; the latter
-        costs one request per episode and blows Trakt's rate limit on a long-running show.
-        """
+        """Fetch and cache the episode's whole season; forced refresh hits each season once."""
         season_key = f"{trakt_id}_s{season}"
         with self._get_season_lock(season_key):
             if not (force_refresh and season_key not in self._refreshed_seasons):
@@ -286,7 +280,7 @@ class ApiTrakt(RatingSource):
         return trakt_id, _as_part(ids.get("season")), _as_part(ids.get("episode"))
 
     def get_trakt_data(self, media_type: str, ids: Dict[str, str]) -> Optional[dict]:
-        """Return the full cached Trakt response, or None if not cached."""
+        """Get the full cached Trakt response without fetching; None if not cached."""
         return self.get_cached_data(media_type, *self._get_cache_key(media_type, ids))
 
     def fetch_ratings(
@@ -326,8 +320,7 @@ class ApiTrakt(RatingSource):
         media_type: str = "movie",
         abort_flag=None
     ) -> Optional[list]:
-        """Get curated subgenres for a movie/show; reuses the fetch_data/fetch_ratings cache,
-        no extra API call if ratings were already fetched."""
+        """Get curated subgenres for a movie or show, fetching only when nothing is cached."""
         ids = {"imdb": trakt_id} if trakt_id.startswith("tt") else {"tmdb": trakt_id}
 
         data = self.get_trakt_data(media_type, ids)
@@ -352,6 +345,7 @@ class ApiTrakt(RatingSource):
         requires_auth: bool = False,
         abort_flag=None
     ) -> list:
+        """Paged Trakt list request, returning empty when auth is required but missing."""
         headers: Optional[Dict[str, str]] = None
         if requires_auth:
             headers = self._auth_headers(abort_flag)
@@ -385,6 +379,7 @@ class ApiTrakt(RatingSource):
     def get_trending(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
+        """Get Trakt's trending movies or shows."""
         return self._get_list(
             f"/{media_type}s/trending", limit=limit, page=page, abort_flag=abort_flag
         )
@@ -392,6 +387,7 @@ class ApiTrakt(RatingSource):
     def get_popular(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
+        """Get Trakt's popular movies or shows."""
         return self._get_list(
             f"/{media_type}s/popular", limit=limit, page=page, abort_flag=abort_flag
         )
@@ -399,6 +395,7 @@ class ApiTrakt(RatingSource):
     def get_anticipated(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
+        """Get Trakt's most anticipated movies or shows."""
         return self._get_list(
             f"/{media_type}s/anticipated", limit=limit, page=page, abort_flag=abort_flag
         )
@@ -407,6 +404,7 @@ class ApiTrakt(RatingSource):
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
         abort_flag=None
     ) -> list:
+        """Get Trakt's most watched movies or shows for a period."""
         return self._get_list(
             f"/{media_type}s/watched/{period}", limit=limit, page=page, abort_flag=abort_flag
         )
@@ -415,16 +413,19 @@ class ApiTrakt(RatingSource):
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
         abort_flag=None
     ) -> list:
+        """Get Trakt's most collected movies or shows for a period."""
         return self._get_list(
             f"/{media_type}s/collected/{period}", limit=limit, page=page, abort_flag=abort_flag
         )
 
     def get_box_office(self, limit: int = 20, abort_flag=None) -> list:
+        """Get Trakt's weekend box office movies."""
         return self._get_list("/movies/boxoffice", limit=limit, abort_flag=abort_flag)
 
     def get_recommendations(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
+        """Get Trakt's recommendations for the user; empty without authorization."""
         return self._get_list(
             f"/recommendations/{media_type}s",
             limit=limit, page=page,
@@ -471,15 +472,13 @@ def _get_top250_session() -> ApiSession:
 
 
 def fetch_top250_list(abort_flag=None) -> Optional[list[dict]]:
-    """Fetch IMDb Top 250 from Trakt's daily-updated list, maintained by Trakt founder Justin
-    Nemeth; no OAuth needed."""
-    # Trakt paginates at 100/page by default; limit=250 gets the full list in one request
+    """Fetch the IMDb Top 250 from Justin Nemeth's daily Trakt list; no OAuth needed."""
     session = _get_top250_session()
 
     try:
         data = session.get(
             "/users/justin/lists/imdb-top-rated-movies/items",
-            params={"limit": 250},
+            params={"limit": 250},  # Trakt pages at 100 by default
             abort_flag=abort_flag,
         )
         if data and isinstance(data, list):

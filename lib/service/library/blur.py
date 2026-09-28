@@ -40,7 +40,7 @@ class BlurHandler:
         )
 
     def handle_player(self) -> None:
-        """Player blur runs only during audio playback."""
+        """Run a blur pass for the playing audio's background, cleared once audio stops."""
         if not self._player.isPlayingAudio():
             if self._player_last_source is not None:
                 self._clear_props("SkinInfo.Player.")
@@ -59,6 +59,7 @@ class BlurHandler:
 
     def _process(self, setting: str, source_property: str, slot: str,
                  prop_base: str, cache_key_suffix: str = "") -> None:
+        """Resolve one blur slot's source and publish its blurred art, clearing when unset."""
         if not skin_bool(setting):
             if self._get_last(slot) is not None:
                 self._clear_props(prop_base)
@@ -112,6 +113,7 @@ class BlurHandler:
         new_thread.start()
 
     def _worker(self, source: str, prop_base: str, slot: str) -> None:
+        """Blur one source off-thread and publish it, clearing the slot on failure."""
         try:
             from lib.infrastructure import blur
 
@@ -132,6 +134,7 @@ class BlurHandler:
 
     @staticmethod
     def _resolve_with_fallbacks(sources: List[str], is_var: bool) -> str:
+        """Resolve the first source that gives a non-empty infolabel."""
         for source in sources:
             source = source.strip()
             if not source:
@@ -143,22 +146,27 @@ class BlurHandler:
 
     @staticmethod
     def _clear_props(prop_base: str) -> None:
+        """Clear a slot's blurred image properties."""
         clear_prop(f"{prop_base}BlurredImage")
         clear_prop(f"{prop_base}BlurredImage.Original")
 
     def _get_last(self, slot: str) -> Optional[str]:
+        """Get the last blurred source for one slot."""
         return self._focus_last_source if slot == "focus" else self._player_last_source
 
     def _set_last(self, slot: str, value: Optional[str]) -> None:
+        """Remember the last blurred source for one slot."""
         if slot == "focus":
             self._focus_last_source = value
         else:
             self._player_last_source = value
 
     def _get_thread(self, slot: str) -> Optional[threading.Thread]:
+        """Get the thread running for one slot."""
         return self._focus_thread if slot == "focus" else self._player_thread
 
     def _set_thread(self, slot: str, thread: Optional[threading.Thread]) -> None:
+        """Remember the running thread for one slot."""
         if slot == "focus":
             self._focus_thread = thread
         else:

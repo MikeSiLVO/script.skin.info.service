@@ -1,11 +1,4 @@
-"""Artwork management workflows for interactive selection and auto-processing.
-
-Contains:
-- ArtworkSelection: Interactive artwork selection workflow
-- ArtworkManager: Workflow coordinator
-
-Core functionality is in the artwork package (scanner, processor, api_integration).
-"""
+"""Artwork management workflows for interactive selection and auto-processing."""
 from __future__ import annotations
 
 import json
@@ -33,7 +26,6 @@ from lib.infrastructure.dialogs import (
     show_ok, show_yesno, show_textviewer, show_select, show_notification, DialogProgress)
 from lib.actor.downloader import download_actor_images
 
-# Import from new artwork package
 from lib.artwork.config import (
     ART_TYPES_BY_MEDIA,
     REVIEW_SCOPE_OPTIONS,
@@ -51,7 +43,7 @@ MAX_REVIEW_LOG_ITEMS: Final = 100
 
 def _scan_scope(scope: str, use_background: bool = False,
                 abort_flag=None, task_context=None) -> Optional[ArtworkScanner]:
-    """Run artwork scanner for the selected scope and return the scanner on success."""
+    """Scan the selected scope, returning the scanner on success."""
 
     scanner = ArtworkScanner(
         use_background=use_background, abort_flag=abort_flag, task_context=task_context)
@@ -69,7 +61,7 @@ def _stamp(epoch: Optional[int]) -> str:
 
 
 def _show_session_report(session_row) -> None:
-    """Display a report for a review session."""
+    """Show one review session's counts and per-item detail in the text viewer."""
     stats = json.loads(session_row['stats']) if session_row['stats'] else {}
     applied = int(stats.get('applied', 0) or 0)
     skipped = int(stats.get('skipped', 0) or 0)
@@ -84,6 +76,7 @@ def _show_session_report(session_row) -> None:
     completed = _stamp(session_row['completed'])
 
     def _shorten(value: Optional[str], max_len: int = 80) -> str:
+        """Shorten with an ellipsis past the limit."""
         if not value:
             return ''
         if len(value) <= max_len:
@@ -96,6 +89,7 @@ def _show_session_report(session_row) -> None:
         entries: List[Dict[str, Any]],
         formatter
     ) -> None:
+        """Append a capped report section, with a count line when entries overflow."""
         valid_entries = [entry for entry in entries if isinstance(entry, dict)]
         if not valid_entries:
             return
@@ -114,6 +108,7 @@ def _show_session_report(session_row) -> None:
         include_url: bool = False,
         include_reason: bool = False
     ) -> str:
+        """Format one report line for an artwork entry, with the requested parts appended."""
         title = entry.get('title', 'Unknown')
         parts = [title]
 
@@ -237,11 +232,7 @@ def _extract_downloadable_art(media_type: str, art_dict: Dict[str, str]) -> Dict
 
 
 def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """Download existing library artwork to filesystem for a single item.
-
-    For TV shows, downloads show + all seasons + all episodes.
-    Falls back to ListItem.DBID/DBType if args are None.
-    """
+    """Download library art for one item or a whole show; args fall back to ListItem."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
     dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
@@ -714,7 +705,7 @@ class ArtworkSelection:
 
         fetcher = create_default_fetcher()
         self.auto = ArtworkAuto(source_fetcher=fetcher, enable_download=enable_download)
-        self.session_id = session_id  # Resume existing session or None for new
+        self.session_id = session_id
         self.stats = {'applied': 0, 'skipped': 0, 'auto': 0}
         self.media_filter = media_filter or None
         self.review_mode = REVIEW_MODE_MISSING
@@ -728,7 +719,7 @@ class ArtworkSelection:
         self._session_base_stats: Dict[str, Any] = {}
 
     def _build_stats_payload(self) -> Dict[str, Any]:
-        """Return a JSON-serializable snapshot of review statistics and details."""
+        """Build a JSON-serializable snapshot of review statistics and details."""
         payload = _default_session_stats()
 
         payload.update(self._session_base_stats)
@@ -745,14 +736,7 @@ class ArtworkSelection:
         return payload
 
     def review_queue(self) -> Optional[Dict[str, Any]]:
-        """Review pending queue items with visual artwork selection.
-
-        Processes the queue in batches, validating each item before prompting.
-
-        Returns:
-            Dict with keys: status, cancelled, session_id, remaining, stats.
-            None if queue is empty.
-        """
+        """Review the pending queue in batches; returns a stats dict, or None when empty."""
         pending_check = db_queue.get_next_batch(
             batch_size=1,
             status='pending',
@@ -877,7 +861,7 @@ class ArtworkSelection:
         return outcome
 
     def _initialize_session(self) -> None:
-        """Create the manual review session."""
+        """Initialize the manual review session, skipping if one already exists."""
         if not self.session_id:
             self.session_id = db_workflow.create_scan_session(
                 scan_type='manual_review',
@@ -891,7 +875,7 @@ class ArtworkSelection:
         queue_entry: QueueEntry,
         art_items: Optional[List[ArtItemEntry]] = None
     ) -> Tuple[List[ArtItemEntry], Dict[str, Any]]:
-        """Return pending art items plus current artwork state for validation."""
+        """Collect pending art items plus current artwork state for validation."""
         if art_items is None:
             art_items = db_queue.get_art_items_for_queue(queue_entry.media_type, queue_entry.dbid)
         current_art = self._get_current_artwork(queue_entry.media_type, queue_entry.dbid)
@@ -919,7 +903,7 @@ class ArtworkSelection:
         return pending_items, current_art
 
     def _get_current_artwork(self, media_type: str, dbid: int) -> Dict[str, Any]:
-        """Fetch current artwork from Kodi (with per-item caching)."""
+        """Get an item's current artwork from Kodi, remembered for the rest of the review."""
         cache_key = (media_type, dbid)
 
         if cache_key in self._current_art_cache:
@@ -962,6 +946,7 @@ class ArtworkSelection:
         return all_available_art
 
     def _log_review_event(self, category: str, entry_data: Dict[str, Any]) -> None:
+        """Log a timestamped review entry, dropping the oldest past the cap."""
         entry_data['timestamp'] = datetime.now().isoformat()
         log = self.review_log[category]
         log.append(entry_data)
@@ -970,7 +955,7 @@ class ArtworkSelection:
             log.pop(0)
 
     def _handle_user_cancel(self, queue_entry: QueueEntry, applied_any: bool) -> str:
-        """Handle user cancellation during review."""
+        """Mark the item completed if anything was applied before the cancel, else pending."""
         if applied_any:
             db_queue.update_queue_status(queue_entry.media_type, queue_entry.dbid, 'completed')
             return 'applied'
@@ -1038,11 +1023,7 @@ class ArtworkSelection:
         art_item: ArtItemEntry,
         applied_any: bool
     ) -> Tuple[str, bool]:
-        """Process user action from artwork selection dialog.
-
-        Returns:
-            (flow_control, applied_any) where flow_control is 'cancel', 'continue', or 'applied'.
-        """
+        """Process the dialog action; returns (flow, applied) with flow cancel/continue/applied."""
         if action == 'cancel':
             return ('cancel', applied_any)
 
@@ -1164,7 +1145,7 @@ class ArtworkSelection:
 
 
 class ArtworkManager:
-    """Coordinates artwork management workflows."""
+    """Drives the artwork menus: scan, manual review, auto-apply and the session reports."""
 
     def __init__(self, scope_arg: Optional[str] = None):
         self.scope_arg = scope_arg.lower().strip() if scope_arg else None
@@ -1174,6 +1155,7 @@ class ArtworkManager:
         self.review_mode: str = REVIEW_MODE_MISSING
 
     def run(self) -> None:
+        """Prepare the database and queue, then act on the scope."""
         init_database()
         db_queue.cleanup_old_queue_items()
 
@@ -1190,7 +1172,7 @@ class ArtworkManager:
         self.media_filter = None if scope == 'all' else REVIEW_MEDIA_FILTERS.get(scope)
 
     def _handle_scope_arg(self) -> bool:
-        """Handle pre-selected scope from argument."""
+        """Act on a scope passed in by argument, warning when it is not one we know."""
         valid_scopes = {scope for scope, _ in REVIEW_SCOPE_OPTIONS}
         scope = self.scope_arg
 
@@ -1241,17 +1223,17 @@ class ArtworkManager:
         return result if isinstance(result, bool) else False
 
     def _run_auto_apply_and_return_false(self) -> bool:
-        """Run auto-apply and return False to exit workflow."""
+        """Run auto-apply from the menu, then close the manager."""
         self._run_auto_apply_mode()
         return False
 
     def _view_scope_report(self, label: str) -> None:
-        """View report for current scope."""
+        """Show the last session report for the current scope, or say there is none."""
         _show_last_session_report(
             self.media_filter, 32282, ADDON.getLocalizedString(32720).format(label))
 
     def _select_intent(self):
-        """Show the artwork review main menu."""
+        """Show the review main menu and return the chosen action; the combo entry is optional."""
         items = []
 
         items.append(
@@ -1304,7 +1286,7 @@ class ArtworkManager:
         return menu.show()
 
     def _start_scan_for_scope(self, scope: str, enable_download: bool = False) -> bool:
-        """Start scan workflow for selected scope."""
+        """Start a fresh manual review of the scope, downloading picks when asked."""
         self._set_scope(scope)
         self.session_id = None
         return self._handle_manual_review(enable_download=enable_download)
@@ -1321,7 +1303,7 @@ class ArtworkManager:
         return menu.show()
 
     def _run_auto_apply_mode(self) -> None:
-        """Foreground/background picker, then auto-apply for the current scope."""
+        """Pick foreground or background, then auto-apply the current scope."""
         from lib.infrastructure.menus import run_with_mode_choice
 
         run_with_mode_choice(
@@ -1330,7 +1312,7 @@ class ArtworkManager:
         )
 
     def _run_auto_apply(self, scope: str) -> None:
-        """Execute auto-apply for selected scope."""
+        """Confirm auto-apply for the scope, then hand off to the mode picker."""
         confirmed = show_yesno(
             ADDON.getLocalizedString(32722).format(scope_label(scope)),
             ADDON.getLocalizedString(32723),
@@ -1360,16 +1342,17 @@ class ArtworkManager:
         return menu.show()
 
     def _view_last_report_any_scope(self) -> None:
-        """View the last report from any scope."""
+        """View the newest review session report, whatever its scope."""
         _show_last_session_report(None, 32512, ADDON.getLocalizedString(32721))
 
     def _view_report_for_scope(self, scope: str) -> None:
-        """View report for a specific scope."""
+        """View the report after switching the manager to that scope."""
         self._set_scope(scope)
         _show_last_session_report(
             self.media_filter, 32512, ADDON.getLocalizedString(32720).format(scope_label(scope)))
 
     def _clear_scope_queue(self) -> None:
+        """Clear the queue for the current media filter, or all of it."""
         if self.media_filter:
             db_queue.clear_queue_for_media(self.media_filter)
         else:
@@ -1377,6 +1360,7 @@ class ArtworkManager:
         log("Artwork", "Cleared queue for scope")
 
     def _handle_auto_apply_missing(self, use_background: bool = False) -> None:
+        """Scan the scope, then auto-apply art to everything the scan queued as missing."""
         from lib.artwork.auto import ArtworkAuto
         from lib.infrastructure import tasks as task_manager
 
@@ -1405,6 +1389,7 @@ class ArtworkManager:
             )
 
     def _handle_manual_review(self, enable_download: bool = False) -> bool:
+        """Scan the scope, then walk its pending queue for manual review."""
         if not self.scope:
             return False
 
@@ -1440,6 +1425,7 @@ class ArtworkManager:
 
 
 def run_artwork_manager(scope: Optional[str] = None) -> None:
+    """Open the artwork manager for a scope, or the single-item fetcher."""
     normalized = scope.lower().strip() if scope else None
 
     valid_scopes = {s for s, _ in REVIEW_SCOPE_OPTIONS}

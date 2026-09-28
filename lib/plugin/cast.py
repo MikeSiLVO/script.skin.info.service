@@ -73,7 +73,7 @@ def _aggregate_cast(show_data: dict) -> list:
 
 
 def _create_cast_listitems(handle: int, cast_list: list) -> int:
-    """Add ListItems to the plugin directory for each actor. Returns count added."""
+    """Create a ListItem per actor in the plugin directory; returns how many were added."""
     items_added = 0
     for actor in cast_list:
         name = actor.get('name', '')
@@ -207,8 +207,7 @@ def _handle_online_cast(handle: int, dbtype: str, dbid: int, tmdb_id: int = 0,
 
 
 def handle_get_cast(handle: int, params: dict) -> None:
-    """Plugin entry for cast listings; `online=true` fetches from TMDB, default reads the Kodi
-    library."""
+    """Plugin entry for cast listings, from TMDB with `online=true`, else the Kodi library."""
     try:
         dbid = params.get('dbid', [''])[0]
         dbtype = params.get('dbtype', [''])[0]
@@ -358,8 +357,7 @@ def handle_get_cast(handle: int, params: dict) -> None:
 
 
 def handle_get_cast_player(handle: int, params: dict) -> None:
-    """Plugin entry for player cast. `aggregate=true` on episodes returns the show's combined
-    cast."""
+    """Plugin entry for the playing item's cast; `aggregate=true` on an episode lists the show's."""
     try:
         content = xbmc.getInfoLabel('VideoPlayer.Content()')
         dbid = xbmc.getInfoLabel('VideoPlayer.DBID')

@@ -81,8 +81,7 @@ def _earliest_unwatched(tvshowid: int, season: Optional[int] = None) -> list:
 
 
 def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
-    """Episode to watch next: earliest unwatched in the season last played, else earliest
-    unwatched anywhere, so an untouched show starts at its first episode."""
+    """Episode to watch next: earliest unwatched in the season last played, else in the show."""
     last_result = request('VideoLibrary.GetEpisodes', {
         'tvshowid': tvshowid,
         'filter': {
@@ -209,13 +208,12 @@ def handle_next_up_favourites(handle: int, params: dict) -> None:
         added += 1
 
     xbmcplugin.setContent(handle, 'episodes')
-    # favourites change without a library event, so a cached listing would go stale
+    # favourites change without a library event
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
 def handle_continue_watching(handle: int, params: dict) -> None:
-    """Plugin entry: in-progress movies and the next episode of each in-progress show, most
-    recently played first (`limit`, default 25)."""
+    """Plugin entry: in-progress movies and each in-progress show's next episode, newest first."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32696))
     limit = int(params.get('limit', ['25'])[0])
 
@@ -232,8 +230,7 @@ def handle_continue_watching(handle: int, params: dict) -> None:
 
 
 def _recently_added(method: str, result_key: str, properties: list, limit: int) -> list:
-    """Newest items by date added, from a recent window first and the whole library only when
-    that window cannot fill the widget."""
+    """Newest items by date added, from the last year, the whole library if that falls short."""
     params = {
         'properties': properties,
         'sort': {'method': 'dateadded', 'order': 'descending'},
@@ -264,8 +261,7 @@ def _dated(listitem: xbmcgui.ListItem, added: str) -> xbmcgui.ListItem:
 
 
 def _collapsed_show_row(episodes: list, show_cache: dict) -> tuple:
-    """One row for a show's recent episodes, collapsing a same-day batch add into a show
-    folder."""
+    """One row for a show's recent episodes, a show folder when the newest two share a day."""
     newest = episodes[0]
     added = newest.get('dateadded', '')
 
@@ -289,8 +285,7 @@ def _collapsed_show_row(episodes: list, show_cache: dict) -> tuple:
 
 
 def _recent_episode_rows(limit: int, group: bool) -> list:
-    """Recently added episodes as `(dateadded, url, listitem, isfolder)` rows, one row per show
-    when grouping."""
+    """Recently added episodes as `(dateadded, url, listitem, isfolder)` rows, grouped by show."""
     episodes = _recently_added('VideoLibrary.GetEpisodes', 'episodes',
                                _EPISODE_PROPERTIES + ['dateadded', 'tvshowid'], limit)
 
@@ -309,8 +304,7 @@ def _recent_episode_rows(limit: int, group: bool) -> list:
 
 
 def handle_recent_videos(handle: int, params: dict) -> None:
-    """Plugin entry: recently added movies and episodes interleaved by date; `group=false` lists
-    every episode instead of one row per show."""
+    """Plugin entry: recently added movies and episodes by date, one row per show by default."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32686))
     limit = int(params.get('limit', ['25'])[0])
     group = params.get('group', ['true'])[0].lower() != 'false'
@@ -382,8 +376,7 @@ def _create_episode_listitem(episode: dict) -> xbmcgui.ListItem:
 
 
 def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
-    """Plugin entry: recently-added episodes, grouped so new series collapse into one folder;
-    `include_watched=true` disables the in-progress filter."""
+    """Plugin entry: recently added shows, as the episode itself when only one is unwatched."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32621))
     limit = int(params.get('limit', ['25'])[0])
     include_watched = params.get('include_watched', ['false'])[0].lower() == 'true'
@@ -1014,9 +1007,7 @@ def _fill_seed_fields(seed: dict, item: dict) -> None:
 
 
 def handle_similar(handle: int, params: dict) -> None:
-    """Plugin entry: movies or shows similar to the source, ranked by shared genre count first
-    and then by tag, crew, era, certificate and popularity; `watched` filters by watch state
-    and `path` scores inside an XSP pool instead of the whole library."""
+    """Plugin entry: movies or shows most like the item: shared genres, then tags, crew, era."""
     dbid_param = params.get('dbid', [''])[0]
     tmdb_id_param = params.get('tmdb_id', [''])[0]
     dbtype = params.get('dbtype', ['movie'])[0]
@@ -1128,8 +1119,7 @@ def _fetch_unwatched(dbtype: str, genre_filter: dict) -> list:
 
 
 def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
-    """Top-rated unwatched titles for padding a sparse single-seed widget, certificate-matched
-    to the seed so padding stays related to it."""
+    """Top-rated unwatched titles to pad a sparse widget, optionally of one certificate."""
     def _filter(field: str) -> dict:
         unwatched = {'field': field, 'operator': 'is', 'value': '0'}
         if mpaa:
@@ -1160,8 +1150,7 @@ def _top_rated_unwatched(dbtype: str, count: int, mpaa: str = '') -> list:
 
 
 def _render_recommended(handle: int, scored_items: list, based_on_label: str, dbtype: str) -> None:
-    """Turn the chosen picks into directory items, tagged with their seed title and the
-    "based on" header label."""
+    """Render the picks as directory items, tagged with their seed title and the header label."""
 
     all_items = []
     for item_data, based_on_raw in scored_items:
@@ -1208,12 +1197,10 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
 
 def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
                       min_rating: float, strict_rating: bool) -> None:
-    """Recommend unwatched titles most like the single most recent watch (genre, tone,
-    director, era); pads with top-rated unwatched so it isn't sparse, with a
-    truthful "Based on <that movie>" header."""
+    """Recommend unwatched titles most like the latest watch, topped up with top-rated ones."""
     seed = None
     seed_set: frozenset = frozenset()
-    for entry in history:  # first recent watch that actually has genres
+    for entry in history:
         eg = entry.get('genre', [])
         if not isinstance(eg, list):
             eg = [eg] if eg else []
@@ -1247,7 +1234,6 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
         inter = len(cset & seed_set)
         if not inter:
             continue
-        # score vs the one seed only (genre, tone, director, era), not a history blend
         score = inter / len(cset | seed_set)
         if cmpaa and cmpaa == seed_mpaa:
             score += 0.25
@@ -1269,7 +1255,7 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
     scored.sort(key=lambda x: x[0], reverse=True)
     picks = [c for _, c in scored[:limit]]
 
-    if len(picks) < limit:  # niche seed: pad so the widget isn't sparse
+    if len(picks) < limit:
         have = {(c['_mtype'], c.get('movieid') or c.get('tvshowid')) for c in picks}
 
         def _pad_from(pool: list) -> None:
@@ -1281,7 +1267,7 @@ def _recommend_single(handle: int, history: list, dbtype: str, limit: int,
                     have.add(eid)
                     picks.append(extra)
 
-        if seed_mpaa:  # same-tone first so padding stays related to the seed
+        if seed_mpaa:
             _pad_from(_top_rated_unwatched(dbtype, limit * 2, seed_mpaa))
         if len(picks) < limit:
             _pad_from(_top_rated_unwatched(dbtype, limit * 2))
@@ -1295,9 +1281,7 @@ _RECOMMENDED_LABELS = {'movie': 32623, 'tvshow': 32624, 'both': 32682}
 
 
 def handle_recommended(handle: int, params: dict) -> None:
-    """Plugin entry: recommendations from recent watch history; default is single-seed (most
-    like the last watch), `multi=true` blends across `history_size` watches with
-    recency-weighted per-watch fill, `strict_rating`/`min_rating` filter tone/quality."""
+    """Plugin entry: recommendations from recent watches, one seed by default or a blend of many."""
     dbtype = params.get('dbtype', ['movie'])[0]
     limit = int(params.get('limit', ['25'])[0])
     strict_rating = params.get('strict_rating', ['false'])[0].lower() == 'true'
@@ -1322,7 +1306,6 @@ def handle_recommended(handle: int, params: dict) -> None:
         history.extend(movies)
 
     if dbtype in ('tvshow', 'both'):
-        # tvshow playcount only turns 1 once every episode is watched, numwatched is per episode
         show_history = request('VideoLibrary.GetTVShows', {
             'filter': {'field': 'numwatched', 'operator': 'greaterthan', 'value': '0'},
             'properties': ['title', 'genre', 'year', 'mpaa', 'rating', 'lastplayed'],
@@ -1343,14 +1326,14 @@ def handle_recommended(handle: int, params: dict) -> None:
         _recommend_single(handle, history, dbtype, limit, min_rating, strict_rating)
         return
 
-    watched_sets = []  # title seeds the BasedOn label
+    watched_sets = []
     all_watched_genres = set()
     mpaa_counts = {}
     years = []
     directors = {}
 
     for idx, item in enumerate(history):
-        weight = recency_decay ** idx  # exponential recency: last few watches dominate
+        weight = recency_decay ** idx
 
         item_genres = item.get('genre', [])
         if not isinstance(item_genres, list):
@@ -1453,8 +1436,7 @@ def handle_recommended(handle: int, params: dict) -> None:
         candidate['_quality'] = quality
         pool.append(candidate)
 
-    # each watch gets slots proportional to its recency weight, so the mix mirrors recent
-    # watches instead of one pervasive genre taking every slot
+    # per-watch slots keep one common genre from filling the widget
     scored_items = []
     used_ids = set()
 
@@ -1483,7 +1465,7 @@ def handle_recommended(handle: int, params: dict) -> None:
 
     scored_items = scored_items[:limit]
 
-    # blend spans many watches, so the header stays generic rather than naming one movie
+    # a blend has no single seed to name
     _render_recommended(handle, scored_items, ADDON.getLocalizedString(32652), dbtype)
 
 
@@ -1493,7 +1475,7 @@ SEASONAL_LABELS = {
     'independence': 32650,
 }
 
-# Holiday seasons: library movies whose TMDB keyword tags match (exact, OR'd).
+# holiday seasons: library movies whose TMDB keyword tags match (exact, OR'd)
 SEASONAL_TAGS = {
     'christmas': [
         'christmas', 'christmas eve', 'christmas party', 'christmas tree',
@@ -1512,13 +1494,12 @@ SEASONAL_TAGS = {
                      'patriotic', 'american flag'],
 }
 
-# Genre seasons: the occasion is the holiday, the genre is just how its content is found.
+# genre seasons: the occasion is the holiday, the genre is how its content is found
 SEASONAL_GENRES = {
     'valentines': 'Romance',
 }
 
-# Franchise seasons: matched like _franchise_movies below. Star Trek needs no TMDB
-# collection since every Trek film's title already contains "Star Trek".
+# franchise seasons; Star Trek needs no TMDB collection, every Trek title names it
 SEASONAL_FRANCHISES = {
     'starwars': {'title': 'Star Wars', 'collections': [10]},
     'startrek': {'title': 'Star Trek', 'collections': []},
@@ -1573,8 +1554,7 @@ def _library_movies_by_tmdb(tmdb_ids: set) -> list:
 
 
 def _franchise_movies(franchise: dict, limit: int, sort_method: str) -> list:
-    """Library movies for a franchise: title/set match plus TMDB collection ∩ uniqueid, so
-    cached collection lookups recover odd-titled saga entries even without Kodi movie sets."""
+    """Library movies for a franchise, by title or set plus the members of its TMDB collection."""
     name = franchise['title']
     result = request('VideoLibrary.GetMovies', {
         'filter': {'or': [
@@ -1619,16 +1599,14 @@ _HALLOWEEN_HOLIDAY_RATIO: Final = 0.62  # remainder is general horror-genre vari
 
 
 def _halloween_movies(limit: int, sort_method: str) -> list:
-    """Halloween blend: ~62% holiday-tagged films, remainder horror genre for variety; horror
-    excludes titles already in the holiday set (pools overlap), and either side backfills
-    the other when thin."""
+    """Halloween blend: mostly holiday-tagged films, the rest horror, each backing up the other."""
     holiday_filter = {'or': [{'field': 'tag', 'operator': 'is', 'value': t}
                              for t in SEASONAL_TAGS['halloween']]}
     holiday = _query_movies(holiday_filter, sort_method, limit)
     horror = _query_movies(
         {'field': 'genre', 'operator': 'is', 'value': 'Horror'}, sort_method, limit)
 
-    # dedup horror against the whole holiday set (not just this page) so the split is exact
+    # dedupe horror against the whole holiday set, not just this page
     holiday_all = request('VideoLibrary.GetMovies', {'filter': holiday_filter})
     holiday_ids = {m['movieid'] for m in extract_result(holiday_all, 'movies', [])}
     horror_only = [m for m in horror if m['movieid'] not in holiday_ids]
@@ -1636,7 +1614,7 @@ def _halloween_movies(limit: int, sort_method: str) -> list:
     keep_holiday = min(len(holiday), round(limit * _HALLOWEEN_HOLIDAY_RATIO))
     picked = holiday[:keep_holiday]
     picked += horror_only[:limit - len(picked)]
-    if len(picked) < limit:  # horror ran out -> top up with remaining holiday
+    if len(picked) < limit:
         picked += holiday[keep_holiday:keep_holiday + (limit - len(picked))]
 
     _sort_movies(picked, sort_method)

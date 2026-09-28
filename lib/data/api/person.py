@@ -1,4 +1,4 @@
-"""Person data coordination - matching actors to TMDB person IDs."""
+"""Match a Kodi actor or crew member to a TMDB person, and shape that person for display."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -15,12 +15,7 @@ from lib.data.database import cache as db_cache
 
 
 def build_person_props(person_data: dict) -> Dict[str, str]:
-    """Build display properties from a TMDB person payload.
-
-    Shared by the actor info dialog (window properties) and the person plugin
-    handler (ListItem properties). Includes `ProfileImage` for consumers that
-    also want it as art.
-    """
+    """Build the display properties a dialog or ListItem shows for a TMDB person."""
     props: Dict[str, str] = {'Name': person_data.get('name', 'Unknown')}
 
     if person_data.get('biography'):
@@ -255,12 +250,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
 
 def _flatten_aggregate_credits(aggregate_cast: list) -> list:
-    """Expand TMDB `aggregate_credits.cast` (one entry per actor with `roles[]`) into one entry
-    per role.
-
-    Each output entry preserves the actor fields plus a single `character` string,
-    matching the shape that the matcher chain (`exact_match`/`fuzzy_role_match`/...) expects.
-    """
+    """Expand aggregate credits, one entry per actor role, into the shape the matchers expect."""
     flat: list = []
     for actor in aggregate_cast:
         roles = actor.get('roles') or []
@@ -407,7 +397,7 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
 
 
 def get_person_data(person_id: int) -> Optional[dict]:
-    """Get complete person data, using cache if available."""
+    """Get a TMDB person's full record, from the cache when it holds one."""
     cached = db_cache.get_cached_person_data(person_id)
     if cached:
         log("Person", f"Loaded person {person_id} from cache", xbmc.LOGDEBUG)

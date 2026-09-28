@@ -20,10 +20,7 @@ MAX_REQUEST_SECONDS: Final = 30.0  # runaway backstop; shutdown handled by the c
 
 
 class ServiceAbortFlag:
-    """Abort flag for online API calls (Kodi abort + service stop).
-
-    max_request_seconds, when set, caps each request so a read can't outlast shutdown.
-    """
+    """Abort flag for online API calls, set on Kodi abort or service stop, with an optional cap."""
 
     def __init__(self, abort_event: threading.Event,
                  max_request_seconds: Optional[float] = None):
@@ -63,6 +60,7 @@ class OnlineScanMonitor(xbmc.Monitor):
         self._online_service = online_service
 
     def onNotification(self, sender: str, method: str, data: str) -> None:
+        """Ask for an update once a library scan finishes."""
         if method == 'VideoLibrary.OnScanFinished':
             self._online_service.request_update()
 
@@ -76,7 +74,7 @@ class OnlineServiceMain(threading.Thread):
         self.abort_flag = ServiceAbortFlag(self.abort)
         # focus/player fetches get the time cap; background work doesn't
         self.capped_abort_flag = ServiceAbortFlag(self.abort, MAX_REQUEST_SECONDS)
-        # GIL makes set add/discard/in atomic on CPython, no lock needed
+        # set add, discard and membership are atomic under the GIL
         self.updater_in_progress: set = set()
         self.focus = FocusHandler(self)
         self.player = PlayerHandler(self)
@@ -93,6 +91,7 @@ class OnlineServiceMain(threading.Thread):
         self.updater.request_restart()
 
     def run(self) -> None:
+        """Run the online service poll loop until Kodi aborts."""
         monitor = xbmc.Monitor()
         scan_monitor = OnlineScanMonitor(self)
         log("Service", "Online service started", xbmc.LOGINFO)
@@ -112,6 +111,7 @@ class OnlineServiceMain(threading.Thread):
             log("Service", "Online service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
+        """One pass over the focus, player, music and musicvideo handlers."""
         self.focus.process()
         self.player.process()
         self.music.process()

@@ -11,7 +11,7 @@ from lib.kodi.client import ADDON, log, request, extract_result, get_item_detail
 
 
 def _resolve_artist_name(params: dict) -> Optional[str]:
-    """Extract artist name from params or resolve via dbid+dbtype."""
+    """Resolve the artist name from the params, else the first artist of the dbid's item."""
     artist = params.get('artist', [''])[0]
     if artist:
         return artist
@@ -237,7 +237,7 @@ def _create_musicvideo_listitem(mv: dict) -> xbmcgui.ListItem:
 
 
 def handle_similar_artists(handle: int, params: dict) -> None:
-    """Get library artists similar to the given artist via Last.fm data."""
+    """Plugin entry for library artists Last.fm lists as similar to the given artist."""
     artist_name = _resolve_artist_name(params)
     if not artist_name:
         log("Plugin", "similar_artists: Could not resolve artist name", xbmc.LOGWARNING)
@@ -275,7 +275,7 @@ def handle_similar_artists(handle: int, params: dict) -> None:
 
 
 def handle_artist_albums(handle: int, params: dict) -> None:
-    """Get albums by the given artist from AudioLibrary."""
+    """Plugin entry for the given artist's albums in the music library."""
     artist_name = _resolve_artist_name(params)
     if not artist_name:
         log("Plugin", "artist_albums: Could not resolve artist name", xbmc.LOGWARNING)
@@ -312,7 +312,7 @@ def handle_artist_albums(handle: int, params: dict) -> None:
 
 
 def handle_artist_musicvideos(handle: int, params: dict) -> None:
-    """Get musicvideos by the given artist from VideoLibrary."""
+    """Plugin entry for the given artist's music videos, leaving out the one being viewed."""
     artist_name = _resolve_artist_name(params)
     if not artist_name:
         log("Plugin", "artist_musicvideos: Could not resolve artist name", xbmc.LOGWARNING)
@@ -357,7 +357,7 @@ def handle_artist_musicvideos(handle: int, params: dict) -> None:
 
 
 def handle_genre_artists(handle: int, params: dict) -> None:
-    """Get artists in the same genre as the given artist from AudioLibrary."""
+    """Plugin entry for random library artists sharing the given artist's first genre."""
     genre = params.get('genre', [''])[0]
     source_artist: Optional[str] = None
 

@@ -1,4 +1,4 @@
-"""Bulk artwork download workflow coordinators."""
+"""Bulk artwork download: building the jobs, running them, and the report."""
 from __future__ import annotations
 
 import time
@@ -22,11 +22,10 @@ from lib.kodi.client import log, ADDON, is_inherited_art
 from lib.kodi.settings import KodiSettings
 from lib.data.database import workflow as db_workflow
 
-# Log file paths
 LOG_DIR = xbmcvfs.translatePath('special://profile/addon_data/script.skin.info.service/')
 LOG_FILE = LOG_DIR + 'artwork_download.log'
 LOG_FILE_PREVIOUS = LOG_DIR + 'artwork_download_previous.log'
-MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_LOG_SIZE_BYTES = 5 * 1024 * 1024
 
 ART_EXTENSIONS = ('jpg', 'png', 'gif', 'webp')
 
@@ -44,7 +43,7 @@ ERROR_CATEGORY_LABELS = {
     'unexpected': "Unexpected errors (see debug log)",
 }
 
-# Valid properties per media type from Kodi JSON-RPC introspect
+# JSON-RPC rejects a property its media type does not have
 DOWNLOAD_PROPERTIES = {
     'movie': ['art', 'title', 'file'],
     'tvshow': ['art', 'title', 'file', 'season', 'episode'],
@@ -72,7 +71,7 @@ def _rotate_log_files() -> None:
 
 
 def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[str]:
-    """Write the download report to disk with 2-file rotation. Returns log path on success."""
+    """Write the download report to disk, keeping the previous run's log; its path, or None."""
     try:
         _ensure_log_directory()
         _rotate_log_files()
@@ -128,7 +127,7 @@ def write_download_log(report_text: str, scope: str, stats: Dict) -> Optional[st
 
 
 def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any]]:
-    """Query Kodi library, return items with artwork as `{dbid, media_type, title, file, art}`."""
+    """Get library items that carry art, as `{dbid, media_type, title, file, art}` dicts."""
     def has_artwork(item: Dict[str, Any]) -> bool:
         art = item.get('art', {})
         return bool(art and isinstance(art, dict))
@@ -178,12 +177,7 @@ def get_library_items_for_download(media_types: List[str]) -> List[Dict[str, Any
 def build_download_jobs(
     items: List[Dict[str, Any]]
 ) -> Tuple[List[Tuple[str, str, str, str, Optional[str], str]], Dict[str, int]]:
-    """Build download jobs and per-type mismatch counters.
-
-    Jobs are `(url, local_path, art_type, title, alternate_path, media_type)` tuples.
-    Mismatch keys: `{movie,mvid}_{basename,folder}_to_{other}`. Each increments when
-    an existing file under the opposite naming convention is detected.
-    """
+    """Build download job tuples, counting existing art saved under the other naming setting."""
     log("Artwork", f"Building download jobs from {len(items)} library items", xbmc.LOGDEBUG)
     jobs = []
     path_builder = PathBuilder()
@@ -274,10 +268,7 @@ def build_download_jobs(
 
 def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
                            use_background: bool = False) -> None:
-    """Download every artwork URL for a scope, wrapped in a TaskContext.
-
-    `use_background=True` uses `DialogProgressBG`; False uses a foreground `DialogProgress`.
-    """
+    """Download every artwork URL for a scope as a task, in a background or foreground dialog."""
     from lib.infrastructure.dialogs import show_yesno
 
     monitor = xbmc.Monitor()
@@ -483,7 +474,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
 
                 final_stats = queue.get_stats()
 
-                # stop() raises the abort flag itself, so a stall would otherwise read as a cancel.
+                # stop() raises the abort flag itself
                 cancelled = not stalled and (
                     monitor.abortRequested() or
                     ctx.abort_flag.is_requested() or
@@ -532,7 +523,7 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
 
 
 def format_folder_section(folder_stats: Optional[Dict[str, int]]) -> List[str]:
-    """Format the per-folder download breakdown. Returns empty list when no folder data."""
+    """Format the per-folder download breakdown, or [] when there is none."""
     if not folder_stats:
         return []
     lines = ["", _FOLDER_HEADING, ""]
@@ -558,7 +549,7 @@ _MISMATCH_LABELS: List[Tuple[str, str, str]] = [
 
 
 def format_failure_section(error_categories: Optional[Dict[str, int]]) -> List[str]:
-    """Format the per-category failure breakdown. Returns empty list when no failures."""
+    """Format the per-category failure breakdown, or [] when nothing failed."""
     if not error_categories or sum(error_categories.values()) <= 0:
         return []
     lines = ["", "[B]Failure Breakdown[/B]", ""]
@@ -570,7 +561,7 @@ def format_failure_section(error_categories: Optional[Dict[str, int]]) -> List[s
 
 
 def format_mismatch_section(mismatch_counts: Optional[Dict[str, int]]) -> List[str]:
-    """Format the file-handling mismatch breakdown. Returns empty list when no mismatches."""
+    """Format the file-handling mismatch breakdown, or [] when there is none."""
     if not mismatch_counts or sum(mismatch_counts.values()) <= 0:
         return []
     lines = ["", "[B]File Handling Mismatches Detected[/B]", ""]

@@ -43,12 +43,7 @@ _ASSET_VIEW_PATH_RE = re.compile(r"^videodb://.*?/(\d+)/-?\d+/?(?:\?|$)")
 
 
 def _fetch_extras_aggregates(parent_dbid: str) -> Tuple[int, int, int, int]:
-    """Return (count, total_runtime, unwatched, unwatched_runtime) for a movie's extras folder.
-
-    Uncached: invalidate_asset_view() plus the _last_asset_parent dedup already limit
-    refetches; per-file length reads streamdetails since `runtime` here is the parent
-    movie's duration.
-    """
+    """Fetch the count, runtime, unwatched count and unwatched runtime of a movie's extras."""
     resp = request(
         "Files.GetDirectory",
         {
@@ -102,10 +97,7 @@ _CONTAINER_CONTENT_TYPES = {
 
 
 class FocusDispatcher:
-    """Reads `ListItem.DBID` each tick and dispatches to per-type detail setters.
-
-    Holds last-seen `(dbid, DBType)` to skip work when nothing changed.
-    """
+    """Dispatcher setting the focused library item's properties, idle while focus holds still."""
 
     def __init__(self, service: 'ServiceMain'):
         self._service = service
@@ -130,18 +122,11 @@ class FocusDispatcher:
             self._last_id = None
 
     def invalidate_asset_view(self) -> None:
-        """Force a refetch of extras aggregates on the next tick. Called from the
-        library monitor on playcount-relevant events (extra watched / marked watched).
-        """
+        """Invalidate the extras aggregates, refetched on the next tick."""
         self._last_asset_parent = None
 
     def _handle_asset_view(self) -> bool:
-        """Treat the parent movie as focus context inside a videoversions/videoextras
-        container (Piers+ only).
-
-        Driven by `Container.FolderPath` since focused items there often lack a DBID;
-        returns True while active so `process()` keeps `SkinInfo.Movie.*` on empty-DBID focus.
-        """
+        """Handle a versions or extras view as its parent movie; True while one is open."""
         if not is_kodi_piers_or_later():
             return False
         in_container = xbmc.getCondVisibility(
@@ -286,6 +271,7 @@ class FocusDispatcher:
         self._service.blur.handle_focus()
 
     def _set_movie(self, movieid: str) -> None:
+        """Set movie properties for the focused item."""
         details = get_item_details(
             'movie', int(movieid), KODI_MOVIE_PROPERTIES,
             cache_key=f"movie:{movieid}:details",
@@ -296,6 +282,7 @@ class FocusDispatcher:
         set_ratings_properties(details, "Movie")
 
     def _set_movieset(self, setid: str) -> None:
+        """Set movie set properties, preferring a cached full record over a minimal fetch."""
         cached_full = get_cache_only(f"set:{setid}:details")
         if cached_full:
             details = extract_result(cached_full, "setdetails")
@@ -332,6 +319,7 @@ class FocusDispatcher:
             ).start()
 
     def _fetch_movieset_movies(self, current_id: str, base_details: dict) -> None:
+        """Fetch a movie set's members, publishing only while that set is still focused."""
         movies_req = {
             "filter": {"setid": int(current_id)},
             "properties": [
@@ -355,12 +343,14 @@ class FocusDispatcher:
             set_movieset_properties(base_details, movies)
 
     def _set_artist(self, artistid: str) -> None:
+        """Set artist properties for the focused item."""
         from lib.kodi.library import fetch_artist_details
         result = fetch_artist_details(int(artistid))
         if result:
             set_artist_properties(*result)
 
     def _set_album(self, albumid: str) -> None:
+        """Set album properties for the focused item."""
         from lib.kodi.library import fetch_album_details
         result = fetch_album_details(int(albumid))
         if result:
@@ -422,6 +412,7 @@ class FocusDispatcher:
         threading.Thread(target=worker, daemon=True).start()
 
     def _set_season(self, seasonid: str) -> None:
+        """Set season properties, filling runtime from the parent show's episodes."""
         details = get_item_details(
             'season', int(seasonid),
             [
@@ -459,6 +450,7 @@ class FocusDispatcher:
             self._defer_watch_minutes(*pending, seasonid, "season")
 
     def _set_episode(self, episodeid: str) -> None:
+        """Set episode properties for the focused item."""
         details = get_item_details(
             'episode', int(episodeid),
             [

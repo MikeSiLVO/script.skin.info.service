@@ -171,6 +171,7 @@ class FocusHandler:
 
     def _fetch_worker(self, media_type: str, imdb_id: str, tmdb_id: str,
                       cache_key: CacheKey) -> None:
+        """Fetch and cache online data for a focused item, discarding it if focus has moved."""
         try:
             abort_flag = self._service.capped_abort_flag
             if abort_flag.is_requested():
@@ -213,5 +214,6 @@ class FocusHandler:
             log("Service", f"Online fetch error: {e}", xbmc.LOGWARNING)
 
     def _clear_properties(self) -> None:
+        """Clear every `SkinInfo.Online.*` property."""
         clear_group(ONLINE_PROPERTY_PREFIX)
         self._episode.forget()

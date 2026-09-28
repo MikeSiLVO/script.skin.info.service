@@ -44,10 +44,7 @@ _PRECACHE_PROPERTIES = {
 def precache_library_artwork(media_types: Optional[List[str]] = None,
                              progress_dialog: Optional[ProgressDialog] = None,
                              task_context=None) -> Dict[str, Any]:
-    """Pre-cache library artwork URLs not already in the texture cache.
-
-    Returns stats: `total_urls, already_cached, needed_caching, successfully_cached, failed`.
-    """
+    """Pre-cache the library artwork not yet in the texture cache; returns the run's counts."""
     stats = {
         'total_urls': 0,
         'already_cached': 0,
@@ -197,10 +194,7 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
 def precache_and_download_artwork(media_types: Optional[List[str]] = None,
                                   progress_dialog: Optional[ProgressDialog] = None,
                                   task_context=None) -> Dict[str, Any]:
-    """Pre-cache + download artwork in one pass via `TextureCacheDownload`.
-
-    Returns stats: `total_items, cached, downloaded, skipped, failed, cancelled, stalled`.
-    """
+    """Pre-cache and download the library artwork in one pass; returns the run's counts."""
     stats = {
         'total_items': 0,
         'total_urls': 0,
@@ -400,10 +394,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
 def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
                               progress_dialog: Optional[ProgressDialog] = None,
                               task_context=None) -> Dict[str, int]:
-    """Remove cached textures whose URL no longer appears in the library.
-
-    Returns stats: `total_cached, total_library, orphaned_found, removed, failed, cancelled`.
-    """
+    """Remove cached textures whose URL no longer appears in the library; returns the counts."""
     stats = {
         'total_cached': 0,
         'total_library': 0,

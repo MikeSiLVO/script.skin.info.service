@@ -64,6 +64,7 @@ def _needs_write(old_rating: Optional[float], old_votes: int,
 
 
 def _get_kodi_state() -> str:
+    """What Kodi is busy with, for pacing the update."""
     if xbmc.getCondVisibility("Player.HasVideo"):
         return "playing"
     if xbmc.getCondVisibility("Window.IsVisible(10025)"):
@@ -72,11 +73,7 @@ def _get_kodi_state() -> str:
 
 
 def _wait_until_video_idle(monitor: xbmc.Monitor) -> bool:
-    """Block until video playback has been stopped for `_RESUME_GRACE_S` straight.
-
-    New playback during the grace window restarts the wait, so back-to-back
-    episodes don't get update churn between them. Returns False on abort.
-    """
+    """Wait for video playback to stay stopped through the grace period; False on abort."""
     while True:
         while xbmc.getCondVisibility("Player.HasVideo"):
             if monitor.waitForAbort(_PLAYBACK_POLL_MS / 1000):
@@ -272,7 +269,6 @@ def _collect_new_library_items(
                 if item.get("tvshowid")
                 and item.get(id_key) and item.get(id_key) not in synced_dbids
             }
-            # one bulk request costs about the same as ~30 per-show lookups
             if len(unsynced_shows) > 30:
                 prefetch_tvshow_uniqueids(unsynced_shows)
 
@@ -357,7 +353,7 @@ def run_imdb_batch(
     processed_ids: Set[int],
     gated: bool = False,
 ) -> None:
-    """Run IMDb dataset batch update. Mutates `results` and `processed_ids` in place."""
+    """Run the IMDb dataset batch update, filling the results and processed ids in place."""
 
     def _should_abort() -> bool:
         return ctx.abort_flag.is_requested() or monitor.abortRequested()
@@ -572,7 +568,7 @@ def ensure_episode_dataset(
 
 
 def prompt_imdb_corrections(pending: List[Dict]) -> int:
-    """3-button dialog (list / apply all / skip) for outdated IMDb IDs; returns count applied."""
+    """Prompt to apply outdated IMDb id corrections, or list them; returns how many applied."""
     count = len(pending)
     message = (
         f"{ADDON.getLocalizedString(32422).format(count)}\n\n{ADDON.getLocalizedString(32423)}"
@@ -625,7 +621,7 @@ def prompt_imdb_corrections(pending: List[Dict]) -> int:
 
 
 def resolve_imdb_id(item: Dict, media_type: str, dataset) -> Optional[str]:
-    """Return the IMDb ID for an item, falling back to the episode-id dataset for episodes."""
+    """Resolve an item's IMDb id, from the episode dataset for an episode lacking one."""
     uniqueid = item.get("uniqueid", {})
 
     if media_type == "episode":

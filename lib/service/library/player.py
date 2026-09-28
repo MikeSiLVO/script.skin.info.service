@@ -67,6 +67,7 @@ class PlayerVideoTracker:
             self._set_musicvideo(player_dbid)
 
     def _set_movie(self, movieid: str) -> None:
+        """Set movie properties for the playing item."""
         details = get_item_details(
             'movie', int(movieid), KODI_MOVIE_PROPERTIES,
             cache_key=f"movie:{movieid}:details",
@@ -76,6 +77,7 @@ class PlayerVideoTracker:
         set_ratings_properties(details, "Player")
 
     def _set_episode(self, episodeid: str) -> None:
+        """Set rating properties for the playing episode and its show."""
         details = get_item_details(
             'episode', int(episodeid),
             ["title", "ratings", "tvshowid", "season", "episode", "showtitle"],
@@ -90,6 +92,7 @@ class PlayerVideoTracker:
             self._set_tvshow(str(tvshowid))
 
     def _set_tvshow(self, tvshowid: str) -> None:
+        """Set tvshow properties for the playing item, with runtime from its episodes."""
         details = get_item_details(
             'tvshow', int(tvshowid),
             [
@@ -119,6 +122,7 @@ class PlayerVideoTracker:
         set_ratings_properties(details, "Player.TVShow")
 
     def _set_musicvideo(self, musicvideoid: str) -> None:
+        """Set musicvideo properties and library art for the playing item."""
         details = get_item_details(
             'musicvideo', int(musicvideoid),
             [
@@ -144,10 +148,7 @@ class PlayerVideoTracker:
 
 
 class PlayerMusicTracker:
-    """Watches `MusicPlayer.*` and sets `SkinInfo.Player.Music.*` props.
-
-    Data fetch runs in a background thread so the main service loop never blocks on it.
-    """
+    """Watches `MusicPlayer.*` and sets `SkinInfo.Player.Music.*` props from an off-thread fetch."""
 
     def __init__(self):
         self._last_music_artist: Optional[str] = None
@@ -177,6 +178,7 @@ class PlayerMusicTracker:
         thread.start()
 
     def _set_details(self, artist_name: str) -> None:
+        """Set the playing artists' library bio, fanart and albums; the first bio found wins."""
         artists = [a.strip() for a in artist_name.split(MULTI_VALUE_SEP)]
         bio = ""
         library_fanart = ""

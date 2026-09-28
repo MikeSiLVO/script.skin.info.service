@@ -1,7 +1,4 @@
-"""API response caching for TMDB and fanart.tv.
-
-Manages cache tables with dynamic TTL based on media age.
-"""
+"""Cache tables for provider responses, online properties and the fanart.tv feed, with TTLs."""
 from __future__ import annotations
 
 import random
@@ -30,7 +27,7 @@ class CacheKey(NamedTuple):
 
 
 def _expiry(ttl_hours: float) -> int:
-    """Absolute expiry as a Unix epoch, the only timestamp form v5 stores."""
+    """Absolute expiry as a Unix epoch."""
     return int(time.time() + ttl_hours * 3600)
 
 
@@ -40,30 +37,7 @@ def _now() -> int:
 
 
 def _tv_show_ttl(hints: Dict[str, Any]) -> int:
-    """Calculate TTL for TV shows based on schedule and status hints.
-
-    Airing, complete (next ep has name + overview + air_date):
-        < 7 days out:   random 24-48h
-        7-30 days out:  random 3-6 days
-        30+ days out:   random 14-30 days
-
-    Airing, incomplete (next ep missing name/overview):
-        < 7 days out:   24h
-        7-30 days out:  random 2-4 days
-        30-90 days out: random 3-6 days
-        > 90 days out:  random 7-14 days
-
-    Air date passed:        12h
-    Active, no schedule:    random 3-7 days
-
-    Ended, complete (aired_data_complete):
-        Any age:        random 14-30 days
-
-    Ended, incomplete:
-        < 14 days:      random 24-72h
-        14-30 days:     random 3-6 days
-        30+ days:       random 7-14 days
-    """
+    """Hours to cache a TV show, from how near its next episode is and whether it has ended."""
     aired_data_complete = hints.get("aired_data_complete") == "true"
     status = hints.get("status", "").lower() if hints.get("status") else ""
     next_air = hints.get("next_episode_air_date")
@@ -119,7 +93,7 @@ def _tv_show_ttl(hints: Dict[str, Any]) -> int:
 def get_cache_ttl_hours(
     release_date: Optional[str], hints: Optional[Dict[str, Any]] = None
 ) -> int:
-    """Cache TTL in hours, age-tiered for movies and status-driven for TV shows."""
+    """Cache TTL in hours: 24 off-library, else age-tiered for movies, status-driven for TV."""
 
     hints = hints or {}
 
@@ -163,7 +137,7 @@ def get_fanarttv_cache_ttl_hours() -> int:
 def get_cached_artwork(
     media_type: str, media_id: str, source: str, art_type: str
 ) -> Optional[list]:
-    """Return cached artwork list, or None if missing/expired."""
+    """Get a cached artwork list, or None when missing or expired."""
     return _fetch_cached(
         'artwork_cache',
         'media_type = ? AND media_id = ? AND source = ? AND art_type = ? AND expires_at > ?',
@@ -175,7 +149,7 @@ def get_cached_artwork_batch(
     media_ids: Dict[str, str],
     art_types: List[str]
 ) -> Dict[Tuple[str, str], list]:
-    """Batch artwork lookup, source -> id in, (source, art_type) -> list out."""
+    """Get cached artwork for several sources at once, keyed by (source, art_type)."""
     if not media_ids or not art_types:
         return {}
 
@@ -241,7 +215,7 @@ def cache_artwork(
 
 
 def _fetch_cached(table: str, where: str, params: tuple, label: str) -> Optional[Any]:
-    """Decompressed `data` from one cache row; None when it is missing or unreadable."""
+    """Fetch the decompressed `data` of one cache row; None when missing or unreadable."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(f"SELECT data FROM {table} WHERE {where}", params)
 
@@ -257,14 +231,14 @@ def _fetch_cached(table: str, where: str, params: tuple, label: str) -> Optional
 
 
 def get_cached_metadata(media_type: str, tmdb_id: str) -> Optional[dict]:
-    """Return cached extended metadata, or None if missing/expired."""
+    """Get cached TMDB title metadata, or None when missing or expired."""
     return _fetch_cached(
         'tmdb_title', 'media_type = ? AND tmdb_id = ? AND expires_at > ?',
         (media_type, tmdb_id, _now()), 'metadata')
 
 
 def get_title_ttl_hours(media_type: str, tmdb_id: str) -> Optional[int]:
-    """TTL for an item derived from the title row's columns, without decompressing the payload."""
+    """Get an item's TTL from its title row's columns, without decompressing the payload."""
     numeric_id = as_int(tmdb_id)
     if numeric_id is None:
         return None
@@ -355,7 +329,7 @@ def cache_metadata(
 
 
 def get_cached_season_metadata(tmdb_id: str, season_number: int) -> Optional[dict]:
-    """Return cached TMDB season-details response, or None if missing/expired."""
+    """Get a cached TMDB season-details response, or None when missing or expired."""
     return _fetch_cached(
         'tmdb_season', 'tmdb_id = ? AND season = ? AND expires_at > ?',
         (tmdb_id, season_number, _now()), 'season metadata')
@@ -363,11 +337,7 @@ def get_cached_season_metadata(tmdb_id: str, season_number: int) -> Optional[dic
 
 def cache_season_metadata(tmdb_id: str, season_number: int, data: dict,
                           ttl_hours: Optional[int] = None) -> None:
-    """Cache zlib-compressed TMDB season-details response.
-
-    Default TTL: 24h if any episode hasn't aired yet (active season),
-    otherwise 30 days (frozen season data).
-    """
+    """Cache a TMDB season-details response, its TTL from the airing state unless given."""
     if ttl_hours is None:
         ttl_hours = _season_ttl_hours(data)
     with get_db(DB_PATH) as cursor:
@@ -381,7 +351,7 @@ def cache_season_metadata(tmdb_id: str, season_number: int, data: dict,
 
 
 def _season_ttl_hours(season_data: dict) -> int:
-    """Pick season-cache TTL: 24h if season is still airing, 30d if all episodes have aired."""
+    """Pick the season TTL: 24h while empty or any episode is unaired, else 30 days."""
     today = datetime.now().date().isoformat()
     episodes = season_data.get("episodes") or []
     if not episodes:
@@ -394,7 +364,7 @@ def _season_ttl_hours(season_data: dict) -> int:
 
 
 def get_cached_tmdb_genre_list(tmdb_type: str) -> Optional[Dict[int, str]]:
-    """Return cached TMDB genre id->name mapping for `movie` or `tv`, or None if missing/expired."""
+    """Get the cached TMDB genre id-to-name mapping for movies or TV, or None when expired."""
     decoded = _fetch_cached(
         'blob_cache', "kind = 'tmdb_genre' AND cache_key = ? AND expires_at > ?",
         (tmdb_type, _now()), 'genre list')
@@ -409,7 +379,7 @@ def get_cached_tmdb_genre_list(tmdb_type: str) -> Optional[Dict[int, str]]:
 
 
 def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: int = 24) -> None:
-    """Cache the TMDB genre id->name mapping for `movie` or `tv` (default 24h TTL)."""
+    """Cache the TMDB genre id-to-name mapping for movies or TV."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             "INSERT INTO blob_cache (kind, cache_key, expires_at, data) "
@@ -421,10 +391,7 @@ def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: in
 
 
 def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
-    """Shorten metadata cache TTL so the next fetch gets fresh data.
-
-    Only shortens. If the entry already expires sooner, it's left alone.
-    """
+    """Shorten a title's cache TTL so the next read refetches; an earlier expiry is kept."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'UPDATE tmdb_title SET expires_at = MIN(expires_at, ?) '
@@ -433,7 +400,7 @@ def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
 
 
 def clear_expired_cache() -> int:
-    """Sweep expired cache rows; the rows callers still read through are kept."""
+    """Clear expired cache rows; the rows callers still read through are kept."""
     now = _now()
     with get_db(DB_PATH) as cursor:
         cursor.execute('DELETE FROM artwork_cache WHERE expires_at < ?', (now,))
@@ -485,14 +452,14 @@ def cache_person_data(person_id: int, data: dict, ttl_days: int = 30) -> None:
 
 
 def get_cached_person_data(person_id: int) -> Optional[dict]:
-    """Return cached TMDB person data, or None if missing/expired."""
+    """Get cached TMDB person data, or None when missing or expired."""
     return _fetch_cached(
         'tmdb_person', 'person_id = ? AND expires_at > ?',
         (person_id, _now()), 'person data')
 
 
 def get_cached_online_keys() -> set:
-    """Every unscoped key whose online props are still fresh."""
+    """Get every unscoped key whose online props are still fresh."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             "SELECT media_type, item_id FROM online_props "
@@ -501,7 +468,7 @@ def get_cached_online_keys() -> set:
 
 
 def get_cached_online_properties(key: CacheKey) -> Optional[Dict[str, str]]:
-    """Return cached online properties. Serves stale data until a refresh overwrites it."""
+    """Get cached online properties, stale ones included until a refresh overwrites them."""
     return _fetch_cached(
         'online_props', 'media_type = ? AND item_id = ? AND scope = ?',
         tuple(key), 'online properties')
@@ -510,7 +477,7 @@ def get_cached_online_properties(key: CacheKey) -> Optional[Dict[str, str]]:
 def get_cached_online_properties_state(
     key: CacheKey,
 ) -> Tuple[Optional[Dict[str, str]], int]:
-    """Cached online properties paired with the row's expiry epoch; 0 when there is no row."""
+    """Get cached online properties with the row's expiry epoch; (None, 0) with no readable row."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'SELECT data, expires_at FROM online_props '
@@ -538,7 +505,7 @@ def get_mb_id_aliases(canonical_id: str) -> List[str]:
 
 
 def save_mb_id_mapping(old_id: str, canonical_id: str) -> None:
-    """Store an old->canonical MusicBrainz ID mapping. Permanent because merges never reverse."""
+    """Save an old-to-canonical MusicBrainz ID mapping, which never expires."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'INSERT INTO mb_id_alias (old_id, canonical_id, cached_at) VALUES (?, ?, ?) '
@@ -556,7 +523,7 @@ def online_cache_generation() -> int:
 
 
 def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: str = '') -> int:
-    """Delete every cached online-properties row for an item, in all scopes."""
+    """Invalidate an item's cached online properties in every scope, bumping the generation."""
     global _online_generation
     _online_generation += 1
     item_ids = [i for i in (tmdb_id, imdb_id) if i]
@@ -575,7 +542,7 @@ def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: st
 
 
 def invalidate_online_properties_by_keys(keys: List[CacheKey]) -> int:
-    """Delete cached online properties by exact cache keys."""
+    """Invalidate cached online properties by exact key, bumping the generation."""
     global _online_generation
     _online_generation += 1
     if not keys:
@@ -609,7 +576,7 @@ def cache_online_properties(key: CacheKey, props: Dict[str, str], ttl_hours: int
 
 
 def get_feed_checkpoint(feed: str) -> int:
-    """Unix time the fanart.tv feed was last read, or 0 if never."""
+    """Get the Unix time the fanart.tv feed was last read, or 0 if never."""
     with get_db(DB_PATH) as cursor:
         cursor.execute('SELECT checked_at FROM fanarttv_feed WHERE feed = ?', (feed,))
         row = cursor.fetchone()
@@ -617,7 +584,7 @@ def get_feed_checkpoint(feed: str) -> int:
 
 
 def set_feed_checkpoint(feed: str, checked_at: int) -> None:
-    """Record how far through the fanart.tv feed we have read."""
+    """Set how far through the fanart.tv feed we have read."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             'INSERT OR REPLACE INTO fanarttv_feed (feed, checked_at) VALUES (?, ?)',
@@ -626,7 +593,7 @@ def set_feed_checkpoint(feed: str, checked_at: int) -> None:
 
 
 def add_rechecks(feed: str, item_ids: List[str], recheck_after: int) -> None:
-    """Mark items the feed reported as changed, due once the provider's key delay has passed."""
+    """Add rechecks for items the feed reported changed, due once the key delay has passed."""
     if not item_ids:
         return
     with get_db(DB_PATH) as cursor:
@@ -638,7 +605,7 @@ def add_rechecks(feed: str, item_ids: List[str], recheck_after: int) -> None:
 
 
 def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
-    """Item ids whose recheck is due, removing them so they are handled once."""
+    """Take the item ids whose recheck is due, removing them so each is handled once."""
     stamp = _now() if now is None else int(now)
     with get_db(DB_PATH) as cursor:
         cursor.execute(
@@ -653,7 +620,7 @@ def take_due_rechecks(feed: str, now: Optional[int] = None) -> List[str]:
 
 
 def clear_artwork_for_ids(media_ids: List[str]) -> int:
-    """Drop cached artwork and its completion marker for the given provider ids."""
+    """Clear cached artwork, completion marker included, for the given provider ids."""
     if not media_ids:
         return 0
     with get_db(DB_PATH) as cursor:

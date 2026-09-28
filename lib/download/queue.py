@@ -1,4 +1,4 @@
-"""Multi-threaded artwork download queue."""
+"""Worker queue for artwork downloads, with per-run download counters."""
 from __future__ import annotations
 
 import os
@@ -36,7 +36,7 @@ class DownloadQueue(WorkerQueue):
 
     def add_download(self, url: str, local_path: str, artwork_type: str, title: str,
                      alternate_path: Optional[str] = None, media_type: str = '') -> bool:
-        """Queue a download. Returns False if the `(url, local_path)` pair is already queued."""
+        """Queue a download; False when that URL and path pair is already queued."""
         item = (url, local_path, artwork_type, title, alternate_path, media_type)
         dedupe_key = (url, local_path)
         return self.add_item(item, dedupe_key=dedupe_key)
@@ -49,7 +49,7 @@ class DownloadQueue(WorkerQueue):
         self.artworks.clear()
 
     def get_stats(self) -> Dict:
-        """Return WorkerQueue stats plus download counters and folder breakdown."""
+        """Get the worker stats plus download counters and the per-folder breakdown."""
         base_stats = super().get_stats()
         with self._stats_lock:
             base_stats.update({

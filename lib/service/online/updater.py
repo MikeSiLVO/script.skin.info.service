@@ -44,12 +44,14 @@ class UpdaterHandler:
         self._restart = True
 
     def _worker(self) -> None:
+        """Run the update loop, logging anything it raises."""
         try:
             self._run()
         except Exception as e:
             log("Service", f"Online updater error: {e}", xbmc.LOGWARNING)
 
     def _run(self) -> None:
+        """Loop refreshing cached data for airing shows until the service aborts."""
         from lib.data.database.rollcall import get_airing_shows
 
         monitor = xbmc.Monitor()
@@ -122,6 +124,7 @@ class UpdaterHandler:
             self._idle_wait()
 
     def _idle_wait(self) -> None:
+        """Wait out the idle period in short steps so abort and restart stay responsive."""
         monitor = xbmc.Monitor()
         abort = self._service.abort
         elapsed = 0.0

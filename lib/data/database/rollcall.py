@@ -66,8 +66,7 @@ _UPSERT_LIBRARY_ITEM: Final = (
 
 def _fetch_paginated(method: str, result_key: str,
                      properties: Optional[list] = None) -> Optional[list]:
-    """All items from a paginated JSON-RPC library call, or None if a page failed, since a short
-    list would read as "these rows were deleted"."""
+    """Fetch every item of a paged library call; None if any page fails, never a partial list."""
     from lib.kodi.client import request
 
     items: list = []
@@ -106,7 +105,7 @@ _LIBRARY_SOURCES = [
 
 
 def _fetch_library_dbids() -> Dict[str, Dict[int, _Item]]:
-    """Snapshot all Kodi library DBIDs as `media_type -> {dbid: _Item}`."""
+    """Fetch every library DBID as `media_type -> {dbid: _Item}`; a type that fails is left out."""
     snapshot: Dict[str, Dict[int, _Item]] = {}
 
     for media_type, method, result_key, id_field, properties in _LIBRARY_SOURCES:
@@ -145,7 +144,7 @@ def _fetch_library_dbids() -> Dict[str, Dict[int, _Item]]:
 def _cleanup_stale_dbids(
     cursor, media_type: str, dbids: Set[int]
 ) -> Dict[str, int]:
-    """Delete stale DBIDs from all dependent tables."""
+    """Clean up stale DBIDs in every dependent table, returning the nonzero counts per table."""
     if not dbids:
         return {}
     stats: Dict[str, int] = {}
@@ -163,7 +162,7 @@ def _cleanup_stale_dbids(
 
 
 def _cleanup_stale_titles(cursor, media_type: str, tmdb_ids: Set[int]) -> None:
-    """Drop the provider rows of departed items, sparing ids another library row still uses."""
+    """Clean up departed items' TMDB titles and online props unless a library row uses them."""
     if media_type not in ("movie", "tvshow") or not tmdb_ids:
         return
     # a survivor can reach the same title through its imdb or tvdb id instead
@@ -190,7 +189,7 @@ def _cleanup_stale_titles(cursor, media_type: str, tmdb_ids: Set[int]) -> None:
 
 
 def get_airing_shows() -> List[Dict]:
-    """Library TV shows with the schedule columns of their cached TMDB title."""
+    """Get library TV shows with their cached TMDB schedule columns, by next air date."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             # a show scraped from TVDB or IMDb has no tmdb_id to join on
@@ -225,10 +224,7 @@ def get_airing_shows() -> List[Dict]:
 
 
 def sync_dbids() -> Dict[str, Dict[str, int]]:
-    """Sync DBID registry with Kodi library.
-
-    Returns `media_type -> {added, removed, reused}`. Empty dict when no changes.
-    """
+    """Sync the DBID registry with the Kodi library; change counts per media type, {} if none."""
     snapshot = _fetch_library_dbids()
     now = int(time.time())
     results: Dict[str, Dict[str, int]] = {}
@@ -310,14 +306,14 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
 
 
 def needs_id_backfill() -> bool:
-    """True when the registry is empty, so a new install seeds it without waiting for a scan."""
+    """True when the DBID registry is still empty."""
     with get_db(DB_PATH) as cursor:
         cursor.execute("SELECT 1 FROM library_item LIMIT 1")
         return cursor.fetchone() is None
 
 
 def get_dbids_by_tmdb(media_type: str, tmdb_ids: Iterable) -> Dict[str, int]:
-    """Map TMDB ids to library DBIDs for one media type; ids not in the library are left out."""
+    """Get the library DBIDs for TMDB ids of one media type; ids not in the library are left out."""
     wanted = set()
     for tmdb_id in tmdb_ids:
         try:

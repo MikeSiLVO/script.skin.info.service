@@ -1,4 +1,4 @@
-"""Library ID operations - lookup, update, and fix missing/invalid IDs."""
+"""Library id lookups and the Fix Library IDs tool for missing IMDb and invalid TMDB ids."""
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Set
@@ -21,7 +21,7 @@ from lib.infrastructure.dialogs import show_ok, show_notification, show_yesno, D
 def get_imdb_id_from_tmdb(media_type: str, uniqueid: Dict,
                           season: Optional[int] = None,
                           episode: Optional[int] = None) -> Optional[str]:
-    """Resolve IMDb ID via cached metadata -> TMDB API (by TMDB ID) -> TMDB `/find` (by TVDB ID)."""
+    """Resolve an IMDb id from TMDB by TMDB or TVDB id, recording episodes TMDB cannot supply."""
     tmdb_id = uniqueid.get("tmdb")
     tvdb_id = uniqueid.get("tvdb")
 
@@ -169,13 +169,13 @@ def _try_tvdb_episode_fallback(tmdb_client: ApiTmdb, tvdb_id: str) -> Optional[s
 
 
 def update_kodi_uniqueid(media_type: str, dbid: int, uniqueid: Dict, imdb_id: str) -> bool:
-    """Convenience wrapper: set the `imdb` field on a Kodi uniqueid dict."""
+    """Update a Kodi item's IMDb uniqueid, keeping its other ids."""
     return update_kodi_uniqueid_field(media_type, dbid, uniqueid, "imdb", imdb_id)
 
 
 def update_kodi_uniqueid_field(media_type: str, dbid: int, uniqueid: Dict,
                                field: str, value: str) -> bool:
-    """Set a single `uniqueid` field on a Kodi library item via `SetXDetails` JSON-RPC."""
+    """Update one uniqueid field on a Kodi library item, keeping the rest."""
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
     if not method_info:
         return False
@@ -353,7 +353,7 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         )
         total_imdb_fixed += matched
 
-    # Refresh show_imdb mapping for episodes whose shows were just fixed
+    # shows fixed above now give their episodes a show IMDb id
     for ep in missing_imdb_episodes:
         tvshowid = ep.get("tvshowid")
         if tvshowid and tvshowid in show_imdb_map:
@@ -434,7 +434,7 @@ def _fix_invalid_tmdb_ids(items: List[Dict], progress: xbmcgui.DialogProgress) -
 def _fix_missing_ids_via_tmdb(items: List[Dict], media_type: str,
                               progress: xbmcgui.DialogProgress, label: str,
                               id_map: Optional[Dict[int, str]] = None) -> int:
-    """Fill missing IMDb IDs on movies/shows from TMDB. `id_map` populated for tvshows."""
+    """Fill missing IMDb ids on movies or shows from TMDB, recording each show's new id."""
     matched = 0
     total = len(items)
     last_percent = -1
@@ -558,10 +558,7 @@ def clear_tvshow_uniqueid_cache() -> None:
 
 
 def prefetch_tvshow_uniqueids(tvshow_ids: Optional[Set[int]] = None) -> None:
-    """Pre-fetch all TV show uniqueids in one request to populate the cache.
-
-    `tvshow_ids` skips the request entirely when every wanted show is already cached.
-    """
+    """Prefetch every TV show's uniqueids in one request, unless the wanted ones are cached."""
     if tvshow_ids is not None and not (set(tvshow_ids) - set(_tvshow_uniqueid_cache)):
         return
     response = request("VideoLibrary.GetTVShows", {"properties": ["uniqueid"]})
@@ -577,7 +574,7 @@ def prefetch_tvshow_uniqueids(tvshow_ids: Optional[Set[int]] = None) -> None:
 
 
 def get_tvshow_uniqueid(tvshow_dbid: int) -> Dict[str, str]:
-    """Fetch a TV show's uniqueid dict, cached to avoid refetching per episode."""
+    """Get a TV show's uniqueid dict, cached per show with misses included."""
     if tvshow_dbid in _tvshow_uniqueid_cache:
         return _tvshow_uniqueid_cache[tvshow_dbid]
 

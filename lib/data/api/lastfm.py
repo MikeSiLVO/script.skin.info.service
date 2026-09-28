@@ -1,12 +1,4 @@
-"""Last.fm API client for music metadata.
-
-Provides:
-- Track info (wiki/description, tags, listeners, playcount, album)
-- Artist info (bio, tags, similar artists, stats)
-- Album info (wiki, tags, tracklist, stats)
-
-Free tier: project API key, 5 req/s averaged over 5 min
-"""
+"""Last.fm wiki text, tags, listener stats and similar artists for tracks, artists and albums."""
 from __future__ import annotations
 
 import xbmc
@@ -23,7 +15,7 @@ _PERMANENT_ERRORS = {3, 4, 5, 9, 10, 13, 26}
 
 
 class ApiLastfm:
-    """Last.fm API client."""
+    """Last.fm API client; every getInfo takes a name pair or an MBID, and autocorrects names."""
 
     BASE_URL = "https://ws.audioscrobbler.com/2.0"
     API_KEY = decode_key("NzVlNmVlZjAxNGUwZWFlODI5ZWFlZDM3OWYyOWJmMTY=")
@@ -42,6 +34,7 @@ class ApiLastfm:
         )
 
     def _request(self, method: str, params: Dict[str, Any], abort_flag=None) -> Optional[dict]:
+        """Last.fm GET, raising on the error codes they return inside a 200 body."""
         params = {
             "method": method,
             "api_key": self.API_KEY,

@@ -47,8 +47,7 @@ def _basename(path: str) -> str:
 
 
 def _items_by_file(media_type: str, paths: list, properties: list) -> dict:
-    """Library items for the given file paths, keyed by path; only exact path matches count,
-    since a filename can repeat across folders."""
+    """Library items at exactly the given file paths, keyed by path."""
     method, result_key = _LIBRARY_CALLS[media_type]
     wanted = set(paths)
     names = sorted({_basename(path) for path in paths if path})
@@ -122,7 +121,7 @@ def handle_favourites(handle: int, params: dict) -> None:
 
         match = _WINDOW_TVSHOW.search(favourite.get('windowparameter') or '')
         if match:
-            # a favourited season carries the show id too, so it would list the show twice
+            # a favourited season carries its show's id too
             show_id = int(match.group(1))
             if show_id in seen_shows:
                 continue
@@ -154,5 +153,5 @@ def handle_favourites(handle: int, params: dict) -> None:
             break
 
     xbmcplugin.setContent(handle, _CONTENT.get(dbtype, 'videos'))
-    # favourites change without a library event, so a cached listing would go stale
+    # favourites change without a library event
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

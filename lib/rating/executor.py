@@ -32,7 +32,7 @@ MAX_SOURCE_BACKLOG: Final = 15
 
 @dataclass
 class FetchJob:
-    """Represents a single fetch job for tracking."""
+    """One source's in-flight fetch for one item."""
     item_dbid: int
     source_name: str
     future: Future
@@ -41,7 +41,7 @@ class FetchJob:
 
 @dataclass
 class ItemState:
-    """Tracks state for a single item being processed."""
+    """One item's progress through its sources, and the ratings gathered so far."""
     dbid: int
     title: str
     year: str
@@ -111,7 +111,7 @@ class RatingBatchExecutor:
         return False
 
     def is_cancelled(self) -> bool:
-        """Check if abort was requested."""
+        """True once the run's abort flag fires; it stays true for the rest of the run."""
         if self._cancelled:
             return True
         if self.abort_flag and self.abort_flag.is_requested():
@@ -428,7 +428,7 @@ class RatingBatchExecutor:
         return max(0, int(until - time.time()))
 
     def get_item_state(self, dbid: int) -> Optional[ItemState]:
-        """Get the current state of an item."""
+        """Get an item's tracked state, or None once it is finalized."""
         return self.item_states.get(dbid)
 
     def mark_item_finalized(self, dbid: int) -> None:

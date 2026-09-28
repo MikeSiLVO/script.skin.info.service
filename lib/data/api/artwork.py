@@ -1,4 +1,4 @@
-"""Artwork retrieval and caching for TMDB and fanart.tv."""
+"""Artwork retrieval and caching for TMDB, fanart.tv and TheAudioDB."""
 from __future__ import annotations
 
 import xbmc
@@ -12,7 +12,7 @@ from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS
 from lib.kodi.client import log
 from lib.kodi.utilities import MULTI_VALUE_SEP
 
-# One entry per show, reused by every season and episode under it.
+# one entry per show, reused by every season and episode under it
 _EXTERNAL_IDS_CACHE_SIZE: Final = 256
 
 
@@ -42,7 +42,7 @@ _MUSIC_CACHE_ART_TYPES: Final = {
 
 
 class ApiArtworkFetcher:
-    """Retrieves and caches artwork from TMDB and fanart.tv."""
+    """Artwork fetcher for a single library item, caching what each provider returns."""
 
     def __init__(self, tmdb_api: ApiTmdb, fanart_api: ApiFanarttv):
         self.tmdb_api = tmdb_api
@@ -183,6 +183,7 @@ class ApiArtworkFetcher:
     def _load_cached_artwork(
         self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]
     ) -> Dict[str, List[dict]]:
+        """Cached art from both providers; TV shows key the fanart.tv side by tvdb id."""
         cache_id = str(tvdb_id) if tvdb_id and media_type == 'tvshow' else str(tmdb_id)
 
         media_ids = {
@@ -215,6 +216,7 @@ class ApiArtworkFetcher:
     def _fetch_fanart_art(
         self, media_type: str, tmdb_id: int, tvdb_id: Optional[int]
     ) -> Dict[str, List[dict]]:
+        """Fanart.tv art, by tvdb id for shows and tmdb id otherwise."""
         if media_type == 'tvshow' and tvdb_id:
             art = self.fanart_api.get_tv_artwork(tvdb_id)
         else:
@@ -224,7 +226,7 @@ class ApiArtworkFetcher:
     def _finalize_artwork(
         self, _media_type: str, artwork: Dict[str, List[dict]]
     ) -> Dict[str, List[dict]]:
-        """Finalize artwork: sort each type's list by popularity."""
+        """Sort every art type's list before the fetcher hands the results back."""
         if not artwork:
             return {}
 
@@ -273,7 +275,7 @@ class ApiArtworkFetcher:
         self, episode_dbid: int, season_number: Optional[int] = None,
         episode_number: Optional[int] = None,
     ) -> Dict[str, List[dict]]:
-        """Fetch artwork for a TV episode. Season/episode numbers fetched from Kodi if None."""
+        """Fetch artwork for a TV episode from TMDB."""
         details = get_item_details('episode', episode_dbid, ['season', 'episode', 'tvshowid'])
         if not isinstance(details, dict):
             return {}
@@ -298,7 +300,7 @@ class ApiArtworkFetcher:
         return self._finalize_artwork('episode', tmdb_art)
 
     def _fetch_movieset_artwork(self, set_dbid: int) -> Dict[str, List[dict]]:
-        """Fetch artwork for a movie set (collection)."""
+        """Fetch artwork for a movie set, via the TMDB collection of its first movie."""
         details = get_item_details(
             'set',
             set_dbid,
@@ -409,7 +411,7 @@ class ApiArtworkFetcher:
     def _fetch_musicvideo_artwork(
         self, musicvideo_dbid: int, bypass_cache: bool = False, bulk: bool = False
     ) -> Dict[str, List[dict]]:
-        """Fetch artwork for a music video, from track screenshots or the artist's art."""
+        """Fetch artwork for a music video, from track screenshots and the artist's art."""
         details = get_item_details(
             'musicvideo', musicvideo_dbid, ['artist', 'title', 'album', 'uniqueid']
         )
@@ -526,12 +528,7 @@ class ApiArtworkFetcher:
     def _fetch_album_artwork(
         self, album_dbid: int, bypass_cache: bool = False, bulk: bool = False
     ) -> Dict[str, List[dict]]:
-        """Fetch artwork for a music album from fanart.tv and TheAudioDB.
-
-        Uses artist endpoint and extracts album-specific artwork by release group ID.
-        Falls back to TheAudioDB name search if the release group ID is stale (merged
-        on MusicBrainz but not updated on artwork services).
-        """
+        """Fetch artwork for a music album from fanart.tv and TheAudioDB."""
         details = get_item_details('album', album_dbid, [
             'musicbrainzalbumartistid',
             'musicbrainzreleasegroupid',
@@ -582,7 +579,6 @@ class ApiArtworkFetcher:
         albums = artist_data.get('albums', {})
         album_art = albums.get(release_group_id, {})
 
-        # Stale ID fallback: try cached mapping or TheAudioDB name search
         resolved_old_id: Optional[str] = None
         audiodb_search_result: Optional[dict] = None
 
@@ -654,7 +650,6 @@ class ApiArtworkFetcher:
         album_details: dict
     ) -> tuple:
         """Resolve a MusicBrainz release group id the artwork services have not caught up to."""
-        # Check cached mapping first
         cached_old_ids = db_cache.get_mb_id_aliases(canonical_id)
         for old_id in cached_old_ids:
             if old_id in fanart_albums:
@@ -665,7 +660,6 @@ class ApiArtworkFetcher:
                 )
                 return old_id, None
 
-        # Fall back to TheAudioDB name search
         album_title = album_details.get('title', '')
         artist_name = album_details.get('displayartist', '')
         if not album_title or not artist_name:
@@ -705,7 +699,6 @@ class ApiArtworkFetcher:
         if not tadb_mbid or tadb_mbid == canonical_id:
             return None, search_result
 
-        # Found an old ID, cache the mapping
         db_cache.save_mb_id_mapping(tadb_mbid, canonical_id)
         log(
             "Artwork",
@@ -724,10 +717,8 @@ class ApiArtworkFetcher:
         return None, search_result
 
 
-# Global singleton instance for convenience
-# Other modules can import this or create their own instance
 def create_default_fetcher() -> ApiArtworkFetcher:
-    """Create default fetcher instance with default API clients."""
+    """Create a fetcher with the default TMDB and fanart.tv clients."""
     from lib.data.api.tmdb import ApiTmdb
     from lib.data.api.fanarttv import ApiFanarttv
     return ApiArtworkFetcher(ApiTmdb(), ApiFanarttv())

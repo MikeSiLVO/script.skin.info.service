@@ -10,8 +10,7 @@ import xbmc
 from lib.kodi.utilities import skin_bool
 from lib.kodi.client import log
 
-# Idle catch-all reconcile: runs at most once per interval, only after the box has been idle a
-# while - catches fanart changed outside our feature or a scan (Kodi GUI chooser, other apps).
+# idle reconcile catches fanart changed outside the add-on, such as Kodi's own art chooser
 _RECONCILE_INTERVAL_S: Final = 21600  # 6h
 _RECONCILE_IDLE_S: Final = 60
 
@@ -86,14 +85,14 @@ class SlideshowDriver:
         if (now - self._last_update) < interval:
             return
 
-        # runs on a thread: force-caching fanart does blocking xbmcvfs reads
-        # that would stall the 100ms service loop
+        # force-caching fanart does blocking xbmcvfs reads
         if self._update_thread and self._update_thread.is_alive():
             return
         self._update_thread = threading.Thread(target=self._run_update, daemon=True)
         self._update_thread.start()
 
     def _run_update(self) -> None:
+        """Refresh the library and playlist pools, unless a stop is pending."""
         try:
             if self._stopping:
                 return
@@ -104,18 +103,13 @@ class SlideshowDriver:
             log("Service", f"Slideshow: Update error: {str(e)}", xbmc.LOGERROR)
 
     def reconcile_if_idle(self) -> None:
-        """Idle-gated periodic full reconcile - catches art changed outside our feature or a scan.
-
-        Runs at most once per interval, only when the box has been idle and the slideshow is in
-        use. The reconcile diffs the pool against the library and no-ops when nothing changed.
-        """
+        """Reconcile the whole pool at most every 6 hours, once the box is idle and slideshow on."""
         enabled, _ = self._settings()
         if not enabled:
             return
         if (time.time() - self._last_reconcile) < _RECONCILE_INTERVAL_S:
             return
-        # skip during video playback: idle climbs mid-movie, but a background library read can
-        # stutter low-power devices. music playback is fine. retries once video stops + idle.
+        # idle time climbs mid-movie, and a library read can stutter low-power devices
         if xbmc.Player().isPlayingVideo():
             return
         if xbmc.getGlobalIdleTime() < _RECONCILE_IDLE_S:
@@ -127,6 +121,7 @@ class SlideshowDriver:
         self._reconcile_thread.start()
 
     def _run_reconcile(self) -> None:
+        """Reconcile every slideshow pool type, unless a stop is pending."""
         try:
             if self._stopping:
                 return
@@ -136,10 +131,7 @@ class SlideshowDriver:
             log("Service", f"Slideshow: Reconcile error: {str(e)}", xbmc.LOGERROR)
 
     def cleanup(self) -> None:
-        """Clear `SkinInfo.Slideshow.*` window properties.
-
-        Waits briefly for an in-flight update so it can't re-set props after the clear.
-        """
+        """Clear `SkinInfo.Slideshow.*`, first waiting briefly for an in-flight update to finish."""
         try:
             self._stopping = True
             for name, thread in (('update', self._update_thread),

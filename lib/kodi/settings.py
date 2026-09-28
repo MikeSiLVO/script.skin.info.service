@@ -37,7 +37,7 @@ class KodiSettings:
 
     @classmethod
     def debug_enabled(cls) -> bool:
-        """Check if debug logging is enabled."""
+        """Whether debug logging is enabled."""
         return cls.get_bool('enable_debug')
 
     @classmethod
@@ -67,7 +67,7 @@ class KodiSettings:
 
     @classmethod
     def prefer_fanart_language(cls) -> bool:
-        """Check if fanart language preference is enabled."""
+        """Whether fanart follows the language preference."""
         return cls.get_bool('prefer_fanart_language')
 
     @classmethod
@@ -77,12 +77,12 @@ class KodiSettings:
 
     @classmethod
     def enable_combo_workflows(cls) -> bool:
-        """Check if download combo workflows are enabled."""
+        """Whether the download combo workflows are enabled."""
         return cls.get_bool('download.enable_combo_workflows')
 
     @classmethod
     def download_after_manage_artwork(cls) -> bool:
-        """Check if artwork should be downloaded after Manage Artwork selection."""
+        """Whether artwork is downloaded after a Manage Artwork selection."""
         return cls.get_bool('download.after_manage_artwork')
 
     @classmethod
@@ -92,7 +92,7 @@ class KodiSettings:
 
     @classmethod
     def tmdb_use_custom_key(cls) -> bool:
-        """Check if custom TMDB API key should be used."""
+        """Whether the user's own TMDB API key is used."""
         return cls.get_bool('tmdb_use_custom_key')
 
     @classmethod
@@ -117,7 +117,7 @@ class KodiSettings:
 
     @classmethod
     def art_types_to_check(cls) -> str:
-        """Get enabled art types from individual boolean settings."""
+        """Get the enabled art types as a comma-separated string."""
         art_types = []
         type_map = [
             ('art_type_poster', 'poster'),

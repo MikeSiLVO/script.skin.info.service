@@ -12,7 +12,7 @@ from lib.kodi.utilities import clear_window_prop, resolve_infolabel as _resolve_
 
 
 def _show_error(message: str) -> None:
-    """Show error notification."""
+    """Show an error notification for a bad color picker call."""
     xbmcgui.Dialog().notification(
         'Color Picker Error',
         message,
@@ -22,6 +22,7 @@ def _show_error(message: str) -> None:
 
 
 class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
+    """Color picker with RGB sliders and a preset palette."""
     def __init__(self, *args, **kwargs):
         self.current_color = kwargs.pop('current_color')
         self.default_color = kwargs.pop('default_color')
@@ -32,6 +33,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
         super().__init__(*args, **kwargs)
 
     def onInit(self):
+        """Fill sliders, preview and palette once; Kodi can fire this again."""
         if self._initialized:
             return
         self._initialized = True
@@ -47,6 +49,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
             pass
 
     def onAction(self, action):
+        """Live-update the preview on slider moves and honor the back-out actions."""
         if action.getId() in (xbmcgui.ACTION_MOVE_LEFT, xbmcgui.ACTION_MOVE_RIGHT):
             self._update_preview()
         elif action.getId() == xbmcgui.ACTION_SELECT_ITEM:
@@ -60,7 +63,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
         super().onAction(action)
 
     def _execute_onback(self) -> None:
-        """Execute onback behavior with conditional support."""
+        """Execute the first onback block whose condition holds; one with no actions closes."""
         for block in self.onback.split('||'):
             block = block.strip()
             if not block:
@@ -188,6 +191,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
         self._update_preview()
 
     def onClick(self, controlId: int) -> None:
+        """Handle the accept, cancel and reset buttons."""
         if controlId == 200:
             self.result_color = self._merge_color()
             self.close()
@@ -205,8 +209,7 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
 
 def colorpicker(setting: str = '', default: str = '', colors: str = '',
                 onback: str = '', **kwargs) -> None:
-    """Open the RGBA color picker; onback runs condition::action blocks (separated by ||)
-    when the user backs out."""
+    """Open the RGBA color picker for a skin string, running the skin's back-out actions if set."""
     setting = _resolve_infolabel(setting)
     default = _resolve_infolabel(default) or 'FFFFFFFF'
     colors = _resolve_infolabel(colors)

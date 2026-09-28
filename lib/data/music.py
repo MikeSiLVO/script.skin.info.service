@@ -166,7 +166,6 @@ def fetch_and_cache_artist_artwork(
             log("Service", f"Fanart.tv artist fetch error for {mbid}: {e}", xbmc.LOGWARNING)
 
         try:
-            # Check music DB first to avoid redundant AudioDB call
             tadb_artist = get_cached_artist(SOURCE_AUDIODB, mbid=mbid)
             if not tadb_artist:
                 tadb_artist = audiodb.get_artist(mbid, abort_flag)
@@ -285,11 +284,10 @@ def fetch_artist_online_data(
     primary_mbid = resolved_mbids[0]
     primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
 
-    # Cache AudioDB artist data from resolution if we got it
     if artist_data:
         cache_artist(SOURCE_AUDIODB, artist_data, mbid=primary_mbid, name=primary_name)
     else:
-        # Ensure name index exists for previously MBID-only cached entries
+        # an MBID-only cached entry gains its name key
         existing = get_cached_artist(SOURCE_AUDIODB, mbid=primary_mbid)
         if existing:
             cache_artist(SOURCE_AUDIODB, existing, mbid=primary_mbid, name=primary_name)
@@ -304,7 +302,6 @@ def fetch_artist_online_data(
             return None
         fanart_urls = read_cached_fanart(resolved_mbids)
 
-    # Try cached bio first, fetch if missing
     bio = get_best_artist_bio(mbid=primary_mbid, name=primary_name)
     if not bio:
         bio = _fetch_and_cache_artist_metadata(

@@ -32,17 +32,18 @@ _T = TypeVar("_T")
 
 
 def _edit_heading(field_name: str) -> str:
+    """Get the localized edit dialog heading for a field."""
     return ADDON.getLocalizedString(32557).format(field_name)
 
 
 def handle_text(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
-    """Handle text input."""
+    """Handle text input, newlines shown as [CR] in the keyboard."""
     heading = _edit_heading(field_name)
     default = current_value or ""
 
-    # xbmc.Keyboard can't handle actual newlines - use [CR] placeholder
+    # xbmc.Keyboard can't take newlines
     default_display = default.replace('\r\n', '[CR]').replace('\n', '[CR]').replace('\r', '[CR]')
 
     if len(default_display) > MAX_KEYBOARD_DEFAULT_LEN:
@@ -59,7 +60,6 @@ def handle_text(
     if not kb.isConfirmed():
         return None, True
 
-    # Convert [CR] back to newlines
     result = kb.getText().replace('[CR]', '\n')
     return result, False
 
@@ -152,7 +152,7 @@ def handle_date(
 def handle_lastplayed(
     field_name: str, current_value: str | None
 ) -> tuple[str | None, bool]:
-    """Edit last-played as a date; store midnight since Kodi renders LastPlayed date-only."""
+    """Handle last-played as a date, stored at midnight since Kodi shows it date-only."""
     return _handle_date_input(
         field_name, (current_value or "").split(" ")[0], lambda date: f"{date} 00:00:00")
 
@@ -160,7 +160,7 @@ def handle_lastplayed(
 def handle_userrating(
     field_name: str, current_value: int | None
 ) -> tuple[int | None, bool]:
-    """Handle 1-10 user rating selection."""
+    """Handle 1-10 user rating selection, the first option clearing it."""
     options = [ADDON.getLocalizedString(32391)] + [str(i) for i in range(1, 11)]
     preselect = current_value if current_value else 0
 
@@ -204,7 +204,7 @@ def handle_list(
     media_type: str,
     field_key: str
 ) -> tuple[list[str] | None, bool]:
-    """Handle list editing with 3 UX options."""
+    """Handle list editing: quick edit, pick from the library, or add and remove."""
     values = list(current_values) if current_values else []
 
     current_display = ", ".join(values) if values else ADDON.getLocalizedString(32392)
@@ -248,7 +248,7 @@ def _quick_edit_list(
 def _select_from_library(
     field_name: str, current: list[str], media_type: str, field_key: str
 ) -> tuple[list[str] | None, bool]:
-    """Show multiselect with existing library values."""
+    """Show a multiselect of the library's values plus the item's own."""
     library_values = fetch_library_values_for_field(field_key, media_type)
 
     if not library_values:
@@ -258,7 +258,6 @@ def _select_from_library(
         )
         return None, True
 
-    # Add current values that aren't in library
     all_values: list[str] = list(library_values)
     for val in current:
         if val not in all_values:
@@ -281,7 +280,7 @@ def _select_from_library(
 def _add_remove_items(
     field_name: str, current: list[str]
 ) -> tuple[list[str] | None, bool]:
-    """Interactive add/remove loop."""
+    """Add and remove items one at a time until the user saves or cancels."""
     items = list(current)
     monitor = xbmc.Monitor()
 
@@ -316,7 +315,7 @@ def _add_remove_items(
 def handle_ratings(
     field_name: str, current_ratings: dict[str, Any] | None
 ) -> tuple[dict[str, Any] | None, bool]:
-    """Handle external ratings editing. Returns updated ratings after each change."""
+    """Handle external ratings editing, returning the edited map once the user backs out."""
     # shared nested dicts would read as unchanged in _edit_field's equality check
     ratings = {source: dict(data) if isinstance(data, dict) else data
                for source, data in (current_ratings or {}).items()}

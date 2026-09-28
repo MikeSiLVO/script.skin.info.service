@@ -136,8 +136,7 @@ def _combine_runs(runs: List[Dict]) -> Dict:
 
 def _resolve_single_item_target(
         dbid: Optional[str], dbtype: Optional[str]) -> Optional[Tuple[str, str]]:
-    """Validate and resolve `(dbid, media_type)` for a single-item update; notifies and returns
-    None on failure."""
+    """Resolve `(dbid, media_type)`, the focused item by default; None after notifying."""
     if not dbid:
         dbid = xbmc.getInfoLabel("ListItem.DBID")
     dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
@@ -244,7 +243,7 @@ def _update_movieset_ratings(setid: int, sources: List) -> None:
 
 
 def update_single_item_ratings(dbid: Optional[str], dbtype: Optional[str]) -> None:
-    """Update ratings for a single item by DBID. Three-phase: validate, fetch+update, report."""
+    """Update ratings for one item or every movie in a set, then report what changed."""
     target = _resolve_single_item_target(dbid, dbtype)
     if target is None:
         return

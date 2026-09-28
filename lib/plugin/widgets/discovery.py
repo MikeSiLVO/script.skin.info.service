@@ -36,8 +36,7 @@ WIDGET_REGISTRY: Dict[str, dict] = {
 
 
 def _get_library_lookup(media_type: str, tmdb_ids: Iterable) -> Dict[str, Dict[str, object]]:
-    """Map `tmdb_id -> {dbid, file}` for the ids that are in the library, for "in library"
-    matching."""
+    """Map `tmdb_id -> {dbid, file}` for the ids that are in the library."""
     from lib.data.database.rollcall import get_dbids_by_tmdb
 
     lookup: Dict[str, Dict[str, object]] = {}
@@ -244,8 +243,7 @@ _AUTH_WARN_COOLDOWN: Final = 10.0
 
 
 def _warn_trakt_auth() -> None:
-    """Notify that a Trakt-auth widget can't load; a short cooldown stops duplicate
-    notifications from stacked widgets."""
+    """Notify that a Trakt widget needs an account, at most once per cooldown across widgets."""
     import time
     from lib.kodi.utilities import get_prop, set_prop
     last = get_prop(_AUTH_WARN_PROP)
@@ -265,7 +263,7 @@ def _warn_trakt_auth() -> None:
 
 
 def handle_discover(handle: int, action: str, params: dict) -> None:
-    """Plugin entry for a discovery widget: fetch, normalize, create ListItems, render directory."""
+    """Plugin entry for a TMDB or Trakt discovery widget, flagging titles already in the library."""
     try:
         config = WIDGET_REGISTRY.get(action)
         if not config:
@@ -347,8 +345,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
 
 
 def handle_tmdb_recommendations(handle: int, params: dict) -> None:
-    """TMDB recommendations for a specific item; reads the cached `recommendations` block (no
-    extra API call), resolving `tmdb_id` from `dbid`+`dbtype` if needed."""
+    """Plugin entry for an item's TMDB recommendations, read from its cached TMDB data."""
     try:
         dbtype = params.get('dbtype', [''])[0]
         tmdb_id_str = params.get('tmdb_id', [''])[0]
@@ -447,7 +444,7 @@ _DISCOVER_MENUS = {
 
 
 def handle_discover_menu(handle: int, params: dict) -> None:
-    """Render the top-level Discover menu (Movies / TV Shows)."""
+    """Plugin entry for the top-level Discover menu: Movies and TV Shows."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32619))
     for menu in _DISCOVER_MENUS.values():
         icon = menu["icon"]
@@ -461,7 +458,7 @@ def handle_discover_menu(handle: int, params: dict) -> None:
 
 
 def _render_discover_widgets(handle: int, media: str) -> None:
-    """List every registry widget supporting `media`, marking the ones needing an account."""
+    """Render every registry widget for the media type, marking the ones needing an account."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(_DISCOVER_MENUS[media]["label"]))
     icon = _DISCOVER_MENUS[media]["icon"]
     for action, config in WIDGET_REGISTRY.items():
@@ -478,10 +475,10 @@ def _render_discover_widgets(handle: int, media: str) -> None:
 
 
 def handle_discover_movies_menu(handle: int, params: dict) -> None:
-    """Render the movies sub-menu listing every movie-capable widget from WIDGET_REGISTRY."""
+    """Plugin entry for the movies Discover menu, one row per movie widget."""
     _render_discover_widgets(handle, "movie")
 
 
 def handle_discover_tvshows_menu(handle: int, params: dict) -> None:
-    """Render the TV shows sub-menu listing every TV-capable widget from WIDGET_REGISTRY."""
+    """Plugin entry for the TV shows Discover menu, one row per TV widget."""
     _render_discover_widgets(handle, "tv")

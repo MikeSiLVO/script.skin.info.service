@@ -59,11 +59,7 @@ def normalize_existing_ratings(existing_ratings: Dict) -> Dict[str, Dict[str, fl
 
 
 def build_retry_entry(state: ItemState, item_stats: Optional[Dict]) -> Optional[RetryPoolEntry]:
-    """Build a retry entry for items that finished with deferred or failed sources.
-
-    `applied_ratings` is the merge baseline for retry: either what we wrote to Kodi
-    on first apply, or the existing Kodi state if no write happened.
-    """
+    """Build a retry entry for the sources an item still lacks, based on what Kodi now holds."""
     failure_sources: Set[str] = {
         s for s in (f.get("source") for f in state.retryable_failures) if s
     }
@@ -210,11 +206,7 @@ class TmdbSeasonFetcher:
 
 
 class MdblistBatchFetcher:
-    """Just-in-time MDBList batch fetcher.
-
-    Fetches 200 items at a time at batch boundaries; data lands in SQLite cache for
-    later per-item retrieval.
-    """
+    """Just-in-time MDBList fetcher: one batch per `BATCH_SIZE` items, into the cache items read."""
 
     def __init__(self, items: List[Dict], media_type: str):
         self.media_type = media_type
@@ -300,7 +292,7 @@ def run_multi_source_batch(
     mdblist_fetcher: Optional[MdblistBatchFetcher],
     tmdb_fetcher: Optional[TmdbSeasonFetcher] = None,
 ) -> None:
-    """Run multi-source batch update via `RatingBatchExecutor`."""
+    """Run a ratings pass, admitting items to the executor as its per-source backlog allows."""
 
     def _collect_result(success: Optional[bool], item_stats: Optional[Dict]) -> None:
         if success:

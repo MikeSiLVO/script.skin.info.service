@@ -1,4 +1,4 @@
-"""Kodi JSON-RPC interface with caching and rate limiting."""
+"""Kodi JSON-RPC calls with a short response cache, library helpers and the add-on logger."""
 from __future__ import annotations
 
 from typing import Any, Dict, NamedTuple, Optional, Tuple, List, Callable, overload, Final
@@ -12,7 +12,6 @@ from lib.kodi.settings import KodiSettings
 # Kodi reloads only the first Addon() per id on a settings save
 ADDON = xbmcaddon.Addon()
 
-# Default TTL is short since Kodi state changes are user-driven (focus/playback).
 CACHE_DEFAULT_TTL: Final = 30
 CACHE_CLEANUP_INTERVAL: Final = 60
 CACHE_CLEANUP_REQUEST_INTERVAL: Final = 50
@@ -20,8 +19,7 @@ CACHE_MAX_SIZE: Final = 200
 
 
 class MediaTypeSpec(NamedTuple):
-    """Per-media-type Kodi JSON-RPC bindings; source of truth for the `KODI_*_METHODS`/
-    `KODI_ID_KEYS` dicts."""
+    """Per-media-type Kodi JSON-RPC method names and keys; the `KODI_*` lookups derive from it."""
     get_method: str
     set_method: str
     id_key: str
@@ -89,8 +87,7 @@ _CACHE_LOCK = threading.Lock()
 
 
 def _cleanup_expired_cache(force: bool = False) -> None:
-    """Evict expired entries, then least-recently-used ones down to `CACHE_MAX_SIZE`; a no-op
-    unless a cleanup trigger (time, request count, size) fires or `force=True`."""
+    """Evict expired entries, then the least recently used; runs only once a trigger fires."""
     global _last_cleanup, _request_count
     now = monotonic()
 
@@ -162,10 +159,7 @@ def extract_result(resp: Optional[dict], result_key: str, default=None):
 
 
 def _call_jsonrpc(payload: Any, error_context: str) -> Any:
-    """Execute a JSON-RPC payload (single dict or batch list) and return the parsed body.
-
-    Returns None on transport, JSON, or shape errors.
-    """
+    """Execute a single or batch JSON-RPC payload and return the parsed body; None on any error."""
     import json
     try:
         raw = xbmc.executeJSONRPC(json.dumps(payload, separators=(",", ":")))
@@ -237,11 +231,7 @@ def request(method: str, params: Optional[Dict[str, Any]] = None,
 
 def batch_request(calls: List[Dict[str, Any]],
                   ttl_seconds: Optional[int] = None) -> List[Optional[dict]]:
-    """Execute multiple JSON-RPC calls in one batch. Each entry: `{method, params?, cache_key?}`.
-
-    Returns responses in input order; `None` for individual failures. Short-circuits if all
-    keys hit cache.
-    """
+    """Execute several JSON-RPC calls as one batch; responses in input order, None per failure."""
     global _request_count
 
     if not calls:
@@ -348,10 +338,7 @@ def get_item_uniqueids(dbtype: str, dbid: str, cache_key: str = "") -> Tuple[str
 
 
 def decode_image_url(url: str) -> str:
-    """Decode an `image://` wrapped URL to DB storage format.
-
-    Kodi stores HTTP/local URLs decoded but `image://video@...` wrapped; this matches.
-    """
+    """Decode an `image://` URL to the form Kodi stores; `image://video@...` stays wrapped."""
     if not url or not url.startswith('image://'):
         return url
 
@@ -378,10 +365,7 @@ def encode_image_url(decoded_url: str) -> str:
 
 
 def is_inherited_art(media_type: str, art_type: str) -> bool:
-    """True for art an item inherits from its parent, which must never be written to its own path.
-
-    Kodi folds a parent's whole art map into the child prefixed (`tvshow.`, `season.`, `set.`).
-    """
+    """True for parent art Kodi folds into an item's map, never to be written to its own path."""
     if media_type == 'movie':
         return art_type.startswith('set.')
     if media_type == 'episode':
@@ -389,7 +373,7 @@ def is_inherited_art(media_type: str, art_type: str) -> bool:
     if media_type == 'season':
         return art_type.startswith('tvshow.')
     if media_type == 'album':
-        # Kodi folds every album artist in as artist.*, artist1.*, artist2.* and so on.
+        # Kodi folds every album artist in as artist.*, artist1.*, artist2.* and so on
         return art_type.startswith('artist')
     return False
 

@@ -21,7 +21,7 @@ _cached_urls_set: Optional[Set[str]] = None
 
 
 def get_cached_textures(url_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Kodi's texture cache entries via JSON-RPC; the filter is a partial URL match."""
+    """Get Kodi's texture cache entries; the filter is a partial URL match."""
     params: Dict[str, Any] = {
         "properties": ["url", "cachedurl", "lasthashcheck", "imagehash", "sizes"]
     }
@@ -58,13 +58,7 @@ def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
                                  progress_callback: Optional[Callable] = None,
                                  include_cast: bool = False,
                                  abort_check: Optional[Callable[[], bool]] = None) -> Set[str]:
-    """Return all decoded artwork URLs across `media_types`.
-
-    `include_cast=True` walks `cast[].thumbnail` for cleanup-protection use.
-    Precache callers leave it False so cast thumbs aren't proactively downloaded.
-    `progress_callback(type_index, type_count, media_type, done, total)` fires per fetched page.
-    Propagates `LibraryScanAborted` so callers never act on a partial scan.
-    """
+    """Get every decoded artwork URL for the media types, cast thumbs for cleanup; abort raises."""
     if media_types is None:
         media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
@@ -108,7 +102,7 @@ def get_all_library_artwork_urls(media_types: Optional[List[str]] = None,
 
 
 def load_cached_urls_once() -> Set[str]:
-    """Cache all texture URLs in memory for O(1) lookups during one operation."""
+    """Load every cached texture URL into memory once, reused until cleared."""
     global _cached_urls_set
 
     with _cache_lock:
@@ -131,7 +125,7 @@ def load_cached_urls_once() -> Set[str]:
 
 
 def clear_cached_urls_cache() -> None:
-    """Clear the in-memory cached URLs set to force reload on next operation."""
+    """Clear the in-memory texture URL set, so the next load reads it fresh."""
     global _cached_urls_set
     with _cache_lock:
         _cached_urls_set = None
@@ -141,10 +135,7 @@ def get_library_scan_data(media_types: Optional[List[str]] = None,
                           progress_dialog: Optional[ProgressDialog] = None,
                           include_cast: bool = False,
                           abort_check: Optional[Callable[[], bool]] = None) -> Dict[str, Any]:
-    """Scan library + texture cache, return `{library_urls, cached_textures, cached_urls, stats}`.
-
-    `include_cast=True` adds `cast[].thumbnail` URLs (cleanup protection only).
-    """
+    """Get the library's artwork URLs alongside the texture cache contents, with scan stats."""
     if media_types is None:
         media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 

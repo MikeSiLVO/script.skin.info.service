@@ -139,11 +139,13 @@ def _wrap_menu(menu_handler):
 
 
 def _handle_exec_tools(handle: int, _params: dict) -> None:
+    """End the directory, then hand off to the tools script."""
     xbmcplugin.endOfDirectory(handle, succeeded=False)
     xbmc.executebuiltin('RunScript(script.skin.info.service,action=tools)')
 
 
 def _handle_exec_search(handle: int, params: dict) -> None:
+    """End the directory, then hand off to the search script."""
     dbtype = params.get('dbtype', ['movie'])[0]
     xbmcplugin.endOfDirectory(handle, succeeded=False)
     xbmc.executebuiltin(f'RunScript(script.skin.info.service,action=tmdb_search,dbtype={dbtype})')
@@ -295,21 +297,25 @@ def _handle_tmdb_details(handle: int, params: dict) -> None:
 
 
 def _handle_crew_list(handle: int, params: dict) -> None:
+    """List the crew of the requested type."""
     from lib.plugin.person import handle_crew_list
     handle_crew_list(handle, params)
 
 
 def _handle_creators(handle: int, params: dict) -> None:
+    """List the creators credited on the item."""
     params['crew_type'] = ['creator']
     _handle_crew_list(handle, params)
 
 
 def _handle_directors(handle: int, params: dict) -> None:
+    """List the directors credited on the item."""
     params['crew_type'] = ['director']
     _handle_crew_list(handle, params)
 
 
 def _handle_writers(handle: int, params: dict) -> None:
+    """List the writers credited on the item."""
     params['crew_type'] = ['writer']
     _handle_crew_list(handle, params)
 

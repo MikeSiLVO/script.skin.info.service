@@ -5,7 +5,7 @@ from lib.kodi.utilities import set_window_prop, clear_window_prop
 
 
 def split_string(string, separator='|', prefix='', window='home'):
-    """Split `string` and write `SkinInfo.Split[.{prefix}].{Count, 1, 2, ...}` window properties."""
+    """Split a string into `SkinInfo.Split[.prefix].*` properties: the count, then 1, 2 and on."""
     prop_base = f'SkinInfo.Split.{prefix}' if prefix else 'SkinInfo.Split'
     previous = xbmc.getInfoLabel(f'Window({window}).Property({prop_base}.Count)')
     parts = string.split(separator) if string else []
@@ -18,7 +18,7 @@ def split_string(string, separator='|', prefix='', window='home'):
 
 
 def urlencode(string, prefix='', window='home'):
-    """URL-encode `string` and write to `SkinInfo.Encoded[.{prefix}]`."""
+    """URL-encode a string into `SkinInfo.Encoded[.prefix]`."""
     prop_name = f'SkinInfo.Encoded.{prefix}' if prefix else 'SkinInfo.Encoded'
 
     if not string:
@@ -31,7 +31,7 @@ def urlencode(string, prefix='', window='home'):
 
 
 def urldecode(string, prefix='', window='home'):
-    """URL-decode `string` and write to `SkinInfo.Decoded[.{prefix}]`."""
+    """URL-decode a string into `SkinInfo.Decoded[.prefix]`."""
     prop_name = f'SkinInfo.Decoded.{prefix}' if prefix else 'SkinInfo.Decoded'
 
     if not string:

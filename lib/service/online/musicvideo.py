@@ -72,8 +72,7 @@ class MusicVideoFocusHandler:
 
     @staticmethod
     def _read_focus() -> Tuple[str, str, str]:
-        """(artist, album, title) for the focused item, or empties; handles the DBID-less
-        artist node (album nodes return empties, no online data)."""
+        """Read (artist, album, title) for a focused music video or artist node, else empties."""
         if xbmc.getCondVisibility("String.IsEqual(ListItem.DBType,musicvideo)"):
             if xbmc.getCondVisibility("String.IsEmpty(ListItem.DBID)"):
                 return "", "", ""
@@ -90,6 +89,7 @@ class MusicVideoFocusHandler:
 
     def _fetch_worker(self, artist: str, album: str, title: str,
                       token: 'CancelToken') -> None:
+        """Fetch artist, album and track data off-thread for the focused music video."""
         try:
             if token.is_requested():
                 return

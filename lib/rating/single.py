@@ -142,8 +142,7 @@ def merge_and_apply_ratings(
             old_val = final_ratings[rating_name]["rating"]
             old_votes = final_ratings[rating_name]["votes"]
 
-            # a changed rating value must win even when the provider's vote
-            # count declined (providers renormalize their counts)
+            # a changed value wins even on fewer votes; providers renormalize their counts
             if new_votes > old_votes or rating_display_changed(old_val, new_val):
                 final_ratings[rating_name] = {"rating": new_val, "votes": new_votes}
                 if rating_display_changed(old_val, new_val):
@@ -207,7 +206,7 @@ def update_single_item(
     abort_flag=None,
     force_refresh: bool = True,
 ) -> tuple[Optional[bool], Optional[Dict]]:
-    """Fetch ratings for one item (context-menu path); batch jobs use `RatingBatchExecutor`."""
+    """Update one item's ratings from the dataset and every source; batch runs use the executor."""
     if abort_flag is None:
         abort_flag = ShutdownAbortFlag()
 

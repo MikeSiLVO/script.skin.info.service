@@ -1,7 +1,4 @@
-"""Auto-apply missing artwork from queue.
-
-Processes queue items and automatically applies artwork based on language policies.
-"""
+"""Auto-apply missing artwork from the queue, following the language policies."""
 from __future__ import annotations
 
 import xbmc
@@ -27,7 +24,7 @@ DEFAULT_BATCH_SIZE: Final = 100
 
 
 class ArtworkAuto:
-    """Process queue and apply artwork automatically."""
+    """Queue processor that applies art and records what it applied and skipped."""
 
     def __init__(
         self,
@@ -42,7 +39,7 @@ class ArtworkAuto:
             use_background=use_background, heading=ADDON.getLocalizedString(32072))
         self.progress.enable_throttling()
         self.cancelled = False
-        self.total_items = 0  # Track original total
+        self.total_items = 0
         self.mode = mode if mode in ('full', 'missing_only') else 'full'
         self.media_filter: Optional[Sequence[str]] = None
         self.preferred_language = get_preferred_language_code()
@@ -57,8 +54,7 @@ class ArtworkAuto:
         }
         self.applied_items = []
         self.skipped_items = []
-        # One downloader for the whole run: a per-item instance resets the provider and
-        # file-write error counters, so the blocking they exist for could never engage.
+        # one downloader per run; a per-item instance resets the error counters
         self._downloader = None
 
         if source_fetcher:
@@ -106,7 +102,7 @@ class ArtworkAuto:
         return normalized_candidates
 
     def _select_best_candidate(self, art_type: str, candidates: List[dict]) -> Optional[dict]:
-        """Choose best candidate using quality/popularity sort."""
+        """Take the top candidate once sorted by language, popularity and resolution."""
         if not candidates:
             return None
 
@@ -117,7 +113,7 @@ class ArtworkAuto:
         return sorted_candidates[0]
 
     def process_queue(self, *, media_types: Optional[Sequence[str]] = None) -> None:
-        """Process pending queue items."""
+        """Process the pending queue in batches until it empties or the user cancels."""
         self.media_filter = tuple(media_types) if media_types else None
         batch_size = DEFAULT_BATCH_SIZE
 
@@ -160,7 +156,7 @@ class ArtworkAuto:
             self._reconcile_slideshow_pool()
 
     def _reconcile_slideshow_pool(self) -> None:
-        """One batched slideshow-pool reconcile after a bulk run (per-item refresh was deferred)."""
+        """Reconcile the slideshow pool once after a bulk run, in place of a refresh per item."""
         from lib.data.slideshow import POOL_MEDIA_TYPES
         scope = tuple(t for t in POOL_MEDIA_TYPES
                       if self.media_filter is None or t in self.media_filter)
@@ -173,7 +169,7 @@ class ArtworkAuto:
             log("Artwork", f"Slideshow pool reconcile failed: {str(e)}", xbmc.LOGWARNING)
 
     def _process_item(self, queue_item: QueueEntry) -> None:
-        """Process single queue item."""
+        """Process one item's art types, marking it completed or skipped with a reason."""
         try:
             media_type = queue_item.media_type
             dbid = queue_item.dbid
@@ -280,7 +276,7 @@ class ArtworkAuto:
             return False
 
     def _update_progress(self, force: bool = False) -> None:
-        """Update progress dialog (throttled for performance)."""
+        """Update the progress dialog with the running counts."""
         if self.total_items > 0:
             percent = int((self.stats['processed'] / self.total_items) * 100)
         else:
@@ -296,7 +292,7 @@ class ArtworkAuto:
         self.progress.update(percent, message, force=force)
 
     def _show_summary(self) -> None:
-        """Show processing summary."""
+        """Show the run's counts, offering the detailed report when there is one."""
         message = (
             f"{ADDON.getLocalizedString(32032 if self.cancelled else 32279)}[CR][CR]"
             f"{ADDON.getLocalizedString(32284).format(self.stats['processed'])}[CR]"
@@ -325,7 +321,7 @@ class ArtworkAuto:
             show_ok(ADDON.getLocalizedString(32280), message)
 
     def _show_detailed_report(self) -> None:
-        """Show detailed report of applied and skipped items."""
+        """Offer the applied and skipped reports, each one listed only when it has entries."""
         dialog = xbmcgui.Dialog()
 
         options = []
@@ -352,14 +348,14 @@ class ArtworkAuto:
             self._show_skipped_report()
 
     def _show_applied_report(self) -> None:
-        """Show report of auto-applied items."""
+        """Show the applied art types, grouped by item."""
         lines = ["[B]Auto-Applied Artwork:[/B]", ""]
 
         current_title = None
         for title, art_type, _ in self.applied_items:
             if title != current_title:
                 if current_title:
-                    lines.append("")  # Blank line between items
+                    lines.append("")
                 lines.append(f"[B]{title}[/B]")
                 current_title = title
             lines.append(f"  • {art_type}")
@@ -368,7 +364,7 @@ class ArtworkAuto:
         show_textviewer(ADDON.getLocalizedString(32550), text)
 
     def _show_skipped_report(self) -> None:
-        """Show report of skipped items."""
+        """Show each skipped item with its reason."""
         lines = ["[B]Skipped Items:[/B]", ""]
 
         for title, reason in self.skipped_items:

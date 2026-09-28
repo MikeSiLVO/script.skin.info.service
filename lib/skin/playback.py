@@ -1,7 +1,4 @@
-"""Playback helpers for skin RunScript calls.
-
-Provides playall and playrandom functionality using JSON-RPC Playlist methods.
-"""
+"""Play a library path in order or shuffled, for skin RunScript calls."""
 from __future__ import annotations
 
 import xbmc
@@ -20,7 +17,7 @@ def _detect_media_type(path: str) -> str:
 
 
 def _play_directory(path: str, shuffled: bool) -> None:
-    """Build a recursive playlist from `path` and start playback. Auto-detects music vs video."""
+    """Play a directory as a recursive playlist, music or video by its path."""
     if not path:
         show_notification(xbmc.getLocalizedString(257), ADDON.getLocalizedString(32270),
                           xbmcgui.NOTIFICATION_ERROR, 3000)
@@ -48,7 +45,7 @@ def _play_directory(path: str, shuffled: bool) -> None:
 
 
 def playall(path: str) -> None:
-    """Build a playlist from `path` (recursively) and play in order. Auto-detects music vs video."""
+    """Play a directory recursively in order, music or video by its path."""
     _play_directory(path, shuffled=False)
 
 

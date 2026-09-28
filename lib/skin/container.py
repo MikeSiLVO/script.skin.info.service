@@ -22,7 +22,7 @@ _SMS_MAP = {
     'W': 'jumpsms9', 'X': 'jumpsms9', 'Y': 'jumpsms9', 'Z': 'jumpsms9',
 }
 
-# Latin letters that don't NFKD-decompose; folded to the base letter Kodi sorts them under.
+# Latin letters with no NFKD decomposition, folded to the base letter Kodi sorts them under
 _LETTER_FOLD = {
     'Ø': 'O', 'ø': 'O', 'Æ': 'A', 'æ': 'A', 'Œ': 'O', 'œ': 'O',
     'ß': 'S', 'ẞ': 'S', 'Ð': 'D', 'ð': 'D', 'Đ': 'D', 'đ': 'D',
@@ -32,10 +32,7 @@ _LETTER_FOLD = {
 
 
 def _fold_letter(value: str) -> str:
-    """Bucket a SortLetter into A-Z or '#', folding accents to their base letter.
-
-    Matches Kodi's collation so the availability flag lines up with where the SMS jump lands.
-    """
+    """Bucket a SortLetter into A-Z or '#', folding accents to the letter Kodi sorts them under."""
     if not value:
         return ''
     ch = value[0]
@@ -81,19 +78,14 @@ def move_to_position(
     next_position: Optional[str] = None,
     next_action: Optional[str] = None
 ) -> None:
-    """Move or focus containers to a target position; see DOCS/skin-utilities.md for the
-    `container_move` RunScript API."""
+    """Move or focus containers to a target position for the `container_move` action."""
     _move_main_containers(main_focus, main_position, main_action)
     _handle_next_focus(next_focus, next_position, next_action)
 
 
 def _move_main_containers(main_focus: str, main_position: Optional[str],
                           main_action: Optional[str]) -> None:
-    """Reset each visible control in `main_focus` to its target, skipping any already there.
-
-    List containers guard on `CurrentItem`; buttons have no item position, so they guard on
-    `HasFocus` instead.
-    """
+    """Reset each visible control to its target, unless a list is there or a button focused."""
     main_ids = [cid.strip() for cid in main_focus.split('|')]
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
     has_pipe_main_action = main_action and '|' in main_action
@@ -179,7 +171,7 @@ def _handle_next_focus(next_focus: Optional[str], next_position: Optional[str],
 
 def _focus_next_containers(next_focus: str, next_position: Optional[str],
                           next_action: Optional[str]) -> None:
-    """Focus and optionally position each container in `next_focus` (pipe-separated IDs)."""
+    """Focus and optionally position each container in a pipe-separated id list."""
     next_ids = [fid.strip() for fid in next_focus.split('|')]
     next_action_list = [a.strip() for a in next_action.split('|')] if next_action else []
     has_pipe_next_action = next_action and '|' in next_action
@@ -215,13 +207,13 @@ def _focus_next_containers(next_focus: str, next_position: Optional[str],
 
 
 def _clear_cm_focus_props(properties_found: list) -> None:
-    """Clear `SkinInfo.CM_Focus.{i}` for each `(i, _)` in `properties_found`."""
+    """Clear the numbered `SkinInfo.CM_Focus.*` properties that were found."""
     for i, _ in properties_found:
         clear_window_prop(f'SkinInfo.CM_Focus.{i}')
 
 
 def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
-    """Jump to an item starting with `letter` (A-Z or `#`) via Kodi's SMS actions."""
+    """Jump to an item starting with a letter (A-Z or `#`) via Kodi's SMS actions."""
     if container_id:
         xbmc.executebuiltin(f'SetFocus({container_id})', True)
 
@@ -353,8 +345,7 @@ def _available_sort_letters(target: str, descending: bool) -> set[str]:
 
 
 def handle_letter_jump_list(handle: int, params: dict) -> None:
-    """Return A-Z (plus '#') ListItems for container letter-jump; see DOCS/plugin/navigation.md
-    for the full API."""
+    """Plugin entry for the letter-jump bar: A-Z plus '#', marking letters the container lacks."""
     from urllib.parse import quote
     target = params.get('target', ['50'])[0]
     showall = params.get('showall', ['true'])[0].lower() != 'false'
@@ -362,7 +353,7 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
 
     if want_available and (_container_too_large(target) or not _alphabetic_sort(target)):
         want_available = False
-        showall = True  # can't compact or dim without the search; fall back to the full bar
+        showall = True  # the bar can't be compacted or dimmed without the scan
 
     is_descending = xbmc.getCondVisibility(f'Container({target}).SortDirection(descending)')
 
@@ -379,7 +370,7 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
         listitem = xbmcgui.ListItem(letter, offscreen=True)
 
         if want_available and not is_available:
-            url = ''  # no jump target, so the cell is inert
+            url = ''  # no jump target
             listitem.setProperty('IsNotAvailable', 'true')
         else:
             url = (f'plugin://script.skin.info.service/?action=jump_letter_exec'

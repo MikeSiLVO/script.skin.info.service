@@ -1,7 +1,4 @@
-"""Music metadata cache: raw AudioDB, Last.fm and Wikipedia responses in `blob_cache`.
-
-Stores zlib-compressed JSON blobs; field extraction happens at read time in the service layer.
-"""
+"""Music metadata cache: raw AudioDB, Last.fm and Wikipedia responses in `blob_cache`."""
 from __future__ import annotations
 
 import random
@@ -69,7 +66,7 @@ def _track_key(artist: str, track: str) -> str:
 
 
 def _apply_jitter(hours: float) -> int:
-    """Multiply `hours` by a random 0.8-1.2 factor to spread cache expiry."""
+    """Apply a random 0.8-1.2 factor to spread cache expiry, never below an hour."""
     return max(1, int(hours * random.uniform(0.8, 1.2)))
 
 
@@ -123,7 +120,7 @@ def _has_track_content(data: dict, source: str) -> bool:
 
 
 def _artist_ttl_hours(data: dict, source: str, audiodb_artist: Optional[dict] = None) -> int:
-    """Tiered TTL for artist data with content."""
+    """TTL hours for artist data: 14 days for a young act or one AudioDB lacks, else 30."""
     ref = audiodb_artist or (data if source == SOURCE_AUDIODB else None)
 
     base_days: int
@@ -150,10 +147,10 @@ def _artist_ttl_hours(data: dict, source: str, audiodb_artist: Optional[dict] = 
 
 
 def _album_ttl_hours(data: dict, source: str) -> int:
-    """Tiered TTL for album data with content."""
+    """TTL hours for album data: 14 days for a recent or undated release, else 30."""
     year_str = data.get('intYearReleased') or data.get('strReleaseDate') or ''
     if not year_str and source == SOURCE_LASTFM:
-        # Last.fm doesn't have a top-level year; wiki might exist but no release date
+        # Last.fm albums carry no release date
         return _apply_jitter(14 * 24 * _SOURCE_MULTIPLIER.get(source, 1.0))
 
     try:
@@ -171,7 +168,7 @@ def _album_ttl_hours(data: dict, source: str) -> int:
 
 
 def _track_ttl_hours(source: str) -> int:
-    """TTL for track data with content - flat 14 days."""
+    """TTL hours for track data: 14 days."""
     hours = 14 * 24 * _SOURCE_MULTIPLIER.get(source, 1.0)
     return _apply_jitter(hours)
 
@@ -182,7 +179,7 @@ def _kind(entity: str, source: str) -> str:
 
 
 def invalidate_music_cache(artist: str, track: str = '', album: str = '') -> int:
-    """Delete cached entries for an artist/track/album across every source and language."""
+    """Invalidate cached entries for an artist, track or album across every source and language."""
     total = 0
     sources = (SOURCE_AUDIODB, SOURCE_LASTFM, SOURCE_WIKIPEDIA)
     with get_db(DB_PATH) as cursor:
@@ -227,7 +224,7 @@ def _get_cached(entity: str, source: str, lookup_key: str) -> Optional[dict]:
 
 def _cache_entry(entity: str, source: str, lookup_key: str, data: dict,
                  has_content: bool, ttl_hours: int) -> None:
-    """Upsert a cache row. When `has_content` is False, applies exponential miss-backoff TTL."""
+    """Cache one row; an empty response gets an exponential miss-backoff TTL instead."""
     kind = _kind(entity, source)
     with get_db(DB_PATH) as cursor:
         miss_count = 0
@@ -252,7 +249,7 @@ def _cache_entry(entity: str, source: str, lookup_key: str, data: dict,
 
 def get_cached_artist(source: str, *, mbid: str = '', name: str = '',
                       lang: str = '') -> Optional[dict]:
-    """Return cached artist data for the given `source` (audiodb/lastfm/wikipedia), or None."""
+    """Get cached artist data from one source, or None."""
     key = _artist_key(mbid, name)
     if not key:
         return None
@@ -263,12 +260,7 @@ def get_cached_artist(source: str, *, mbid: str = '', name: str = '',
 
 def cache_artist(source: str, data: dict, *, mbid: str = '', name: str = '',
                  audiodb_artist: Optional[dict] = None, lang: str = '') -> None:
-    """Cache artist data.
-
-    When both `mbid` and `name` are given, writes under both keys so later name-only
-    lookups hit (artist callers may resolve MBID after a name-only lookup). `cache_album`
-    deliberately doesn't dual-write because its callers consistently pass `mbid` when known.
-    """
+    """Cache artist data from one source, under the name key too when an MBID is given."""
     key = _artist_key(mbid, name)
     if not key:
         return
@@ -287,7 +279,7 @@ def cache_artist(source: str, data: dict, *, mbid: str = '', name: str = '',
 
 def get_cached_album(source: str, *, mbid: str = '', artist: str = '',
                      album: str = '', lang: str = '') -> Optional[dict]:
-    """Return cached album data for the given source, or None."""
+    """Get cached album data from one source, or None."""
     key = _album_key(mbid, artist, album)
     if not key:
         return None
@@ -298,7 +290,7 @@ def get_cached_album(source: str, *, mbid: str = '', artist: str = '',
 
 def cache_album(source: str, data: dict, *, mbid: str = '', artist: str = '',
                 album: str = '', lang: str = '') -> None:
-    """Cache album data for the given source."""
+    """Cache album data from one source."""
     key = _album_key(mbid, artist, album)
     if not key:
         return
@@ -310,7 +302,7 @@ def cache_album(source: str, data: dict, *, mbid: str = '', artist: str = '',
 
 
 def get_cached_track(source: str, artist: str, track: str, lang: str = '') -> Optional[dict]:
-    """Return cached track data for the given source, or None."""
+    """Get cached track data from one source, or None."""
     key = _track_key(artist, track)
     if not key:
         return None
@@ -320,7 +312,7 @@ def get_cached_track(source: str, artist: str, track: str, lang: str = '') -> Op
 
 
 def cache_track(source: str, data: dict, artist: str, track: str, lang: str = '') -> None:
-    """Cache track data for the given source."""
+    """Cache track data from one source."""
     key = _track_key(artist, track)
     if not key:
         return
@@ -332,7 +324,7 @@ def cache_track(source: str, data: dict, artist: str, track: str, lang: str = ''
 
 
 def get_best_artist_bio(*, mbid: str = '', name: str = '') -> str:
-    """Check AudioDB first (richer bios), fall back to Last.fm."""
+    """Get the best cached artist bio, AudioDB before Last.fm, or '' when neither has one."""
     from lib.kodi.settings import KodiSettings
     lang = KodiSettings.online_metadata_language()
 

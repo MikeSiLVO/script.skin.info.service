@@ -20,7 +20,7 @@ from lib.infrastructure.paths import vfs_dirname, vfs_ensure_dir_slash, vfs_join
 
 
 def run_scanner(scope: Optional[str] = None, scan_mode: Optional[str] = None) -> None:
-    """Run gif poster scanner. None values prompt via dialog or fall back to addon settings."""
+    """Run the gif scanner menu: scan, the last report, cache stats and clearing the cache."""
     init_database()
 
     last_stats = get_last_operation_stats('gif_scan')
@@ -77,7 +77,7 @@ def _format_gif_scan_report(stats: dict, timestamp: str, scope: Optional[str]) -
 
 
 def _view_report(last_stats: Dict) -> None:
-    """Display the last scan report."""
+    """Show the stored report from the last gif scan."""
     report_text = _format_gif_scan_report(
         last_stats['stats'],
         last_stats['timestamp'],
@@ -87,7 +87,7 @@ def _view_report(last_stats: Dict) -> None:
 
 
 def _view_cache_stats() -> None:
-    """Display cache statistics."""
+    """Display the GIF cache contents, or a notice when it is empty."""
     cache = gif_db.get_all_cached_gifs()
 
     if not cache:
@@ -160,7 +160,7 @@ def _clear_cache() -> None:
 
 
 def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
-    """Execute the GIF scan with the given scope and mode."""
+    """Prompt for scope and mode, reject invalid, then scan."""
     if scope is None:
         scope = _select_scope()
         if scope is None:
@@ -212,7 +212,7 @@ def _run_scan(scope: Optional[str], scan_mode: Optional[str]) -> None:
 
 
 def _run_gif_scan(scope: str, scan_mode: str, use_background: bool) -> None:
-    """Open a task context and run the GIF scan in the chosen mode."""
+    """Hold a task slot and a progress dialog around the scan, reporting failures."""
     try:
         with task_manager.TaskContext(ADDON.getLocalizedString(32192)) as ctx:
             progress = ProgressDialog(
@@ -239,7 +239,7 @@ def _run_scan_operation(
     progress: ProgressDialog,
     task_context=None
 ) -> bool:
-    """Execute the gif scan. Returns True if cancelled."""
+    """Build the scanner from settings, walk the scopes, and record the run; True if cancelled."""
     patterns_setting = ADDON.getSetting("gif_patterns")
     if patterns_setting:
         patterns = [p.strip() for p in patterns_setting.split(",") if p.strip()]
@@ -281,7 +281,7 @@ def _run_scan_operation(
 
 
 def _select_scope() -> Optional[str]:
-    """Show dialog to select scan scope."""
+    """Ask which library to scan; None when the user backs out."""
     options = [
         ("all", ADDON.getLocalizedString(32579)),
         ("movies", ADDON.getLocalizedString(32580)),
@@ -371,6 +371,7 @@ class ArtworkAnimated:
         self._scan('tvshow')
 
     def _scan(self, media_type: str) -> None:
+        """Walk one media type's library rows, checking each for animated art."""
         spec = MEDIA_TYPE_SPECS[media_type]
         resp = request(spec.library_method, {"properties": ["file", "art", "dateadded"]})
         if not resp:
@@ -451,11 +452,7 @@ class ArtworkAnimated:
                     )
 
     def _find_gif(self, file_path: str) -> Optional[str]:
-        """Look for gif files in the media file's folder.
-
-        Matching: exact match first, then suffix match (e.g. "movie.poster.gif"),
-        preferring shortest filename when multiple match.
-        """
+        """Look for a gif beside the media file: exact name first, then suffix, shortest wins."""
         if not file_path:
             return None
 
@@ -557,7 +554,7 @@ class ArtworkAnimated:
             return False
 
     def _should_skip_gif(self, gif_path: str) -> bool:
-        """True if GIF is cached and unchanged (safe to skip in incremental mode)."""
+        """True when the gif is cached with the same mtime, within a second for filesystems."""
         cached_entry = gif_db.get_cached_gif(gif_path)
         if not cached_entry:
             return False
@@ -568,7 +565,6 @@ class ArtworkAnimated:
 
         try:
             current_mtime = xbmcvfs.Stat(gif_path).st_mtime()
-            # Compare mtimes (allow 1 second tolerance for filesystem precision)
             if abs(current_mtime - float(cached_mtime)) < 1.0:
                 return True
         except ValueError:
@@ -577,7 +573,7 @@ class ArtworkAnimated:
         return False
 
     def _update_cache(self, gif_path: str) -> None:
-        """Update cache entry for a GIF file."""
+        """Update the cached mtime so an unchanged file is skipped next run."""
         mtime = xbmcvfs.Stat(gif_path).st_mtime()
         gif_db.update_gif_cache(gif_path, mtime, int(time.time()))
 
@@ -586,7 +582,7 @@ class ArtworkAnimated:
         return gif_db.cleanup_stale_gifs(self.accessed_paths)
 
     def show_summary(self) -> None:
-        """Show completion notification."""
+        """Show the found and skipped counts, worded for a finished or cancelled run."""
         counts = ADDON.getLocalizedString(32707).format(
             self.found_count, self.skipped_cached, self.skipped_existing)
         message = f"{ADDON.getLocalizedString(32032 if self.cancelled else 32279)} {counts}"

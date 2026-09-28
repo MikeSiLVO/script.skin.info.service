@@ -1,9 +1,4 @@
-"""TMDB API client for artwork and ratings.
-
-Provides:
-- Movie/TV show artwork (posters, backdrops, logos)
-- Movie/TV show/episode ratings
-"""
+"""TMDB API access: the ApiTmdb client, image format transforms and ID resolution."""
 from __future__ import annotations
 
 import xbmc
@@ -34,7 +29,7 @@ def format_tmdb_image(image: dict, preview_size: str, rank: int) -> Optional[dic
     if not file_path:
         return None
 
-    # Skip SVG files - Kodi cannot render them
+    # Kodi cannot render SVG
     if file_path.lower().endswith('.svg'):
         return None
 
@@ -51,8 +46,7 @@ def format_tmdb_image(image: dict, preview_size: str, rank: int) -> Optional[dic
 
 
 def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
-    """Transform a TMDB images response to common format; backdrops sort by language
-    preference and text-free ones also go to fanart."""
+    """Transform a TMDB images response to common format; untagged posters double as keyart."""
     result: Dict[str, List[dict]] = {}
 
     logos = data.get('logos') or []
@@ -89,6 +83,7 @@ def transform_tmdb_images(data: dict) -> Dict[str, List[dict]]:
             formatted_backdrops.append((formatted, lang.lower() if lang else None))
 
     def lang_sort_key(item: tuple[dict, str | None]) -> tuple[int, str]:
+        """Order artwork by language: the user's first, then English, then untagged."""
         lang = item[1]
         if lang == user_lang:
             return (0, '')
@@ -139,7 +134,7 @@ def resolve_tmdb_id(tmdb_id: str | None, imdb_id: str | None, media_type: str) -
 
 
 class ApiTmdb(RatingSource):
-    """TMDB API client with rate limiting for artwork and ratings."""
+    """TMDB client for artwork, ratings, details, search and discovery lists."""
 
     BASE_URL = "https://api.themoviedb.org/3"
 
@@ -238,7 +233,7 @@ class ApiTmdb(RatingSource):
         return result
 
     def _fetch_images(self, media_kind: str, tmdb_id: int, abort_flag=None) -> dict:
-        """Fetch images from TMDB API."""
+        """Fetch images for any TMDB media kind, transformed to common format."""
         data = self._make_request(f"/{media_kind}/{tmdb_id}/images", abort_flag)
 
         if not data:
@@ -253,7 +248,7 @@ class ApiTmdb(RatingSource):
         abort_flag=None,
         force_refresh: bool = False,
     ) -> Optional[Dict[str, Dict[str, float]]]:
-        """Fetch ratings from TMDB via get_complete_data."""
+        """Fetch ratings from TMDB (RatingSource interface); episodes read the prefetch cache."""
         if abort_flag and abort_flag.is_requested():
             return None
 
@@ -369,8 +364,7 @@ class ApiTmdb(RatingSource):
         force_refresh: bool = False,
         is_library_item: bool = True
     ) -> Optional[dict]:
-        """Get complete TMDb data, from cache or a fresh fetch; is_library_item toggles smart
-        TTL + season fetch vs a flat 24h TTL."""
+        """Get complete movie or tvshow data from cache or TMDB; non-library items cache for 24h."""
         if abort_flag and abort_flag.is_requested():
             return None
 
@@ -417,7 +411,7 @@ class ApiTmdb(RatingSource):
 
     def _episode_ratings(self, tmdb_id: int, ids: Dict[str, str], abort_flag=None,
                          force_refresh: bool = False) -> Optional[Dict]:
-        """Episode rating from cache; `force_refresh` refills it via `prefetch_episode_ratings`."""
+        """Episode rating from the provider cache, refetching its season on a forced refresh."""
         season, episode = ids.get("season"), ids.get("episode")
         if not season or not episode:
             return None
@@ -436,7 +430,7 @@ class ApiTmdb(RatingSource):
         }
 
     def prefetch_episode_ratings(self, tmdb_id: int, seasons: List[int], abort_flag=None) -> int:
-        """Cache every episode rating for these seasons, MAX_APPEND_SEASONS per call."""
+        """Cache every voted episode rating in these seasons; returns how many were stored."""
         stored = 0
         ordered = sorted(seasons)
         for start in range(0, len(ordered), self.MAX_APPEND_SEASONS):
@@ -473,7 +467,7 @@ class ApiTmdb(RatingSource):
         return stored
 
     def _extract_release_date(self, data: dict, media_type: str) -> Optional[str]:
-        """Extract appropriate date field from TMDb response."""
+        """Extract the release, first-air or air date from a TMDb response by media type."""
         if media_type == 'movie':
             return data.get('release_date')
         elif media_type == 'tvshow':
@@ -483,7 +477,7 @@ class ApiTmdb(RatingSource):
         return None
 
     def _fix_stale_episodes(self, data: dict, tmdb_id: int, abort_flag=None) -> None:
-        """If next_episode_to_air is in the past, fetch season data to fix next and last."""
+        """Fix next and last episode from fresh season data once next_episode_to_air has passed."""
         import datetime
         next_ep = data.get("next_episode_to_air")
         if not next_ep:
@@ -518,7 +512,7 @@ class ApiTmdb(RatingSource):
             data["last_episode_to_air"] = last_aired
 
     def _build_cache_hints(self, data: dict, media_type: str) -> Dict[str, str]:
-        """Build cache hints dict for TTL calculation."""
+        """Build TTL hints: status, plus whether a tvshow's aired data is complete."""
         hints: Dict[str, str] = {}
 
         if data.get("status"):
@@ -539,7 +533,6 @@ class ApiTmdb(RatingSource):
         return hints
 
     _IMAGE_COMPONENTS = [
-        # (response_key, art_type, preview_size)
         ('posters', 'poster', 'w500'),
         ('backdrops', 'fanart', 'w780'),
         ('logos', 'clearlogo', 'w500'),
@@ -582,8 +575,7 @@ class ApiTmdb(RatingSource):
         return self.session.get(endpoint, params=params, abort_flag=abort_flag)
 
     def get_movie_details_extended(self, tmdb_id: int, abort_flag=None) -> Optional[dict]:
-        """Fetch complete movie data in one API call via append_to_response. Returns base
-        details plus appended data."""
+        """Fetch complete movie data in one API call. Returns base details plus appended data."""
         return self._fetch_details_extended(
             f"/movie/{tmdb_id}",
             "credits,videos,keywords,release_dates,images,external_ids,recommendations",
@@ -668,7 +660,7 @@ class ApiTmdb(RatingSource):
         year: int = 0,
         abort_flag=None
     ) -> list[dict]:
-        """Search TMDB. `media_type` is movie/tv/person; `year` filters movie/tv only."""
+        """Search TMDB movies, TV shows or people; a year filters movies and TV only."""
         endpoint_map = {
             'movie': '/search/movie',
             'tv': '/search/tv',
@@ -694,6 +686,7 @@ class ApiTmdb(RatingSource):
         extra_params: Optional[Dict[str, str]] = None,
         abort_flag=None
     ) -> list:
+        """Paged TMDB list request, carrying the configured metadata language."""
         api_key = self.get_api_key()
         language = _get_metadata_language()
         params: Dict[str, str | int] = {
@@ -712,28 +705,35 @@ class ApiTmdb(RatingSource):
 
     def get_trending(self, media_type: str, window: str = 'week', page: int = 1,
                      abort_flag=None) -> list:
+        """Get TMDB's trending movies or shows for the day or week."""
         return self._get_list(f"/trending/{media_type}/{window}", page=page, abort_flag=abort_flag)
 
     def get_popular(self, media_type: str, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's popular movies or shows."""
         return self._get_list(f"/{media_type}/popular", page=page, abort_flag=abort_flag)
 
     def get_top_rated(self, media_type: str, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's top rated movies or shows."""
         return self._get_list(f"/{media_type}/top_rated", page=page, abort_flag=abort_flag)
 
     def get_now_playing(self, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's movies now in theaters."""
         return self._get_list("/movie/now_playing", page=page, abort_flag=abort_flag)
 
     def get_upcoming(self, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's upcoming movies."""
         return self._get_list("/movie/upcoming", page=page, abort_flag=abort_flag)
 
     def get_airing_today(self, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's shows airing today."""
         return self._get_list("/tv/airing_today", page=page, abort_flag=abort_flag)
 
     def get_on_the_air(self, page: int = 1, abort_flag=None) -> list:
+        """Get TMDB's shows with an episode airing this week."""
         return self._get_list("/tv/on_the_air", page=page, abort_flag=abort_flag)
 
     def get_genre_list(self, media_type: str, force_refresh: bool = False) -> Dict[int, str]:
-        """Return TMDB genre id->name mapping for `movie` or `tv`. Cached 24h."""
+        """Get the TMDB genre id-to-name mapping for movies or TV, cached 24h."""
         from lib.data.database import cache as db_cache
 
         if not force_refresh:

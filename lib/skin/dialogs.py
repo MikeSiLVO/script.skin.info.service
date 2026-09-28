@@ -108,7 +108,7 @@ def dialog_yesno(
     autoclose: str = '',
     **kwargs
 ) -> None:
-    """Show Yes/No dialog. `yesaction`/`noaction`/`cancel_action` are pipe-separated builtins."""
+    """Show a Yes/No dialog, then run the pipe-separated builtins for the answer."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
     autoclose_ms = _parse_int(autoclose, 0)
@@ -148,7 +148,7 @@ def dialog_yesnocustom(
     autoclose: str = '',
     **kwargs
 ) -> None:
-    """Show a Yes/No/Custom 3-button dialog. `*action` args are pipe-separated builtins."""
+    """Show a Yes/No/Custom dialog, then run the pipe-separated builtins for the answer."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
     customlabel = customlabel or TEST_DEFAULTS['customlabel']
@@ -174,7 +174,7 @@ def dialog_yesnocustom(
 
 
 def dialog_ok(heading: str = '', message: str = '', okaction: str = '', **kwargs) -> None:
-    """Show an OK dialog. `okaction` is pipe-separated builtins to run."""
+    """Show an OK dialog, then run its pipe-separated builtins."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     message = _resolve_infolabel(message) or TEST_DEFAULTS['message']
 
@@ -194,12 +194,7 @@ def dialog_select(
     window: str = 'home',
     **kwargs
 ) -> None:
-    """Show a single-select dialog.
-
-    `items="properties"` reads from `Dialog.N.Label` window props; otherwise parse `items`
-    on `separator`. `executebuiltin` template uses `{index}`/`{value}` placeholders; per-index
-    overrides via `executebuiltin_N` kwargs.
-    """
+    """Show a single-select dialog from a list or `Dialog.N.*` properties, then run its builtin."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     autoclose_ms = _parse_int(autoclose, 0)
     use_details = _parse_bool(usedetails, False)
@@ -277,7 +272,7 @@ def dialog_multiselect(
     window: str = 'home',
     **kwargs
 ) -> None:
-    """Show multiselect dialog. `executebuiltin` runs per selected item with `{index}`/`{value}`."""
+    """Show a multiselect dialog, running the builtin template once per selected item."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     autoclose_ms = _parse_int(autoclose, 0)
     use_details = _parse_bool(usedetails, False)
@@ -348,7 +343,7 @@ def dialog_contextmenu(
     cancel_action: str = '',
     **kwargs
 ) -> None:
-    """Show a context-menu popup. Per-index actions via `executebuiltin_N` kwargs."""
+    """Show a context menu, running the chosen entry's own builtins or the shared template."""
     items_resolved = _resolve_infolabel(items) or TEST_DEFAULTS['items']
     item_list = _parse_list(items_resolved, separator)
 
@@ -387,7 +382,7 @@ def dialog_input(
     autoclose: str = '',
     **kwargs
 ) -> None:
-    """`type` input (alphanum/numeric/date/time/ipaddress/password); `doneaction` subs `{value}`."""
+    """Show a keyboard input of the given kind, passing the entry to the builtin as `{value}`."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     default = _resolve_infolabel(default)
     is_hidden = _parse_bool(hidden, False)
@@ -437,7 +432,7 @@ def dialog_numeric(
     cancel_action: str = '',
     **kwargs
 ) -> None:
-    """Show numeric input. `type` is 0=number/1=date/2=time/3=ipaddress/4=password."""
+    """Show a numeric input: 0 number, 1 date, 2 time, 3 IP address, 4 password."""
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
     default = _resolve_infolabel(default)
     numeric_type = _parse_int(type, 0)
@@ -466,7 +461,7 @@ def dialog_textviewer(
     usemono: str = 'false',
     **kwargs
 ) -> None:
-    """Show a textviewer dialog. `file` (if given) takes priority over `text`."""
+    """Show a text viewer with the given text, or a file's contents when a file is given."""
     import xbmcvfs
 
     heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
@@ -500,7 +495,7 @@ def dialog_notification(
     sound: str = 'true',
     **kwargs
 ) -> None:
-    """Show a toast notification. `icon` accepts `info`/`warning`/`error` or a custom image path."""
+    """Show a toast notification with an info, warning or error icon, or a custom image."""
     heading = _resolve_infolabel(heading) or 'Test'
     message = _resolve_infolabel(message) or 'Notification'
     icon_resolved = _resolve_infolabel(icon)
@@ -529,7 +524,7 @@ def dialog_browse(
     cancel_action: str = '',
     **kwargs
 ) -> None:
-    """Browse `type` directory/file/image/writable; `multiple=true` allows multi-pick."""
+    """Browse for a directory, file, image or writable path, one or several."""
     heading = _resolve_infolabel(heading) or 'Choose File'
     shares_str = _resolve_infolabel(shares)
     default_path = _resolve_infolabel(default)
@@ -599,7 +594,7 @@ def dialog_colorpicker(
     cancel_action: str = '',
     **kwargs
 ) -> None:
-    """Show Kodi's built-in color picker. `default` is AARRGGBB hex."""
+    """Show Kodi's built-in color picker, starting from an AARRGGBB color."""
     heading = _resolve_infolabel(heading) or 'Choose Color'
     default_color = _resolve_infolabel(default)
 
@@ -625,11 +620,7 @@ def dialog_progress(
     background: str = 'false',
     **kwargs
 ) -> None:
-    """Show a progress dialog that polls an InfoLabel (`progress_info`) for the current value.
-
-    Closes when value >= `max_value` or after `timeout` polling cycles.
-    `background=true` uses `DialogProgressBG`.
-    """
+    """Show a progress dialog polling an InfoLabel, closed at the maximum or after the timeout."""
     heading = _resolve_infolabel(heading) or 'Progress'
     message = _resolve_infolabel(message) or 'Please wait...'
     max_val = _parse_int(max_value, 100)

@@ -17,7 +17,7 @@ from lib.editor.config import get_field_def, get_properties_for_media_type
 
 
 def get_item_for_editing(dbid: int, media_type: str) -> dict[str, Any] | None:
-    """Fetch item with all editable properties."""
+    """Get the item with every editable property, None when Kodi does not return it."""
     method_info = KODI_GET_DETAILS_METHODS.get(media_type)
     if not method_info:
         log("Editor", f"Unknown media type: {media_type}", xbmc.LOGWARNING)
@@ -40,7 +40,7 @@ def save_field(
     dbid: int, media_type: str, field_name: str, value: Any,
     item: dict[str, Any] | None = None
 ) -> bool:
-    """Save a single field value."""
+    """Save one field to Kodi, setting premiered alongside year for a video item."""
     method_info = KODI_SET_DETAILS_METHODS.get(media_type)
     if not method_info:
         log("Editor", f"Cannot save - unknown media type: {media_type}", xbmc.LOGWARNING)
@@ -60,7 +60,7 @@ def save_field(
     if media_type == "song" and api_name == "mood" and isinstance(value, list):
         params["mood"] = " / ".join(value)
 
-    # Kodi ignores year if premiered exists, so set both (video types only)
+    # Kodi ignores year when premiered is set
     if field_name == "year" and isinstance(value, int) and media_type in (
         "movie", "tvshow", "episode", "musicvideo"
     ):

@@ -1,4 +1,4 @@
-"""Ratings merger - combines ratings from multiple sources using vote count priority."""
+"""Merge ratings from several providers and shape them for Kodi."""
 from __future__ import annotations
 
 import xbmc
@@ -14,8 +14,7 @@ DEFAULT_SOURCE_PRIORITY: Dict[str, int] = {
     "omdb": 50,
 }
 
-# Kodi scrapers are inconsistent: movies use "themoviedb", TV uses "tmdb". Mirror both
-# so skins find the rating regardless of which key they check.
+# movie scrapers write "themoviedb", TV scrapers "tmdb"; skins may read either key
 _KEY_ALIASES: Dict[str, str] = {
     "themoviedb": "tmdb",
     "tmdb": "themoviedb",
@@ -122,12 +121,7 @@ def prepare_kodi_ratings(merged_ratings: Dict[str, Dict[str, float]],
                          default_source: str = "imdb",
                          supplied: Optional[Set[str]] = None
                          ) -> Dict[str, Dict[str, bool | int | float]]:
-    """Convert merged ratings into Kodi's `Set*Details.ratings` shape.
-
-    All ratings must be 0-10; out-of-range values are logged ERROR and clamped to
-    prevent DB corruption. Also mirrors `themoviedb <-> tmdb` since movies and TV
-    use different scraper keys and skins may check either.
-    """
+    """Convert merged ratings into Kodi's `Set*Details.ratings` shape, clamped to 0-10."""
     kodi_ratings = {}
     if default_source not in merged_ratings and _KEY_ALIASES.get(default_source) in merged_ratings:
         default_source = _KEY_ALIASES[default_source]

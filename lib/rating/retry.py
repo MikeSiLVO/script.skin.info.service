@@ -235,11 +235,7 @@ def prompt_and_process_retries(retry_queue: List[RetryPoolEntry], sources: List)
 
 
 def _process_retry_queue(retry_queue: List[RetryPoolEntry], sources: List) -> int:
-    """Run targeted retries for queued entries; only the missing sources are fetched.
-
-    On 429, the offending source is paused for the remainder of this pass per
-    Retry-After. Returns count of entries fully resolved.
-    """
+    """Process the retry queue, fetching only the missing sources; returns how many resolved."""
     progress = DialogProgress()
     progress.create(ADDON.getLocalizedString(32300), ADDON.getLocalizedString(32310))
 

@@ -15,7 +15,7 @@ def save_id_mapping(
     imdb_id: Optional[str] = None,
     tvdb_id: Optional[str] = None,
 ) -> None:
-    """Record an id pairing, seeding a payload-less row when the title is not cached yet."""
+    """Save an id pairing, seeding a payload-less row when the title is not cached yet."""
     numeric_id = as_int(tmdb_id)
     if numeric_id is None or not media_type:
         return
@@ -44,12 +44,12 @@ def _lookup(select_col: str, where_col: str, value, media_type: str) -> Optional
 
 
 def get_imdb_id(tmdb_id: str, media_type: str) -> Optional[str]:
-    """Look up imdb_id from tmdb_id."""
+    """Get the IMDb id mapped to a TMDB id, or None."""
     return _lookup("imdb_id", "tmdb_id", as_int(tmdb_id), media_type)
 
 
 def get_imdb_ids_batch(tmdb_ids: set, media_type: str) -> Dict[str, str]:
-    """Look up imdb_ids for multiple tmdb_ids; chunked to stay under SQLite's parameter limit."""
+    """Get the IMDb ids mapped to many TMDB ids; an unmapped id is left out."""
     if not tmdb_ids:
         return {}
     wanted = [i for i in (as_int(t) for t in tmdb_ids) if i is not None]
@@ -68,12 +68,12 @@ def get_imdb_ids_batch(tmdb_ids: set, media_type: str) -> Dict[str, str]:
 
 
 def get_tmdb_id_by_imdb(imdb_id: str, media_type: str) -> Optional[str]:
-    """Look up tmdb_id from imdb_id."""
+    """Get the TMDB id mapped to an IMDb id, or None."""
     return _lookup("tmdb_id", "imdb_id", imdb_id, media_type)
 
 
 def get_tmdb_id_by_tvdb(tvdb_id: str, media_type: str) -> Optional[str]:
-    """Look up tmdb_id from tvdb_id."""
+    """Get the TMDB id mapped to a TVDB id, or None."""
     return _lookup("tmdb_id", "tvdb_id", as_int(tvdb_id), media_type)
 
 
@@ -99,7 +99,7 @@ def is_known_find_miss(imdb_id: str, media_type: str) -> bool:
 
 
 def save_find_miss(imdb_id: str, media_type: str) -> None:
-    """Record that TMDB has no title for this IMDb id."""
+    """Save that TMDB has no title for this IMDb id."""
     with get_db() as cursor:
         cursor.execute(
             "INSERT INTO tmdb_find_miss (imdb_id, media_type, checked_at) VALUES (?, ?, ?) "
@@ -124,7 +124,7 @@ def is_known_episode_miss(tmdb_id: str, season: int, episode: int) -> bool:
 
 def save_episode_miss(tmdb_id: str, season: int, episode: int,
                       air_date: Optional[str] = None) -> None:
-    """Record that TMDB holds this episode with no IMDb id, aged off its own air date."""
+    """Save that TMDB holds this episode with no IMDb id, aged off its own air date."""
     numeric_id = as_int(tmdb_id)
     if numeric_id is None:
         return

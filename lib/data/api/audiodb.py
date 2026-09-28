@@ -1,13 +1,4 @@
-"""TheAudioDB API client for music metadata and artwork.
-
-Provides:
-- Artist metadata (biography, style, mood, genre, country, formed year)
-- Artist artwork (thumb, logo, fanart, banner)
-- Album metadata (description, style, mood, genre, year, label)
-- Album artwork (thumb, cdart)
-
-Free tier: API key '123', 30 requests/minute
-"""
+"""TheAudioDB metadata and artwork for artists, albums and music-video tracks."""
 from __future__ import annotations
 
 import threading
@@ -211,7 +202,7 @@ class ApiAudioDb:
         return result
 
     def _format_artwork_item(self, url: str) -> dict:
-        """Format a TheAudioDB artwork URL to common format."""
+        """Format a TheAudioDB artwork URL to common format, its preview derived from the URL."""
         return {
             'url': url,
             'previewurl': f"{url}/preview",
@@ -240,7 +231,7 @@ _SHARED_LOCK = threading.Lock()
 
 
 def get_audiodb() -> ApiAudioDb:
-    """Shared client, so its 30/min limiter keeps one window instead of resetting per call."""
+    """Get the shared TheAudioDB client, one rate-limit window for every caller."""
     global _SHARED
     if _SHARED is None:
         with _SHARED_LOCK:

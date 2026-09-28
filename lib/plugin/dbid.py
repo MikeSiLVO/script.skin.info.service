@@ -1,5 +1,4 @@
-"""Get media details by DBID for plugin calls; queries the Kodi library and returns formatted
-ListItem property dicts."""
+"""Plugin `getdetails` handler: a library item's details by DBID, as ListItem properties."""
 from __future__ import annotations
 
 import xbmc
@@ -29,7 +28,7 @@ from lib.kodi.library import (
 
 
 def _set_stream_details(video_tag: xbmc.InfoTagVideo, streamdetails: dict) -> None:
-    """Add video/audio/subtitle streams from a JSON-RPC `streamdetails` dict to a `VideoInfoTag`."""
+    """Set the video, audio and subtitle streams from a JSON-RPC stream details dict on a tag."""
     video_streams = streamdetails.get("video") or []
     audio_streams = streamdetails.get("audio") or []
     subtitle_streams = streamdetails.get("subtitle") or []
@@ -100,7 +99,7 @@ _MOVIESET_MOVIE_PROPERTIES = [
 
 
 def get_item_data_by_dbid(media_type: str, dbid: int) -> Optional[dict]:
-    """Query a library item by `(media_type, dbid)` and return ListItem property dict, or None."""
+    """Get a library item's ListItem property dict by media type and dbid, or None."""
     handler = _MEDIA_TYPE_HANDLERS.get(media_type)
     if handler is None:
         log("Plugin", f"Unknown media type '{media_type}'", xbmc.LOGWARNING)

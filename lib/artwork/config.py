@@ -1,4 +1,4 @@
-"""Shared constants and utility functions for artwork package."""
+"""Art types per media type, session-stats shape, and the constants the artwork package shares."""
 from __future__ import annotations
 
 import json
@@ -41,7 +41,7 @@ def scope_media_types(scope: str) -> List[str]:
     return list(REVIEW_MEDIA_FILTERS.get(scope, []))
 
 
-# Art types each media type can actually receive, per what the providers return.
+# art types each media type can receive from the providers
 ART_TYPES_BY_MEDIA = {
     'movie': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'discart',
               'keyart'],
@@ -56,7 +56,7 @@ ART_TYPES_BY_MEDIA = {
     'album': ['thumb', 'discart', 'back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'],
 }
 
-# Kept out of bulk paths; TheAudioDB's rate limit can't sustain a library pass.
+# kept out of bulk paths; TheAudioDB's rate limit can't carry a library pass
 AUDIODB_ONLY_ART_TYPES = {
     'artist': ('clearart', 'landscape', 'cutout'),
     'album': ('back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'),
@@ -64,7 +64,7 @@ AUDIODB_ONLY_ART_TYPES = {
 
 
 def bulk_art_types(media_type: str) -> list:
-    """Art types a scan or auto-apply can fill."""
+    """Art types a scan or auto-apply can fill, leaving out the TheAudioDB-only ones."""
     excluded = AUDIODB_ONLY_ART_TYPES.get(media_type, ())
     return [art_type for art_type in ART_TYPES_BY_MEDIA.get(media_type, [])
             if art_type not in excluded]
@@ -82,7 +82,6 @@ FANART_DIMENSIONS_VARIANTS = {
     'discart': [(1000, 1000), (512, 512), (2000, 2000)],
 }
 
-# Auto-fetch language policies
 AUTO_LANG_REQUIRED_TYPES = {
     'poster',
     'clearlogo',
@@ -119,7 +118,7 @@ SESSION_DETAIL_KEYS = (
 
 
 def default_session_stats() -> dict:
-    """Create default session statistics structure."""
+    """Default session statistics: zeroed counters and empty detail lists."""
     return {
         'applied': 0,
         'skipped': 0,
@@ -131,7 +130,7 @@ def default_session_stats() -> dict:
 
 
 def load_session_stats(raw: Any) -> dict:
-    """Load and normalize session statistics from storage. Accepts dict, JSON string, or None."""
+    """Load session statistics from a dict, a JSON string or nothing, filling in what is absent."""
     stats = default_session_stats()
 
     if raw:

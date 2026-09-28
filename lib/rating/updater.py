@@ -201,7 +201,6 @@ def update_library_ratings(
     processed_ids: Set[int] = set()
 
     def _show_downloading() -> None:
-        """Show the dataset-download message on the active progress dialog."""
         if isinstance(progress, xbmcgui.DialogProgressBG):
             progress.update(0, heading, ADDON.getLocalizedString(32305))
         elif isinstance(progress, xbmcgui.DialogProgress):
@@ -262,7 +261,6 @@ def update_library_ratings(
         if progress:
             progress.close()
 
-    # the user asked for this run, so the retry offer belongs at its end
     if retry_queue and not results.get("cancelled") and not results.get("all_sources_down"):
         retry_count = prompt_and_process_retries(retry_queue, sources)
         if retry_count > 0:
@@ -311,7 +309,7 @@ def update_library_ratings(
         )
         show_ok(ADDON.getLocalizedString(32317), message)
     elif results.get("all_sources_down"):
-        # a background run has no summary dialog, and stopping early otherwise looks like success
+        # a background run has no summary dialog
         show_notification(
             ADDON.getLocalizedString(32300),
             ADDON.getLocalizedString(32323),

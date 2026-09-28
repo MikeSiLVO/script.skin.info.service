@@ -14,6 +14,7 @@ PIL_AVAILABLE = None
 
 
 def _check_pil():
+    """Whether PIL can be imported, probed once and remembered."""
     global PIL_AVAILABLE
 
     if PIL_AVAILABLE is not None:
@@ -40,6 +41,7 @@ def _get_resize_filter():
 
 
 def _get_cache_dir():
+    """Get the blur cache directory, created on first use; None if it can't be made."""
     cache_dir = os.path.join(
         xbmcvfs.translatePath("special://profile/addon_data/script.skin.info.service"),
         "blur_cache"
@@ -73,6 +75,7 @@ def _url_to_cached_path(url: str) -> Optional[str]:
 
 
 def _generate_cache_key(source_path: str, blur_radius: int) -> str:
+    """Generate the cache filename for a source and radius pair."""
     cache_key = f"{source_path}_{blur_radius}"
     hash_value = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
     return f"{hash_value}.jpg"
@@ -134,11 +137,11 @@ def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[
     if blur_radius is None or blur_radius < 1:
         blur_radius = _skin_radius()
 
-    # Resource addon icons can't be resolved via texture cache
+    # resource add-ons ship images packed in Textures.xbt, which neither the cache nor VFS reads
     if source_path.startswith('resource://'):
         return None
 
-    # Disable blur for Kodi's virtual icons (e.g. DefaultShortcut.png)
+    # Kodi's virtual icons, such as DefaultShortcut.png
     basename = source_path.rsplit('/', 1)[-1].rsplit('\\', 1)[-1]
     if basename.startswith('Default') and basename.endswith('.png'):
         return None
@@ -208,7 +211,7 @@ def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[
             if img.format == 'JPEG':
                 img.draft('RGB', (480, 480))
 
-            # JPEG doesn't support transparency
+            # JPEG has no transparency
             if img.mode in ("RGBA", "LA", "PA", "P"):
                 img = img.convert("RGB")
 

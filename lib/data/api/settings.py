@@ -1,4 +1,4 @@
-"""API key and authorization management utilities."""
+"""Settings-screen actions for the provider API keys and the Trakt authorization."""
 from __future__ import annotations
 
 import xbmc
@@ -10,7 +10,7 @@ from lib.infrastructure.dialogs import DialogProgress, show_notification
 
 
 def edit_api_key(provider: str) -> None:
-    """Show keyboard dialog to edit API key."""
+    """Prompt for a provider's API key and store it, warning if it did not persist."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
@@ -46,7 +46,7 @@ def edit_api_key(provider: str) -> None:
 
 
 def clear_api_key(provider: str) -> None:
-    """Clear API key after confirmation."""
+    """Clear a provider's API key once the user confirms."""
     from lib.kodi.client import API_KEY_CONFIG
     from lib.infrastructure.dialogs import show_yesno
 
@@ -74,7 +74,7 @@ def clear_api_key(provider: str) -> None:
 
 
 def test_api_key(provider: str) -> None:
-    """Test API key connection."""
+    """Test a provider's stored key against its API and report the outcome."""
     from lib.kodi.client import API_KEY_CONFIG
 
     config = API_KEY_CONFIG.get(f"{provider}_api_key")
@@ -231,7 +231,7 @@ def authorize_trakt() -> None:
 
 
 def test_trakt_connection() -> None:
-    """Test Trakt API connection."""
+    """Test the stored Trakt token against the API and report the outcome."""
     from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
     from lib.infrastructure.dialogs import show_ok
 
@@ -263,7 +263,7 @@ def test_trakt_connection() -> None:
 
 
 def revoke_trakt_authorization() -> None:
-    """Revoke Trakt authorization after confirmation."""
+    """Revoke the Trakt authorization once the user confirms."""
     from lib.data.api.trakt import ApiTrakt as TraktRatingsSource
     from lib.infrastructure.dialogs import show_yesno
 

@@ -10,8 +10,7 @@ from lib.kodi.client import log, request
 
 
 def _process_items(stats: Dict[str, Any], items: List[dict]) -> None:
-    """Count watched/unwatched/in-progress per item; TV shows use episode counts since there's no
-    show-level resume."""
+    """Count items as watched, unwatched or in progress; a TV show is judged by its episodes."""
     episode_shows = set()
 
     for item in items:
@@ -93,8 +92,7 @@ def get_path_statistics(path: str) -> Dict[str, Any]:
 
 
 def handle_path_stats(handle: int, params: dict) -> None:
-    """Plugin entry for path stats; returns an invisible ListItem with `SkinInfo.PathStats.*`
-    properties."""
+    """Plugin entry for path stats, set as `SkinInfo.PathStats.*` on Home and on one ListItem."""
     path = params.get('path', [''])[0]
 
     if not path:

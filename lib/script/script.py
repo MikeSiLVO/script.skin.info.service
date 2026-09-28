@@ -17,8 +17,7 @@ def _clear_blur_properties(blur_key: str, orig_key: str, window: str) -> None:
 def _blur_image_and_set_property(source: str, prefix: str = "",
                                  radius: Optional[int] = None,
                                  window: str = "home") -> None:
-    """Blur an image into `SkinInfo.[prefix.]BlurredImage`/`.Original`; an empty source
-    clears them."""
+    """Blur an image into `SkinInfo.[prefix.]BlurredImage`/`.Original`; no image clears them."""
     prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
     blur_key = f"{prop_base}BlurredImage"
     orig_key = f"{prop_base}BlurredImage.Original"
@@ -68,6 +67,7 @@ def _handle_colorpicker(args: dict) -> None:
 
 
 def _handle_blur(args: dict) -> None:
+    """Blur a resolved source image into a window property."""
     source = resolve_infolabel(args.get('source', ""))
     prefix = args.get('prefix', "Custom")
     window = args.get('window_id', "home")
@@ -152,6 +152,7 @@ def _handle_get_setting(args: dict) -> None:
 
 
 def _handle_set_setting(args: dict) -> None:
+    """Set a skin setting, coercing the string value to bool or int first."""
     from lib.skin.settings import set_setting
     setting = args.get('setting', "")
     value = args.get('value', "")
@@ -178,6 +179,7 @@ def _handle_reset_setting(args: dict) -> None:
 
 
 def _handle_update_library_ratings(args: dict) -> None:
+    """Start a library rating update unless another task holds the slot."""
     from lib.infrastructure import tasks as task_manager
     from lib.rating.menu import initialize_sources
     from lib.rating.updater import update_library_ratings
@@ -237,6 +239,7 @@ def _handle_edit(args: dict) -> None:
 
 
 def _handle_export_nfo(args: dict) -> None:
+    """Write an NFO beside one library item's file."""
     import xbmcgui
     from lib.kodi.client import ADDON
     from lib.editor.nfo import write_nfo
@@ -257,6 +260,7 @@ def _handle_export_nfo(args: dict) -> None:
 
 
 def _handle_settings_action(args: dict) -> None:
+    """Run an API key or Trakt authorization action from the add-on settings."""
     from lib.data.api import settings as api_settings
     sub_action = args.get('sub_action')
     provider = args.get('provider')
@@ -295,6 +299,7 @@ def _handle_person_search(args: dict) -> None:
 
 
 def _handle_tmdb_search(args: dict) -> None:
+    """Search TMDB from the keyboard and publish the pick's details path; `:YYYY` sets a year."""
     import xbmcgui
     import re
     from lib.data.api.tmdb import ApiTmdb
@@ -395,6 +400,7 @@ def _handle_tmdb_search(args: dict) -> None:
 
 
 def _handle_search_library_person(args: dict) -> None:
+    """Show a person's library credits and open the chosen one; writer credits cover movies only."""
     import urllib.parse
     import xbmcgui
     from lib.kodi.client import request
@@ -534,6 +540,7 @@ def _handle_search_library_person(args: dict) -> None:
 
 
 def _handle_online_fetch(args: dict) -> None:
+    """Fetch online data into a window property; an episode resolves ids via its parent show."""
     from lib.data.online import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
@@ -630,11 +637,7 @@ def _handle_online_fetch(args: dict) -> None:
 
 
 def _restore_focus(args: dict, dialog_xml: str) -> None:
-    """Focus the `focus` control once its dialog has left the screen.
-
-    A closing dialog lingers a beat, so focusing before it's gone lands on the
-    dialog, not the control underneath.
-    """
+    """Focus the `focus` control once its dialog has closed; a closing dialog lingers a beat."""
     control_id = args.get('focus', '')
     if not (control_id.isdigit() and int(control_id) > 0):
         return
@@ -648,6 +651,7 @@ def _restore_focus(args: dict, dialog_xml: str) -> None:
 
 
 def _handle_dialog_actor_info(args: dict) -> None:
+    """Show the busy dialog while the actor info dialog loads."""
     xbmc.executebuiltin('ActivateWindow(busydialog)')
     try:
         _handle_dialog_actor_info_inner(args)
@@ -657,6 +661,7 @@ def _handle_dialog_actor_info(args: dict) -> None:
 
 
 def _handle_dialog_actor_info_inner(args: dict) -> None:
+    """Open the actor info dialog, resolving the person by id or by name search."""
     from lib.data.api import person as person_api
     from lib.data.database._infrastructure import init_database
 
@@ -704,6 +709,7 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
 
 
 def _handle_dialog_image_viewer(args: dict) -> None:
+    """Show the busy dialog while the image viewer loads."""
     xbmc.executebuiltin('ActivateWindow(busydialog)')
     try:
         _handle_dialog_image_viewer_inner(args)
@@ -713,6 +719,7 @@ def _handle_dialog_image_viewer(args: dict) -> None:
 
 
 def _handle_dialog_image_viewer_inner(args: dict) -> None:
+    """Open the image viewer; the skin's index is 1-based, the control's is not."""
     images_path = args.get('images_path', '')
     if not images_path:
         log("General", "dialog_image_viewer: Missing images_path", xbmc.LOGWARNING)
@@ -729,6 +736,7 @@ def _handle_dialog_image_viewer_inner(args: dict) -> None:
 
 
 def _handle_dialog_video_info(args: dict) -> None:
+    """Show the busy dialog while the video info dialog loads."""
     xbmc.executebuiltin('ActivateWindow(busydialog)')
     try:
         _handle_dialog_video_info_inner(args)
@@ -738,6 +746,7 @@ def _handle_dialog_video_info(args: dict) -> None:
 
 
 def _handle_dialog_video_info_inner(args: dict) -> None:
+    """Open the video info dialog, resolving ids from the library when only a dbid is given."""
     from lib.data.database._infrastructure import init_database
 
     init_database()
@@ -825,6 +834,7 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
 
 
 def _dispatch_dialog(dialog: str, args: dict) -> None:
+    """Route a dialog name to its skin dialog helper."""
     from lib.skin.dialogs import (
         dialog_yesno, dialog_yesnocustom, dialog_ok, dialog_select,
         dialog_multiselect, dialog_contextmenu, dialog_input, dialog_numeric,

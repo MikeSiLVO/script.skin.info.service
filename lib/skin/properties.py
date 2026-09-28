@@ -11,7 +11,7 @@ _LABEL_CHUNK: Final = 1000
 
 
 def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
-    """Set the property when `value` is truthy; clear it otherwise."""
+    """Set the property to a non-empty value, else clear it."""
     if value:
         set_window_prop(prop_name, value, window)
     else:
@@ -39,10 +39,7 @@ def copy_container_item(container, infolabels='', artwork='', prefix='', window=
 
 def aggregate_container_labels(container, infolabel, separator=' / ',
                                prefix='SkinInfo', window='home'):
-    """Join unique `infolabel` values across all container items into `{prefix}.{infolabel}s`.
-
-    Example: `aggregate_container_labels(50, "Genre")` -> `SkinInfo.Genres = "Action / Comedy"`.
-    """
+    """Join a label's unique values across a container into `{prefix}.{infolabel}s`."""
     if not container or not infolabel:
         return
 
@@ -75,7 +72,7 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
 
 
 def refresh_counter(uid, prefix='SkinInfo'):
-    """Increment `{prefix}.{uid}` window prop. Useful to trigger widget refresh via URL params."""
+    """Increment a Home counter property, which a widget URL can carry to force a refresh."""
     window = 'home'
     prop_name = f'{prefix}.{uid}'
     current = xbmc.getInfoLabel(f'Window({window}).Property({prop_name})')

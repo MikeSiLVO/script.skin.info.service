@@ -58,7 +58,7 @@ def handle_person_info(handle: int, params: dict) -> None:
 
 
 def _handle_person_details(handle: int, person_data: dict) -> None:
-    """Return single ListItem with all person details."""
+    """Handle `info_type=details`: one ListItem carrying every person property."""
     from lib.data.api.person import build_person_props
 
     props = build_person_props(person_data)
@@ -77,7 +77,7 @@ def _handle_person_details(handle: int, person_data: dict) -> None:
 
 
 def _handle_person_images(handle: int, person_data: dict) -> None:
-    """Return multiple ListItems for profile images."""
+    """Handle `info_type=images`: the profile images, best rated first."""
     images = person_data.get('images', {}).get('profiles', [])
 
     if not images:
@@ -122,7 +122,7 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
 
 
 def _handle_person_filmography(handle: int, person_data: dict, params: dict) -> None:
-    """Return filmography as movie/TV show ListItems."""
+    """Handle `info_type=filmography`: the acting credits, filtered and sorted."""
     credits = person_data.get('combined_credits', {}).get('cast', [])
 
     credits = _filter_credits(credits, params)
@@ -147,8 +147,7 @@ def _handle_person_filmography(handle: int, person_data: dict, params: dict) -> 
 
 
 def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
-    """Return crew credits as ListItems; without `job=`, dedupes multiple jobs per item into one
-    joined entry (e.g. "Director, Producer")."""
+    """Handle `info_type=crew`: one entry per title with jobs joined, unless a `job` is given."""
     credits = person_data.get('combined_credits', {}).get('crew', [])
 
     job_filter = params.get('job', [''])[0]
@@ -186,7 +185,7 @@ def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
 
 
 def _dedupe_crew_credits(credits: list) -> list:
-    """Combine credits for the same (id, media_type) into one entry with joined jobs."""
+    """Dedupe credits for the same title into one entry with its jobs joined."""
     seen: dict = {}
     for credit in credits:
         key = (credit.get('id'), credit.get('media_type'))
@@ -201,7 +200,7 @@ def _dedupe_crew_credits(credits: list) -> list:
 
 
 def _filter_credits(credits: list, params: dict) -> list:
-    """Apply filters to credits list."""
+    """Filter credits by media type, minimum votes and release, per the request."""
     from datetime import datetime
 
     dbtype = params.get('dbtype', ['both'])[0]
@@ -221,7 +220,7 @@ def _filter_credits(credits: list, params: dict) -> list:
     exclude_unreleased = params.get('exclude_unreleased', ['false'])[0].lower() == 'true'
     if exclude_unreleased:
         today = datetime.now().strftime('%Y-%m-%d')
-        # undated credits are unannounced future projects: treat as unreleased
+        # undated credits are unannounced future projects
         credits = [
             c for c in credits
             if (c.get('release_date') or c.get('first_air_date') or '9999') <= today
@@ -252,11 +251,7 @@ def _sort_credits(credits: list, params: dict) -> list:
 
 
 def handle_person_library(handle: int, params: dict) -> None:
-    """Plugin entry for library items featuring an actor. `info_type` is `movies` or `tvshows`.
-
-    Both sources are merged: the TMDB filmography reaches guest work and items whose cast Kodi
-    never linked, Kodi's actor link reaches items carrying no TMDB id.
-    """
+    """Plugin entry for library movies or shows featuring an actor, by TMDB credit or cast link."""
     try:
         info_type = params.get('info_type', [''])[0]
         person_name = params.get('person_name', [''])[0]
@@ -359,7 +354,7 @@ def _library_from_actor_link(person_name: str, dbtype: str) -> List[dict]:
 
 
 def _create_library_listitem(item: dict, dbtype: str) -> xbmcgui.ListItem:
-    """Build a ListItem for a library movie/show in the person containers."""
+    """Create a ListItem for a library movie or show in the person containers."""
     title = item.get('title', 'Unknown')
     year = item.get('year', '')
 
@@ -415,7 +410,7 @@ def _library_dbid_map(credits: list) -> dict:
 
 
 def _create_credit_listitem(credit: dict, library_dbids: Optional[dict] = None) -> xbmcgui.ListItem:
-    """Create ListItem from credit entry."""
+    """Create a ListItem for a TMDB credit, flagged with its dbid when it is in the library."""
     title = credit.get('title') or credit.get('name', 'Unknown')
     item = xbmcgui.ListItem(title, offscreen=True)
 
@@ -467,8 +462,7 @@ def _create_credit_listitem(credit: dict, library_dbids: Optional[dict] = None) 
 
 
 def handle_crew_list(handle: int, params: dict) -> None:
-    """Plugin entry for crew listings (director/writer/creator); accepts `tmdb_id` directly for
-    TMDB-only items with no library entry."""
+    """Plugin entry for a title's directors, writers or creators, by dbid or `tmdb_id`."""
     from lib.data.api import person as person_api
     from lib.data.api.person import library_tmdb_id
 
