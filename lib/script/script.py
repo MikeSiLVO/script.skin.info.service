@@ -28,7 +28,7 @@ def _blur_image_and_set_property(source: str, prefix: str = "",
             _clear_blur_properties(blur_key, orig_key, window)
             return
 
-        from lib.service import blur
+        from lib.infrastructure import blur
         blurred_path = blur.blur_image(source, radius)
 
         if blurred_path:

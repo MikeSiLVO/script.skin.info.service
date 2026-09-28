@@ -161,13 +161,13 @@ class ArtworkAuto:
 
     def _reconcile_slideshow_pool(self) -> None:
         """One batched slideshow-pool reconcile after a bulk run (per-item refresh was deferred)."""
-        from lib.service.slideshow import POOL_MEDIA_TYPES
+        from lib.data.slideshow import POOL_MEDIA_TYPES
         scope = tuple(t for t in POOL_MEDIA_TYPES
                       if self.media_filter is None or t in self.media_filter)
         if not scope:
             return
         try:
-            from lib.service.slideshow import reconcile_pool
+            from lib.data.slideshow import reconcile_pool
             reconcile_pool(scope)
         except Exception as e:
             log("Artwork", f"Slideshow pool reconcile failed: {str(e)}", xbmc.LOGWARNING)
@@ -270,7 +270,7 @@ class ArtworkAuto:
                                   KodiSettings.existing_file_mode(), self._downloader)
 
             if not defer_pool_refresh and 'fanart' in art_dict:
-                from lib.service.slideshow import refresh_pool_item
+                from lib.data.slideshow import refresh_pool_item
                 refresh_pool_item(media_type, dbid)
 
             return True

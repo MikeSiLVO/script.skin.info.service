@@ -10,8 +10,9 @@ from collections import deque
 from typing import Optional, Dict, Any, List, Final
 
 from lib.data.database import slideshow as db_slideshow
+from lib.data.slideshow import reconcile_pool
 from lib.kodi.utilities import set_prop, clear_prop, get_prop
-from lib.kodi.client import log, request, get_item_details
+from lib.kodi.client import log, request
 
 MIN_SLIDESHOW_INTERVAL: Final = 5
 MAX_SLIDESHOW_INTERVAL: Final = 3600
@@ -33,199 +34,6 @@ def _cache_image_url(url: str) -> bool:
     except Exception as e:
         log("Service", f"Slideshow: Failed to cache URL {url}: {e}", xbmc.LOGWARNING)
         return False
-
-
-def _build_pool_records(media_type: str, items: list, id_key: str, title_key: str,
-                        fanart_key: str, plot_key: str) -> List[tuple]:
-    records = []
-    for item in items:
-        dbid = item.get(id_key)
-        if not dbid:
-            continue
-        if media_type == 'artist':
-            fanart = item.get(fanart_key, '')
-            year = None
-        else:
-            fanart = item.get('art', {}).get(fanart_key, '')
-            year = item.get('year')
-
-        records.append((
-            media_type,
-            dbid,
-            item.get(title_key, ''),
-            fanart,
-            item.get(plot_key, ''),
-            year,
-            _joined_artist(item.get('artist')) if media_type == 'musicvideo' else ''
-        ))
-    return records
-
-
-def _joined_artist(artist: Any) -> str:
-    """Music video artist names as one string; Kodi stores them as a list."""
-    if isinstance(artist, list):
-        return ', '.join(a for a in artist if a)
-    return artist or ''
-
-
-def populate_slideshow_pool() -> None:
-    """Rebuild slideshow_pool from the library (movies/tvshows/artists/music videos with fanart)."""
-    movies = _get_movies_with_fanart()
-    tvshows = _get_tvshows_with_fanart()
-    artists = _get_artists_with_fanart()
-    musicvideos = _get_musicvideos_with_fanart()
-    if movies is None or tvshows is None or artists is None or musicvideos is None:
-        log("Service", "Slideshow: a library fetch failed, skipping populate to avoid wiping pool",
-            xbmc.LOGWARNING)
-        return
-
-    movie_records = _build_pool_records('movie', movies, 'movieid', 'title', 'fanart', 'plot')
-    tvshow_records = _build_pool_records('tvshow', tvshows, 'tvshowid', 'title', 'fanart', 'plot')
-    artist_records = _build_pool_records(
-        'artist', artists, 'artistid', 'artist', 'fanart', 'description')
-    musicvideo_records = _build_pool_records(
-        'musicvideo', musicvideos, 'musicvideoid', 'title', 'fanart', 'plot')
-
-    db_slideshow.populate_pool(movie_records, tvshow_records, artist_records, musicvideo_records)
-
-    log("Service",
-        f"Slideshow: Pool populated with {len(movies)} movies, {len(tvshows)} TV shows, "
-        f"{len(artists)} artists, {len(musicvideos)} music videos")
-
-
-_RECONCILE_LOCK = threading.Lock()
-
-
-def reconcile_pool(scope: tuple) -> None:
-    """Diff the pool against the library, apply only changes; a failed fetch skips its scope."""
-    with _RECONCILE_LOCK:
-        fetchers = {
-            'movie':      (_get_movies_with_fanart,      'movieid',      'title',  'plot'),
-            'tvshow':     (_get_tvshows_with_fanart,     'tvshowid',     'title',  'plot'),
-            'artist':     (_get_artists_with_fanart,     'artistid',     'artist', 'description'),
-            'musicvideo': (_get_musicvideos_with_fanart, 'musicvideoid', 'title',  'plot'),
-        }
-        desired = {}
-        fetched = set()
-        for mtype in scope:
-            getter, id_key, title_key, plot_key = fetchers[mtype]
-            items = getter()
-            if items is None:  # fetch failed - keep this type's rows, don't diff/delete them
-                continue
-            fetched.add(mtype)
-            for rec in _build_pool_records(mtype, items, id_key, title_key, 'fanart', plot_key):
-                desired[(rec[0], rec[1])] = rec
-
-        existing = db_slideshow.get_pool_compare_fields(scope)
-        upserts = [rec for key, rec in desired.items()
-                   if rec[2:] != existing.get(key)]
-        deletes = [key for key in existing if key not in desired and key[0] in fetched]
-        db_slideshow.apply_pool_diff(upserts, deletes)
-
-
-POOL_MEDIA_TYPES = ('movie', 'tvshow', 'artist', 'musicvideo')
-
-_DETAIL_PROPS = {
-    'movie':      ['art', 'title', 'plot', 'year'],
-    'tvshow':     ['art', 'title', 'plot', 'year'],
-    'artist':     ['art', 'description'],
-    'musicvideo': ['art', 'title', 'plot', 'year', 'artist'],
-}
-
-
-def refresh_pool_item(media_type: str, dbid: int) -> None:
-    """Sync one item's slideshow-pool row to its current library art (after an in-app art change).
-
-    Upserts if it now has fanart, drops the row otherwise. No-op for media the pool doesn't track.
-    """
-    if media_type not in POOL_MEDIA_TYPES:
-        return
-
-    detail = get_item_details(media_type, dbid, _DETAIL_PROPS[media_type])
-    if not isinstance(detail, dict):
-        return
-
-    fanart = _detail_fanart(detail)
-    if not fanart:
-        db_slideshow.delete_pool_item(media_type, dbid)
-        return
-
-    if media_type == 'artist':
-        title = detail.get('label', '')
-        plot = detail.get('description', '')
-        year = None
-    else:
-        title = detail.get('title', '')
-        plot = detail.get('plot', '')
-        year = detail.get('year')
-
-    artist = _joined_artist(detail.get('artist')) if media_type == 'musicvideo' else ''
-    db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, plot, year, artist)
-
-
-def _video_items_with_fanart(method: str, result_key: str,
-                             extra_properties: tuple = ()) -> Optional[list]:
-    """Video library items carrying fanart; None means the fetch failed, [] means none have it."""
-    response = request(method, {
-        "properties": ["title", "art", "year", "plot", *extra_properties]
-    })
-    if response is None:
-        return None
-    return [item for item in response.get('result', {}).get(result_key, [])
-            if item.get('art', {}).get('fanart', '').strip()]
-
-
-def _get_movies_with_fanart() -> Optional[list]:
-    """Movies with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
-    return _video_items_with_fanart("VideoLibrary.GetMovies", "movies")
-
-
-def _get_tvshows_with_fanart() -> Optional[list]:
-    """TV shows with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
-    return _video_items_with_fanart("VideoLibrary.GetTVShows", "tvshows")
-
-
-def _get_artists_with_fanart() -> Optional[list]:
-    """Artists with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
-    response = request("AudioLibrary.GetArtists", {
-        "properties": ["fanart", "description"]
-    })
-
-    if response is None:
-        return None
-
-    all_artists = response.get('result', {}).get('artists', [])
-
-    artists_with_fanart = []
-
-    for artist in all_artists:
-        fanart = artist.get('fanart', '').strip()
-
-        if fanart:
-            artists_with_fanart.append({
-                'artistid': artist.get('artistid'),
-                'artist': artist.get('artist', ''),
-                'fanart': fanart,
-                'description': artist.get('description', '')
-            })
-
-    log("Service", f"Slideshow: Found {len(artists_with_fanart)} artists with fanart")
-    return artists_with_fanart
-
-
-def _get_musicvideos_with_fanart() -> Optional[list]:
-    """Music videos with fanart, or None if the library fetch failed.
-
-    Fanart is the music video's own art, not the artist's: core gives musicvideo items no artist
-    art fallback (`VideoThumbLoader::FillLibraryArt`), so these reach art the artist pool cannot.
-    """
-    return _video_items_with_fanart(
-        "VideoLibrary.GetMusicVideos", "musicvideos", ("artist",))
-
-
-def is_pool_populated() -> bool:
-    """Check if slideshow pool has any items."""
-    return db_slideshow.is_pool_populated()
 
 
 # category -> ((skin property, pool row field), ...). Music takes the artist name from the row's
@@ -277,10 +85,6 @@ _PLAYLIST_REFETCH_MIN_S: Final = 60
 LOOKAHEAD_DEPTH: Final = 2
 
 
-def _detail_fanart(detail: Dict[str, Any]) -> str:
-    return (detail.get('art', {}).get('fanart', '') or detail.get('fanart', '')).strip()
-
-
 def _item_fanart(item: Dict[str, Any]) -> str:
     """Fanart for a directory-listing item, falling back to its parent show/artist art."""
     art = item.get('art', {})
@@ -309,7 +113,7 @@ def _year_of(detail: Dict[str, Any]) -> str:
 
 
 def _fetch_pool(path: str) -> list:
-    """Randomized items for `path` with the properties a background needs; id-less items dropped."""
+    """Fetch a path's items shuffled, with the fields a background needs; id-less ones dropped."""
     response = request("Files.GetDirectory", {
         "directory": path,
         "media": "files",
@@ -322,11 +126,7 @@ def _fetch_pool(path: str) -> list:
 
 
 class _RotationCursor:
-    """Shuffled ref list with a fixed-depth lookahead of resolved entries.
-
-    The owner resolves refs out-of-band (image caching blocks); `pop()` only returns an
-    already-cached entry.
-    """
+    """Shuffled ref list with a fixed-depth lookahead; `pop` returns only entries resolved ahead."""
 
     def __init__(self, refs: list, depth: int = LOOKAHEAD_DEPTH):
         self._refs = refs
@@ -367,11 +167,7 @@ class _RotationCursor:
 
 
 class PlaylistRotator:
-    """Rotates skin-registered playlist backgrounds by menu-item name.
-
-    Holds each slot's whole pool, re-fetched when it wraps; fanart is force-cached 2-ahead so a
-    fade lands on a cached image.
-    """
+    """Rotates the backgrounds of skin-registered playlists, fanart cached two items ahead."""
 
     def __init__(self):
         self._slots: Dict[str, Dict[str, Any]] = {}
@@ -383,14 +179,14 @@ class PlaylistRotator:
         self._invalidate = True
 
     def refresh(self) -> None:
-        """Reconcile slots, publish current items, refill the lookahead. On the update thread."""
+        """Rebuild on pool change, publish each category, refill lookahead. On the update thread."""
         if self._reconcile():
             self._refill()  # pre-fill (re)built slots so the first frame shows this tick
         self._display()
         self._refill()
 
     def clear(self) -> None:
-        """Clear published props and drop the slots."""
+        """Clear published props and drop the cursors."""
         for name in self._known_names:
             self._clear_name(name)
         self._slots = {}
@@ -407,7 +203,7 @@ class PlaylistRotator:
         return pairs
 
     def _reconcile(self) -> bool:
-        """Rebuild changed, new and exhausted slots. Returns True if any slot was (re)built."""
+        """Reconcile the slideshow pool for one library kind."""
         invalidate = self._invalidate
         self._invalidate = False
         rebuilt = False
@@ -450,7 +246,7 @@ class PlaylistRotator:
                 self._publish_video(name, entry)
 
     def _refill(self) -> None:
-        """Force-cache each slot's next fanart and fill the lookaheads."""
+        """Force-cache each cursor's next fanart and fill the lookaheads."""
         for slot in self._slots.values():
             cursor = slot['cursor']
             for item in cursor.wanted():
@@ -518,12 +314,7 @@ def _publish_library(category: str, row: Dict[str, Any]) -> None:
 
 
 class LibrarySlideshow:
-    """Rotates the library-wide `SkinInfo.Slideshow.*` backgrounds from the DB pool.
-
-    Independent shuffled cursor per type per category (so categories never sync); mixed
-    Video/Global pick a type weighted by `count ** alpha`. 2-ahead lookahead; cursors rebuild
-    on pool-generation change.
-    """
+    """Rotates the library `SkinInfo.Slideshow.*` backgrounds, one shuffled cursor per type."""
 
     def __init__(self):
         self._generation = -1
@@ -594,12 +385,7 @@ class LibrarySlideshow:
 
 
 class SlideshowMonitor(xbmc.Monitor):
-    """Reconciles the slideshow pool against the library on scan/clean, scoped to the changed type.
-
-    Runs on a daemon thread: the reconcile does library JSON-RPC reads that would otherwise
-    block the Monitor callback thread for seconds. `reconcile_pool` self-serialises against the
-    idle reconcile, so back-to-back scan/clean events are handled safely.
-    """
+    """Reconciles the pool for the library a scan or clean just changed, off the callback thread."""
 
     def _reconcile(self, library: str, reason: str) -> None:
         scope = ('artist',) if library == 'music' else ('movie', 'tvshow', 'musicvideo')

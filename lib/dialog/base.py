@@ -61,7 +61,7 @@ class InfoDialogBase(DialogBase):
 
     def _blur_worker(self, sources) -> None:
         """Set each blurred image as it finishes, stopping once the dialog closes."""
-        from lib.service.blur import blur_image
+        from lib.infrastructure.blur import blur_image
         for key, src in sources:
             if self._closing:
                 return

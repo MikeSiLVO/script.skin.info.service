@@ -30,7 +30,7 @@ def _check_pil():
 
 
 def _get_resize_filter():
-    """Compatibility for old and new Pillow versions."""
+    """Get the nearest-neighbor resize filter under both old and new Pillow."""
     try:
         from PIL.Image import Resampling
         return Resampling.NEAREST
@@ -55,10 +55,7 @@ def _get_cache_dir():
 
 
 def _url_to_cached_path(url: str) -> Optional[str]:
-    """Map an image URL to its Kodi texture-cache file path via `xbmc.getCacheThumbName`.
-
-    Returns the first existing `.jpg`/`.png` candidate, or None if not cached.
-    """
+    """Map an image URL to its Kodi texture-cache file, `.jpg` before `.png`; None if not cached."""
     if not url:
         return None
 
@@ -105,12 +102,7 @@ def _resolve_source_for_mtime(source_path: str) -> Optional[str]:
 
 
 def _cache_is_fresh(source_path: str, cache_path: str) -> bool:
-    """True if the cached blurred copy is at least as new as its source.
-
-    Lets the cache invalidate automatically when a source file is replaced
-    (same path, new content). Returns True if mtime can't be compared so a working
-    cache isn't thrown away on transient errors.
-    """
+    """True if the blurred copy is at least as new as its source, or the times can't be compared."""
     try:
         cache_mtime = os.path.getmtime(cache_path)
     except OSError:
@@ -136,7 +128,7 @@ def _skin_radius() -> int:
 
 
 def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[str]:
-    """Return a cached blurred copy of `source_path`, at the skin's radius unless given 1+."""
+    """Return a cached blurred copy of an image, at the skin's radius unless given 1+."""
     if not source_path:
         return None
     if blur_radius is None or blur_radius < 1:

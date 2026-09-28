@@ -113,7 +113,7 @@ class BlurHandler:
 
     def _worker(self, source: str, prop_base: str, slot: str) -> None:
         try:
-            from lib.service import blur
+            from lib.infrastructure import blur
 
             blurred_path = blur.blur_image(source)
 

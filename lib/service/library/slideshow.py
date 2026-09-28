@@ -46,7 +46,7 @@ class SlideshowDriver:
             return
 
         try:
-            from lib.service.slideshow import is_pool_populated, populate_slideshow_pool
+            from lib.data.slideshow import is_pool_populated, populate_slideshow_pool
 
             if not is_pool_populated():
                 log("Service", "Slideshow: Populating pool for first time...", xbmc.LOGINFO)
@@ -130,7 +130,7 @@ class SlideshowDriver:
         try:
             if self._stopping:
                 return
-            from lib.service.slideshow import reconcile_pool
+            from lib.data.slideshow import reconcile_pool
             reconcile_pool(('movie', 'tvshow', 'artist', 'musicvideo'))
         except Exception as e:
             log("Service", f"Slideshow: Reconcile error: {str(e)}", xbmc.LOGERROR)
