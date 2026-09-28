@@ -15,1934 +15,1899 @@ msgstr ""
 
 msgctxt "Addon Summary"
 msgid "Provides rich media info and artwork to skins."
-msgstr ""
+msgstr "Provides rich media info and artwork to skins."
 
 msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
-msgstr ""
+msgstr "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
 
 msgctxt "#32000"
 msgid "Animated Art"
-msgstr ""
+msgstr "Animated Art"
 
 msgctxt "#32001"
 msgid "Key was not saved, please try again"
-msgstr ""
+msgstr "Key was not saved, please try again"
 
 msgctxt "#32002"
 msgid "Gif filename patterns (exact/suffix)"
-msgstr ""
+msgstr "Gif filename patterns (exact/suffix)"
 
 msgctxt "#32003"
 msgid "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
-msgstr ""
+msgstr "Comma-separated list of gif filename patterns. Matches exact filenames (e.g., 'poster.gif') or files ending with the pattern (e.g., 'movie.poster.gif')"
 
 msgctxt "#32004"
 msgid "Artwork"
-msgstr ""
+msgstr "Artwork"
 
 #. Error shown when an edited rating is not a number in range; 7.3 is an example value
 msgctxt "#32005"
 msgid "Rating must be a number from 0 to 10, such as 7.3"
-msgstr ""
+msgstr "Rating must be a number from 0 to 10, such as 7.3"
 
 #. Label for language dropdown in settings (used for both metadata and artwork language selection)
 msgctxt "#32006"
 msgid "Preferred language"
-msgstr ""
+msgstr "Preferred language"
 
 msgctxt "#32007"
 msgid "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
-msgstr ""
+msgstr "Artwork in this language is prioritized for posters, logos, and other language-sensitive art."
 
 msgctxt "#32008"
 msgid "Prefer fanart in selected language"
-msgstr ""
+msgstr "Prefer fanart in selected language"
 
 msgctxt "#32009"
 msgid "No artwork available from scrapers"
-msgstr ""
+msgstr "No artwork available from scrapers"
 
 msgctxt "#32010"
 msgid "No artwork matched language preferences"
-msgstr ""
+msgstr "No artwork matched language preferences"
 
 msgctxt "#32011"
 msgid "Needs manual review"
-msgstr ""
+msgstr "Needs manual review"
 
 msgctxt "#32012"
 msgid "No images selected"
-msgstr ""
+msgstr "No images selected"
 
 msgctxt "#32013"
 msgid "Downloaded {0} files"
-msgstr ""
+msgstr "Downloaded {0} files"
 
 msgctxt "#32014"
 msgid "{0} files"
-msgstr ""
+msgstr "{0} files"
 
 msgctxt "#32015"
 msgid "{0} image(s) selected"
-msgstr ""
+msgstr "{0} image(s) selected"
 
 msgctxt "#32016"
 msgid "{0} seasons"
-msgstr ""
+msgstr "{0} seasons"
 
 msgctxt "#32017"
 msgid "{0} episodes"
-msgstr ""
+msgstr "{0} episodes"
 
 #. Error shown when an edited year falls outside the accepted range
 msgctxt "#32018"
 msgid "Year must be between 1800 and 2100"
-msgstr ""
+msgstr "Year must be between 1800 and 2100"
 
 msgctxt "#32019"
 msgid "Add 'Download' option to missing artwork and pre-cache"
-msgstr ""
+msgstr "Add 'Download' option to missing artwork and pre-cache"
 
 msgctxt "#32020"
 msgid "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
-msgstr ""
+msgstr "Show additional menu options to download artwork to filesystem during review and pre-cache operations"
 
 #. Error shown when an edited runtime is not a whole number of minutes in range
 msgctxt "#32021"
 msgid "Runtime must be 0 to 10080 minutes"
-msgstr ""
+msgstr "Runtime must be 0 to 10080 minutes"
 
 msgctxt "#32022"
 msgid "When File Already Exists"
-msgstr ""
+msgstr "When File Already Exists"
 
 msgctxt "#32023"
 msgid "What to do when artwork file already exists on filesystem"
-msgstr ""
+msgstr "What to do when artwork file already exists on filesystem"
 
 msgctxt "#32024"
 msgid "Skip (don't download)"
-msgstr ""
+msgstr "Skip (don't download)"
 
 msgctxt "#32025"
 msgid "Overwrite existing file"
-msgstr ""
+msgstr "Overwrite existing file"
 
 #. Error shown when an edited Top 250 position falls outside the accepted range
 msgctxt "#32026"
 msgid "Top 250 must be 0-250"
-msgstr ""
+msgstr "Top 250 must be 0-250"
 
 msgctxt "#32027"
 msgid "Use Movie Filename Prefix"
-msgstr ""
+msgstr "Use Movie Filename Prefix"
 
 msgctxt "#32028"
 msgid "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
-msgstr ""
+msgstr "Save as 'Avatar-poster.jpg' instead of 'poster.jpg' in movie folder"
 
 msgctxt "#32029"
 msgid "Export to NFO"
-msgstr ""
+msgstr "Export to NFO"
 
 msgctxt "#32030"
 msgid "NFO file written"
-msgstr ""
+msgstr "NFO file written"
 
 msgctxt "#32031"
 msgid "Could not write NFO file"
-msgstr ""
+msgstr "Could not write NFO file"
 
 msgctxt "#32032"
 msgid "Processing cancelled"
-msgstr ""
+msgstr "Processing canceled"
 
 msgctxt "#32033"
 msgid "Art Fetcher - Cancelled"
-msgstr ""
+msgstr "Art Fetcher - Canceled"
 
 #. Error shown when an edited duration is not a MM:SS time
 msgctxt "#32034"
 msgid "Duration must be in MM:SS format"
-msgstr ""
+msgstr "Duration must be in MM:SS format"
 
 msgctxt "#32035"
 msgid "Always Ask"
-msgstr ""
+msgstr "Always Ask"
 
 msgctxt "#32036"
 msgid "GIF Scanner Mode"
-msgstr ""
+msgstr "GIF Scanner Mode"
 
 msgctxt "#32037"
 msgid "Scan mode for animated art scanner"
-msgstr ""
+msgstr "Scan mode for animated art scanner"
 
 msgctxt "#32038"
 msgid "Incremental"
-msgstr ""
+msgstr "Incremental"
 
 msgctxt "#32039"
 msgid "Full Scan"
-msgstr ""
+msgstr "Full Scan"
 
 msgctxt "#32040"
 msgid "Download Report"
-msgstr ""
+msgstr "Download Report"
 
 msgctxt "#32041"
 msgid "No download history found."
-msgstr ""
+msgstr "No download history found."
 
 msgctxt "#32042"
 msgid "Cancelled"
-msgstr ""
+msgstr "Canceled"
 
 msgctxt "#32043"
 msgid "No valid media types to download."
-msgstr ""
+msgstr "No valid media types to download."
 
 msgctxt "#32044"
 msgid "API Keys"
-msgstr ""
+msgstr "API Keys"
 
 msgctxt "#32045"
 msgid "Downloaded:"
-msgstr ""
+msgstr "Downloaded:"
 
 msgctxt "#32046"
 msgid "Configure TMDB API Key"
-msgstr ""
+msgstr "Configure TMDB API Key"
 
 msgctxt "#32047"
 msgid "Get your API key from https://www.themoviedb.org/settings/api"
-msgstr ""
+msgstr "Get your API key from https://www.themoviedb.org/settings/api"
 
 msgctxt "#32048"
 msgid "Test Connection"
-msgstr ""
+msgstr "Test Connection"
 
 msgctxt "#32049"
 msgid "Clear API Key"
-msgstr ""
+msgstr "Clear API Key"
 
 msgctxt "#32050"
 msgid "MDBList"
-msgstr ""
+msgstr "MDBList"
 
 msgctxt "#32051"
 msgid "Configure MDBList API Key"
-msgstr ""
+msgstr "Configure MDBList API Key"
 
 msgctxt "#32052"
 msgid "Get your API key from https://mdblist.com/preferences/"
-msgstr ""
+msgstr "Get your API key from https://mdblist.com/preferences/"
 
 msgctxt "#32053"
 msgid "OMDb"
-msgstr ""
+msgstr "OMDb"
 
 msgctxt "#32054"
 msgid "Configure OMDb API Key"
-msgstr ""
+msgstr "Configure OMDb API Key"
 
 msgctxt "#32055"
 msgid "Get your API key from http://www.omdbapi.com/apikey.aspx"
-msgstr ""
+msgstr "Get your API key from http://www.omdbapi.com/apikey.aspx"
 
 msgctxt "#32056"
 msgid "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
-msgstr ""
+msgstr "Fanart.tv · fanart.tv/get-an-api-key[CR]No key: 7 days · Personal: 2 days · VIP: immediate"
 
 msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
-msgstr ""
+msgstr "Configure Fanart.tv API Key"
 
 msgctxt "#32059"
 msgid "Trakt"
-msgstr ""
+msgstr "Trakt"
 
 msgctxt "#32060"
 msgid "Authorize Trakt"
-msgstr ""
+msgstr "Authorize Trakt"
 
 msgctxt "#32061"
 msgid "Authorize this addon to access your Trakt account"
-msgstr ""
+msgstr "Authorize this addon to access your Trakt account"
 
 msgctxt "#32062"
 msgid "Test Trakt Connection"
-msgstr ""
+msgstr "Test Trakt Connection"
 
 msgctxt "#32063"
 msgid "Revoke Authorization"
-msgstr ""
+msgstr "Revoke Authorization"
 
 msgctxt "#32064"
 msgid "Ratings"
-msgstr ""
+msgstr "Ratings"
 
 msgctxt "#32065"
 msgid "Not configured"
-msgstr ""
+msgstr "Not configured"
 
 msgctxt "#32066"
 msgid "Stopped early: downloads stalled"
-msgstr ""
+msgstr "Stopped early: downloads stalled"
 
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
-msgstr ""
+msgstr "No progress for over {0} seconds. Run it again to finish the rest."
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
-msgstr ""
+msgstr "Processing Artwork Queue"
 
 msgctxt "#32073"
 msgid "Cache is empty"
-msgstr ""
+msgstr "Cache is empty"
 
 msgctxt "#32074"
 msgid "Default ratings source"
-msgstr ""
+msgstr "Default ratings source"
 
 msgctxt "#32075"
 msgid "Primary source to display when multiple ratings are available"
-msgstr ""
+msgstr "Primary source to display when multiple ratings are available"
 
 msgctxt "#32076"
 msgid "IMDb"
-msgstr ""
+msgstr "IMDb"
 
 msgctxt "#32077"
 msgid "TMDB"
-msgstr ""
+msgstr "TMDB"
 
 msgctxt "#32080"
 msgid "API Key"
-msgstr ""
+msgstr "API Key"
 
 msgctxt "#32081"
 msgid "Status: Authorized"
-msgstr ""
+msgstr "Status: Authorized"
 
 msgctxt "#32082"
 msgid "Texture Cache Manager"
-msgstr ""
+msgstr "Texture Cache Manager"
 
 msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
-msgstr ""
+msgstr "Pre-Cache Library Artwork"
 
 msgctxt "#32085"
 msgid "Statistics & Info"
-msgstr ""
+msgstr "Statistics & Info"
 
 msgctxt "#32086"
 msgid "View Last Report"
-msgstr ""
+msgstr "View Last Report"
 
 msgctxt "#32087"
 msgid "Cleanup Textures"
-msgstr ""
+msgstr "Cleanup Textures"
 
 msgctxt "#32088"
 msgid "Library Artwork Orphans"
-msgstr ""
+msgstr "Library Artwork Orphans"
 
 msgctxt "#32089"
 msgid "By Age (Older Than...)"
-msgstr ""
+msgstr "By Age (Older Than...)"
 
 msgctxt "#32090"
 msgid "Identifying uncached artwork..."
-msgstr ""
+msgstr "Identifying uncached artwork..."
 
 msgctxt "#32091"
 msgid "Finding orphaned textures..."
-msgstr ""
+msgstr "Finding orphaned textures..."
 
 msgctxt "#32092"
 msgid "Removing {0} orphaned textures..."
-msgstr ""
+msgstr "Removing {0} orphaned textures..."
 
 msgctxt "#32093"
 msgid "Enter {0} API Key"
-msgstr ""
+msgstr "Enter {0} API Key"
 
 msgctxt "#32094"
 msgid "Are you sure you want to clear the {0} API key?"
-msgstr ""
+msgstr "Are you sure you want to clear the {0} API key?"
 
 msgctxt "#32095"
-msgid ""
-"Error testing connection:\n"
-"\n"
-"{0}"
-msgstr ""
+msgid "Error testing connection:\n\n{0}"
+msgstr "Error testing connection:\n\n{0}"
 
 msgctxt "#32096"
 msgid "Failed to get device code from Trakt."
-msgstr ""
+msgstr "Failed to get device code from Trakt."
 
 msgctxt "#32097"
-msgid ""
-"Error:\n"
-"\n"
-"{0}"
-msgstr ""
+msgid "Error:\n\n{0}"
+msgstr "Error:\n\n{0}"
 
 msgctxt "#32098"
-msgid ""
-"Are you sure you want to revoke Trakt authorization?\n"
-"\n"
-"You will need to re-authorize to use Trakt ratings."
-msgstr ""
+msgid "Are you sure you want to revoke Trakt authorization?\n\nYou will need to re-authorize to use Trakt ratings."
+msgstr "Are you sure you want to revoke Trakt authorization?\n\nYou will need to re-authorize to use Trakt ratings."
 
 msgctxt "#32099"
 msgid "Downloaded {0} files ({1} MB)"
-msgstr ""
+msgstr "Downloaded {0} files ({1} MB)"
 
 #. Context menu item and settings group - opens artwork browser for selected item
 msgctxt "#32100"
 msgid "Manage Artwork"
-msgstr ""
+msgstr "Manage Artwork"
 
 msgctxt "#32101"
 msgid "Update Ratings"
-msgstr ""
+msgstr "Update Ratings"
 
 msgctxt "#32102"
 msgid "Skin Info Tools"
-msgstr ""
+msgstr "Skin Info Tools"
 
 msgctxt "#32103"
 msgid "Edit Metadata"
-msgstr ""
+msgstr "Edit Metadata"
 
 msgctxt "#32104"
 msgid "{0} - Connection Test"
-msgstr ""
+msgstr "{0} - Connection Test"
 
 msgctxt "#32105"
-msgid ""
-"Connection successful!\n"
-"\n"
-"API key is valid and working."
-msgstr ""
+msgid "Connection successful!\n\nAPI key is valid and working."
+msgstr "Connection successful!\n\nAPI key is valid and working."
 
 msgctxt "#32106"
-msgid ""
-"Connection failed.\n"
-"\n"
-"Please check your API key."
-msgstr ""
+msgid "Connection failed.\n\nPlease check your API key."
+msgstr "Connection failed.\n\nPlease check your API key."
 
 msgctxt "#32107"
 msgid "Trakt Authorization Failed"
-msgstr ""
+msgstr "Trakt Authorization Failed"
 
 msgctxt "#32108"
 msgid "Trakt - Connection Test"
-msgstr ""
+msgstr "Trakt - Connection Test"
 
 msgctxt "#32109"
-msgid ""
-"Authorization successful!\n"
-"\n"
-"Trakt is now connected."
-msgstr ""
+msgid "Authorization successful!\n\nTrakt is now connected."
+msgstr "Authorization successful!\n\nTrakt is now connected."
 
 msgctxt "#32110"
-msgid ""
-"Authorization timed out.\n"
-"\n"
-"Please try again."
-msgstr ""
+msgid "Authorization timed out.\n\nPlease try again."
+msgstr "Authorization timed out.\n\nPlease try again."
 
 msgctxt "#32111"
 msgid "Context Menu Items"
-msgstr ""
+msgstr "Context Menu Items"
 
 msgctxt "#32112"
 msgid "Show Manage Artwork"
-msgstr ""
+msgstr "Show Manage Artwork"
 
 msgctxt "#32113"
 msgid "Show Update Ratings"
-msgstr ""
+msgstr "Show Update Ratings"
 
 msgctxt "#32114"
 msgid "Show Edit Metadata"
-msgstr ""
+msgstr "Show Edit Metadata"
 
 msgctxt "#32115"
-msgid ""
-"Connection successful!\n"
-"\n"
-"Trakt is authorized and working."
-msgstr ""
+msgid "Connection successful!\n\nTrakt is authorized and working."
+msgstr "Connection successful!\n\nTrakt is authorized and working."
 
 msgctxt "#32116"
-msgid ""
-"Connection failed.\n"
-"\n"
-"Please authorize Trakt first."
-msgstr ""
+msgid "Connection failed.\n\nPlease authorize Trakt first."
+msgstr "Connection failed.\n\nPlease authorize Trakt first."
 
 msgctxt "#32117"
 msgid "Show Download Artwork"
-msgstr ""
+msgstr "Show Download Artwork"
 
 msgctxt "#32118"
 msgid "No HTTP artwork URLs found in {0} library items."
-msgstr ""
+msgstr "No HTTP artwork URLs found in {0} library items."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"
-msgstr ""
+msgstr "Overwrite Mode Warning"
 
 msgctxt "#32120"
 msgid "Change Language"
-msgstr ""
+msgstr "Change Language"
 
 msgctxt "#32121"
 msgid "Download Complete"
-msgstr ""
+msgstr "Download Complete"
 
 msgctxt "#32122"
 msgid "Text-free / Untagged"
-msgstr ""
+msgstr "Text-free / Untagged"
 
 msgctxt "#32128"
 msgid "Skip"
-msgstr ""
+msgstr "Skip"
 
 msgctxt "#32130"
 msgid "Multi-Art..."
-msgstr ""
+msgstr "Multi-Art..."
 
 msgctxt "#32131"
 msgid "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
-msgstr ""
+msgstr "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
 
 msgctxt "#32132"
 msgid "Source: All"
-msgstr ""
+msgstr "Source: All"
 
 msgctxt "#32133"
 msgid "Source: TMDB"
-msgstr ""
+msgstr "Source: TMDB"
 
 msgctxt "#32134"
 msgid "Source: Fanart.tv"
-msgstr ""
+msgstr "Source: Fanart.tv"
 
 msgctxt "#32135"
 msgid "IMDb Ratings"
-msgstr ""
+msgstr "IMDb Ratings"
 
 msgctxt "#32136"
 msgid "Auto-update"
-msgstr ""
+msgstr "Auto-update"
 
 msgctxt "#32137"
 msgid "Automatically update IMDb ratings in your library"
-msgstr ""
+msgstr "Automatically update IMDb ratings in your library"
 
 msgctxt "#32139"
 msgid "After library scan"
-msgstr ""
+msgstr "After library scan"
 
 msgctxt "#32140"
 msgid "When new ratings available"
-msgstr ""
+msgstr "When new ratings available"
 
 msgctxt "#32141"
 msgid "Both"
-msgstr ""
+msgstr "Both"
 
 msgctxt "#32142"
 msgid "Scope"
-msgstr ""
+msgstr "Scope"
 
 msgctxt "#32143"
 msgid "Which media types to include in auto-updates"
-msgstr ""
+msgstr "Which media types to include in auto-updates"
 
 msgctxt "#32144"
 msgid "All (Movies, TV Shows, Episodes)"
-msgstr ""
+msgstr "All (Movies, TV Shows, Episodes)"
 
 msgctxt "#32145"
 msgid "Movies and TV Shows only"
-msgstr ""
+msgstr "Movies and TV Shows only"
 
 msgctxt "#32146"
 msgid "Movies only"
-msgstr ""
+msgstr "Movies only"
 
 msgctxt "#32150"
 msgid "Stinger Detection"
-msgstr ""
+msgstr "Stinger Detection"
 
 msgctxt "#32151"
 msgid "Enable stinger detection"
-msgstr ""
+msgstr "Enable stinger detection"
 
 msgctxt "#32152"
 msgid "Notify about post-credits scenes during movie playback"
-msgstr ""
+msgstr "Notify about post-credits scenes during movie playback"
 
 msgctxt "#32156"
 msgid "Minutes before end"
-msgstr ""
+msgstr "Minutes before end"
 
 msgctxt "#32157"
 msgid "For movies without chapters, notify this many minutes before the end"
-msgstr ""
+msgstr "For movies without chapters, notify this many minutes before the end"
 
 msgctxt "#32158"
 msgid "Notification duration (seconds)"
-msgstr ""
+msgstr "Notification duration (seconds)"
 
 msgctxt "#32159"
 msgid "How long to display the notification"
-msgstr ""
+msgstr "How long to display the notification"
 
 msgctxt "#32162"
 msgid "Wait For It..."
-msgstr ""
+msgstr "Wait For It..."
 
 msgctxt "#32163"
 msgid "Stay for scene during credits"
-msgstr ""
+msgstr "Stay for scene during credits"
 
 msgctxt "#32164"
 msgid "Stay for scene after credits"
-msgstr ""
+msgstr "Stay for scene after credits"
 
 msgctxt "#32165"
 msgid "Stay for scenes during and after credits"
-msgstr ""
+msgstr "Stay for scenes during and after credits"
 
 msgctxt "#32170"
 msgid "Operation failed"
-msgstr ""
+msgstr "Operation failed"
 
 msgctxt "#32171"
 msgid "No items to display"
-msgstr ""
+msgstr "No items to display"
 
 msgctxt "#32172"
 msgid "Task Already Running"
-msgstr ""
+msgstr "Task Already Running"
 
 msgctxt "#32173"
 msgid "Found {0} library artwork URLs"
-msgstr ""
+msgstr "Found {0} library artwork URLs"
 
 msgctxt "#32180"
 msgid "Texture Cache Statistics"
-msgstr ""
+msgstr "Texture Cache Statistics"
 
 msgctxt "#32181"
 msgid "Failed to gather statistics"
-msgstr ""
+msgstr "Failed to gather statistics"
 
 msgctxt "#32182"
 msgid "No textures found in cache"
-msgstr ""
+msgstr "No textures found in cache"
 
 msgctxt "#32183"
 msgid "Orphaned Textures Report"
-msgstr ""
+msgstr "Orphaned Textures Report"
 
 msgctxt "#32184"
 msgid "Analysis Failed"
-msgstr ""
+msgstr "Analysis Failed"
 
 msgctxt "#32190"
 msgid "Art Fetcher Report"
-msgstr ""
+msgstr "Art Fetcher Report"
 
 msgctxt "#32191"
 msgid "Art Fetcher - Detailed Report"
-msgstr ""
+msgstr "Art Fetcher - Detailed Report"
 
 msgctxt "#32192"
 msgid "Animated Art Scanner"
-msgstr ""
+msgstr "Animated Art Scanner"
 
 msgctxt "#32200"
 msgid "graphic"
-msgstr ""
+msgstr "graphic"
 
 msgctxt "#32201"
 msgid "a lot of"
-msgstr ""
+msgstr "a lot of"
 
 msgctxt "#32202"
 msgid "some"
-msgstr ""
+msgstr "some"
 
 msgctxt "#32203"
 msgid "a little"
-msgstr ""
+msgstr "a little"
 
 msgctxt "#32204"
 msgid "very little"
-msgstr ""
+msgstr "very little"
 
 msgctxt "#32210"
 msgid "violence or scares"
-msgstr ""
+msgstr "violence or scares"
 
 msgctxt "#32211"
 msgid "sexual content"
-msgstr ""
+msgstr "sexual content"
 
 #. Content advisory category - profanity/swearing (e.g., "Rated R for graphic language")
 msgctxt "#32212"
 msgid "language"
-msgstr ""
+msgstr "language"
 
 msgctxt "#32213"
 msgid "substance use or smoking"
-msgstr ""
+msgstr "substance use or smoking"
 
 msgctxt "#32220"
 msgid "Rated {0}+ for {1}"
-msgstr ""
+msgstr "Rated {0}+ for {1}"
 
 #. Conjunction between content advisory items - spaces are intentional (e.g., "violence and language")
 msgctxt "#32221"
 msgid " and "
-msgstr ""
+msgstr " and "
 
 msgctxt "#32250"
 msgid "Unsupported field type"
-msgstr ""
+msgstr "Unsupported field type"
 
 msgctxt "#32251"
 msgid "Failed to save"
-msgstr ""
+msgstr "Failed to save"
 
 msgctxt "#32252"
 msgid "Rating Source (e.g., imdb, tmdb)"
-msgstr ""
+msgstr "Rating Source (e.g., imdb, tmdb)"
 
 msgctxt "#32253"
 msgid "Vote Count"
-msgstr ""
+msgstr "Vote Count"
 
 msgctxt "#32254"
 msgid "Invalid Value"
-msgstr ""
+msgstr "Invalid Value"
 
 msgctxt "#32255"
 msgid "Invalid Date"
-msgstr ""
+msgstr "Invalid Date"
 
 msgctxt "#32256"
 msgid "Invalid Rating"
-msgstr ""
+msgstr "Invalid Rating"
 
 msgctxt "#32257"
 msgid "Already Exists"
-msgstr ""
+msgstr "Already Exists"
 
 #. Notification title for metadata editor operations
 msgctxt "#32258"
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 msgctxt "#32259"
 msgid "No valid item selected"
-msgstr ""
+msgstr "No valid item selected"
 
 msgctxt "#32260"
 msgid "Fix Library IDs"
-msgstr ""
+msgstr "Fix Library IDs"
 
 msgctxt "#32261"
 msgid "All IDs are valid"
-msgstr ""
+msgstr "All IDs are valid"
 
 msgctxt "#32262"
 msgid "Failed to load item"
-msgstr ""
+msgstr "Failed to load item"
 
 msgctxt "#32263"
 msgid "Unsupported type: {0}"
-msgstr ""
+msgstr "Unsupported type: {0}"
 
 msgctxt "#32270"
 msgid "No path provided"
-msgstr ""
+msgstr "No path provided"
 
 msgctxt "#32271"
 msgid "No items found in directory"
-msgstr ""
+msgstr "No items found in directory"
 
 msgctxt "#32272"
 msgid "Select Actor"
-msgstr ""
+msgstr "Select Actor"
 
 #. Menu title and feature name - scans library for items without artwork
 msgctxt "#32273"
 msgid "Missing Artwork"
-msgstr ""
+msgstr "Missing Artwork"
 
 msgctxt "#32274"
 msgid "Scan failed"
-msgstr ""
+msgstr "Scan failed"
 
 msgctxt "#32275"
 msgid "Select Artwork"
-msgstr ""
+msgstr "Select Artwork"
 
 msgctxt "#32276"
 msgid "Loading artwork for {0}..."
-msgstr ""
+msgstr "Loading artwork for {0}..."
 
 msgctxt "#32277"
 msgid "Preparing library scan..."
-msgstr ""
+msgstr "Preparing library scan..."
 
 msgctxt "#32278"
 msgid "Initializing..."
-msgstr ""
+msgstr "Initializing..."
 
 msgctxt "#32279"
 msgid "Processing complete!"
-msgstr ""
+msgstr "Processing complete!"
 
 msgctxt "#32280"
 msgid "Art Fetcher"
-msgstr ""
+msgstr "Art Fetcher"
 
 msgctxt "#32281"
 msgid "Art Fetcher - Complete"
-msgstr ""
+msgstr "Art Fetcher - Complete"
 
 msgctxt "#32282"
 msgid "View Report"
-msgstr ""
+msgstr "View Report"
 
 msgctxt "#32284"
 msgid "Processed: {0} items"
-msgstr ""
+msgstr "Processed: {0} items"
 
 msgctxt "#32285"
 msgid "Auto-applied: {0}"
-msgstr ""
+msgstr "Auto-applied: {0}"
 
 msgctxt "#32286"
 msgid "Skipped: {0}"
-msgstr ""
+msgstr "Skipped: {0}"
 
 msgctxt "#32287"
 msgid "Errors: {0}"
-msgstr ""
+msgstr "Errors: {0}"
 
 msgctxt "#32288"
 msgid "Found {0} TV shows. Checking which are not cached..."
-msgstr ""
+msgstr "Found {0} TV shows. Checking which are not cached..."
 
 msgctxt "#32289"
 msgid "All TV shows are already cached."
-msgstr ""
+msgstr "All TV shows are already cached."
 
 msgctxt "#32290"
 msgid "Download Artwork"
-msgstr ""
+msgstr "Download Artwork"
 
 msgctxt "#32291"
 msgid "Preparing..."
-msgstr ""
+msgstr "Preparing..."
 
 msgctxt "#32292"
 msgid "Scanning library..."
-msgstr ""
+msgstr "Scanning library..."
 
 msgctxt "#32293"
 msgid "Building download list from {0} items..."
-msgstr ""
+msgstr "Building download list from {0} items..."
 
 msgctxt "#32294"
 msgid "Starting download of {0} artwork files..."
-msgstr ""
+msgstr "Starting download of {0} artwork files..."
 
 msgctxt "#32295"
 msgid "Scan complete. No missing artwork found."
-msgstr ""
+msgstr "Scan complete. No missing artwork found."
 
 msgctxt "#32296"
 msgid "No remote artwork to download"
-msgstr ""
+msgstr "No remote artwork to download"
 
 msgctxt "#32297"
 msgid "Preparing download..."
-msgstr ""
+msgstr "Preparing download..."
 
 msgctxt "#32298"
 msgid "Downloading artwork..."
-msgstr ""
+msgstr "Downloading artwork..."
 
 msgctxt "#32299"
 msgid "Loading seasons and episodes..."
-msgstr ""
+msgstr "Loading seasons and episodes..."
 
 msgctxt "#32300"
 msgid "Ratings Updater"
-msgstr ""
+msgstr "Ratings Updater"
 
 msgctxt "#32301"
 msgid "Remove Rating?"
-msgstr ""
+msgstr "Remove Rating?"
 
 msgctxt "#32302"
 msgid "Remove {0} rating?"
-msgstr ""
+msgstr "Remove {0} rating?"
 
 msgctxt "#32304"
 msgid "Updating {0} {1}s..."
-msgstr ""
+msgstr "Updating {0} {1}s..."
 
 msgctxt "#32305"
 msgid "Downloading IMDb dataset..."
-msgstr ""
+msgstr "Downloading IMDb dataset..."
 
 msgctxt "#32306"
 msgid "Updating: {0}/{1} - {2}"
-msgstr ""
+msgstr "Updating: {0}/{1} - {2}"
 
 msgctxt "#32307"
 msgid "Updating: {0}/{1} items"
-msgstr ""
+msgstr "Updating: {0}/{1} items"
 
 msgctxt "#32308"
 msgid "Finalizing: {0}/{1}"
-msgstr ""
+msgstr "Finalizing: {0}/{1}"
 
 msgctxt "#32309"
 msgid "Finalizing: {0}/{1} items"
-msgstr ""
+msgstr "Finalizing: {0}/{1} items"
 
 msgctxt "#32310"
 msgid "Retrying failed items..."
-msgstr ""
+msgstr "Retrying failed items..."
 
 msgctxt "#32311"
 msgid "Retrying: {0}/{1}"
-msgstr ""
+msgstr "Retrying: {0}/{1}"
 
 msgctxt "#32312"
 msgid "Updating episode data..."
-msgstr ""
+msgstr "Updating episode data..."
 
 msgctxt "#32313"
 msgid "{0} - Rate Limit"
-msgstr ""
+msgstr "{0} - Rate Limit"
 
 msgctxt "#32314"
 msgid "Waiting to retry..."
-msgstr ""
+msgstr "Waiting to retry..."
 
 msgctxt "#32315"
 msgid "Waiting {0}s before retry..."
-msgstr ""
+msgstr "Waiting {0}s before retry..."
 
 msgctxt "#32316"
 msgid "Ratings Updated - {0}"
-msgstr ""
+msgstr "Ratings Updated - {0}"
 
 msgctxt "#32317"
 msgid "Ratings Updater - Complete"
-msgstr ""
+msgstr "Ratings Updater - Complete"
 
 msgctxt "#32318"
 msgid "IMDb Ratings Update"
-msgstr ""
+msgstr "IMDb Ratings Update"
 
 msgctxt "#32319"
 msgid "{0} IMDb ratings updated"
-msgstr ""
+msgstr "{0} IMDb ratings updated"
 
 msgctxt "#32320"
 msgid "IMDb ratings up to date"
-msgstr ""
+msgstr "IMDb ratings up to date"
 
 msgctxt "#32321"
 msgid "{0} rate limited, resuming in {1}s"
-msgstr ""
+msgstr "{0} rate limited, resuming in {1}s"
 
 msgctxt "#32323"
 msgid "Stopped: no sources reachable"
-msgstr ""
+msgstr "Stopped: no sources reachable"
 
 msgctxt "#32324"
 msgid "Trakt will fetch {0} movies."
-msgstr ""
+msgstr "Trakt will fetch {0} movies."
 
 msgctxt "#32325"
 msgid "Trakt will fetch {0} seasons."
-msgstr ""
+msgstr "Trakt will fetch {0} seasons."
 
 msgctxt "#32326"
 msgid "Trakt will fetch {0} shows."
-msgstr ""
+msgstr "Trakt will fetch {0} shows."
 
 msgctxt "#32327"
 msgid "Trakt allows 500 requests every 5 minutes."
-msgstr ""
+msgstr "Trakt allows 500 requests every 5 minutes."
 
 msgctxt "#32328"
 msgid "Include Trakt in this update?"
-msgstr ""
+msgstr "Include Trakt in this update?"
 
 msgctxt "#32329"
 msgid "Include"
-msgstr ""
+msgstr "Include"
 
 msgctxt "#32330"
 msgid "Analyzing Textures"
-msgstr ""
+msgstr "Analyzing Textures"
 
 msgctxt "#32331"
 msgid "Scanning texture cache..."
-msgstr ""
+msgstr "Scanning texture cache..."
 
 msgctxt "#32332"
 msgid "Analyzing {0} textures..."
-msgstr ""
+msgstr "Analyzing {0} textures..."
 
 msgctxt "#32333"
 msgid "Cleanup Textures by Age"
-msgstr ""
+msgstr "Cleanup Textures by Age"
 
 msgctxt "#32334"
 msgid "Clean Orphaned Textures"
-msgstr ""
+msgstr "Clean Orphaned Textures"
 
 msgctxt "#32335"
 msgid "Starting cleanup..."
-msgstr ""
+msgstr "Starting cleanup..."
 
 msgctxt "#32336"
 msgid "Starting..."
-msgstr ""
+msgstr "Starting..."
 
 msgctxt "#32350"
 msgid "Loading library..."
-msgstr ""
+msgstr "Loading library..."
 
 msgctxt "#32351"
 msgid "Loading TV shows..."
-msgstr ""
+msgstr "Loading TV shows..."
 
 msgctxt "#32352"
 msgid "Loading episodes..."
-msgstr ""
+msgstr "Loading episodes..."
 
 msgctxt "#32353"
 msgid "Analyzing library..."
-msgstr ""
+msgstr "Analyzing library..."
 
 msgctxt "#32354"
 msgid "Downloading IMDb episode data..."
-msgstr ""
+msgstr "Downloading IMDb episode data..."
 
 msgctxt "#32355"
 msgid "Matching episodes (IMDb dataset)... {0}/{1}"
-msgstr ""
+msgstr "Matching episodes (IMDb dataset)... {0}/{1}"
 
 msgctxt "#32356"
 msgid "Fetching episodes (TMDB)... {0}/{1}"
-msgstr ""
+msgstr "Fetching episodes (TMDB)... {0}/{1}"
 
 msgctxt "#32357"
 msgid "Fixing TMDB IDs... {0}/{1}"
-msgstr ""
+msgstr "Fixing TMDB IDs... {0}/{1}"
 
 msgctxt "#32358"
 msgid "Fetching {0}... {1}/{2}"
-msgstr ""
+msgstr "Fetching {0}... {1}/{2}"
 
 msgctxt "#32359"
 msgid "No IDs could be fixed"
-msgstr ""
+msgstr "No IDs could be fixed"
 
 msgctxt "#32370"
 msgid "Testing {0}"
-msgstr ""
+msgstr "Testing {0}"
 
 msgctxt "#32371"
 msgid "Connecting to API..."
-msgstr ""
+msgstr "Connecting to API..."
 
 msgctxt "#32372"
 msgid "Trakt Authorization"
-msgstr ""
+msgstr "Trakt Authorization"
 
 msgctxt "#32373"
 msgid "Requesting device code..."
-msgstr ""
+msgstr "Requesting device code..."
 
 msgctxt "#32374"
 msgid "Testing Trakt"
-msgstr ""
+msgstr "Testing Trakt"
 
 msgctxt "#32390"
 msgid "No Library Values"
-msgstr ""
+msgstr "No Library Values"
 
 #. Displayed when user rating is 0 (no rating given by user)
 msgctxt "#32391"
 msgid "Not Rated"
-msgstr ""
+msgstr "Not Rated"
 
 #. Placeholder shown when a field has no value
 msgctxt "#32392"
 msgid "(Not Set)"
-msgstr ""
+msgstr "(Not Set)"
 
 msgctxt "#32393"
 msgid "Save Changes"
-msgstr ""
+msgstr "Save Changes"
 
 msgctxt "#32394"
 msgid "Add {0}"
-msgstr ""
+msgstr "Add {0}"
 
 msgctxt "#32395"
 msgid "Quick Edit: {0}"
-msgstr ""
+msgstr "Quick Edit: {0}"
 
 msgctxt "#32396"
 msgid "Select from Library"
-msgstr ""
+msgstr "Select from Library"
 
 msgctxt "#32397"
 msgid "Add/Remove Items"
-msgstr ""
+msgstr "Add/Remove Items"
 
 msgctxt "#32399"
 msgid "Edit {0} (comma-separated)"
-msgstr ""
+msgstr "Edit {0} (comma-separated)"
 
 msgctxt "#32400"
 msgid "No rating sources available. Please configure API keys in settings."
-msgstr ""
+msgstr "No rating sources available. Please configure API keys in settings."
 
 msgctxt "#32401"
 msgid "{0} not found"
-msgstr ""
+msgstr "{0} not found"
 
 msgctxt "#32402"
 msgid "Updating ratings..."
-msgstr ""
+msgstr "Updating ratings..."
 
 msgctxt "#32403"
 msgid "No changes needed"
-msgstr ""
+msgstr "No changes needed"
 
 msgctxt "#32404"
 msgid "Item skipped (no IDs or rate limit)"
-msgstr ""
+msgstr "Item skipped (no IDs or rate limit)"
 
 msgctxt "#32405"
 msgid "Failed to update ratings"
-msgstr ""
+msgstr "Failed to update ratings"
 
 msgctxt "#32406"
 msgid "Update Movies"
-msgstr ""
+msgstr "Update Movies"
 
 msgctxt "#32407"
 msgid "Update TV Shows"
-msgstr ""
+msgstr "Update TV Shows"
 
 msgctxt "#32408"
 msgid "Update Episodes"
-msgstr ""
+msgstr "Update Episodes"
 
 msgctxt "#32409"
 msgid "Update All"
-msgstr ""
+msgstr "Update All"
 
 msgctxt "#32410"
 msgid "Run Mode"
-msgstr ""
+msgstr "Run Mode"
 
 msgctxt "#32411"
 msgid "Show progress dialog (Foreground)"
-msgstr ""
+msgstr "Show progress dialog (Foreground)"
 
 msgctxt "#32412"
 msgid "Run in background"
-msgstr ""
+msgstr "Run in background"
 
 msgctxt "#32413"
 msgid "No {0}s found in library"
-msgstr ""
+msgstr "No {0}s found in library"
 
 msgctxt "#32414"
 msgid "Fetching ratings batch {0}/{1}..."
-msgstr ""
+msgstr "Fetching ratings batch {0}/{1}..."
 
 msgctxt "#32415"
 msgid "Retry Failed Items"
-msgstr ""
+msgstr "Retry Failed Items"
 
 msgctxt "#32416"
 msgid "{0} item(s) had temporary network issues."
-msgstr ""
+msgstr "{0} item(s) had temporary network issues."
 
 msgctxt "#32417"
 msgid "Retry these items now?"
-msgstr ""
+msgstr "Retry these items now?"
 
 msgctxt "#32418"
 msgid "Network Issues"
-msgstr ""
+msgstr "Network Issues"
 
 msgctxt "#32419"
 msgid "Items with network issues"
-msgstr ""
+msgstr "Items with network issues"
 
 msgctxt "#32420"
 msgid "Retry: {0}/{1} succeeded"
-msgstr ""
+msgstr "Retry: {0}/{1} succeeded"
 
 msgctxt "#32421"
 msgid "IMDb ID Corrections"
-msgstr ""
+msgstr "IMDb ID Corrections"
 
 msgctxt "#32422"
 msgid "{0} item(s) have outdated IMDb ID(s) (redirects)."
-msgstr ""
+msgstr "{0} item(s) have outdated IMDb ID(s) (redirects)."
 
 msgctxt "#32423"
 msgid "Correct them in your library?"
-msgstr ""
+msgstr "Correct them in your library?"
 
 msgctxt "#32424"
 msgid "No ratings update history found."
-msgstr ""
+msgstr "No ratings update history found."
 
 msgctxt "#32425"
 msgid "Calculating disk usage..."
-msgstr ""
+msgstr "Calculating disk usage..."
 
 msgctxt "#32426"
 msgid "Complete"
-msgstr ""
+msgstr "Complete"
 
 #. Button label meaning "display/reveal" (not TV Show)
 msgctxt "#32427"
 msgid "Show"
-msgstr ""
+msgstr "Show"
 
 msgctxt "#32429"
 msgid "Retry"
-msgstr ""
+msgstr "Retry"
 
 msgctxt "#32430"
 msgid "Ratings Update Report"
-msgstr ""
+msgstr "Ratings Update Report"
 
 msgctxt "#32440"
 msgid "Pre-Cache + Download"
-msgstr ""
+msgstr "Pre-Cache + Download"
 
 msgctxt "#32441"
 msgid "Pre-Cache Artwork - Select Scope"
-msgstr ""
+msgstr "Pre-Cache Artwork - Select Scope"
 
 msgctxt "#32451"
 msgid "Pre-Cache + Download - Select Scope"
-msgstr ""
+msgstr "Pre-Cache + Download - Select Scope"
 
 msgctxt "#32455"
 msgid "Pre-Cache Artwork"
-msgstr ""
+msgstr "Pre-Cache Artwork"
 
 msgctxt "#32457"
 msgid "[B]{0}[/B] is currently running."
-msgstr ""
+msgstr "[B]{0}[/B] is currently running."
 
 msgctxt "#32458"
 msgid "Cannot start another background task."
-msgstr ""
+msgstr "Cannot start another background task."
 
 msgctxt "#32459"
 msgid "Pre-Cache Cancelled"
-msgstr ""
+msgstr "Pre-Cache Canceled"
 
 msgctxt "#32460"
 msgid "Pre-Cache Complete"
-msgstr ""
+msgstr "Pre-Cache Complete"
 
 msgctxt "#32461"
 msgid "Cleanup Cancelled"
-msgstr ""
+msgstr "Cleanup Canceled"
 
 msgctxt "#32462"
 msgid "Cleanup Complete"
-msgstr ""
+msgstr "Cleanup Complete"
 
 msgctxt "#32463"
 msgid "Total: {0}"
-msgstr ""
+msgstr "Total: {0}"
 
 msgctxt "#32464"
 msgid "Cached: {0}"
-msgstr ""
+msgstr "Cached: {0}"
 
 msgctxt "#32465"
 msgid "Downloaded: {0} ({1:.1f} MB)"
-msgstr ""
+msgstr "Downloaded: {0} ({1:.1f} MB)"
 
 msgctxt "#32467"
 msgid "Failed: {0} cache, {1} download"
-msgstr ""
+msgstr "Failed: {0} cache, {1} download"
 
 msgctxt "#32468"
 msgid "Already Cached: {0}"
-msgstr ""
+msgstr "Already Cached: {0}"
 
 msgctxt "#32469"
 msgid "Newly Cached: {0}"
-msgstr ""
+msgstr "Newly Cached: {0}"
 
 msgctxt "#32470"
 msgid "Failed: {0}"
-msgstr ""
+msgstr "Failed: {0}"
 
 msgctxt "#32471"
 msgid "Status: Cancelled"
-msgstr ""
+msgstr "Status: Canceled"
 
 msgctxt "#32472"
 msgid "Gathering statistics..."
-msgstr ""
+msgstr "Gathering statistics..."
 
 msgctxt "#32473"
 msgid "Remove textures not used in..."
-msgstr ""
+msgstr "Remove textures not used in..."
 
 msgctxt "#32474"
 msgid "30 days"
-msgstr ""
+msgstr "30 days"
 
 msgctxt "#32475"
 msgid "60 days"
-msgstr ""
+msgstr "60 days"
 
 msgctxt "#32476"
 msgid "90 days"
-msgstr ""
+msgstr "90 days"
 
 msgctxt "#32477"
 msgid "180 days"
-msgstr ""
+msgstr "180 days"
 
 msgctxt "#32478"
 msgid "365 days (1 year)"
-msgstr ""
+msgstr "365 days (1 year)"
 
 msgctxt "#32479"
 msgid "No Old Textures"
-msgstr ""
+msgstr "No Old Textures"
 
 msgctxt "#32480"
 msgid "No textures found older than {0} days."
-msgstr ""
+msgstr "No textures found older than {0} days."
 
 msgctxt "#32481"
 msgid "Total textures checked: {0}"
-msgstr ""
+msgstr "Total textures checked: {0}"
 
 msgctxt "#32482"
 msgid "Confirm Cleanup"
-msgstr ""
+msgstr "Confirm Cleanup"
 
 msgctxt "#32483"
 msgid "Remove {0} textures older than {1} days?"
-msgstr ""
+msgstr "Remove {0} textures older than {1} days?"
 
 msgctxt "#32484"
 msgid "Total: {0} | Oldest: {1}"
-msgstr ""
+msgstr "Total: {0} | Oldest: {1}"
 
 msgctxt "#32485"
 msgid "Failed to analyze textures"
-msgstr ""
+msgstr "Failed to analyze textures"
 
 msgctxt "#32486"
 msgid "Overwrite mode is enabled"
-msgstr ""
+msgstr "Overwrite mode is enabled"
 
 #. {0} is a list such as "Movies: filename prefix"
 msgctxt "#32487"
 msgid "Filename pattern: {0}"
-msgstr ""
+msgstr "Filename pattern: {0}"
 
 msgctxt "#32488"
 msgid "Texture Cache - Last Run"
-msgstr ""
+msgstr "Texture Cache - Last Run"
 
 msgctxt "#32489"
 msgid "No previous operations found."
-msgstr ""
+msgstr "No previous operations found."
 
 msgctxt "#32490"
 msgid "Fetching texture database..."
-msgstr ""
+msgstr "Fetching texture database..."
 
 msgctxt "#32492"
 msgid "Removing {0} old textures..."
-msgstr ""
+msgstr "Removing {0} old textures..."
 
 msgctxt "#32493"
 msgid "Checked: {0} textures"
-msgstr ""
+msgstr "Checked: {0} textures"
 
 msgctxt "#32494"
 msgid "Older than {0} days: {1}"
-msgstr ""
+msgstr "Older than {0} days: {1}"
 
 msgctxt "#32495"
 msgid "Removed: {0}"
-msgstr ""
+msgstr "Removed: {0}"
 
 msgctxt "#32496"
 msgid "Total Cached: {0} | Library: {1}"
-msgstr ""
+msgstr "Total Cached: {0} | Library: {1}"
 
 msgctxt "#32497"
 msgid "Orphaned Found: {0} | Removed: {1}"
-msgstr ""
+msgstr "Orphaned Found: {0} | Removed: {1}"
 
 msgctxt "#32498"
 msgid "{0} artwork files not found on disk.[CR]These are stale library entries pointing to missing files.[CR][CR]View the list?"
-msgstr ""
+msgstr "{0} artwork files not found on disk.[CR]These are stale library entries pointing to missing files.[CR][CR]View the list?"
 
 msgctxt "#32499"
 msgid "Missing Artwork Files"
-msgstr ""
+msgstr "Missing Artwork Files"
 
 msgctxt "#32500"
 msgid "Session Report"
-msgstr ""
+msgstr "Session Report"
 
 msgctxt "#32501"
 msgid "Mismatches found: {0} files"
-msgstr ""
+msgstr "Mismatches found: {0} files"
 
 msgctxt "#32502"
 msgid "Select Missing Artwork"
-msgstr ""
+msgstr "Select Missing Artwork"
 
 msgctxt "#32503"
 msgid "Select + Download Missing Artwork"
-msgstr ""
+msgstr "Select + Download Missing Artwork"
 
 msgctxt "#32504"
 msgid "Auto-Apply Missing Artwork"
-msgstr ""
+msgstr "Auto-Apply Missing Artwork"
 
 msgctxt "#32505"
 msgid "View Session History"
-msgstr ""
+msgstr "View Session History"
 
 msgctxt "#32507"
 msgid "Browse & Choose Artwork - Select Library"
-msgstr ""
+msgstr "Browse & Choose Artwork - Select Library"
 
 msgctxt "#32508"
 msgid "Browse & Choose + Download - Select Library"
-msgstr ""
+msgstr "Browse & Choose + Download - Select Library"
 
 msgctxt "#32509"
 msgid "Auto-Fill Missing Artwork - Select Library"
-msgstr ""
+msgstr "Auto-Fill Missing Artwork - Select Library"
 
 msgctxt "#32510"
 msgid "Last Session (any library)"
-msgstr ""
+msgstr "Last Session (any library)"
 
 msgctxt "#32511"
 msgid "Original artwork will be [B]deleted[/B] after a successful download."
-msgstr ""
+msgstr "Original artwork will be [B]deleted[/B] after a successful download."
 
 msgctxt "#32512"
 msgid "Session History"
-msgstr ""
+msgstr "Session History"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32513"
 msgid "{0}: filename prefix"
-msgstr ""
+msgstr "{0}: filename prefix"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32514"
 msgid "{0}: no prefix"
-msgstr ""
+msgstr "{0}: no prefix"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32515"
 msgid "Loading {0}..."
-msgstr ""
+msgstr "Loading {0}..."
 
 msgctxt "#32520"
 msgid "Artwork Download Report"
-msgstr ""
+msgstr "Artwork Download Report"
 
 msgctxt "#32522"
 msgid "Download Artwork to Filesystem"
-msgstr ""
+msgstr "Download Artwork to Filesystem"
 
 msgctxt "#32523"
 msgid "Download Artwork - Select Scope"
-msgstr ""
+msgstr "Download Artwork - Select Scope"
 
 msgctxt "#32530"
 msgid "Tools"
-msgstr ""
+msgstr "Tools"
 
 msgctxt "#32532"
 msgid "Add/Fix IMDb & TMDB IDs"
-msgstr ""
+msgstr "Add/Fix IMDb & TMDB IDs"
 
 msgctxt "#32540"
 msgid "Scan for Animated Posters"
-msgstr ""
+msgstr "Scan for Animated Posters"
 
 msgctxt "#32541"
 msgid "View Cache Statistics"
-msgstr ""
+msgstr "View Cache Statistics"
 
 msgctxt "#32542"
 msgid "Reset GIF Cache"
-msgstr ""
+msgstr "Reset GIF Cache"
 
 msgctxt "#32543"
 msgid "GIF Scanner - Last Run"
-msgstr ""
+msgstr "GIF Scanner - Last Run"
 
 msgctxt "#32544"
 msgid "GIF Cache Statistics"
-msgstr ""
+msgstr "GIF Cache Statistics"
 
 msgctxt "#32546"
 msgid "Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
-msgstr ""
+msgstr "Clear {0} cached GIF entries?[CR][CR]Use this to troubleshoot cache issues.[CR][CR]Tip: Use 'Full Rescan' mode instead to re-process GIFs."
 
 msgctxt "#32547"
 msgid "GIF Cache"
-msgstr ""
+msgstr "GIF Cache"
 
 msgctxt "#32548"
 msgid "Reset complete - cleared {0} entries"
-msgstr ""
+msgstr "Reset complete - cleared {0} entries"
 
 msgctxt "#32549"
 msgid "Cache is already empty"
-msgstr ""
+msgstr "Cache is already empty"
 
 msgctxt "#32550"
 msgid "Auto-Applied Artwork Report"
-msgstr ""
+msgstr "Auto-Applied Artwork Report"
 
 msgctxt "#32551"
 msgid "Skipped Items Report"
-msgstr ""
+msgstr "Skipped Items Report"
 
 msgctxt "#32552"
 msgid "Scan for GIF Posters"
-msgstr ""
+msgstr "Scan for GIF Posters"
 
 msgctxt "#32553"
 msgid "Select scan mode"
-msgstr ""
+msgstr "Select scan mode"
 
 msgctxt "#32554"
 msgid "Select Language"
-msgstr ""
+msgstr "Select Language"
 
 msgctxt "#32555"
 msgid "Select Artwork Type - {0}"
-msgstr ""
+msgstr "Select Artwork Type - {0}"
 
 msgctxt "#32556"
 msgid "Select {0}"
-msgstr ""
+msgstr "Select {0}"
 
 msgctxt "#32557"
 msgid "Edit {0}"
-msgstr ""
+msgstr "Edit {0}"
 
 msgctxt "#32560"
 msgid "Edit: {0}"
-msgstr ""
+msgstr "Edit: {0}"
 
 msgctxt "#32561"
 msgid "Dialog Error"
-msgstr ""
+msgstr "Dialog Error"
 
 msgctxt "#32562"
 msgid "File not found: {0}"
-msgstr ""
+msgstr "File not found: {0}"
 
 msgctxt "#32563"
 msgid "Failed to read file: {0}"
-msgstr ""
+msgstr "Failed to read file: {0}"
 
 msgctxt "#32564"
 msgid "Rating source '{0}' already exists."
-msgstr ""
+msgstr "Rating source '{0}' already exists."
 
 msgctxt "#32565"
 msgid "Rating (0-10)"
-msgstr ""
+msgstr "Rating (0-10)"
 
 msgctxt "#32566"
 msgid "Continue"
-msgstr ""
+msgstr "Continue"
 
 msgctxt "#32567"
 msgid "Auto-Fill"
-msgstr ""
+msgstr "Auto-Fill"
 
 msgctxt "#32569"
 msgid "Yes, Cancel It"
-msgstr ""
+msgstr "Yes, Cancel It"
 
 msgctxt "#32570"
 msgid "No, Keep Running"
-msgstr ""
+msgstr "No, Keep Running"
 
 msgctxt "#32571"
 msgid "Cancel Running Task?"
-msgstr ""
+msgstr "Cancel Running Task?"
 
 msgctxt "#32574"
 msgid "Cancel to resume later"
-msgstr ""
+msgstr "Cancel to resume later"
 
 msgctxt "#32575"
 msgid "Invalid scope: {0}"
-msgstr ""
+msgstr "Invalid scope: {0}"
 
 msgctxt "#32576"
 msgid "Invalid scan mode: {0}"
-msgstr ""
+msgstr "Invalid scan mode: {0}"
 
 msgctxt "#32577"
 msgid "Resuming scan..."
-msgstr ""
+msgstr "Resuming scan..."
 
 msgctxt "#32579"
 msgid "All (Movies + TV Shows)"
-msgstr ""
+msgstr "All (Movies + TV Shows)"
 
 msgctxt "#32580"
 msgid "Movies Only"
-msgstr ""
+msgstr "Movies Only"
 
 msgctxt "#32581"
 msgid "TV Shows Only"
-msgstr ""
+msgstr "TV Shows Only"
 
 msgctxt "#32582"
 msgid "Incremental Scan"
-msgstr ""
+msgstr "Incremental Scan"
 
 msgctxt "#32583"
 msgid "Skip unchanged GIFs, detect new/modified ones"
-msgstr ""
+msgstr "Skip unchanged GIFs, detect new/modified ones"
 
 msgctxt "#32584"
 msgid "Full Rescan"
-msgstr ""
+msgstr "Full Rescan"
 
 msgctxt "#32585"
 msgid "Rescan all items, rebuild cache from scratch"
-msgstr ""
+msgstr "Rescan all items, rebuild cache from scratch"
 
 msgctxt "#32586"
 msgid "{0} GIFs cached"
-msgstr ""
+msgstr "{0} GIFs cached"
 
 msgctxt "#32587"
 msgid "no cache"
-msgstr ""
+msgstr "no cache"
 
 msgctxt "#32588"
 msgid "Total Cached GIFs: {0}"
-msgstr ""
+msgstr "Total Cached GIFs: {0}"
 
 msgctxt "#32589"
 msgid "Recently Scanned (Last {0}):"
-msgstr ""
+msgstr "Recently Scanned (Last {0}):"
 
 msgctxt "#32590"
 msgid "... and {0} more"
-msgstr ""
-
-msgctxt "#32593"
-msgid "Scan cancelled. Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
-
-msgctxt "#32594"
-msgid "Scan complete! Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "... and {0} more"
 
 msgctxt "#32595"
 msgid "Automatically update IMDb Top 250 rankings in your library"
-msgstr ""
+msgstr "Automatically update IMDb Top 250 rankings in your library"
 
 msgctxt "#32600"
 msgid "IMDb Top 250"
-msgstr ""
+msgstr "IMDb Top 250"
 
 msgctxt "#32601"
 msgid "Fetching Top 250 from Trakt..."
-msgstr ""
+msgstr "Fetching Top 250 from Trakt..."
 
 msgctxt "#32602"
 msgid "Loading library..."
-msgstr ""
+msgstr "Loading library..."
 
 msgctxt "#32603"
 msgid "Matching movies..."
-msgstr ""
+msgstr "Matching movies..."
 
 msgctxt "#32604"
 msgid "Updating: {0}/{1}"
-msgstr ""
+msgstr "Updating: {0}/{1}"
 
 msgctxt "#32605"
 msgid "Top 250 Update Complete"
-msgstr ""
+msgstr "Top 250 Update Complete"
 
 msgctxt "#32606"
 msgid "Updated: {0} | Cleared: {1} | Already correct: {2}"
-msgstr ""
+msgstr "Updated: {0} | Cleared: {1} | Already correct: {2}"
 
 msgctxt "#32607"
 msgid "Failed to fetch Top 250 list from Trakt."
-msgstr ""
+msgstr "Failed to fetch Top 250 list from Trakt."
 
 msgctxt "#32608"
 msgid "No movies found in library."
-msgstr ""
+msgstr "No movies found in library."
 
 msgctxt "#32609"
 msgid "Update IMDb Top 250?"
-msgstr ""
+msgstr "Update IMDb Top 250?"
 
 msgctxt "#32610"
 msgid "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
-msgstr ""
+msgstr "Set/update: {0} movies[CR]Clear: {1} movies[CR]Already correct: {2} movies[CR][CR]This will overwrite existing Top 250 values."
 
 msgctxt "#32611"
 msgid "Cancelled. Updated: {0} | Cleared: {1} before cancellation."
-msgstr ""
+msgstr "Canceled. Updated: {0} | Cleared: {1} before cancellation."
 
 msgctxt "#32612"
 msgid "Trakt Not Signed In"
-msgstr ""
+msgstr "Trakt Not Signed In"
 
 msgctxt "#32613"
 msgid "Sign in to Trakt or remove this widget"
-msgstr ""
+msgstr "Sign in to Trakt or remove this widget"
 
 msgctxt "#32614"
 msgid "Search"
-msgstr ""
+msgstr "Search"
 
 msgctxt "#32615"
 msgid "Widgets"
-msgstr ""
+msgstr "Widgets"
 
 msgctxt "#32616"
 msgid "Search Movies"
-msgstr ""
+msgstr "Search Movies"
 
 msgctxt "#32617"
 msgid "Search TV Shows"
-msgstr ""
+msgstr "Search TV Shows"
 
 msgctxt "#32618"
 msgid "Search People"
-msgstr ""
+msgstr "Search People"
 
 msgctxt "#32619"
 msgid "Discover"
-msgstr ""
+msgstr "Discover"
 
 msgctxt "#32620"
 msgid "Next Up"
-msgstr ""
+msgstr "Next Up"
 
 msgctxt "#32621"
 msgid "Recent Episodes"
-msgstr ""
+msgstr "Recent Episodes"
 
 msgctxt "#32622"
 msgid "Seasonal"
-msgstr ""
+msgstr "Seasonal"
 
 msgctxt "#32623"
 msgid "Recommended Movies"
-msgstr ""
+msgstr "Recommended Movies"
 
 msgctxt "#32624"
 msgid "Recommended TV Shows"
-msgstr ""
+msgstr "Recommended TV Shows"
 
 msgctxt "#32625"
 msgid "Movies"
-msgstr ""
+msgstr "Movies"
 
 msgctxt "#32626"
 msgid "TV Shows"
-msgstr ""
+msgstr "TV Shows"
 
 msgctxt "#32627"
 msgid "TMDB Trending"
-msgstr ""
+msgstr "TMDB Trending"
 
 msgctxt "#32628"
 msgid "TMDB Popular"
-msgstr ""
+msgstr "TMDB Popular"
 
 msgctxt "#32629"
 msgid "TMDB Top Rated"
-msgstr ""
+msgstr "TMDB Top Rated"
 
 msgctxt "#32630"
 msgid "TMDB Now Playing"
-msgstr ""
+msgstr "TMDB Now Playing"
 
 msgctxt "#32631"
 msgid "TMDB Upcoming"
-msgstr ""
+msgstr "TMDB Upcoming"
 
 msgctxt "#32632"
 msgid "TMDB Airing Today"
-msgstr ""
+msgstr "TMDB Airing Today"
 
 msgctxt "#32633"
 msgid "TMDB On The Air"
-msgstr ""
+msgstr "TMDB On The Air"
 
 msgctxt "#32634"
 msgid "Trakt Trending"
-msgstr ""
+msgstr "Trakt Trending"
 
 msgctxt "#32635"
 msgid "Trakt Popular"
-msgstr ""
+msgstr "Trakt Popular"
 
 msgctxt "#32636"
 msgid "Trakt Anticipated"
-msgstr ""
+msgstr "Trakt Anticipated"
 
 msgctxt "#32637"
 msgid "Trakt Most Watched"
-msgstr ""
+msgstr "Trakt Most Watched"
 
 msgctxt "#32638"
 msgid "Trakt Most Collected"
-msgstr ""
+msgstr "Trakt Most Collected"
 
 msgctxt "#32639"
 msgid "Trakt Box Office"
-msgstr ""
+msgstr "Trakt Box Office"
 
 msgctxt "#32640"
 msgid "Trakt Recommendations"
-msgstr ""
+msgstr "Trakt Recommendations"
 
 msgctxt "#32641"
 msgid "(OAuth)"
-msgstr ""
+msgstr "(OAuth)"
 
 msgctxt "#32642"
 msgid "Christmas"
-msgstr ""
+msgstr "Christmas"
 
 msgctxt "#32643"
 msgid "Halloween"
-msgstr ""
+msgstr "Halloween"
 
 msgctxt "#32644"
 msgid "Valentine's Day"
-msgstr ""
+msgstr "Valentine's Day"
 
 msgctxt "#32645"
 msgid "Thanksgiving"
-msgstr ""
+msgstr "Thanksgiving"
 
 msgctxt "#32646"
 msgid "Star Wars Day"
-msgstr ""
+msgstr "Star Wars Day"
 
 msgctxt "#32647"
 msgid "Star Trek"
-msgstr ""
+msgstr "Star Trek"
 
 msgctxt "#32648"
 msgid "New Year"
-msgstr ""
+msgstr "New Year"
 
 msgctxt "#32649"
 msgid "Easter"
-msgstr ""
+msgstr "Easter"
 
 msgctxt "#32650"
 msgid "Independence Day"
-msgstr ""
+msgstr "Independence Day"
 
 # Recommended widget label, single-seed mode. {0} = seed title -> "Recommended based on Avatar"
 msgctxt "#32651"
 msgid "Recommended based on {0}"
-msgstr ""
+msgstr "Recommended based on {0}"
 
 msgctxt "#32652"
 msgid "Recommended based on recent watches"
-msgstr ""
+msgstr "Recommended based on recent watches"
 
 # Artwork selection dialogs
 msgctxt "#32653"
 msgid "Current Extra Art (Click to Remove)"
-msgstr ""
+msgstr "Current Extra Art (Click to Remove)"
 
 msgctxt "#32654"
 msgid "Available Art (Click to Add)"
-msgstr ""
+msgstr "Available Art (Click to Add)"
 
 msgctxt "#32655"
 msgid "Clear Selection"
-msgstr ""
+msgstr "Clear Selection"
 
 msgctxt "#32656"
 msgid "Apply"
-msgstr ""
+msgstr "Apply"
 
 msgctxt "#32657"
 msgid "Sort: Popularity"
-msgstr ""
+msgstr "Sort: Popularity"
 
 msgctxt "#32658"
 msgid "Sort: Resolution"
-msgstr ""
+msgstr "Sort: Resolution"
 
 # Colour picker dialog
 msgctxt "#32659"
@@ -1951,359 +1916,579 @@ msgstr "Color Manager"
 
 msgctxt "#32660"
 msgid "Alpha"
-msgstr ""
+msgstr "Alpha"
 
 msgctxt "#32661"
 msgid "Enter Hex"
-msgstr ""
+msgstr "Enter Hex"
 
 # Metadata editor, unique IDs
 msgctxt "#32663"
 msgid "Add ID"
-msgstr ""
+msgstr "Add ID"
 
 msgctxt "#32664"
 msgid "ID type (imdb, tmdb, tvdb...)"
-msgstr ""
+msgstr "ID type (imdb, tmdb, tvdb...)"
 
 # {0} = id type, e.g. tmdb -> "tmdb ID (leave empty to remove)"
 msgctxt "#32665"
 msgid "{0} ID (leave empty to remove)"
-msgstr ""
+msgstr "{0} ID (leave empty to remove)"
 
 msgctxt "#32666"
 msgid "Kodi won't remove the default ID. Change its value, or set another ID as default first."
-msgstr ""
+msgstr "Kodi won't remove the default ID. Change its value, or set another ID as default first."
 
 # {0} = id type, e.g. tmdb -> "Remove the tmdb ID?"
 msgctxt "#32667"
 msgid "Remove the {0} ID?"
-msgstr ""
+msgstr "Remove the {0} ID?"
 
 msgctxt "#32668"
 msgid "User Rating"
-msgstr ""
+msgstr "User Rating"
 
 msgctxt "#32669"
 msgid "External Ratings"
-msgstr ""
+msgstr "External Ratings"
 
 msgctxt "#32670"
 msgid "Display Artist"
-msgstr ""
+msgstr "Display Artist"
 
 msgctxt "#32671"
 msgid "Sort Artist"
-msgstr ""
+msgstr "Sort Artist"
 
 msgctxt "#32672"
 msgid "Record Label"
-msgstr ""
+msgstr "Record Label"
 
 msgctxt "#32673"
 msgid "Album Type"
-msgstr ""
+msgstr "Album Type"
 
 msgctxt "#32674"
 msgid "Sort Name"
-msgstr ""
+msgstr "Sort Name"
 
 # Info dialog section headers with no Kodi core string
 msgctxt "#32675"
 msgid "Top Movies"
-msgstr ""
+msgstr "Top Movies"
 
 msgctxt "#32676"
 msgid "Top TV Shows"
-msgstr ""
+msgstr "Top TV Shows"
 
 msgctxt "#32677"
 msgid "In Your Library - Movies"
-msgstr ""
+msgstr "In Your Library - Movies"
 
 msgctxt "#32678"
 msgid "In Your Library - TV Shows"
-msgstr ""
+msgstr "In Your Library - TV Shows"
 
 msgctxt "#32679"
 msgid "All Credits"
-msgstr ""
+msgstr "All Credits"
 
 msgctxt "#32680"
 msgid "Crew Credits"
-msgstr ""
+msgstr "Crew Credits"
 
 msgctxt "#32681"
 msgid "Images"
-msgstr ""
+msgstr "Images"
 
 msgctxt "#32682"
 msgid "Recommendations"
-msgstr ""
+msgstr "Recommendations"
 
 msgctxt "#32683"
 msgid "Similar in Library"
-msgstr ""
+msgstr "Similar in Library"
 
 msgctxt "#32684"
 msgid "Crew"
-msgstr ""
+msgstr "Crew"
 
 msgctxt "#32685"
 msgid "Next Up (Favourites)"
-msgstr ""
+msgstr "Next Up (Favorites)"
 
 msgctxt "#32686"
 msgid "Recent Videos"
-msgstr ""
+msgstr "Recent Videos"
 
 msgctxt "#32687"
 msgid "Favourite Movies"
-msgstr ""
+msgstr "Favorite Movies"
 
 msgctxt "#32688"
 msgid "Favourite TV Shows"
-msgstr ""
+msgstr "Favorite TV Shows"
 
 msgctxt "#32689"
 msgid "Favourite Episodes"
-msgstr ""
+msgstr "Favorite Episodes"
 
 msgctxt "#32690"
 msgid "Favourite Music Videos"
-msgstr ""
+msgstr "Favorite Music Videos"
 
 msgctxt "#32691"
 msgid "Music video thumb source"
-msgstr ""
+msgstr "Music video thumb source"
 
 #. Options for which image fills an empty music video thumb during automatic fetching
 msgctxt "#32692"
 msgid "Video screenshots"
-msgstr ""
+msgstr "Video screenshots"
 
 msgctxt "#32693"
 msgid "Album cover"
-msgstr ""
+msgstr "Album cover"
 
 msgctxt "#32694"
 msgid "Artist thumb"
-msgstr ""
+msgstr "Artist thumb"
 
 msgctxt "#32695"
 msgid "Ratings sources to check (IMDb always on)"
-msgstr ""
+msgstr "Ratings sources to check (IMDb always on)"
 
 msgctxt "#32696"
 msgid "Continue Watching"
-msgstr ""
+msgstr "Continue Watching"
 
 msgctxt "#32697"
 msgid "Similar Artists"
-msgstr ""
+msgstr "Similar Artists"
+
+msgctxt "#32698"
+msgid "Wait 60s and Retry"
+msgstr "Wait 60s and Retry"
+
+msgctxt "#32699"
+msgid "Retry Tomorrow"
+msgstr "Retry Tomorrow"
+
+msgctxt "#32700"
+msgid "Stop All Updates"
+msgstr "Stop All Updates"
+
+#. {0} is the provider name, e.g. TRAKT
+msgctxt "#32701"
+msgid "Continue Without {0}"
+msgstr "Continue Without {0}"
+
+#. {0} is a web address, {1} a short code the user types there, {2} the seconds left
+msgctxt "#32702"
+msgid "1. Visit: {0}\n2. Enter code: [B]{1}[/B]\n3. Click Authorize on the website\n\nWaiting for authorization... ({2}s remaining)"
+msgstr "1. Visit: {0}\n2. Enter code: [B]{1}[/B]\n3. Click Authorize on the website\n\nWaiting for authorization... ({2}s remaining)"
+
+msgctxt "#32703"
+msgid "Person Info"
+msgstr "Person Info"
+
+msgctxt "#32704"
+msgid "Scanning {0}"
+msgstr "Scanning {0}"
+
+msgctxt "#32705"
+msgid "ETA {0}"
+msgstr "ETA {0}"
+
+msgctxt "#32706"
+msgid "Queued: {0}"
+msgstr "Queued: {0}"
+
+msgctxt "#32707"
+msgid "Found: {0} | Cached: {1} | Existing: {2}"
+msgstr "Found: {0} | Cached: {1} | Existing: {2}"
+
+msgctxt "#32708"
+msgid "Option {0}"
+msgstr "Option {0}"
+
+#. {2} is a language name
+msgctxt "#32709"
+msgid "{0} of {1} available ({2})"
+msgstr "{0} of {1} available ({2})"
+
+msgctxt "#32710"
+msgid "{0} available"
+msgstr "{0} available"
+
+#. {0} is an art type such as Fanart or Poster
+msgctxt "#32711"
+msgid "Multi-Art {0}"
+msgstr "Multi-Art {0}"
+
+#. {0} is a media type, {1} a list of art types
+msgctxt "#32712"
+msgid "Art type not supported for {0}: {1}"
+msgstr "Art type not supported for {0}: {1}"
+
+msgctxt "#32713"
+msgid "No MusicBrainz ID for this artist"
+msgstr "No MusicBrainz ID for this artist"
+
+msgctxt "#32714"
+msgid "No MusicBrainz ID for this album"
+msgstr "No MusicBrainz ID for this album"
+
+msgctxt "#32715"
+msgid "Failed to fetch artwork"
+msgstr "Failed to fetch artwork"
+
+#. {0} is a list of art types
+msgctxt "#32716"
+msgid "No {0} artwork found"
+msgstr "No {0} artwork found"
+
+msgctxt "#32717"
+msgid "Artwork updated"
+msgstr "Artwork updated"
+
+msgctxt "#32718"
+msgid "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
+msgstr "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
+
+#. {0} is a library name such as Movies
+msgctxt "#32719"
+msgid "{0} - Select Action"
+msgstr "{0} - Select Action"
+
+#. {0} is a library name such as Movies
+msgctxt "#32720"
+msgid "No report available for {0}"
+msgstr "No report available for {0}"
+
+msgctxt "#32721"
+msgid "No reports available"
+msgstr "No reports available"
+
+#. {0} is a library name such as Movies
+msgctxt "#32722"
+msgid "Auto-Fill {0}"
+msgstr "Auto-Fill {0}"
+
+msgctxt "#32723"
+msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
+msgstr "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
+
+msgctxt "#32724"
+msgid "Enter the date as YYYY-MM-DD"
+msgstr "Enter the date as YYYY-MM-DD"
+
+msgctxt "#32725"
+msgid "That date cannot exist"
+msgstr "That date cannot exist"
+
+#. {0} is a field name such as Genre
+msgctxt "#32726"
+msgid "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
+msgstr "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
+
+msgctxt "#32727"
+msgid "{0} votes"
+msgstr "{0} votes"
+
+#. {0} is a field name such as Genre
+msgctxt "#32728"
+msgid "{0} updated"
+msgstr "{0} updated"
+
+#. {0} is how many more values are not shown
+msgctxt "#32729"
+msgid "(+{0} more)"
+msgstr "(+{0} more)"
+
+#. {0} is the name of the running task
+msgctxt "#32730"
+msgid "Cancel Current Task: {0}"
+msgstr "Cancel Current Task: {0}"
+
+#. {0} is the name of the running task
+msgctxt "#32731"
+msgid "[B]Currently Running:[/B] {0}"
+msgstr "[B]Currently Running:[/B] {0}"
+
+#. {0} is a time such as 5m 3s
+msgctxt "#32732"
+msgid "[B]Duration:[/B] {0}"
+msgstr "[B]Duration:[/B] {0}"
+
+#. {0} is a time such as 5m 3s
+msgctxt "#32733"
+msgid "[B]Last Activity:[/B] {0} ago"
+msgstr "[B]Last Activity:[/B] {0} ago"
+
+#. {0} is the name of the task about to start
+msgctxt "#32734"
+msgid "[B]New Task:[/B] {0}"
+msgstr "[B]New Task:[/B] {0}"
+
+msgctxt "#32735"
+msgid "Cancelling will stop the current task safely."
+msgstr "Canceling will stop the current task safely."
+
+msgctxt "#32736"
+msgid "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
+msgstr "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
+
+msgctxt "#32737"
+msgid "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
+msgstr "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
+
+msgctxt "#32738"
+msgid "Folder saved"
+msgstr "Folder saved"
+
+msgctxt "#32739"
+msgid "Could not save the setting. Set the folder in Kodi's settings instead."
+msgstr "Could not save the setting. Set the folder in Kodi's settings instead."
+
+#. {0} is the image's position in the list
+msgctxt "#32740"
+msgid "Profile Image {0}"
+msgstr "Profile Image {0}"
+
+#. {0} is a list of counts, such as "12 Movies, 3 TV shows"
+msgctxt "#32741"
+msgid "Missing IMDb IDs: {0}"
+msgstr "Missing IMDb IDs: {0}"
+
+#. {0} is a list of counts, such as "12 Movies, 3 TV shows"
+msgctxt "#32742"
+msgid "Invalid TMDB IDs: {0}"
+msgstr "Invalid TMDB IDs: {0}"
+
+msgctxt "#32743"
+msgid "Fix these issues?"
+msgstr "Fix these issues?"
+
+msgctxt "#32744"
+msgid "Added {0} IMDb IDs"
+msgstr "Added {0} IMDb IDs"
+
+msgctxt "#32745"
+msgid "Fixed {0} TMDB IDs"
+msgstr "Fixed {0} TMDB IDs"
+
+msgctxt "#32746"
+msgid "Creator"
+msgstr "Creator"
+
+msgctxt "#32747"
+msgid "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
+msgstr "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"
-msgstr ""
+msgstr "Enable Debug Output"
 
 msgctxt "#32930"
 msgid "English"
-msgstr ""
+msgstr "English"
 
 msgctxt "#32931"
 msgid "Spanish"
-msgstr ""
+msgstr "Spanish"
 
 msgctxt "#32932"
 msgid "Portuguese (Brazil)"
-msgstr ""
+msgstr "Portuguese (Brazil)"
 
 msgctxt "#32933"
 msgid "Portuguese (Portugal)"
-msgstr ""
+msgstr "Portuguese (Portugal)"
 
 msgctxt "#32934"
 msgid "French"
-msgstr ""
+msgstr "French"
 
 msgctxt "#32935"
 msgid "German"
-msgstr ""
+msgstr "German"
 
 msgctxt "#32936"
 msgid "Chinese (Simplified)"
-msgstr ""
+msgstr "Chinese (Simplified)"
 
 msgctxt "#32937"
 msgid "Chinese (Traditional)"
-msgstr ""
+msgstr "Chinese (Traditional)"
 
 msgctxt "#32938"
 msgid "Italian"
-msgstr ""
+msgstr "Italian"
 
 msgctxt "#32939"
 msgid "Polish"
-msgstr ""
+msgstr "Polish"
 
 msgctxt "#32940"
 msgid "Russian"
-msgstr ""
+msgstr "Russian"
 
 msgctxt "#32941"
 msgid "Dutch"
-msgstr ""
+msgstr "Dutch"
 
 msgctxt "#32942"
 msgid "Swedish"
-msgstr ""
+msgstr "Swedish"
 
 msgctxt "#32943"
 msgid "Korean"
-msgstr ""
+msgstr "Korean"
 
 msgctxt "#32944"
 msgid "Japanese"
-msgstr ""
+msgstr "Japanese"
 
 msgctxt "#32950"
 msgid "Advanced API Configuration"
-msgstr ""
+msgstr "Advanced API Configuration"
 
 msgctxt "#32951"
 msgid "Use Custom TMDb API Key"
-msgstr ""
+msgstr "Use Custom TMDb API Key"
 
 msgctxt "#32952"
 msgid "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
-msgstr ""
+msgstr "A built-in TMDb API key is provided and works for most users. Enable this only if you need higher rate limits or want to use your own dedicated quota."
 
 msgctxt "#32960"
 msgid "Missing Artwork Types"
-msgstr ""
+msgstr "Missing Artwork Types"
 
 msgctxt "#32963"
 msgid "Clearlogo"
-msgstr ""
+msgstr "Clearlogo"
 
 msgctxt "#32964"
 msgid "Clearart"
-msgstr ""
+msgstr "Clearart"
 
 msgctxt "#32965"
 msgid "Thumb"
-msgstr ""
+msgstr "Thumb"
 
 msgctxt "#32966"
 msgid "Landscape"
-msgstr ""
+msgstr "Landscape"
 
 msgctxt "#32967"
 msgid "Discart"
-msgstr ""
+msgstr "Discart"
 
 msgctxt "#32968"
 msgid "Keyart"
-msgstr ""
+msgstr "Keyart"
 
 msgctxt "#32969"
 msgid "Characterart"
-msgstr ""
+msgstr "Characterart"
 
 msgctxt "#32970"
 msgid "Auto-download after Manage Artwork"
-msgstr ""
+msgstr "Auto-download after Manage Artwork"
 
 msgctxt "#32971"
 msgid "Automatically download selected artwork to filesystem after selection in Manage Artwork"
-msgstr ""
+msgstr "Automatically download selected artwork to filesystem after selection in Manage Artwork"
 
 msgctxt "#32974"
 msgid "Download Settings"
-msgstr ""
+msgstr "Download Settings"
 
 #. Settings group - language for data from online APIs (TMDb titles, plots, etc.)
 msgctxt "#32976"
 msgid "Online Service"
-msgstr ""
+msgstr "Online Service"
 
 msgctxt "#32977"
 msgid "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
-msgstr ""
+msgstr "Language for online metadata from TMDb, Last.fm, and TheAudioDB"
 
 #. Actor image download feature (context menu)
 msgctxt "#32981"
 msgid "Downloading actor images..."
-msgstr ""
+msgstr "Downloading actor images..."
 
 msgctxt "#32982"
 msgid "{0} actors"
-msgstr ""
+msgstr "{0} actors"
 
 msgctxt "#32983"
 msgid "Include TV Episode Guest Stars"
-msgstr ""
+msgstr "Include TV Episode Guest Stars"
 
 msgctxt "#32984"
 msgid "Download guest star images from TV show episodes (increases API calls)"
-msgstr ""
+msgstr "Download guest star images from TV show episodes (increases API calls)"
 
 msgctxt "#32985"
 msgid "Include Episode Thumbnails"
-msgstr ""
+msgstr "Include Episode Thumbnails"
 
 msgctxt "#32986"
 msgid "Download episode thumbnail artwork during bulk operations"
-msgstr ""
+msgstr "Download episode thumbnail artwork during bulk operations"
 
 msgctxt "#32987"
 msgid "Text too long to fully display"
-msgstr ""
+msgstr "Text too long to fully display"
 
 msgctxt "#32988"
 msgid "Sync TV Show Metadata"
-msgstr ""
+msgstr "Sync TV Show Metadata"
 
 msgctxt "#32989"
 msgid "Updates online metadata for every TV show in your library. Large libraries may take significantly longer."
-msgstr ""
+msgstr "Updates online metadata for every TV show in your library. Large libraries may take significantly longer."
 
 msgctxt "#32990"
 msgid "Fetching {0:d} of {1:d}"
-msgstr ""
+msgstr "Fetching {0:d} of {1:d}"
 
 msgctxt "#32991"
 msgid "Updated: {0:d}[CR]Skipped: {1:d}[CR]Failed: {2:d}"
-msgstr ""
+msgstr "Updated: {0:d}[CR]Skipped: {1:d}[CR]Failed: {2:d}"
 
 msgctxt "#32992"
 msgid "Library Maintenance"
-msgstr ""
+msgstr "Library Maintenance"
 
 msgctxt "#32993"
 msgid "NFO Files"
-msgstr ""
+msgstr "NFO Files"
 
 msgctxt "#32994"
 msgid "Write metadata changes to NFO files"
-msgstr ""
+msgstr "Write metadata changes to NFO files"
 
 msgctxt "#32995"
 msgid "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
-msgstr ""
+msgstr "When you edit metadata, also write the change to the item's local NFO file so it survives a library refresh or rescrape."
 
 msgctxt "#32996"
 msgid "Create an NFO file when none exists"
-msgstr ""
+msgstr "Create an NFO file when none exists"
 
 msgctxt "#32997"
 msgid "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
-msgstr ""
+msgstr "If the item has no NFO file yet, create one. When off, only existing NFO files are updated."
 
 msgctxt "#32998"
 msgid "Include watched state in NFO files"
-msgstr ""
+msgstr "Include watched state in NFO files"
 
 msgctxt "#32999"
 msgid "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
-msgstr ""
+msgstr "Write playcount and last-played date to NFO files. Turn off to keep watched state out of your NFO files."
