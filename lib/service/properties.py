@@ -229,9 +229,10 @@ def _seconds_to_minutes(seconds: int) -> int:
     return round(seconds / 60)
 
 
-def _runtime_props(minutes: int, playcount: int = 0) -> Dict[str, str]:
-    """Runtime and WatchTime keys, shared by the unified block and the per-type builders."""
-    watched = minutes * playcount if minutes > 0 and playcount > 0 else 0
+def _runtime_props(minutes: int, playcount: int = 0, watched: int = 0) -> Dict[str, str]:
+    """Runtime and WatchTime keys; a show or season passes its summed minutes watched."""
+    if not watched and minutes > 0 and playcount > 0:
+        watched = minutes * playcount
     props: Dict[str, str] = {}
     for key, total in (("Runtime", minutes), ("WatchTime", watched)):
         hrs, mins = divmod(total, 60)
@@ -239,6 +240,22 @@ def _runtime_props(minutes: int, playcount: int = 0) -> Dict[str, str]:
         props[f"{key}.Hours"] = str(hrs) if hrs else ""
         props[f"{key}.Minutes"] = str(mins) if mins >= 1 else ""
     return props
+
+
+def _watch_time_props(details: dict) -> Dict[str, str]:
+    """WatchTime keys for a show or season, from the minutes watched across its episodes."""
+    watched = int(details.get("watch_minutes") or 0)
+    return {k: v for k, v in _runtime_props(0, watched=watched).items()
+            if k.startswith("WatchTime")}
+
+
+def set_watch_time_properties(media_type: str, minutes: int, unified: bool) -> None:
+    """Set a show's or season's WatchTime properties, and the unified block's when it owns it."""
+    data = _watch_time_props({"watch_minutes": minutes})
+    props: Dict[str, Optional[str]] = {f"SkinInfo.{media_type}.{k}": v for k, v in data.items()}
+    if unified:
+        props.update({f"SkinInfo.ListItem.{k}": v for k, v in data.items()})
+    batch_set_props(props)
 
 
 def _rt_status_props(ratings_dict: Optional[dict]) -> Dict[str, str]:
@@ -274,6 +291,7 @@ def _build_listitem_unified_data(
     genre: str = "",
     runtime_minutes: int = 0,
     playcount: int = 0,
+    watched_minutes: int = 0,
     duration_seconds: int = 0,
     rating: Optional[float] = None,
     votes: Optional[int] = None,
@@ -292,7 +310,7 @@ def _build_listitem_unified_data(
     data["ListItem.Year"] = year
     data["ListItem.Genre"] = genre
 
-    for key, val in _runtime_props(runtime_minutes, playcount).items():
+    for key, val in _runtime_props(runtime_minutes, playcount, watched_minutes).items():
         data[f"ListItem.{key}"] = val
 
     for key, val in _duration_props(duration_seconds).items():
@@ -1099,6 +1117,7 @@ def build_tvshow_data(details: dict) -> dict:
     else:
         watched_percent = 0
     data["WatchedEpisodePercent"] = str(watched_percent)
+    data.update(_watch_time_props(details))
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
@@ -1121,6 +1140,7 @@ def set_tvshow_properties(details: dict) -> None:
         year=str(details.get("year")) if details.get("year") else "",
         genre=join_multi(details.get("genre")),
         runtime_minutes=_seconds_to_minutes(runtime_seconds),
+        watched_minutes=int(details.get("watch_minutes") or 0),
         rating=details.get("rating"),
         votes=details.get("votes"),
         userrating=details.get("userrating"),
@@ -1162,6 +1182,7 @@ def build_season_data(details: dict) -> dict:
     data["Playcount"] = str(playcount) if playcount else ""
     data["UserRating"] = str(userrating) if userrating else ""
     data["TVShowID"] = str(tvshowid) if tvshowid and tvshowid != -1 else ""
+    data.update(_watch_time_props(details))
 
     return data
 
@@ -1177,6 +1198,7 @@ def set_season_properties(details: dict) -> None:
     unified = _build_listitem_unified_data(
         title=details.get("title") or "",
         runtime_minutes=_seconds_to_minutes(runtime_seconds),
+        watched_minutes=int(details.get("watch_minutes") or 0),
         userrating=details.get("userrating"),
     )
     set_listitem_unified_properties(unified)

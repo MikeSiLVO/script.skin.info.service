@@ -71,6 +71,9 @@ class LibraryMonitor(xbmc.Monitor):
             return
         from lib.data.database.rollcall import remove_dbid
         remove_dbid(media_type, dbid)
+        if media_type in ('episode', 'tvshow'):
+            from lib.service.library.focus import forget_watch_minutes
+            forget_watch_minutes(int(dbid) if media_type == 'tvshow' else None)
         if media_type == 'tvshow':
             from lib.data.database.runtime import invalidate_show_runtime
             invalidate_show_runtime(int(dbid))
@@ -87,6 +90,14 @@ class LibraryMonitor(xbmc.Monitor):
         dbid = item.get('id')
         if not dbid:
             return
+        if media_type == 'episode' and ('playcount' in info or 'item' not in info):
+            from lib.kodi.client import get_item_details
+            from lib.service.library.focus import forget_watch_minutes, watch_minutes_cached
+            tvshowid = None
+            if watch_minutes_cached():
+                episode = get_item_details('episode', int(dbid), ['tvshowid'])
+                tvshowid = episode.get('tvshowid') if isinstance(episode, dict) else None
+            forget_watch_minutes(tvshowid if tvshowid and tvshowid > 0 else None)
         self.service_main.focus.invalidate_item(media_type, dbid)
         if 'playcount' in info or 'item' in info:
             return

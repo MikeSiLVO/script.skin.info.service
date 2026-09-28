@@ -25,6 +25,7 @@ from lib.service.properties import (
     set_episode_properties,
     set_ratings_properties,
     set_movie_extras_aggregates,
+    set_watch_time_properties,
     clear_listitem_unified_properties,
 )
 
@@ -119,6 +120,57 @@ def _resolve_season_runtime(tvshowid: int, season: int) -> int:
     total = sum(runtimes)
     runtime_cache.save_season_runtime(tvshowid, season, total, len(runtimes))
     return total
+
+
+_WATCH_MINUTES: Dict[int, Dict[Optional[int], int]] = {}
+_watch_generation = 0
+
+
+def cached_watch_minutes(tvshowid: int, season: Optional[int] = None) -> Optional[int]:
+    """Cached minutes watched for a show, or one of its seasons; None when not fetched yet."""
+    show = _WATCH_MINUTES.get(tvshowid)
+    if show is None:
+        return None
+    return show.get(season, 0)
+
+
+def resolve_watch_minutes(tvshowid: int, season: Optional[int] = None) -> int:
+    """Resolve the minutes watched for a show or season, one fetch covering all its seasons."""
+    cached = cached_watch_minutes(tvshowid, season)
+    if cached is not None:
+        return cached
+    generation = _watch_generation
+    props = ["runtime", "playcount", "season"] if is_kodi_piers_or_later() else [
+        "runtime", "playcount", "season", "streamdetails"]
+    resp = request("VideoLibrary.GetEpisodes", {
+        "tvshowid": tvshowid, "properties": props,
+        "filter": {"field": "playcount", "operator": "greaterthan", "value": "0"},
+    })
+    if resp is None:
+        return 0
+    totals: Dict[Optional[int], int] = {None: 0}
+    for episode in extract_result(resp, "episodes"):
+        minutes = round((episode.get("runtime") or 0) / 60) * (episode.get("playcount") or 0)
+        totals[None] += minutes
+        totals[episode.get("season")] = totals.get(episode.get("season"), 0) + minutes
+    if generation == _watch_generation:
+        _WATCH_MINUTES[tvshowid] = totals
+    return totals.get(season, 0)
+
+
+def watch_minutes_cached() -> bool:
+    """Whether any show's watch times are cached."""
+    return bool(_WATCH_MINUTES)
+
+
+def forget_watch_minutes(tvshowid: Optional[int] = None) -> None:
+    """Forget one show's cached watch times, or every show's when the show is not known."""
+    global _watch_generation
+    _watch_generation += 1
+    if tvshowid is None:
+        _WATCH_MINUTES.clear()
+    else:
+        _WATCH_MINUTES.pop(tvshowid, None)
 
 
 _CONTAINER_CONTENT_TYPES = {
@@ -398,7 +450,8 @@ class FocusDispatcher:
         if result:
             set_album_properties(*result)
 
-    def _set_tvshow(self, tvshowid: str) -> None:
+    def _set_tvshow(self, tvshowid: str, defer: bool = True) -> bool:
+        """Set tvshow properties for the focused item; True when its watch time is still due."""
         details = get_item_details(
             'tvshow', int(tvshowid),
             [
@@ -411,15 +464,45 @@ class FocusDispatcher:
             cache_key=f"tvshow:{tvshowid}:details",
         )
         if not isinstance(details, dict):
-            return
+            return False
 
         total, avg = resolve_show_runtime(int(tvshowid))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total
+        pending = self._watch_minutes_now(details, int(tvshowid))
 
         set_tvshow_properties(details)
         set_ratings_properties(details, "TVShow")
+        if pending and defer:
+            self._defer_watch_minutes(int(tvshowid), None, tvshowid, "tvshow")
+        return pending
+
+    @staticmethod
+    def _watch_minutes_now(details: dict, tvshowid: int) -> bool:
+        """Fill in a show's minutes watched from the cache; True when a fetch is still needed."""
+        if not details.get("watchedepisodes"):
+            details["watch_minutes"] = 0
+            return False
+        cached = cached_watch_minutes(tvshowid)
+        details["watch_minutes"] = cached or 0
+        return cached is None
+
+    def _defer_watch_minutes(self, tvshowid: int, season: Optional[int], focus_id: str,
+                             focus_type: str) -> None:
+        """Fetch minutes watched off-thread, publishing them only while the item holds focus."""
+        def worker() -> None:
+            if self._service.abort.wait(0.3) or self._last_id != focus_id:
+                return
+            show = resolve_watch_minutes(tvshowid)
+            season_minutes = resolve_watch_minutes(tvshowid, season) if season is not None else 0
+            if self._last_id != focus_id or self._last_type != focus_type:
+                return
+            set_watch_time_properties("TVShow", show, unified=season is None)
+            if season is not None:
+                set_watch_time_properties("Season", season_minutes, unified=True)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _set_season(self, seasonid: str) -> None:
         details = get_item_details(
@@ -442,10 +525,17 @@ class FocusDispatcher:
             if season_num is not None:
                 details["total_runtime"] = _resolve_season_runtime(int(tvshowid), int(season_num))
 
+        key: Optional[Tuple[int, int]] = None
+        if tvshowid and tvshowid != -1 and season_num is not None:
+            key = (int(tvshowid), int(season_num))
+            details["watch_minutes"] = cached_watch_minutes(*key) or 0
+
         set_season_properties(details)
 
         if tvshowid and tvshowid != -1:
-            self._set_tvshow(str(tvshowid))
+            show_due = self._set_tvshow(str(tvshowid), defer=False)
+            if show_due and key:
+                self._defer_watch_minutes(*key, seasonid, "season")
 
     def _set_episode(self, episodeid: str) -> None:
         details = get_item_details(

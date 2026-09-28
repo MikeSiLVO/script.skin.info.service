@@ -103,11 +103,13 @@ class PlayerVideoTracker:
         if not isinstance(details, dict):
             return
 
-        from lib.service.library.focus import resolve_show_runtime
+        from lib.service.library.focus import resolve_show_runtime, resolve_watch_minutes
         total, avg = resolve_show_runtime(int(tvshowid))
         if not details.get("runtime") and avg:
             details["runtime"] = avg
         details["total_runtime"] = total
+        if details.get("watchedepisodes"):
+            details["watch_minutes"] = resolve_watch_minutes(int(tvshowid))
 
         from lib.service.properties import build_tvshow_data
         data = build_tvshow_data(details)
