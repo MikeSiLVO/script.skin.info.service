@@ -24,7 +24,7 @@ def _resolve_musicvideo_artist_mbid(
 ) -> Optional[str]:
     """Artist MBID for a music video, from the music library or TheAudioDB."""
     from lib.kodi.library import library_artist_mbid
-    from lib.service.music import resolve_artist_mbids
+    from lib.data.music import resolve_artist_mbids
 
     mbid = library_artist_mbid(artist_name)
     if mbid or bulk:

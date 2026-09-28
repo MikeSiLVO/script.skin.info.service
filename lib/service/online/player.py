@@ -10,13 +10,13 @@ import xbmc
 from lib.kodi.client import log
 from lib.kodi.utilities import clear_group, batch_set_props
 from lib.data.database.cache import CacheKey
+from lib.data.online import fetch_all_online_data, make_cache_key
 from lib.service.online.helpers import (
     infolabel_imdb_id,
-    make_cache_key,
     resolve_ids_from,
     resolve_show_ids,
 )
-from lib.service.online.fetchers import EpisodeRatings, fetch_all_online_data
+from lib.service.online.fetchers import EpisodeRatings
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain

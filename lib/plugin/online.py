@@ -11,7 +11,7 @@ from lib.kodi.client import log
 def handle_online(handle: int, params: dict) -> None:
     """Plugin entry for the online-data ListItem; library mode needs `dbid`+`dbtype`, direct mode
     needs `tmdb_id` or `imdb_id`."""
-    from lib.service.online.fetchers import fetch_all_online_data
+    from lib.data.online import fetch_all_online_data
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
 
@@ -140,7 +140,7 @@ def handle_online(handle: int, params: dict) -> None:
 def _handle_online_musicvideo(handle: int, params: dict) -> None:
     """Fetch online music metadata for a music video and return as ListItem properties."""
     from lib.kodi.client import get_item_details
-    from lib.service.music import (
+    from lib.data.music import (
         fetch_artist_online_data,
         fetch_track_online_data,
         fetch_album_online_data,

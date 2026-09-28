@@ -247,7 +247,7 @@ def handle_similar_artists(handle: int, params: dict) -> None:
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32697))
     limit = int(params.get('limit', ['25'])[0])
 
-    from lib.service.music import get_similar_artist_names
+    from lib.data.music import get_similar_artist_names
     similar_names = get_similar_artist_names(artist_name)
 
     if not similar_names:

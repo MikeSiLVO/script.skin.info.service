@@ -94,7 +94,7 @@ class MusicVideoFocusHandler:
             if token.is_requested():
                 return
 
-            from lib.service.music import (
+            from lib.data.music import (
                 fetch_artist_online_data,
                 fill_artist_online_props,
                 fill_track_online_props,

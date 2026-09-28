@@ -14,8 +14,7 @@ from lib.data.database.cache import (
     get_cached_online_properties,
     cache_online_properties,
 )
-from lib.service.online.helpers import get_online_ttl, make_cache_key
-from lib.service.online.fetchers import fetch_tmdb_online_data
+from lib.data.online import fetch_tmdb_online_data, get_online_ttl, make_cache_key
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain

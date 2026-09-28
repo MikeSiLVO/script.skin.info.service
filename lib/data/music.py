@@ -1,9 +1,4 @@
-"""Unified music artist resolution and online data fetching.
-
-Provides a single resolution chain for MusicBrainz artist IDs from any entry point
-(audio playback, music video playback, music video focus). Fetches artist bio, fanart,
-and artwork URLs from AudioDB and Fanart.tv, cached in `blob_cache`.
-"""
+"""Music artist ID resolution and online artist, track and album data, cached per provider."""
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
@@ -34,11 +29,7 @@ from lib.kodi.utilities import MULTI_VALUE_SEP
 def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
                          album: Optional[str] = None, track: Optional[str] = None,
                          abort_flag=None) -> Tuple[List[str], Optional[dict]]:
-    """Resolve MusicBrainz artist IDs via MBID direct -> album -> track -> name search.
-
-    Returns `(mbids, audiodb_artist_data)`. The dict is populated only when the
-    name-search branch is taken (avoids a later refetch).
-    """
+    """Resolve artist MBIDs by album, track, then name; a name match returns AudioDB's record."""
     if mbids:
         return mbids, None
 
@@ -88,10 +79,7 @@ def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
 
 
 def read_cached_fanart(mbids: List[str]) -> List[str]:
-    """Read cached fanart URLs for artist MBIDs.
-
-    Prefers Fanart.tv over AudioDB. Returns deduplicated URL list.
-    """
+    """Read cached fanart URLs for artist MBIDs from Fanart.tv, AudioDB's only when it has none."""
     from lib.data.database import cache as db_cache
 
     seen: set = set()
@@ -122,10 +110,7 @@ def read_cached_fanart(mbids: List[str]) -> List[str]:
 
 
 def read_cached_artist_art(mbids: List[str]) -> Dict[str, str]:
-    """Read cached thumb/clearlogo/banner URLs for artist MBIDs.
-
-    Prefers Fanart.tv over AudioDB for each type.
-    """
+    """Read cached thumb, clearlogo and banner URLs for artist MBIDs, Fanart.tv's first."""
     from lib.data.database import cache as db_cache
 
     result: Dict[str, str] = {}
@@ -150,11 +135,7 @@ def fetch_and_cache_artist_artwork(
     abort_flag,
     cached_artist_data: Optional[dict] = None,
 ) -> Optional[dict]:
-    """Fetch and cache artist artwork from Fanart.tv and AudioDB.
-
-    Uses music metadata DB cache to avoid redundant AudioDB API calls.
-    Returns AudioDB artist data dict if available (for bio extraction).
-    """
+    """Fetch and cache artist art from Fanart.tv and AudioDB; returns AudioDB's artist record."""
     from lib.data.api.fanarttv import ApiFanarttv
     from lib.data.api.audiodb import get_audiodb
     from lib.data.database import cache as db_cache
@@ -250,10 +231,7 @@ def _fetch_and_cache_artist_metadata(
     *,
     abort_flag=None,
 ) -> str:
-    """Parallel fetch AudioDB + Last.fm artist data, cache both.
-
-    Returns best available bio string.
-    """
+    """Fetch and cache AudioDB and Last.fm artist data in parallel; returns the best bio."""
     from lib.data.api.audiodb import get_audiodb
     from lib.data.api.lastfm import ApiLastfm
 
@@ -293,10 +271,7 @@ def fetch_artist_online_data(
     track: Optional[str] = None,
     abort_flag=None,
 ) -> Optional[MusicOnlineResult]:
-    """Top-level function: resolve MBIDs, fetch artwork + bio.
-
-    Returns MusicOnlineResult or None on abort/failure.
-    """
+    """Fetch an artist's bio and artwork once its MBIDs resolve; None on abort or no MBID."""
     resolved_mbids, artist_data = resolve_artist_mbids(
         artist_name, mbids=mbids, album=album, track=track, abort_flag=abort_flag
     )
@@ -503,10 +478,7 @@ def extract_track_properties(artist: str, track: str) -> Dict[str, str]:
 
 
 def get_similar_artist_names(artist_name: str) -> List[str]:
-    """Extract similar artist names from cached Last.fm data.
-
-    Falls back to inline API fetch if not cached.
-    """
+    """Get similar artist names from Last.fm, fetched when nothing is cached."""
     primary_name = artist_name.split(MULTI_VALUE_SEP)[0].strip()
     if not primary_name:
         return []

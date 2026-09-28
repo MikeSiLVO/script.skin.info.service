@@ -1,18 +1,11 @@
-"""Online service helpers: cache key, TTL derivation, ID resolution."""
+"""Online service helpers: item ids from the InfoLabels, and dropping an item's online cache."""
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 import xbmc
 
-from lib.data.database.cache import CacheKey, invalidate_online_properties
-
-
-def get_online_ttl(media_type: str, tmdb_id: str) -> int:
-    """Derive smart TTL from cached TMDB metadata for online properties cache."""
-    from lib.data.database.cache import get_title_ttl_hours
-
-    return get_title_ttl_hours(media_type, tmdb_id) or 72
+from lib.data.database.cache import invalidate_online_properties
 
 
 def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
@@ -21,13 +14,6 @@ def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
     imdb_id, tmdb_id = get_item_uniqueids(media_type, dbid)
     if imdb_id or tmdb_id:
         invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
-
-
-def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str,
-                   scope: str = '') -> Optional[CacheKey]:
-    """Build a stable cache key. TMDB preferred (earlier-resolved, consistent), IMDb fallback."""
-    item_id = tmdb_id or imdb_id
-    return CacheKey(media_type, item_id, scope) if item_id else None
 
 
 def infolabel_imdb_id(info_prefix: str) -> str:

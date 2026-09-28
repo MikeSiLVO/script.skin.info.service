@@ -18,14 +18,13 @@ from lib.data.database.cache import (
     online_cache_generation,
     cache_online_properties,
 )
+from lib.data.online import fetch_all_online_data, get_online_ttl, make_cache_key
 from lib.service.online.helpers import (
-    get_online_ttl,
-    make_cache_key,
     infolabel_imdb_id,
     resolve_ids_from,
     resolve_show_ids,
 )
-from lib.service.online.fetchers import EpisodeRatings, fetch_all_online_data
+from lib.service.online.fetchers import EpisodeRatings
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain

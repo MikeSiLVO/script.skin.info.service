@@ -10,10 +10,9 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import clear_group, set_prop, batch_set_props
-from lib.service.online.fetchers import get_playing_artist_mbids
 
 if TYPE_CHECKING:
-    from lib.service.music import MusicOnlineResult
+    from lib.data.music import MusicOnlineResult
     from lib.service.online.main import OnlineServiceMain
 
 
@@ -56,6 +55,21 @@ _MODES = (
         log_label="Music video player",
     ),
 )
+
+
+def get_playing_artist_mbids() -> List[str]:
+    """Return MusicBrainz artist IDs for the currently playing audio (or `[]`)."""
+    try:
+        player = xbmc.Player()
+        if not player.isPlayingAudio():
+            return []
+        tag = player.getMusicInfoTag()
+        mbids = tag.getMusicBrainzArtistID()
+        if isinstance(mbids, list):
+            return [m for m in mbids if m]
+        return []
+    except Exception:
+        return []
 
 
 class MusicPlayerHandler:
@@ -154,7 +168,7 @@ class MusicPlayerHandler:
                     self._apply_parts(mode, artist_name, title, album)
                 return
 
-            from lib.service.music import fetch_artist_online_data
+            from lib.data.music import fetch_artist_online_data
 
             mbids = get_playing_artist_mbids() if mode.fetch_mbids else None
             result = fetch_artist_online_data(
@@ -176,7 +190,7 @@ class MusicPlayerHandler:
     def _apply(self, mode: _Mode, artist_name: str, result: 'MusicOnlineResult',
                track: Optional[str], album: Optional[str]) -> None:
         """Publish artist, track and album properties under this mode's prefix."""
-        from lib.service.music import fill_artist_online_props
+        from lib.data.music import fill_artist_online_props
 
         self._fanart_urls = result.fanart_urls
         self._fanart_index = 0
@@ -192,7 +206,7 @@ class MusicPlayerHandler:
     def _apply_parts(self, mode: _Mode, artist_name: str,
                      track: Optional[str], album: Optional[str]) -> None:
         """Publish the track and album properties for whatever is playing now."""
-        from lib.service.music import fill_track_online_props, fill_album_online_props
+        from lib.data.music import fill_track_online_props, fill_album_online_props
 
         if track:
             track_props: Dict[str, Optional[str]] = {}

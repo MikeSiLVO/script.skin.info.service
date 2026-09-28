@@ -16,8 +16,7 @@ from lib.data.database.cache import (
 from lib.data.database.mapping import get_imdb_ids_batch
 from lib.infrastructure import tasks as task_manager
 from lib.infrastructure.dialogs import ProgressDialog
-from lib.service.online.fetchers import fetch_tmdb_online_data
-from lib.service.online.helpers import get_online_ttl, make_cache_key
+from lib.data.online import fetch_tmdb_online_data, get_online_ttl, make_cache_key
 
 
 def run_sync_tvshows() -> None:
