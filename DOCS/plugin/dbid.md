@@ -210,6 +210,9 @@ Roger Ebert and Letterboxd also get `Rating.{source}.Stars`, their own number ou
 | `TotalRuntime`    | Total runtime of all episodes in minutes |
 | `TotalRuntime.Hours` | Hours component |
 | `TotalRuntime.Minutes` | Minutes component |
+| `WatchTime`       | Minutes watched across all episodes |
+| `WatchTime.Hours` | Hours component   |
+| `WatchTime.Minutes` | Minutes component |
 | `Tomatometer`    | "Fresh" or "Rotten" (based on ≥60%) |
 | `Popcornmeter`   | "Fresh" or "Spilled" (based on ≥60%) |
 
@@ -254,6 +257,9 @@ Ratings: `ListItem.Rating(<source>)` and the same properties as [Movie Ratings](
 | `TotalRuntime`    | Total runtime of the season's episodes in minutes |
 | `TotalRuntime.Hours` | Hours component |
 | `TotalRuntime.Minutes` | Minutes component |
+| `WatchTime`       | Minutes watched across the season's episodes |
+| `WatchTime.Hours` | Hours component   |
+| `WatchTime.Minutes` | Minutes component |
 
 ### Season Artwork
 
