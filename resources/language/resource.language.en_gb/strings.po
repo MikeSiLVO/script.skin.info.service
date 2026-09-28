@@ -353,15 +353,15 @@ msgid "By Age (Older Than...)"
 msgstr ""
 
 msgctxt "#32090"
-msgid "By Usage (Low Usage)"
+msgid "Identifying uncached artwork..."
 msgstr ""
 
 msgctxt "#32091"
-msgid "By URL Pattern (Force Re-Cache)"
+msgid "Finding orphaned textures..."
 msgstr ""
 
 msgctxt "#32092"
-msgid "Advanced Cleanup..."
+msgid "Removing {0} orphaned textures..."
 msgstr ""
 
 msgctxt "#32093"
@@ -494,7 +494,7 @@ msgid "Multi-Art..."
 msgstr ""
 
 msgctxt "#32131"
-msgid "Sort"
+msgid "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
 msgstr ""
 
 msgctxt "#32132"
@@ -610,7 +610,7 @@ msgid "Task Already Running"
 msgstr ""
 
 msgctxt "#32173"
-msgid "Another background task is currently running"
+msgid "Found {0} library artwork URLs"
 msgstr ""
 
 msgctxt "#32180"
@@ -818,11 +818,11 @@ msgid "Errors: {0}"
 msgstr ""
 
 msgctxt "#32288"
-msgid "No items in queue"
+msgid "Found {0} TV shows. Checking which are not cached..."
 msgstr ""
 
 msgctxt "#32289"
-msgid "No pending items found in queue"
+msgid "All TV shows are already cached."
 msgstr ""
 
 msgctxt "#32290"
@@ -875,10 +875,6 @@ msgstr ""
 
 msgctxt "#32302"
 msgid "Remove {0} rating?"
-msgstr ""
-
-msgctxt "#32303"
-msgid "Loading {0}s..."
 msgstr ""
 
 msgctxt "#32304"
@@ -1353,15 +1349,16 @@ msgid "Total: {0} | Oldest: {1}"
 msgstr ""
 
 msgctxt "#32485"
-msgid "Cleanup by Usage"
+msgid "Failed to analyze textures"
 msgstr ""
 
 msgctxt "#32486"
-msgid "Feature coming soon!"
+msgid "Overwrite mode is enabled"
 msgstr ""
 
+#. {0} is a list such as "Movies: filename prefix"
 msgctxt "#32487"
-msgid "Force Re-Cache by Pattern"
+msgid "Filename pattern: {0}"
 msgstr ""
 
 msgctxt "#32488"
@@ -1413,7 +1410,7 @@ msgid "Session Report"
 msgstr ""
 
 msgctxt "#32501"
-msgid "Continue Selection ({0} pending)"
+msgid "Mismatches found: {0} files"
 msgstr ""
 
 msgctxt "#32502"
@@ -1449,27 +1446,26 @@ msgid "Last Session (any library)"
 msgstr ""
 
 msgctxt "#32511"
-msgid "Current Queue Status"
+msgid "Original artwork will be [B]deleted[/B] after a successful download."
 msgstr ""
 
 msgctxt "#32512"
 msgid "Session History"
 msgstr ""
 
+#. {0} is a library section such as "Movies"
 msgctxt "#32513"
-msgid "Missing Artwork - Queue Status"
+msgid "{0}: filename prefix"
 msgstr ""
 
+#. {0} is a library section such as "Movies"
 msgctxt "#32514"
-msgid "Start new scan (clears queue)"
+msgid "{0}: no prefix"
 msgstr ""
 
+#. {0} is a library section such as "Movies"
 msgctxt "#32515"
-msgid "View last report"
-msgstr ""
-
-msgctxt "#32516"
-msgid "Start new scan"
+msgid "Loading {0}..."
 msgstr ""
 
 msgctxt "#32520"
@@ -1592,10 +1588,6 @@ msgctxt "#32567"
 msgid "Auto-Fill"
 msgstr ""
 
-msgctxt "#32568"
-msgid "Resume in Background"
-msgstr ""
-
 msgctxt "#32569"
 msgid "Yes, Cancel It"
 msgstr ""
@@ -1606,14 +1598,6 @@ msgstr ""
 
 msgctxt "#32571"
 msgid "Cancel Running Task?"
-msgstr ""
-
-msgctxt "#32572"
-msgid "Scan Cancelled"
-msgstr ""
-
-msgctxt "#32573"
-msgid "Scan paused. Resume in background?"
 msgstr ""
 
 msgctxt "#32574"
@@ -1630,10 +1614,6 @@ msgstr ""
 
 msgctxt "#32577"
 msgid "Resuming scan..."
-msgstr ""
-
-msgctxt "#32578"
-msgid "Background scan complete"
 msgstr ""
 
 msgctxt "#32579"
@@ -1682,14 +1662,6 @@ msgstr ""
 
 msgctxt "#32590"
 msgid "... and {0} more"
-msgstr ""
-
-msgctxt "#32591"
-msgid "Cannot resume in background."
-msgstr ""
-
-msgctxt "#32592"
-msgid "Cancel it and start {0}?"
 msgstr ""
 
 msgctxt "#32595"

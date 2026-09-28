@@ -500,7 +500,8 @@ def _execute_age_cleanup(age_days: int) -> None:
             )
             return
 
-        oldest_str = oldest_date.strftime('%Y-%m-%d') if oldest_date else "Unknown"
+        oldest_str = (oldest_date.strftime('%Y-%m-%d') if oldest_date
+                      else xbmc.getLocalizedString(13205))
 
         confirm = dialog.yesno(
             ADDON.getLocalizedString(32482),
@@ -514,7 +515,8 @@ def _execute_age_cleanup(age_days: int) -> None:
     except Exception as e:
         progress.close()
         log("Texture", f" Analysis failed: {str(e)}", xbmc.LOGERROR)
-        dialog.ok(ADDON.getLocalizedString(32184), f"Failed to analyze textures:[CR]{str(e)}")
+        dialog.ok(ADDON.getLocalizedString(32184),
+                  f"{ADDON.getLocalizedString(32485)}:[CR]{str(e)}")
         return
 
     from lib.infrastructure.menus import run_with_mode_choice

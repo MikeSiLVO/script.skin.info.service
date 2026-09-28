@@ -10,6 +10,7 @@ import xbmcvfs
 from typing import Optional, List, Dict, Tuple, Any, Final
 
 from lib.kodi.client import KODI_GET_LIBRARY_METHODS, get_library_items
+from lib.kodi.utilities import media_type_label
 from lib.download.queue import DownloadQueue
 from lib.infrastructure.paths import (
     DirectoryListing, PathBuilder, get_album_folders, resolve_media_file, use_basename_for
@@ -342,21 +343,21 @@ def download_scope_artwork(scope: str, media_filter: Optional[List[str]] = None,
             pattern_desc = []
             if (mismatch_counts.get('movie_folder_to_basename', 0) > 0
                     or mismatch_counts.get('movie_basename_to_folder', 0) > 0):
-                pattern_desc.append(
-                    f"Movies: {'basename' if savewith_basefilename else 'folder'} mode"
-                )
+                pattern_desc.append(ADDON.getLocalizedString(
+                    32513 if savewith_basefilename else 32514).format(media_type_label('movie')))
             if (mismatch_counts.get('mvid_folder_to_basename', 0) > 0
                     or mismatch_counts.get('mvid_basename_to_folder', 0) > 0):
-                pattern_desc.append("Music videos: basename mode")
+                pattern_desc.append(
+                    ADDON.getLocalizedString(32513).format(media_type_label('musicvideo')))
 
             pattern_text = ", ".join(pattern_desc)
 
             confirmed = show_yesno(
                 ADDON.getLocalizedString(32119),
-                f"[B]Overwrite mode is enabled[/B][CR][CR]"
-                f"Filename pattern: {pattern_text}[CR]"
-                f"Mismatches detected: {total_mismatches} files[CR][CR]"
-                f"Original artwork will be [B]deleted[/B] after successful download.[CR][CR]",
+                f"[B]{ADDON.getLocalizedString(32486)}[/B][CR][CR]"
+                f"{ADDON.getLocalizedString(32487).format(pattern_text)}[CR]"
+                f"{ADDON.getLocalizedString(32501).format(total_mismatches)}[CR][CR]"
+                f"{ADDON.getLocalizedString(32511)}[CR][CR]",
                 nolabel=xbmc.getLocalizedString(222),
                 yeslabel=ADDON.getLocalizedString(32566)
             )

@@ -102,6 +102,18 @@ DEFAULT_LANGUAGE: Final = 'en'
 MULTI_VALUE_SEP: Final = " / "
 
 
+_MEDIA_TYPE_LABELS: Final = {
+    'movie': 342, 'tvshow': 20343, 'season': 33054, 'episode': 20360,
+    'musicvideo': 20389, 'set': 20434, 'artist': 133, 'album': 132,
+}
+
+
+def media_type_label(media_type: str) -> str:
+    """Get Kodi's own translated name for a library section, the raw type when it has none."""
+    string_id = _MEDIA_TYPE_LABELS.get(media_type)
+    return xbmc.getLocalizedString(string_id) if string_id else media_type
+
+
 def join_multi(items: Optional[List[Any]], separator: str = MULTI_VALUE_SEP) -> str:
     """Join a list into a Kodi-style multi-value string, dropping falsy entries."""
     if not items:

@@ -6,7 +6,8 @@ from typing import Optional, List, Dict, Set, Any, Callable
 
 import xbmc
 
-from lib.kodi.client import request, get_library_items, log, decode_image_url
+from lib.kodi.client import ADDON, request, get_library_items, log, decode_image_url
+from lib.kodi.utilities import media_type_label
 from lib.infrastructure.dialogs import ProgressDialog
 
 
@@ -151,8 +152,8 @@ def get_library_scan_data(media_types: Optional[List[str]] = None,
                           done: int, total: int):
         if progress_dialog:
             frac = (type_index - 1 + (done / total if total else 1)) / type_count
-            progress_dialog.update(10 + int(frac * 15),
-                                   f"Scanning {media_type}: {done:,} / {total:,}")
+            label = ADDON.getLocalizedString(32704).format(media_type_label(media_type))
+            progress_dialog.update(10 + int(frac * 15), f"{label}: {done:,} / {total:,}")
 
     library_urls = get_all_library_artwork_urls(
         media_types, progress_callback=progress_callback, include_cast=include_cast,
@@ -160,8 +161,8 @@ def get_library_scan_data(media_types: Optional[List[str]] = None,
     )
 
     if progress_dialog:
-        progress_dialog.update(25, f"Found {len(library_urls)} library URLs")
-        progress_dialog.update(30, "Checking texture cache...")
+        progress_dialog.update(25, ADDON.getLocalizedString(32173).format(len(library_urls)))
+        progress_dialog.update(30, ADDON.getLocalizedString(32331))
 
     cached_textures = get_cached_textures()
     cached_urls = {t['url'] for t in cached_textures}

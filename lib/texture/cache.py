@@ -9,6 +9,7 @@ import xbmcgui
 
 from lib.kodi.client import get_library_items, log, ADDON, decode_image_url, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
+from lib.kodi.utilities import media_type_label
 from lib.infrastructure.dialogs import ProgressDialog
 from lib.infrastructure.paths import (
     PathBuilder,
@@ -63,14 +64,14 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
             media_types = list(DEFAULT_TEXTURE_MEDIA_TYPES)
 
         if progress_dialog:
-            progress_dialog.update(0, "Scanning library for artwork URLs...")
+            progress_dialog.update(0, ADDON.getLocalizedString(32292))
 
         def progress_callback(type_index: int, type_count: int, media_type: str,
                               done: int, total: int):
             if progress_dialog:
                 frac = (type_index - 1 + (done / total if total else 1)) / type_count
-                progress_dialog.update(int(frac * 10),
-                                       f"Scanning {media_type}: {done:,} / {total:,}")
+                label = ADDON.getLocalizedString(32704).format(media_type_label(media_type))
+                progress_dialog.update(int(frac * 10), f"{label}: {done:,} / {total:,}")
 
         library_urls = get_all_library_artwork_urls(
             media_types, progress_callback=progress_callback
@@ -79,12 +80,12 @@ def precache_library_artwork(media_types: Optional[List[str]] = None,
         log("Artwork", f"Pre-cache: found {len(library_urls)} total library artwork URLs")
 
         if progress_dialog:
-            progress_dialog.update(10, "Loading texture cache...")
+            progress_dialog.update(10, ADDON.getLocalizedString(32331))
 
         cached_urls_set = load_cached_urls_once()
 
         if progress_dialog:
-            progress_dialog.update(20, "Identifying uncached artwork...")
+            progress_dialog.update(20, ADDON.getLocalizedString(32090))
 
         precacheable_urls = []
         urls_to_cache = []
@@ -220,7 +221,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
 
     try:
         if progress_dialog:
-            progress_dialog.update(5, "Scanning library...")
+            progress_dialog.update(5, ADDON.getLocalizedString(32292))
 
         def has_artwork(item: Dict[str, Any]) -> bool:
             art = item.get('art', {})
@@ -435,7 +436,7 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
         stats['total_cached'] = scan_data['stats']['total_cached']
 
         if progress_dialog:
-            progress_dialog.update(50, "Finding orphaned textures...")
+            progress_dialog.update(50, ADDON.getLocalizedString(32091))
 
         orphaned = []
         for texture in cached_textures:
@@ -453,10 +454,9 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
 
             while True:
                 result = dialog.yesnocustom(
-                    "Confirm Cleanup",
-                    f"Found {stats['orphaned_found']} orphaned textures to remove.[CR][CR]"
-                    f"Continue with removal?",
-                    customlabel="View Report"
+                    ADDON.getLocalizedString(32482),
+                    ADDON.getLocalizedString(32131).format(stats['orphaned_found']),
+                    customlabel=ADDON.getLocalizedString(32282)
                 )
 
                 if result == 2:
@@ -481,7 +481,8 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
                     return stats
 
         if progress_dialog:
-            progress_dialog.update(60, f"Removing {stats['orphaned_found']} orphaned textures...")
+            progress_dialog.update(
+                60, ADDON.getLocalizedString(32092).format(stats['orphaned_found']))
 
         for idx, texture in enumerate(orphaned):
             if (

@@ -10,6 +10,7 @@ import xbmcgui
 from lib.infrastructure import tasks as task_manager
 from lib.kodi.client import request, get_library_items, log, ADDON, LibraryScanAborted
 from lib.kodi.settings import KodiSettings
+from lib.kodi.utilities import media_type_label
 from lib.data.api.imdb import get_imdb_dataset
 from lib.data.api import tracker as usage_tracker
 from lib.data.database import workflow as db
@@ -131,19 +132,20 @@ def update_library_ratings(
         properties = ["title", "year", "uniqueid", "ratings"]
 
     heading = ADDON.getLocalizedString(32318 if source_mode == "imdb" else 32300)
+    loading = ADDON.getLocalizedString(32515).format(media_type_label(media_type))
     progress: xbmcgui.DialogProgress | xbmcgui.DialogProgressBG
     if use_background:
         progress = xbmcgui.DialogProgressBG()
-        progress.create(heading, ADDON.getLocalizedString(32303).format(media_type))
+        progress.create(heading, loading)
     else:
         progress = DialogProgress()
-        progress.create(heading, ADDON.getLocalizedString(32303).format(media_type))
+        progress.create(heading, loading)
 
     monitor = xbmc.Monitor()
 
     def _loading_progress(_mt: str, done: int, total: int) -> None:
         percent = min(100, int((done * 100) / total)) if total else 0
-        message = f"{ADDON.getLocalizedString(32303).format(media_type)} {done:,}/{total:,}"
+        message = f"{loading} {done:,}/{total:,}"
         if isinstance(progress, xbmcgui.DialogProgressBG):
             progress.update(percent, heading, message)
         else:

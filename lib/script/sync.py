@@ -66,13 +66,13 @@ def _execute_sync(progress: ProgressDialog, ctx: task_manager.TaskContext) -> Di
     stats = {"fetched": 0, "skipped": 0, "failed": 0, "cancelled": False}
     monitor = xbmc.Monitor()
 
-    progress.update(0, "Scanning library...")
+    progress.update(0, ADDON.getLocalizedString(32292))
     library_shows = _get_all_library_shows()
     total_library = len(library_shows)
     if total_library == 0:
         return stats
 
-    progress.update(2, f"Found {total_library} TV shows. Identifying uncached...")
+    progress.update(2, ADDON.getLocalizedString(32288).format(total_library))
     cached_keys = get_cached_online_keys()
     imdb_map = get_imdb_ids_batch(
         {s["tmdb_id"] for s in library_shows}, "tvshow"
@@ -88,7 +88,7 @@ def _execute_sync(progress: ProgressDialog, ctx: task_manager.TaskContext) -> Di
         work.append({**s, "imdb_id": imdb_id, "cache_key": cache_key})
 
     if not work:
-        progress.update(100, "All TV shows already cached.")
+        progress.update(100, ADDON.getLocalizedString(32289))
         return stats
 
     total_work = len(work)
