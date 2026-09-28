@@ -7,7 +7,7 @@ import xbmcgui
 import xbmcplugin
 from typing import Optional
 from lib.kodi.client import (
-    request, extract_result, get_item_details, KODI_MOVIE_PROPERTIES, log,
+    get_item_details, KODI_MOVIE_PROPERTIES, log,
 )
 from lib.kodi.formatters import format_stars, RATING_SOURCE_NORMALIZE
 from lib.kodi.utilities import MULTI_VALUE_SEP, parse_pipe_list, tvshow_version_fields
@@ -21,7 +21,11 @@ from lib.plugin.listitems import (
     build_artist_data,
     build_album_data,
 )
-from lib.kodi.library import fetch_album_details, fetch_artist_details, get_musicvideo_library_art
+from lib.kodi.library import (
+    cached_watched_episodes, fetch_album_details, fetch_artist_details,
+    get_musicvideo_library_art, resolve_season_runtime, resolve_show_runtime,
+    resolve_watch_minutes,
+)
 
 
 def _set_stream_details(video_tag: xbmc.InfoTagVideo, streamdetails: dict) -> None:
@@ -165,6 +169,13 @@ def _get_tvshow_data(tvshowid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
+    total, avg = resolve_show_runtime(tvshowid, details.get("episode"))
+    if not details.get("runtime") and avg:
+        details["runtime"] = avg
+    details["total_runtime"] = total
+    if details.get("watchedepisodes"):
+        details["watch_minutes"] = resolve_watch_minutes(tvshowid)
+
     return _with_raw_dates(build_tvshow_data(details), details)
 
 
@@ -179,15 +190,16 @@ def _get_season_data(seasonid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
-    # GetSeasonDetails never returns watchedepisodes; GetSeasons does
     tvshowid = details.get("tvshowid")
-    if tvshowid and tvshowid > 0:
-        seasons = extract_result(request("VideoLibrary.GetSeasons", {
-            "tvshowid": tvshowid, "properties": ["watchedepisodes"],
-        }), "seasons")
-        match = next((s for s in seasons if s.get("seasonid") == seasonid), None)
-        if match:
-            details["watchedepisodes"] = match.get("watchedepisodes", 0)
+    season = details.get("season")
+    if tvshowid and tvshowid > 0 and season is not None:
+        _, avg = resolve_show_runtime(tvshowid)
+        if avg:
+            details["runtime"] = avg
+        details["total_runtime"] = resolve_season_runtime(tvshowid, season, details.get("episode"))
+        details["watch_minutes"] = resolve_watch_minutes(tvshowid, season)
+        # GetSeasonDetails never returns watchedepisodes
+        details["watchedepisodes"] = cached_watched_episodes(tvshowid, season) or 0
 
     return build_season_data(details)
 
