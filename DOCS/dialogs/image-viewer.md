@@ -25,7 +25,7 @@ A full-screen image viewer for any plugin URL that returns image items. Left/rig
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `images_path` | Yes | Plugin URL returning a directory of image ListItems. Any plugin that returns items with art works (e.g. `?action=person_info&info_type=images&person_id=N`). |
-| `selected_index` | No | 1-based position to focus on open. Pass `$INFO[Container.CurrentItem]` directly — the dialog converts to 0-based internally. Default `1`. |
+| `selected_index` | No | 1-based position to focus on open. Pass `$INFO[Container.CurrentItem]` directly. Default `1`. |
 
 ## Window Properties
 

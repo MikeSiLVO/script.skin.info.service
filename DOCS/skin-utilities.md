@@ -68,7 +68,7 @@ All actions use `action=name` or `dialog=type` syntax.
 
 ## Dialog Utilities
 
-Complete set of Kodi dialog wrappers that execute builtins based on user choices. All dialogs work with no parameters for quick skin testing.
+Kodi dialogs that run builtins on the user's choice. All dialogs work with no parameters for quick skin testing.
 
 ### Test Defaults
 
@@ -90,7 +90,7 @@ Show Yes/No confirmation dialog with custom actions for each button.
 **Usage:**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,dialog=yesno,heading=Delete?,message=Are you sure?,yesaction=RunPlugin(delete),noaction=Notification(Cancelled))</onclick>
+<onclick>RunScript(script.skin.info.service,dialog=yesno,heading=Delete?,message=Are you sure?,yesaction=RunPlugin(delete),noaction=Notification(Canceled))</onclick>
 ```
 
 **Parameters:**
@@ -185,7 +185,7 @@ Show select dialog with single selection.
 | `separator`                                  | No       | \|                        | Item separator                             |
 | `executebuiltin`                             | No       | -                         | Template with {index}/{value} placeholders |
 | `executebuiltin_0`, `executebuiltin_1`, etc. | No       | -                         | Per-index actions (override template)      |
-| `cancel_action`                              | No       | -                         | Pipe-separated builtins if cancelled       |
+| `cancel_action`                              | No       | -                         | Pipe-separated builtins if canceled       |
 | `preselect`                                  | No       | -1                        | Index or value to preselect                |
 | `usedetails`                                 | No       | false                     | Use detailed list view                     |
 | `autoclose`                                  | No       | 0                         | Milliseconds to auto-close                 |
@@ -243,7 +243,7 @@ Show context menu popup (strings only, no property mode).
 | `separator`              | No       | \|                        | Item separator                       |
 | `executebuiltin`         | No       | -                         | Template with {index}/{value}        |
 | `executebuiltin_0`, etc. | No       | -                         | Per-index actions                    |
-| `cancel_action`          | No       | -                         | Pipe-separated builtins if cancelled |
+| `cancel_action`          | No       | -                         | Pipe-separated builtins if canceled |
 
 ---
 
@@ -266,7 +266,7 @@ Show text/keyboard input dialog.
 | `default`       | No       | -             | Default value                                                   |
 | `hidden`        | No       | false         | Hide input (for alphanum type)                                  |
 | `doneaction`    | No       | -             | Template with {value} placeholder                               |
-| `cancel_action` | No       | -             | Pipe-separated builtins if cancelled                            |
+| `cancel_action` | No       | -             | Pipe-separated builtins if canceled                            |
 | `autoclose`     | No       | 0             | Milliseconds to auto-close                                      |
 
 ---
@@ -290,7 +290,7 @@ Show numeric input dialog.
 | `default`       | No       | -             | Default value                                           |
 | `hidden`        | No       | false         | Hide input (type 0 only)                                |
 | `doneaction`    | No       | -             | Template with {value} placeholder                       |
-| `cancel_action` | No       | -             | Pipe-separated builtins if cancelled                    |
+| `cancel_action` | No       | -             | Pipe-separated builtins if canceled                    |
 
 ---
 
@@ -357,7 +357,7 @@ Show file/folder browser dialog.
 | `default`       | No       | -             | Default path                                                                    |
 | `multiple`      | No       | false         | Allow multiple selection                                                        |
 | `doneaction`    | No       | -             | Template with {value} (called per file if multiple)                             |
-| `cancel_action` | No       | -             | Pipe-separated builtins if cancelled                                            |
+| `cancel_action` | No       | -             | Pipe-separated builtins if canceled                                            |
 
 ---
 
@@ -378,7 +378,7 @@ Show color picker dialog.
 | `heading`       | No       | "Choose Color" | Dialog heading                       |
 | `default`       | No       | -              | Default hex color (AARRGGBB)         |
 | `doneaction`    | No       | -              | Template with {value} placeholder    |
-| `cancel_action` | No       | -              | Pipe-separated builtins if cancelled |
+| `cancel_action` | No       | -              | Pipe-separated builtins if canceled |
 
 ---
 
@@ -610,7 +610,7 @@ For complex conditions, use `SkinInfo.CM_Focus.N` properties on home window:
 - Checked only if `next_focus` parameter not provided
 - Must be set on `home` window
 - Format same as parameter: `condition::focus_id` or just `focus_id`
-- If both parameter and properties are set, parameter takes precedence (warning logged)
+- If both parameter and properties are set, parameter takes precedence
 
 ---
 
@@ -700,8 +700,8 @@ Play all items from a directory path in order. Auto-detects media type (music vs
 
 Automatically detects media type from path:
 
-- `musicdb://` or `library://music/` → Uses music playlist (playlistid 0)
-- All other paths → Uses video playlist (playlistid 1)
+- `musicdb://` or `library://music/` → Uses music playlist
+- All other paths → Uses video playlist
 
 **Behavior:**
 
@@ -755,7 +755,6 @@ Automatically detects media type from path:
 
 - Shows notification if path is empty
 - Shows notification if directory contains no items
-- Uses JSON-RPC for all operations (Kodi handles directory expansion)
 
 ---
 
@@ -780,24 +779,7 @@ Play all items from a directory path in random order. Auto-detects media type (m
 | --------------------- | ------ | ------------------------------------------- |
 | `path` (positional 0) | string | Directory path to play (can use InfoLabels) |
 
-**Supported Paths:**
-
-Same as `playall` - any directory path supported by Kodi (video or music).
-
-**Media Type Detection:**
-
-Automatically detects media type from path:
-
-- `musicdb://` or `library://music/` → Uses music playlist (playlistid 0)
-- All other paths → Uses video playlist (playlistid 1)
-
-**Behavior:**
-
-1. Detects media type from path prefix
-2. Validates directory contains playable items
-3. Clears appropriate playlist (music or video)
-4. Adds all items from directory recursively
-5. Starts playback shuffled
+Same as `playall`, shuffled.
 
 **Examples:**
 
@@ -836,17 +818,8 @@ Automatically detects media type from path:
 <onclick>RunScript(script.skin.info.service,action=playrandom,path=$INFO[Container.FolderPath])</onclick>
 ```
 
-**Error Handling:**
-
-- Shows notification if path is empty
-- Shows notification if directory contains no items
-- Uses JSON-RPC for all operations (Kodi handles directory expansion)
-
 **Notes:**
 
-- Both `playall` and `playrandom` use JSON-RPC Playlist methods
-- Auto-detects media type from path (music vs video)
-- Kodi handles directory expansion automatically (recursive=true)
 - Works with any path type that Kodi can enumerate
 - InfoLabels starting with `$` are automatically resolved
 - Playlist operations clear existing playlist before adding new items
@@ -856,7 +829,7 @@ Automatically detects media type from path:
 
 ## Settings Utilities
 
-Utilities for manipulating Kodi settings via JSON-RPC. See [kodi-settings.md](kodi-settings.md) for a complete list of available settings.
+Utilities for changing Kodi settings. See [kodi-settings.md](kodi-settings.md) for a complete list of available settings.
 
 ### Get Kodi Setting
 
@@ -958,8 +931,7 @@ Set a Kodi setting value with user confirmation.
 
 - User must confirm the change via yes/no dialog
 - `noconfirm=true` skips the dialog, but only for skin-scoped settings: `lookandfeel.skincolors`, `lookandfeel.skintheme`, `lookandfeel.font`. These reset to default when the user changes skins, so they cannot affect anything outside your skin. All other settings always show the dialog.
-- Values are validated against the setting type by Kodi's JSON-RPC
-- Passing wrong type (e.g., string to integer setting) returns error
+- See [Limitations](kodi-settings.md#limitations) for what can be set
 - See [kodi-settings.md](kodi-settings.md) for setting types
 
 ---
@@ -1005,8 +977,7 @@ Toggle a boolean Kodi setting with user confirmation.
 
 - User must confirm the change via yes/no dialog
 - `noconfirm=true` skips the dialog, but only for skin-scoped settings (see [Set Kodi Setting](#set-kodi-setting))
-- Only works with boolean type settings
-- Non-boolean settings fail silently
+- See [Limitations](kodi-settings.md#limitations) for what can be toggled
 - See [kodi-settings.md](kodi-settings.md) for boolean settings
 
 ---
@@ -1458,11 +1429,11 @@ Pairs separated by `|`, arrays separated by `;`:
 key:value|key:value|key:a;b;c
 ```
 
-- `key:value` — single value pair
-- `key:a;b;c` — array value (use `;` because RunScript splits on `,`)
-- `key:42` — coerced to int
-- `key:0.5` — coerced to float
-- `key:true` / `key:false` / `key:null` — coerced
+- `key:value`: single value pair
+- `key:a;b;c`: array value (use `;` because RunScript splits on `,`)
+- `key:42`: coerced to int
+- `key:0.5`: coerced to float
+- `key:true` / `key:false` / `key:null`: coerced
 - Anything else stays a string
 
 If `params` starts with `{` or `[`, the entire value is parsed as JSON instead. Useful for nested structures.
@@ -1489,15 +1460,15 @@ Binds result keys to `SkinInfo.{prop_prefix}.{key}` window properties. Nested di
 <label>Version: $INFO[Window(Home).Property(SkinInfo.App.version.major)]</label>
 ```
 
-Property mode requires the result to be a dict — methods that return scalars or lists won't bind cleanly. Inspect with textviewer mode first.
+Property mode requires the result to be a dict; methods that return scalars or lists won't bind cleanly. Inspect with textviewer mode first.
 
 #### Common methods to try
 
-- `Application.GetProperties` — volume, mute, version, name
-- `Player.GetProperties` — time, totaltime, speed, percentage (params: `playerid:1|properties:time;totaltime;speed`)
-- `System.GetProperties` — canhibernate, cansuspend, canreboot, canshutdown
-- `GUI.GetProperties` — current window, fullscreen, stereoscopic mode
-- `XBMC.GetInfoBooleans` / `XBMC.GetInfoLabels` — equivalent of `Window().Property()` lookups
+- `Application.GetProperties`: volume, mute, version, name
+- `Player.GetProperties`: time, totaltime, speed, percentage (params: `playerid:1|properties:time;totaltime;speed`)
+- `System.GetProperties`: canhibernate, cansuspend, canreboot, canshutdown
+- `GUI.GetProperties`: current window, fullscreen, stereoscopic mode
+- `XBMC.GetInfoBooleans` / `XBMC.GetInfoLabels`: equivalent of `Window().Property()` lookups
 
 The full method list is in Kodi's documentation: <https://kodi.wiki/view/JSON-RPC_API/v13>.
 
@@ -1513,8 +1484,7 @@ The service provides automatic refresh properties for widget auto-reload.
 
 **Triggers:**
 
-- `VideoLibrary.OnUpdate` - Item added/removed, playcount changed, resume point updated
-- `VideoLibrary.OnScanFinished` - Library scan completed
+- Items added or removed, watched state or resume point changed, scan finished
 
 **Usage:**
 
@@ -1529,15 +1499,15 @@ Auto-increment properties on fixed time intervals for periodic widget refresh.
 
 **Available Intervals:**
 
-| Property                 | Interval   | Use Case                                |
-| ------------------------ | ---------- | --------------------------------------- |
-| `SkinInfo.Refresh.5min`  | 5 minutes  | Very frequent updates (news, live data) |
-| `SkinInfo.Refresh.10min` | 10 minutes | Quick refresh cycles                    |
-| `SkinInfo.Refresh.15min` | 15 minutes | Quarter hour updates                    |
-| `SkinInfo.Refresh.20min` | 20 minutes | Short content rotation                  |
-| `SkinInfo.Refresh.30min` | 30 minutes | Half hour updates                       |
-| `SkinInfo.Refresh.45min` | 45 minutes | Three-quarter hour updates              |
-| `SkinInfo.Refresh.60min` | 60 minutes | Hourly updates                          |
+| Property                 | Interval   |
+| ------------------------ | ---------- |
+| `SkinInfo.Refresh.5min`  | 5 minutes  |
+| `SkinInfo.Refresh.10min` | 10 minutes |
+| `SkinInfo.Refresh.15min` | 15 minutes |
+| `SkinInfo.Refresh.20min` | 20 minutes |
+| `SkinInfo.Refresh.30min` | 30 minutes |
+| `SkinInfo.Refresh.45min` | 45 minutes |
+| `SkinInfo.Refresh.60min` | 60 minutes |
 
 **Usage:**
 

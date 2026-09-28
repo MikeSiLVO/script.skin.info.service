@@ -167,7 +167,6 @@ For each art type, a visual dialog shows:
 - Thumbnail previews of all available options
 - Resolution (width × height)
 - Language (if applicable)
-- Clear labels and metadata
 
 ### User Actions
 
@@ -208,7 +207,7 @@ Manual-review session details:
 
 - Manual selections (title, art type, source, URL)
 - Manual skips and auto-skipped entries (with reasons)
-- Stale detections (queue entries invalidated mid-review)
+- Items that changed during review
 - Auto-fetch runs: counts, applied URLs, skipped titles, remaining queue size
 
 Reports are accessible from:
@@ -241,9 +240,8 @@ Toggle which art types to scan for:
 Each scan checks only the types a media type can hold, so enabling Poster has no effect on
 episodes and enabling Characterart has no effect on movies.
 
-Library scans and auto-apply work through TMDB and fanart.tv only. TheAudioDB is reserved for
-single item review, where one item at a time stays inside its rate limit. The art types it alone
-carries are therefore not scanned for and not auto-applied:
+TheAudioDB art is offered in single item review only. The art types only TheAudioDB carries are
+not scanned for and not auto-applied:
 
 | Media type | Single item review only |
 |------------|-------------------------|
@@ -261,8 +259,8 @@ what automatic fetching puts in an empty music video thumb slot:
 | Option | Source | Notes |
 |--------|--------|-------|
 | Video screenshots | TheAudioDB | Default. Matches Kodi's music video scraper |
-| Album cover | Fanart.tv | No extra API calls |
-| Artist thumb | Fanart.tv | No extra API calls |
+| Album cover | Fanart.tv | |
+| Artist thumb | Fanart.tv | |
 
 It applies to automatic fetching only. Single item review always offers every image it can find,
 whatever this is set to, so you can pick something else for an individual video.
@@ -329,32 +327,20 @@ Kodi will automatically use your skin's version if it exists, otherwise falls ba
 - `ListItem.Property(language_short)`: Language code (e.g., "en") when known
 - `ListItem.Property(season)`: Season number (when known)
 
-**Example conditional usage in XML:**
+**Example:**
 
 ```xml
-<!-- Show different layout for fanart vs poster -->
-<visible>String.IsEqual(Window.Property(arttype),fanart)</visible>
-<visible>String.IsEqual(Window.Property(arttype),poster)</visible>
+<!-- One list layout per art shape -->
+<visible>String.IsEqual(Window.Property(artlayout),fanart)</visible>
 
-<!-- Show message if only 1 option available -->
-<visible>String.IsEqual(Window.Property(count_total),1)</visible>
-
-<!-- Different layouts for movies vs TV shows -->
-<visible>String.IsEqual(Window.Property(mediatype),movie)</visible>
-<visible>String.IsEqual(Window.Property(mediatype),tvshow)</visible>
-
-<!-- Show title with year context -->
-<label>$INFO[Window.Property(heading)] ($INFO[Window.Property(year)])</label>
-
-<!-- Show "Replace Existing" indicator when artwork exists -->
-<visible>String.IsEqual(Window.Property(hascurrentart),true)</visible>
-
-<!-- Side-by-side before/after comparison -->
+<!-- The artwork the item has now, beside the options -->
 <control type="image">
     <texture>$INFO[Window.Property(currentarturl)]</texture>
-    <label>Current Artwork</label>
     <visible>String.IsEqual(Window.Property(hascurrentart),true)</visible>
 </control>
+
+<!-- Mark the option already in use -->
+<visible>String.IsEqual(ListItem.Property(is_current),true)</visible>
 ```
 
 ### Multi-Art Dialog Skinning

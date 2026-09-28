@@ -28,7 +28,7 @@ Returns deduplicated cast list for movies, TV shows, seasons, movie sets, or epi
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `dbid` | Conditional | Library ID of the item. Required when `online=false`. Omit for non-library (add-on) items. |
-| `tmdb_id` | Conditional | TMDB ID. With `online=true`, used directly and takes precedence over `dbid`/`imdb_id` for `movie`, `tvshow` and `set`. For `episode` and `season` a `dbid` wins, because TMDB needs the show's ID rather than the episode's. |
+| `tmdb_id` | Conditional | TMDB ID. With `online=true`, used directly and takes precedence over `dbid`/`imdb_id` for `movie`, `tvshow` and `set`. For `episode` and `season` a `dbid` wins. |
 | `imdb_id` | Conditional | IMDb ID (`tt…`). With `online=true`, resolved to a TMDB ID when `tmdb_id` is absent. |
 | `dbtype` | Yes | Media type: `movie`, `tvshow`, `season`, `set`, `episode` |
 | `season` | Conditional | Season number. Needed for `episode`/`season` in `online` mode when there is no `dbid`. |
@@ -107,14 +107,24 @@ For episodes, also pass the season and episode numbers (the ids are the show's):
 <content>plugin://script.skin.info.service/?action=get_cast&amp;online=true&amp;dbtype=episode&amp;tmdb_id=$INFO[ListItem.UniqueID(tmdb)]&amp;imdb_id=$INFO[ListItem.IMDBNumber]&amp;season=$INFO[ListItem.Season]&amp;episode=$INFO[ListItem.Episode]</content>
 ```
 
-Pass both `tmdb_id` and `imdb_id` when available; `tmdb_id` is used directly and `imdb_id` is the fallback. A skin can pick library vs online with a `String.IsEmpty(ListItem.DBID)` condition.
+Pass both `tmdb_id` and `imdb_id` when available; `tmdb_id` is used directly and `imdb_id` is the fallback.
+
+One container can serve library and non-library items, with a variable choosing the path:
+
+```xml
+<variable name="CastPath">
+    <value condition="String.IsEmpty(ListItem.DBID)">plugin://script.skin.info.service/?action=get_cast&amp;online=true&amp;dbtype=$INFO[ListItem.DBType]&amp;tmdb_id=$INFO[ListItem.UniqueID(tmdb)]&amp;imdb_id=$INFO[ListItem.IMDBNumber]</value>
+    <value>plugin://script.skin.info.service/?action=get_cast&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]</value>
+</variable>
+
+<content>$VAR[CastPath]</content>
+```
 
 ### Library Mode
 
 Kodi stores guest stars on the episode, not on the show:
 
-- `tvshow` - Show cast only, no guest stars. Online, this is TMDB's billed show cast; where TMDB
-  has none it falls back to the regulars across every season, then to every credited actor
+- `tvshow` - Show cast only, no guest stars
 - `episode` - Episode cast (guest stars included) plus the show cast
 - `season` - Deduplicated cast from every episode in the season, so guest stars are included
 
@@ -132,17 +142,15 @@ When `online=true` is used, cast is fetched directly from TMDB:
 - Default: Cast from Kodi database
 - Online: Aggregate credits + all unique guest stars
 
+**TV shows:**
+
+- Online: TMDB's billed show cast; where TMDB has none, the regulars across every season, then every credited actor
+
 Online mode also sets `person_id` property for direct person_info integration.
 
 ### Aggregate Behavior
 
-For `set` and `season` types:
-
-1. Retrieves all items in collection
-2. Aggregates cast from all items
-3. Deduplicates by actor name (preserves first appearance order)
-4. Tracks source item ID (movieid/episodeid) for each actor
-5. Returns up to 2000 unique cast members
+For `set` and `season` types, cast is deduplicated by actor name, in first appearance order, up to 2000.
 
 ---
 
@@ -201,7 +209,7 @@ Returns cast for the currently playing library item.
 - Only works when video is playing
 - Returns empty if no video playing or video is not from library
 - For episodes, `aggregate=true` aggregates cast from all episodes in the show
-- Not cached - updates when playback changes
+- Updates when playback changes
 
 ---
 

@@ -48,7 +48,7 @@ Media-type-agnostic properties that work regardless of what item is focused.
 | `Title` | Item title | All |
 | `Plot` | Plot or description | Movie, TVShow, Episode, Set, Artist, Album, MusicVideo |
 | `Year` | Release year | Movie, TVShow, Album, MusicVideo |
-| `Genre` | Genre(s), comma-separated | All except Season |
+| `Genre` | Genre(s), `" / "` separated | All except Season |
 
 ### Runtime (Video)
 
@@ -62,7 +62,7 @@ Media-type-agnostic properties that work regardless of what item is focused.
 
 ### Time Watched (Video)
 
-Total time spent watching an item, equal to `Runtime × PlayCount`. `Runtime` is rounded to whole minutes to match Kodi's `$INFO[ListItem.Duration(mins)]`, so `WatchTime` reconciles when done by hand. For a TV show or season it is the sum of its episodes' `WatchTime`. Empty when unwatched.
+Total time spent watching an item, equal to `Runtime × PlayCount`. `Runtime` is in whole minutes. For a TV show or season it is the sum of its episodes' `WatchTime`. Empty when unwatched.
 
 | Property | Description | Available For |
 |----------|-------------|---------------|
@@ -156,7 +156,7 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Playcount` | Number of times played |
 | `LastPlayed` | Last played date |
 | `DateAdded` | Date added to library |
-| `Tag` | Tags, comma-separated |
+| `Tag` | Tags, `" / "` separated |
 | `IMDBNumber` | IMDB ID |
 | `Top250` | IMDB Top 250 ranking |
 | `UniqueID.IMDB` | IMDB unique ID |
@@ -167,13 +167,13 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 
 | Property | Description |
 |----------|-------------|
-| `Director` | Director(s), comma-separated |
-| `Writer` | Writer(s), comma-separated |
-| `Cast` | Cast members, comma-separated |
-| `Genre` | Genre(s), comma-separated |
-| `Studio` | Studio(s), comma-separated |
+| `Director` | Director(s), `" / "` separated |
+| `Writer` | Writer(s), `" / "` separated |
+| `Cast` | Cast members, `" / "` separated |
+| `Genre` | Genre(s), `" / "` separated |
+| `Studio` | Studio(s), `" / "` separated |
 | `StudioPrimary` | First studio only |
-| `Country` | Country(ies), comma-separated |
+| `Country` | Country(ies), `" / "` separated |
 
 ### Technical
 
@@ -218,9 +218,9 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 
 ### Video Versions / Extras View (Piers+)
 
-Inside a video versions or extras container (`Container.Content(videoversions)` or `Container.Content(videoextras)`), the parent movie's `SkinInfo.Movie.*` properties stay populated even when focus moves to the virtual "Extras" folder item or to an extras file (both of which expose an empty `ListItem.DBID`). The parent movie ID is extracted from `Container.FolderPath`, so the same `Title`/`Plot`/`Art(...)` keys remain valid throughout the view.
+Inside a video versions or extras container (`Container.Content(videoversions)` or `Container.Content(videoextras)`), the parent movie's `SkinInfo.Movie.*` properties stay populated even when focus moves to the virtual "Extras" folder item or to an extras file, so the same `Title`/`Plot`/`Art(...)` keys remain valid throughout the view.
 
-In addition, three aggregates summarise the contents of the parent movie's extras subdirectory:
+In addition, four aggregates summarize the contents of the parent movie's extras subdirectory:
 
 | Property | Description |
 |----------|-------------|
@@ -235,7 +235,7 @@ In addition, three aggregates summarise the contents of the parent movie's extra
 <label>$INFO[Window(Home).Property(SkinInfo.Movie.Extras.UnwatchedRuntime)] min remaining</label>
 ```
 
-Aggregates are cleared when focus leaves the versions/extras container. No-op on Kodi versions earlier than Piers (the `videoversions`/`videoextras` content types and the `/2/` extras path segment do not exist there).
+Aggregates are cleared when focus leaves the versions/extras container. Not set on Kodi versions earlier than Piers.
 
 ---
 
@@ -393,11 +393,11 @@ Use `%d` as placeholder for index (1-based):
 
 | Property | Description |
 |----------|-------------|
-| `Cast` | Cast members, comma-separated |
-| `Genre` | Genre(s), comma-separated |
-| `Studio` | Studio(s), comma-separated |
+| `Cast` | Cast members, `" / "` separated |
+| `Genre` | Genre(s), `" / "` separated |
+| `Studio` | Studio(s), `" / "` separated |
 | `StudioPrimary` | First studio only |
-| `Tag` | Tags, comma-separated |
+| `Tag` | Tags, `" / "` separated |
 
 ### Artwork
 
@@ -513,11 +513,11 @@ Use `%d` as placeholder for index (1-based):
 
 | Property | Description |
 |----------|-------------|
-| `Cast` | Cast members, comma-separated |
-| `Director` | Director(s), comma-separated |
-| `Writer` | Writer(s), comma-separated |
-| `Genre` | Genre(s), comma-separated |
-| `Studio` | Studio(s), comma-separated |
+| `Cast` | Cast members, `" / "` separated |
+| `Director` | Director(s), `" / "` separated |
+| `Writer` | Writer(s), `" / "` separated |
+| `Genre` | Genre(s), `" / "` separated |
+| `Studio` | Studio(s), `" / "` separated |
 
 ### Technical
 
@@ -559,7 +559,7 @@ Use `%d` as placeholder for index (1-based):
 | Property | Description |
 |----------|-------------|
 | `Title` | Music video title |
-| `Artist` | Artist(s), comma-separated |
+| `Artist` | Artist(s), `" / "` separated |
 | `ArtistPrimary` | First artist only |
 | `Album` | Album name |
 | `Year` | Release year |
@@ -589,17 +589,15 @@ Use `%d` as placeholder for index (1-based):
 | `UniqueID.TMDB` | TMDB unique ID |
 | `PercentPlayed` | Playback progress percentage |
 | `IsResumable` | `true` when there is a resume point |
-| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
-| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### Credits
 
 | Property | Description |
 |----------|-------------|
-| `Genre` | Genre(s), comma-separated |
-| `Director` | Director(s), comma-separated |
-| `Studio` | Studio(s), comma-separated |
-| `Tag` | Tags, comma-separated |
+| `Genre` | Genre(s), `" / "` separated |
+| `Director` | Director(s), `" / "` separated |
+| `Studio` | Studio(s), `" / "` separated |
+| `Tag` | Tags, `" / "` separated |
 
 ### Technical
 
@@ -644,7 +642,7 @@ When the music video's artist exists in the music library, additional properties
 
 ### Music Video Artist/Album Nodes
 
-When browsing `videodb://musicvideos/artists/` or `videodb://musicvideos/albums/`, the service detects these nodes using `ListItem.Property(musicvideomediatype)` and sets the same `SkinInfo.MusicVideo.*` prefix properties from the music library cross-reference above.
+When browsing `videodb://musicvideos/artists/` or `videodb://musicvideos/albums/`, on these nodes the service sets the same `SkinInfo.MusicVideo.*` prefix properties from the music library cross-reference above.
 
 Artist nodes also trigger an online data fetch for artist bio and fanart (see [Online Properties](online.md)).
 
@@ -660,17 +658,17 @@ Artist nodes also trigger an online data fetch for artist bio and fanart (see [O
 |----------|-------------|
 | `Artist` | Artist name |
 | `Description` | Artist biography |
-| `Genre` | Genre(s), comma-separated |
+| `Genre` | Genre(s), `" / "` separated |
 | `DateAdded` | Date added to library |
 
 ### Artist Details
 
 | Property | Description |
 |----------|-------------|
-| `Style` | Style(s), comma-separated |
-| `Mood` | Mood(s), comma-separated |
-| `Instrument` | Instrument(s), comma-separated |
-| `YearsActive` | Years active, comma-separated |
+| `Style` | Style(s), `" / "` separated |
+| `Mood` | Mood(s), `" / "` separated |
+| `Instrument` | Instrument(s), `" / "` separated |
+| `YearsActive` | Years active, `" / "` separated |
 | `Born` | Birth date |
 | `Formed` | Formation date (for bands) |
 | `Died` | Death date |
@@ -680,8 +678,8 @@ Artist nodes also trigger an online data fetch for artist bio and fanart (see [O
 | `SortName` | Sort name |
 | `Disambiguation` | Disambiguation string |
 | `MusicBrainzID` | MusicBrainz ID(s) |
-| `Roles` | Roles, comma-separated |
-| `SongGenres` | Song genres, comma-separated |
+| `Roles` | Roles, `" / "` separated |
+| `SongGenres` | Song genres, `" / "` separated |
 
 ### Artwork
 
@@ -728,11 +726,11 @@ Use `%d` as placeholder for index (1-based):
 |----------|-------------|
 | `Title` | Album title |
 | `Year` | Release year |
-| `Artist` | Artist(s), comma-separated |
+| `Artist` | Artist(s), `" / "` separated |
 | `DisplayArtist` | Display artist name |
 | `SortArtist` | Sort artist name |
-| `Genre` | Genre(s), comma-separated |
-| `SongGenres` | Song genres, comma-separated |
+| `Genre` | Genre(s), `" / "` separated |
+| `SongGenres` | Song genres, `" / "` separated |
 | `Label` | Record label |
 | `Description` | Album description |
 

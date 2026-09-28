@@ -51,8 +51,8 @@ per-monitor bools instead:
 ```
 
 A skin that does not read any `SkinInfo.Online.*` / `SkinInfo.MusicVideo.Online.*`
-properties should set `SkinInfo.Service.Library` so the online monitor (and its API
-calls) never start. Setting `SkinInfo.Service` is equivalent to setting both bools.
+properties can set `SkinInfo.Service.Library` alone, which sets no `SkinInfo.Online.*`
+properties. Setting `SkinInfo.Service` is equivalent to setting both bools.
 
 ### Skin-Dependent vs Independent Services
 

@@ -70,7 +70,7 @@ For each item, the latest ratings are fetched from the enabled providers and wri
 
 - Items without an external ID (no `imdb`, `tmdb` or `tvdb` uniqueid in the library) are skipped.
 - Episode ratings require a TMDB ID on the parent show.
-- The full update is throttled to provider rate limits; large libraries may take a while in background mode.
+- Large libraries take a while in background mode.
 
 ---
 

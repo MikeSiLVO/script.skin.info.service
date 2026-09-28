@@ -14,7 +14,6 @@ Fetch ratings, awards, and metadata from external APIs via plugin container.
 - [Two-Container Pattern](#two-container-pattern)
 - [Available Properties](#available-properties)
 - [Music Video Properties](#music-video-properties)
-- [Notes](#notes)
 
 ---
 
@@ -71,7 +70,7 @@ Two modes available:
 | `dbid` | * | Database ID (library items) |
 | `tmdb_id` | * | TMDb ID (non-library items, video only) |
 | `imdb_id` | * | IMDB ID (non-library items, video only) |
-| `reload` | No | Cache buster |
+| `reload` | No | Any value; a change forces a refetch |
 
 \* Provide one of: `dbid`, `tmdb_id`, or `imdb_id`
 
@@ -120,7 +119,7 @@ Use two hidden containers - Kodi data loads instantly, online data appears when 
     <content>plugin://script.skin.info.service/?dbid=$INFO[ListItem.DBID]&amp;dbtype=movie</content>
 </control>
 
-<!-- Container 2: Online data (blocks until complete) -->
+<!-- Container 2: Online data -->
 <control type="list" id="9001">
     <content>plugin://script.skin.info.service/?action=online&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=movie</content>
 </control>
@@ -140,189 +139,38 @@ Use two hidden containers - Kodi data loads instantly, online data appears when 
 
 ## Available Properties
 
-Properties via `Container(ID).ListItem.Property(...)`
+The plugin item carries the same properties as [Online Properties](../service/online.md), read as
+`Container(ID).ListItem.Property(<name>)` with no `SkinInfo.Online.` prefix. Only properties with a
+value are set.
 
-### TMDb - Basic Information
+| Group | Properties |
+|-------|------------|
+| TMDb | [TMDb Properties](../service/online.md#tmdb-properties) |
+| Ratings | [Ratings](../service/online.md#ratings) |
+| Rotten Tomatoes status | [Rotten Tomatoes Status](../service/online.md#rotten-tomatoes-status) |
+| Awards | [Awards](../service/online.md#awards) |
+| Common Sense Media | [Common Sense Media](../service/online.md#common-sense-media) |
+| Trakt | [Trakt](../service/online.md#trakt) |
+| MDBList | [MDBList](../service/online.md#mdblist) |
 
-| Property | Description | Media Types |
-|----------|-------------|-------------|
-| `Title` | Title | Movie, TVShow |
-| `OriginalTitle` | Original title | Movie, TVShow |
-| `Plot` | Overview/description | Movie, TVShow |
-| `Tagline` | Tagline | Movie, TVShow |
-| `Status` | Release status | Movie, TVShow |
-| `Runtime` | Runtime in minutes | Movie, TVShow |
-| `Popularity` | TMDb popularity score | Movie, TVShow |
-| `Homepage` | Official website URL | Movie, TVShow |
-| `Year` | Release year | Movie, TVShow |
-| `Premiered` | Release/first air date | Movie, TVShow |
-| `PremieredFormatted` | Formatted date | Movie, TVShow |
-| `Genre` | Genres separated by " / " | Movie, TVShow |
-| `Country` | Countries separated by " / " | Movie, TVShow |
-| `Studio` | Studios/networks separated by " / " | Movie, TVShow |
-
-### TMDb - Movie-Specific
+Plugin only:
 
 | Property | Description |
 |----------|-------------|
-| `Budget` | Production budget (formatted with commas) |
-| `Revenue` | Box office revenue (formatted with commas) |
-| `Set` | Collection name |
-| `SetID` | Collection TMDb ID |
+| `dbid` | Library ID, when the item was requested by `dbid` |
 
-### TMDb - TV Show-Specific
-
-| Property | Description |
-|----------|-------------|
-| `Type` | Show type (Scripted, Documentary, etc.) |
-| `Seasons` | Total season count |
-| `Episodes` | Total episode count |
-| `Creator` | Creator(s) separated by " / " |
-| `LastAired` | Last air date |
-| `LastAiredFormatted` | Formatted last air date |
-| `LastEpisodeTitle` | Last aired episode title |
-| `LastEpisode` | Last aired episode number |
-| `LastEpisodeSeason` | Last aired episode season |
-| `LastEpisodeAired` | Last episode air date (formatted) |
-| `NextEpisodeTitle` | Next episode title |
-| `NextEpisode` | Next episode number |
-| `NextEpisodeSeason` | Next episode season |
-| `NextEpisodeAired` | Next episode air date (formatted) |
-
-### TMDb - Credits
-
-| Property | Description |
-|----------|-------------|
-| `Cast` | Top 10 cast names separated by " / " |
-| `Director` | Director(s) separated by " / " |
-| `Writer` | Writer(s) separated by " / " |
-| `Cast.1.Name` | First cast member name |
-| `Cast.1.Role` | First cast member role |
-| `Cast.1.Thumb` | First cast member thumbnail URL |
-| `Cast.2.Name` | Second cast member name |
-| `Cast.2.Role` | Second cast member role |
-| `Cast.2.Thumb` | Second cast member thumbnail URL |
-| ... | Up to Cast.5 |
-
-### TMDb - Images
-
-| Property | Description |
-|----------|-------------|
-| `Poster` | Poster image URL |
-| `Fanart` | Backdrop image URL |
-| `Clearlogo` | Clear logo URL, in the online metadata language, else English, else one with no language set |
-
-### TMDb - IDs
-
-| Property | Description |
-|----------|-------------|
-| `IMDBNumber` | IMDB ID |
-| `TMDBID` | TMDb ID |
-| `TVDBID` | TVDB ID (TV shows only) |
-
-### TMDb - Other
-
-| Property | Description |
-|----------|-------------|
-| `MPAA` | US certification (PG-13, R, TV-MA, etc.) |
-| `Trailer` | YouTube trailer plugin URL |
-| `TrailerYouTubeID` | YouTube video ID |
-| `Tag` | Keywords separated by " / " |
-
-### OMDb Awards
-
-| Property | Description |
-|----------|-------------|
-| `Awards` | Full awards text |
-
-#### Awards (MDBList)
-
-MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
-`Awards` text above, which comes from OMDb. Each is `"true"` when it applies and absent otherwise.
-
-| Property | Description |
-|----------|-------------|
-| `Awards.Oscar.Won` / `Awards.Oscar.Nominated` | Academy Award |
-| `Awards.BestPicture.Won` / `Awards.BestPicture.Nominated` | Best Picture |
-| `Awards.BestDirector.Won` / `Awards.BestDirector.Nominated` | Best Director |
-| `Awards.GoldenGlobe.Won` / `Awards.GoldenGlobe.Nominated` | Golden Globe |
-| `Awards.Razzie.Won` / `Awards.Razzie.Nominated` | Golden Raspberry |
-| `Awards.Emmy.Won` / `Awards.Emmy.Nominated` | Emmy |
-| `Awards.Festival.Cannes` / `.Venice` / `.Sundance` / `.Toronto` | Festival top prize |
-| `Awards.FilmRegistry` | US National Film Registry |
-
-### MDBList Properties
-
-| Property | Description |
-|----------|-------------|
-| `MDBList.Trailer` | Trailer URL |
-| `MDBList.Certification` | Content certification |
-
-### Rotten Tomatoes Status
-
-| Property | Values | Description |
-|----------|--------|-------------|
-| `Tomatometer` | "Certified", "Fresh", "Rotten" | Critics status |
-| `Popcornmeter` | "Hot", "Fresh", "Spilled" | Audience status |
-| `Metacritic` | "MustSee" | Metacritic Must-See (MDBList) |
-| `RogerEbert` | "ThumbsDown" | RogerEbert.com thumbs down, its zero-star review (MDBList) |
-
-### Common Sense Media
-
-| Property | Description |
-|----------|-------------|
-| `CommonSense.Age` | Recommended minimum age |
-| `CommonSense.Violence` | Violence severity (1-5) |
-| `CommonSense.Nudity` | Nudity severity (1-5) |
-| `CommonSense.Language` | Language severity (1-5) |
-| `CommonSense.Drinking` | Substance use severity (1-5) |
-| `CommonSense.Selection` | Common Sense Selection winner |
-| `CommonSense.Summary` | Localized summary |
-| `CommonSense.Reasons` | Content reasons |
-
-### Trakt Properties
-
-| Property | Description |
-|----------|-------------|
-| `Trakt.Subgenres` | Curated subgenres |
-
-### Rating Properties
-
-Each source provides three properties:
-
-| Property | Description |
-|----------|-------------|
-| `Rating.{source}` | Rating (0-10) |
-| `Rating.{source}.Votes` | Vote count |
-| `Rating.{source}.Percent` | Percentage (0-100) |
-| `Rating.{source}.Stars` | Roger Ebert and Letterboxd only, their own number out of 4 and 5 |
-
-**Available Sources:**
-
-- `tmdb` - TMDb
-- `trakt` - Trakt
-- `imdb` - IMDb (via MDBList)
-- `metacritic` - Metacritic
-- `metacriticuser` - Metacritic User
-- `letterboxd` - Letterboxd
-- `Tomatoes` - RT Critics
-- `Popcorn` - RT Audience
-- `rogerebert` - Roger Ebert
-- `myanimelist` - MyAnimeList
-- `mdblistscore` - MDBList's own aggregate of the other sources, with no vote count
+`Episode.Rating.*` is not set on the plugin item.
 
 ### Example
 
 ```xml
 <label>IMDb: $INFO[Container(9001).ListItem.Property(Rating.imdb)]</label>
-<label>RT: $INFO[Container(9001).ListItem.Property(Rating.Tomatoes.Percent)]%</label>
+<label>RT: $INFO[Container(9001).ListItem.Property(Rating.tomatoes.Percent)]%</label>
 ```
 
 ---
 
 ## Music Video Properties
-
-Music video online data comes from AudioDB, Last.fm, and Fanart.tv (not TMDb).
 
 ```xml
 <control type="list" id="9002">
@@ -361,15 +209,6 @@ Populated when the music video has an album and artist.
 | `Album.Wiki`        | Album description / wiki             |
 | `Album.Tags`        | Top tags (" / " separated, up to 10) |
 | `Album.Label`       | Record label                         |
-
----
-
-## Notes
-
-- **Blocking call** - The online action blocks until all API calls complete
-- **Cached responses** - Data cached 24-72 hours depending on content age
-- **Episode support** - Episodes return parent TV show's online data
-- **Music video support** - Music videos use AudioDB/Last.fm/Fanart.tv, not TMDb
 
 ---
 

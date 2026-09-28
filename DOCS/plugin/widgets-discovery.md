@@ -231,7 +231,7 @@ TV shows with episodes airing within the next 7 days.
 ### Notes
 
 - Each item gets `IsInLibrary=true` set when it matches an item in the Kodi library.
-- Item properties match the other TMDB widgets — see [Item Properties](#item-properties).
+- Item properties match the other TMDB widgets, see [Item Properties](#item-properties).
 
 **Widget Type:** Movie or TV Show
 
@@ -239,7 +239,7 @@ TV shows with episodes airing within the next 7 days.
 
 ## Trakt Trending
 
-Items being watched right now, ranked by concurrent viewers. Artwork fetched from TMDB.
+Items being watched right now, ranked by concurrent viewers.
 
 ### Usage
 
@@ -266,7 +266,7 @@ Items being watched right now, ranked by concurrent viewers. Artwork fetched fro
 
 ## Trakt Popular
 
-Most popular items on Trakt, based on overall user engagement. Artwork fetched from TMDB.
+Most popular items on Trakt, based on overall user engagement.
 
 ### Usage
 
@@ -293,7 +293,7 @@ Most popular items on Trakt, based on overall user engagement. Artwork fetched f
 
 ## Trakt Anticipated
 
-Most anticipated upcoming releases, ranked by Trakt watchlist count. Artwork fetched from TMDB.
+Most anticipated upcoming releases, ranked by Trakt watchlist count.
 
 ### Usage
 
@@ -320,7 +320,7 @@ Most anticipated upcoming releases, ranked by Trakt watchlist count. Artwork fet
 
 ## Trakt Most Watched
 
-Most watched items over a time period, ranked by unique viewers. Artwork fetched from TMDB.
+Most watched items over a time period, ranked by unique viewers.
 
 ### Usage
 
@@ -354,7 +354,7 @@ Most watched items over a time period, ranked by unique viewers. Artwork fetched
 
 ## Trakt Most Collected
 
-Most collected items over a time period, ranked by Trakt collection count. Artwork fetched from TMDB.
+Most collected items over a time period, ranked by Trakt collection count.
 
 ### Usage
 
@@ -382,7 +382,7 @@ Most collected items over a time period, ranked by Trakt collection count. Artwo
 
 ## Trakt Box Office
 
-Current top box office movies ranked by revenue. Artwork fetched from TMDB.
+Current top box office movies ranked by revenue.
 
 ### Usage
 
@@ -401,7 +401,7 @@ Current top box office movies ranked by revenue. Artwork fetched from TMDB.
 
 ## Trakt Recommendations
 
-Personalized recommendations based on the user's Trakt watch history and ratings. Artwork fetched from TMDB.
+Personalized recommendations based on the user's Trakt watch history and ratings.
 
 **Requires Trakt OAuth.** Returns empty list if no Trakt account is linked.
 
@@ -438,7 +438,7 @@ When an item matches a library entry:
 - TV show items link to their library folder
 - `IsInLibrary` property is set to `true`
 
-When `source=online` (default), all results are returned. Library matches are still enriched with DBID and file paths.
+When `source=online` (default), all results are returned. Library matches still carry DBID and file path.
 
 ```xml
 <!-- TMDB popular movies, only those in library -->
@@ -472,13 +472,8 @@ Also accessible from Widgets > Discover in the plugin root menu.
 ## Plugin Category
 
 Every discovery widget sets `Container.PluginCategory` to its translated name ("TMDB Trending",
-"Trakt Popular"); TMDB Recommendations sets "Recommendations". A skin that opens a widget path in
-a full window (`ActivateWindow(Videos,plugin://...,return)`) can take the heading from the
-container:
-
-```xml
-<label>$INFO[Container.PluginCategory]</label>
-```
+"Trakt Popular"); TMDB Recommendations sets "Recommendations". It is read the
+same way as for [library widgets](widgets-library.md#localized-labels).
 
 ---
 
@@ -514,10 +509,8 @@ All discovery ListItems include:
 
 | Art Type | Source |
 |----------|--------|
-| `poster` | TMDB |
-| `fanart` | TMDB |
-
-Trakt items get artwork via a TMDB lookup using the item's TMDB ID. Previously fetched items are served from cache.
+| `poster` | TMDB or Trakt, matching the widget |
+| `fanart` | TMDB or Trakt, matching the widget |
 
 ---
 

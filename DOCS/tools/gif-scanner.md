@@ -8,7 +8,7 @@ Scan library for animated GIF poster files.
 
 ## Overview
 
-The Gif Poster Scanner is a utility tool that scans your Kodi library for animated gif poster files and adds them to your media items as "animatedposter" art.
+The Gif Poster Scanner scans your Kodi library for animated gif poster files and adds them to your media items as "animatedposter" art.
 
 ## Usage
 
@@ -53,23 +53,11 @@ Default: `Incremental`
 
 Options:
 
-- **Incremental** - Only checks items added since the last scan (faster subsequent scans)
-- **Full Scan** - Scans all items regardless of when they were added
+- **Incremental** - Skips gif files already applied and unchanged since the last scan
+- **Full Scan** - Applies every matching gif file found
 - **Always Ask** - Prompts you to choose each time
 
-Use Full Scan when you've:
-
-- Added gif files to existing movies/shows
-- Changed your filename patterns
-- Want to verify all items
-
-## How It Works
-
-1. The scanner searches your Kodi video library
-2. For each movie or TV show, it checks the media folder for gif files matching your patterns
-3. If a gif is found and the item doesn't already have an animatedposter, it adds it
-4. Progress is shown in a dialog with cancel support
-5. A notification shows the results when complete
+Incremental does not reapply an unchanged gif, for example after its art was removed in Kodi.
 
 ## Accessing Animated Posters
 
@@ -106,8 +94,8 @@ The scanner looks for gif files in the same folder as your media files. For exam
 
 ## Notes
 
-- The scanner skips items that already have animatedposter set
-- Progress can be cancelled at any time
+- Items with no matching gif keep any animatedposter they already have
+- Progress can be canceled at any time
 - Results are shown in a notification when complete
 
 ---

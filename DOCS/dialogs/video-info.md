@@ -24,10 +24,10 @@ A full-screen video info dialog with poster, ratings, plot, and panels for cast,
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
-| `dbtype` | Conditional | `movie` or `tvshow`. Required when only `dbid` is provided; recommended otherwise. `tv` is also accepted and normalized to `tvshow`. |
+| `dbtype` | Conditional | `movie` or `tvshow`. Required when only `dbid` is provided. `tv` is also accepted and normalized to `tvshow`. |
 | `dbid` | Conditional | Library ID. Provide this OR `tmdb_id`/`imdb_id`. |
 | `tmdb_id` | Conditional | TMDB ID. |
-| `imdb_id` | Conditional | IMDb ID. Resolved to a TMDB ID internally. |
+| `imdb_id` | Conditional | IMDb ID. |
 
 At least one of `dbid`, `tmdb_id`, or `imdb_id` is required.
 
@@ -36,12 +36,11 @@ At least one of `dbid`, `tmdb_id`, or `imdb_id` is required.
 Set on the **dialog's own window** while it's open. Read via `$INFO[Window.Property(X)]` from
 within the dialog XML.
 
-> These are **bare** names — no `SkinInfo.Online.` prefix. The service's library-browsing
+> These are **bare** names, with no `SkinInfo.Online.` prefix. The service's library-browsing
 > properties ([Online Properties](../service/online.md)) carry the same data but are prefixed;
 > on this dialog use the plain name (`Title`, not `SkinInfo.Online.Title`).
 
-Every property is only set when the value is non-empty, so gate on
-`!String.IsEmpty(Window.Property(X))`. Availability depends on which providers returned data and
+Every property is only set when the value is non-empty. Availability depends on which providers returned data and
 on the media type.
 
 ### Identity
@@ -53,159 +52,32 @@ on the media type.
 | `tmdb_id` | TMDB ID |
 | `imdb_id` | IMDb ID |
 
-### Core (movie + TV show)
+### Online data
+
+The dialog carries the same properties as [Online Properties](../service/online.md), read as
+`Window.Property(<name>)`:
+
+| Group | Properties |
+|-------|------------|
+| TMDb | [TMDb Properties](../service/online.md#tmdb-properties) |
+| Ratings | [Ratings](../service/online.md#ratings) |
+| Rotten Tomatoes status | [Rotten Tomatoes Status](../service/online.md#rotten-tomatoes-status) |
+| Awards | [Awards](../service/online.md#awards) |
+| Common Sense Media | [Common Sense Media](../service/online.md#common-sense-media) |
+| Trakt | [Trakt](../service/online.md#trakt) |
+| MDBList | [MDBList](../service/online.md#mdblist) |
+
+`Episode.Rating.*` is not set on the dialog.
+
+### Blurred images
 
 | Property | Description |
 |----------|-------------|
-| `Title` | Title |
-| `OriginalTitle` | Original-language title |
-| `Plot` | Plot/overview |
-| `Tagline` | Tagline |
-| `Status` | Release/production status |
-| `Year` | Release/first-air year |
-| `Premiered` | Release/first-air date (`YYYY-MM-DD`) |
-| `PremieredFormatted` | Localized formatted date |
-| `Runtime` | Runtime in minutes |
-| `Genre` | Genres, `" / "` separated |
-| `Country` | Countries, `" / "` separated |
-| `Studio` | Studios/networks, `" / "` separated |
-| `Popularity` | TMDB popularity score |
-| `Homepage` | Official website URL |
-| `MPAA` | US certification |
-| `Trailer` | YouTube trailer plugin URL |
-| `TrailerYouTubeID` | YouTube video ID |
-| `Tag` | TMDB keywords, `" / "` separated |
-
-### Movie-specific
-
-| Property | Description |
-|----------|-------------|
-| `Budget` | Production budget (comma-formatted) |
-| `Revenue` | Box-office revenue (comma-formatted) |
-| `Set` | Collection name |
-| `SetID` | Collection TMDB ID |
-
-### TV show-specific
-
-| Property | Description |
-|----------|-------------|
-| `Type` | Show type (Scripted, Documentary, ...) |
-| `Seasons` | Total season count |
-| `Episodes` | Total episode count |
-| `Creator` | Creator(s), `" / "` separated |
-| `LastAired` / `LastAiredFormatted` | Last air date (raw / formatted) |
-| `LastEpisodeTitle` | Last aired episode title |
-| `LastEpisode` / `LastEpisodeSeason` | Last aired episode / season number |
-| `LastEpisodeAired` | Last episode air date (formatted) |
-| `NextEpisodeTitle` | Next upcoming episode title |
-| `NextEpisode` / `NextEpisodeSeason` | Next episode / season number |
-| `NextEpisodeAired` | Next episode air date (formatted) |
-
-### Credits
-
-| Property | Description |
-|----------|-------------|
-| `Cast` | Top 10 cast names, `" / "` separated |
-| `Cast.1.Name` … `Cast.5.Name` | Individual cast names (top 5) |
-| `Cast.1.Role` … `Cast.5.Role` | Character names |
-| `Cast.1.Thumb` … `Cast.5.Thumb` | Profile image URLs |
-| `Director` | Director(s), `" / "` separated |
-| `Writer` | Writer(s), `" / "` separated |
-
-### Images
-
-| Property | Description |
-|----------|-------------|
-| `Poster` | Poster image URL |
-| `Fanart` | Backdrop image URL |
-| `Clearlogo` | Clear logo URL, in the online metadata language, else English, else one with no language set |
 | `BlurredPoster` | Blurred copy of `Poster`, generated on open |
 | `BlurredFanart` | Blurred copy of `Fanart`, generated on open |
 
 The two blurred images are produced in the background, so they appear a moment after the dialog
 opens. Blur radius follows [`SkinInfo.BlurRadius`](../tools/blur.md#blur-radius).
-
-### IDs
-
-| Property | Description |
-|----------|-------------|
-| `IMDBNumber` | IMDb ID |
-| `TMDBID` | TMDB ID |
-| `TVDBID` | TVDB ID (TV shows) |
-
-### Ratings
-
-Each source provides three properties: `Rating.{source}`, `Rating.{source}.Votes`,
-`Rating.{source}.Percent` (0-100). Roger Ebert and Letterboxd add `Rating.{source}.Stars`,
-their own number out of 4 and 5, since the rest are rescaled to Kodi's 0-10.
-
-| Source key | Provider |
-|------------|----------|
-| `Rating.tmdb` | TMDB |
-| `Rating.imdb` | MDBList, OMDb backfill |
-| `Rating.trakt` | Trakt |
-| `Rating.metacritic` | MDBList, OMDb backfill |
-| `Rating.metacriticuser` | MDBList |
-| `Rating.letterboxd` | MDBList |
-| `Rating.rogerebert` | MDBList |
-| `Rating.myanimelist` | MDBList |
-| `Rating.tomatoes` | MDBList, OMDb backfill |
-| `Rating.popcorn` | MDBList |
-| `Rating.mdblistscore` | MDBList |
-
-`Rating.mdblistscore` is MDBList's own aggregate of the other sources, not a rating their users gave. It carries no vote count.
-
-Which sources appear depends on what the providers return for the title. Property names are
-case-insensitive.
-
-### Rotten Tomatoes status
-
-| Property | Values |
-|----------|--------|
-| `Tomatometer` | `Certified`, `Fresh`, `Rotten` |
-| `Popcornmeter` | `Hot`, `Fresh`, `Spilled` |
-| `Metacritic` | `MustSee` |
-| `RogerEbert` | `ThumbsDown` |
-
-### Awards (OMDb)
-
-| Property | Description |
-|----------|-------------|
-| `Awards` | Full awards text |
-
-#### Awards (MDBList)
-
-MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
-`Awards` text above, which comes from OMDb. Each is `"true"` when it applies and absent otherwise.
-
-| Property | Description |
-|----------|-------------|
-| `Awards.Oscar.Won` / `Awards.Oscar.Nominated` | Academy Award |
-| `Awards.BestPicture.Won` / `Awards.BestPicture.Nominated` | Best Picture |
-| `Awards.BestDirector.Won` / `Awards.BestDirector.Nominated` | Best Director |
-| `Awards.GoldenGlobe.Won` / `Awards.GoldenGlobe.Nominated` | Golden Globe |
-| `Awards.Razzie.Won` / `Awards.Razzie.Nominated` | Golden Raspberry |
-| `Awards.Emmy.Won` / `Awards.Emmy.Nominated` | Emmy |
-| `Awards.Festival.Cannes` / `.Venice` / `.Sundance` / `.Toronto` | Festival top prize |
-| `Awards.FilmRegistry` | US National Film Registry |
-
-### Common Sense Media (MDBList)
-
-| Property | Description |
-|----------|-------------|
-| `CommonSense.Age` | Recommended minimum age |
-| `CommonSense.Violence` / `.Nudity` / `.Language` / `.Drinking` | Severity 1 (minimal) - 5 (severe) |
-| `CommonSense.Selection` | `true` if a Common Sense Selection |
-| `CommonSense.Summary` | Localized summary |
-| `CommonSense.Reasons` | Localized content reasons |
-
-### Other provider data
-
-| Property | Provider | Description |
-|----------|----------|-------------|
-| `Trakt.Subgenres` | Trakt | Curated subgenres, `" / "` separated |
-| `MDBList.Trailer` | MDBList | Trailer URL |
-| `MDBList.Certification` | MDBList | Content certification |
 
 ### Dialog stacking
 
@@ -232,4 +104,4 @@ Plugin URLs the dialog populates. Bind them to any container `<content>` in your
 | `container.recommendations.path` | TMDB "you might also like" |
 | `container.similar.path` | Library items with overlapping genres |
 | `container.crew.path` | Full crew, sorted by job importance |
-| `container.library.path` | The item's full local library record as a single ListItem (only when `dbid` is known) — read via `Container(<id>).ListItem.*` for all local art, stream details, watched state |
+| `container.library.path` | The item's full local library record as a single ListItem (only when `dbid` is known), read via `Container(<id>).ListItem.*` for all local art, stream details, watched state |

@@ -51,8 +51,7 @@ Choose a scope (all types, or one type at a time). What gets saved where:
 | Albums | Album folder (where the album's music files are) |
 
 Artwork an item inherits from its parent (a season showing its show's poster, an
-episode showing its season's) is cached, but not written as a file. The parent
-already owns that image, and its own scope saves it.
+episode showing its season's) is cached, but not written as a file.
 
 Existing files are handled per the **When File Already Exists** setting in
 Artwork settings.
@@ -84,9 +83,7 @@ songs are not on an accessible file path is cached only.
 
 ### A run takes a long time
 
-Both operations walk the whole library. Artwork already cached, and files
-already on disk, are skipped quickly, so a second run is much faster than the
-first. The operation can be cancelled at any point; re-running picks up where it left off.
+The operation can be canceled at any point; re-running picks up where it left off.
 
 ### Cleanup finds no orphaned textures
 

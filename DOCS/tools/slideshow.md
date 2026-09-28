@@ -12,10 +12,8 @@ The slideshow feature provides rotating fanart backgrounds for your skin. It exp
 
 ## Key Features
 
-- No performance impact unless explicitly enabled
-- Uses database cache for property updates
 - Automatically updates when library is scanned or cleaned
-- Configurable refresh interval from 1 second to 1 hour
+- Configurable [refresh interval](#skininfoslideshowrefreshinterval)
 - Supports movies, TV shows, music, and music videos
 - Can rotate through a specific playlist or node instead of the whole library
 
@@ -31,7 +29,7 @@ The slideshow feature provides rotating fanart backgrounds for your skin. It exp
     <selected>Skin.HasSetting(SkinInfo.EnableSlideshow)</selected>
 </control>
 
-<!-- Set refresh interval (5-3600 seconds, default 10) -->
+<!-- Set refresh interval in seconds -->
 <control type="edit">
     <label>Slideshow Refresh (seconds)</label>
     <default>10</default>
@@ -222,22 +220,6 @@ still usable as a background.
 </control>
 ```
 
-### Conditional Visibility
-
-```xml
-<!-- Only show slideshow in specific windows -->
-<control type="image">
-    <visible>Skin.HasSetting(SkinInfo.EnableSlideshow) + Window.IsVisible(Home)</visible>
-    <texture>$INFO[Window(Home).Property(SkinInfo.Slideshow.Global.FanArt)]</texture>
-</control>
-
-<!-- Hide slideshow during playback -->
-<control type="image">
-    <visible>Skin.HasSetting(SkinInfo.EnableSlideshow) + !Player.HasMedia</visible>
-    <texture>$INFO[Window(Home).Property(SkinInfo.Slideshow.Global.FanArt)]</texture>
-</control>
-```
-
 ## Settings Reference
 
 ### SkinInfo.EnableSlideshow
@@ -251,7 +233,7 @@ still usable as a background.
 **Type:** Integer (Skin.String)
 **Range:** 5-3600 seconds
 **Default:** 10 seconds
-**Description:** How often slideshow properties update
+**Description:** How often slideshow properties update. Values outside the range are clamped to it.
 
 ### Troubleshooting
 
@@ -263,15 +245,8 @@ still usable as a background.
 
 **Properties are empty:**
 
-- Pool may be empty - check Kodi log for "Slideshow: Pool populated with X items"
 - Trigger library scan to populate pool
 - Verify fanart exists in library (check ListItem.Art(fanart) on media)
-
-**Performance issues:**
-
-- Increase refresh interval (try 30-60 seconds)
-- Verify slideshow is disabled when not needed
-- Check for database errors in Kodi log
 
 ---
 

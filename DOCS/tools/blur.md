@@ -42,7 +42,7 @@ Whole numbers from 1. Unset or anything else uses 40. A value gives the same loo
 
 **Using a VAR:**
 
-When using `BlurSourceVar`, set the VAR **name** (not `$VAR[]`). The service wraps and resolves it on each poll:
+When using `BlurSourceVar`, set the VAR **name** (not `$VAR[]`):
 
 ```xml
 <!-- In your skin's Includes.xml -->

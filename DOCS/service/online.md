@@ -184,11 +184,11 @@ Populated when an album name is available.
 | `Album.Tags`       | Top tags (" / " separated, up to 10) |
 | `Album.Label`      | Record label                          |
 
-Fanart rotation interval is controlled by the skin string `SkinInfo.SlideshowRefreshInterval` (seconds, default 10, range 5-3600).
+Fanart rotates at the [slideshow refresh interval](../tools/slideshow.md#skininfoslideshowrefreshinterval).
 
 Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv returns no results.
 
-### Example — Audio Playback
+### Example: Audio Playback
 
 ```xml
 <control type="group">
@@ -212,7 +212,7 @@ Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv ret
 </control>
 ```
 
-### Example — Music Video Playback
+### Example: Music Video Playback
 
 ```xml
 <control type="group">
@@ -231,22 +231,11 @@ Fanart.tv is the primary source. TheAudioDB fanart is used only if Fanart.tv ret
 </control>
 ```
 
-### Slideshow Interval
-
-Set the rotation interval via a skin string:
-
-```xml
-<control type="button">
-    <label>Slideshow Interval</label>
-    <onclick>Skin.SetNumeric(SkinInfo.SlideshowRefreshInterval)</onclick>
-</control>
-```
-
 ---
 
 ## Enabling the Service
 
-The online service runs automatically when the main service is started. API keys are required for some data sources.
+The online service runs once the skin enables it, see [Enabling the Service](../getting-started.md#enabling-the-service). API keys are required for some data sources.
 
 **API Key Settings:**
 
@@ -276,7 +265,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `Popularity` | TMDb popularity score | Movie, TVShow |
 | `Homepage` | Official website URL | Movie, TVShow |
 | `Year` | Release year | Movie, TVShow |
-| `Premiered` | Release/first air date | Movie, TVShow |
+| `Premiered` | Release/first air date (`YYYY-MM-DD`) | Movie, TVShow |
 | `PremieredFormatted` | Formatted date | Movie, TVShow |
 | `Genre` | Genres separated by " / " | Movie, TVShow |
 | `Country` | Countries separated by " / " | Movie, TVShow |
@@ -299,7 +288,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `Seasons` | Total season count |
 | `Episodes` | Total episode count |
 | `Creator` | Creator(s) separated by " / " |
-| `LastAired` | Last air date |
+| `LastAired` | Last air date (`YYYY-MM-DD`) |
 | `LastAiredFormatted` | Formatted last air date |
 | `LastEpisodeTitle` | Last aired episode title |
 | `LastEpisode` | Last aired episode number |
@@ -354,39 +343,42 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 
 ## Ratings
 
-Ratings from multiple sources. Each source provides three properties.
+Ratings from multiple sources. Each source provides three properties, and Roger Ebert and
+Letterboxd add a fourth.
 
 | Property Pattern | Description |
 |------------------|-------------|
 | `Rating.{source}` | Rating value (0-10 scale) |
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Rating as percentage (0-100) |
-| `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 |
+| `Rating.{source}.Stars` | Roger Ebert and Letterboxd only, on their own scale out of 4 and 5 |
 
 ### Available Sources
 
 | Source | Property Prefix | Provider |
 |--------|-----------------|----------|
-| TMDb | `Rating.tmdb` | TMDb |
-| IMDb | `Rating.imdb` | MDBList |
-| Trakt | `Rating.trakt` | Trakt |
-| Metacritic | `Rating.metacritic` | MDBList |
+| TMDb | `Rating.tmdb` | MDBList, else TMDb |
+| IMDb | `Rating.imdb` | MDBList, else OMDb |
+| Trakt | `Rating.trakt` | Trakt, else MDBList |
+| Metacritic | `Rating.metacritic` | MDBList, else OMDb |
 | Metacritic User | `Rating.metacriticuser` | MDBList |
 | Letterboxd | `Rating.letterboxd` | MDBList |
-| RT Critics | `Rating.Tomatoes` | MDBList |
-| RT Audience | `Rating.Popcorn` | MDBList |
+| RT Critics | `Rating.tomatoes` | MDBList, else OMDb |
+| RT Audience | `Rating.popcorn` | MDBList |
 | Roger Ebert | `Rating.rogerebert` | MDBList |
 | MyAnimeList | `Rating.myanimelist` | MDBList |
 | MDBList aggregate | `Rating.mdblistscore` | MDBList |
 
 `Rating.mdblistscore` is MDBList's own aggregate of the other sources, not a rating their users gave. It carries no vote count.
 
+Which sources appear depends on what the providers return for the title.
+
 ### Example
 
 ```xml
 <label>TMDb: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tmdb)]</label>
 <label>IMDb: $INFO[Window(Home).Property(SkinInfo.Online.Rating.imdb)]</label>
-<label>RT Critics: $INFO[Window(Home).Property(SkinInfo.Online.Rating.Tomatoes.Percent)]%</label>
+<label>RT Critics: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tomatoes.Percent)]%</label>
 ```
 
 ### Episode Ratings
@@ -477,7 +469,7 @@ Parental guidance data from MDBList. Requires MDBList API key.
 | `CommonSense.Nudity` | Nudity severity (1-5) |
 | `CommonSense.Language` | Language severity (1-5) |
 | `CommonSense.Drinking` | Substance use severity (1-5) |
-| `CommonSense.Selection` | "true" if Common Sense Selection |
+| `CommonSense.Selection` | `true` for a Common Sense Selection, else `false` |
 | `CommonSense.Summary` | Localized summary |
 | `CommonSense.Reasons` | Localized content reasons |
 

@@ -172,8 +172,6 @@ Settings → Advanced → Context Menu Items
 
 Edits are saved to Kodi's library straight away. They can optionally also be written to the item's local NFO file, so your changes survive a library refresh or rescrape that would otherwise overwrite them from the scraper.
 
-This is **not** a replacement for Kodi's own library export. It writes only the fields the editor manages, in the same format Kodi uses, and leaves the rest of the file as it is.
-
 ### NFO Settings
 
 In addon settings under **Advanced → NFO Files**:
@@ -184,7 +182,7 @@ In addon settings under **Advanced → NFO Files**:
 | Create an NFO file when none exists | When on, writes a new NFO if the item has none. When off, only existing NFO files are updated. |
 | Include watched state in NFO files | When on, writes playcount and last-played date. When off, watched state is left out. |
 
-A manual **Export to NFO** action is also available as a context menu item (enable it under **Advanced → Context Menu Items**). It writes the current item's NFO on demand, creating the file if needed, regardless of the settings above.
+A manual **Export to NFO** action is also available as a context menu item (enable it under **Advanced → Context Menu Items**). It writes the current item's NFO on demand.
 
 The same export can be run from a skin control:
 
@@ -197,7 +195,7 @@ RunScript(script.skin.info.service,action=export_nfo,dbid=$INFO[ListItem.DBID],d
 | `dbid` | Yes | Database ID of the item. Ignored if empty or `-1`. |
 | `dbtype` | Yes | `movie`, `tvshow`, `episode` or `musicvideo` |
 
-Both NFO settings are bypassed: the write happens even with the master switch off, and the file is created even with **Create an NFO file when none exists** off. A notification reports whether the file was written.
+The first two NFO settings are bypassed: the write happens even with the master switch off, and the file is created even with **Create an NFO file when none exists** off. **Include watched state in NFO files** still applies. A notification reports whether the file was written.
 
 ### Limitations
 

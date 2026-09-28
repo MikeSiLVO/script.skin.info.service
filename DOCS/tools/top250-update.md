@@ -32,8 +32,7 @@ Automatic runs show a background progress bar instead of a dialog, ask for no co
 finish with a notification giving the same counts as the manual summary. The notification waits
 until video playback stops, so it never appears over a film.
 
-Trakt rebuilds the list each morning, and the daily check aims for an hour after that, learning the
-time from the list itself rather than counting 24 hours from whenever Kodi last started. If the box
+The daily check runs once a day, about an hour after Trakt updates the list. If the box
 was off when a check was due, it runs shortly after the next start. When the list comes back
 unchanged from the previous run, the library is left untouched and no notification appears.
 
@@ -50,7 +49,6 @@ Matching items expose the rank via the `Top250` field on the ListItem (e.g. `$IN
 ## Notes
 
 - Matches use both `imdb` and `tmdb` uniqueids, so library items with either ID will pick up their rank.
-- Run periodically; the Trakt list is curated and updates as IMDb's rankings shift.
 - Items without either uniqueid won't match. Run **Fix Library IDs** first if rankings aren't appearing.
 
 ---

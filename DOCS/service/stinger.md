@@ -19,7 +19,7 @@ Mid-credits and post-credits scene detection with notification during movie play
 
 ## Overview
 
-Detects movies with post-credits scenes (stingers) and notifies near the end of playback. Runs as an independent service controlled by the `stinger_enabled` addon setting — works on any skin without requiring the main skin service.
+Detects movies with post-credits scenes (stingers) and notifies near the end of playback. Runs as an independent service controlled by the `stinger_enabled` addon setting, and works on any skin without requiring the main skin service.
 
 Supports three stinger types:
 
@@ -166,14 +166,6 @@ When opted in, the addon only sets window properties. The skin handles display u
     </control>
 </control>
 ```
-
-### Benefits of Custom Display
-
-- Full control over appearance and animation
-- Match skin's visual style
-- Custom positioning
-- Extended information display
-- Interactive elements if desired
 
 ---
 

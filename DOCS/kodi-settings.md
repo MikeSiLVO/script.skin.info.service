@@ -284,11 +284,9 @@ The other `input.*` entries (`input.peripherals`, `input.controllerconfig`, etc.
 
 ## Limitations
 
-**Based on Kodi source code analysis:**
-
 1. **Visibility Requirement:**
    - Settings must have their visibility set to true
-   - Hidden settings cannot be accessed via JSON-RPC
+   - Hidden settings cannot be read or changed
 
 2. **Unsupported Types:**
    - `action` type settings cannot be get/set/reset (they trigger actions, not store values)
@@ -299,10 +297,8 @@ The other `input.*` entries (`input.peripherals`, `input.controllerconfig`, etc.
    - Attempting to toggle non-boolean settings will fail silently
 
 4. **Type Validation:**
-   - `SetSettingValue` validates value type matches setting type
-   - Passing wrong type (e.g., string to integer setting) returns error
-
-**Source:** `xbmc/interfaces/json-rpc/SettingsOperations.cpp`
+   - The value must match the setting type
+   - A wrong type (e.g., string to integer setting) is rejected
 
 ---
 

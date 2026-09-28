@@ -72,8 +72,8 @@ Plugin URLs the dialog populates. Bind them to any container `<content>` in your
 |----------|--------|
 | `container.library_movies.path` | Library movies featuring this person |
 | `container.library_tvshows.path` | Library TV shows featuring this person |
-| `container.movies.path` | TMDB filmography — movies only |
-| `container.tvshows.path` | TMDB filmography — TV only |
+| `container.movies.path` | TMDB filmography, movies only |
+| `container.tvshows.path` | TMDB filmography, TV only |
 | `container.all_credits.path` | Full TMDB filmography |
 | `container.crew.path` | TMDB crew credits |
 | `container.images.path` | Profile images from TMDB |

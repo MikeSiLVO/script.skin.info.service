@@ -19,7 +19,6 @@ TMDB person information including biography, filmography, images, and crew.
 - [Crew Lists](#crew-lists)
 - [Library Containers (LibraryMovies / LibraryTVShows)](#library-containers-librarymovies--librarytvshows)
 - [Example Implementation](#example-implementation)
-- [Caching](#caching)
 
 ---
 
@@ -31,9 +30,6 @@ Four plugin containers provide person data:
 - Images - Profile images
 - Filmography - Acting credits
 - Crew - Director/writer/producer credits
-
-Uses smart matching to find the correct person even when library scraped
-with different providers.
 
 ---
 
@@ -167,7 +163,7 @@ Window properties on Home window:
 
 Skinners typically reference these via `$INFO[Window(Home).Property(SkinInfo.Person.Crew)]`
 in `<content>` tags, but the raw paths above can also be hand-built when you need to add
-filter params (e.g. `&sort=date_desc&job=Director` on the Crew URL — see Plugin Endpoints below).
+filter params (e.g. `&sort=date_desc&job=Director` on the Crew URL, see [Crew Container](#crew-container)).
 
 **On failure (auto_search=false):**
 
@@ -179,19 +175,7 @@ filter params (e.g. `&sort=date_desc&job=Director` on the Crew URL — see Plugi
 
 ## Matching Strategy
 
-5-stage matching for scraper language mismatches:
-
-1. **Exact Match** - Exact name + exact role
-2. **Fuzzy Role** - Exact name + role substring
-3. **Name Only** - Match by name alone
-4. **Fuzzy Name** - Handle "First Last" vs "Last, First"
-5. **Dialog Search** - TMDB search with image selection
-
-**Name normalization:**
-
-- Apostrophe variants (straight vs curly)
-- Unicode normalization for accents
-- Initial handling ("J. Smith" matches "J Smith")
+The person is matched despite scraper name differences.
 
 ---
 
@@ -311,14 +295,14 @@ Acting credits with filtering options.
 | `in_library`  | `true` when the item is in the Kodi library (else not set) |
 | `dbid`        | Library ID, set only alongside `in_library`                |
 
-Title, year, TMDB rating and overview are in `ListItem.Title`, `ListItem.Year`,
-`ListItem.Rating` and `ListItem.Plot`.
-
-Use `in_library` to mark or filter owned items, and `dbid` to open the library entry:
+To mark titles the user owns:
 
 ```xml
-<visible>!String.IsEmpty(ListItem.Property(in_library))</visible>
+<visible>String.IsEqual(ListItem.Property(in_library),true)</visible>
 ```
+
+Title, year, TMDB rating and overview are in `ListItem.Title`, `ListItem.Year`,
+`ListItem.Rating` and `ListItem.Plot`.
 
 ### Filmography Artwork
 
@@ -357,9 +341,9 @@ All filmography parameters apply (`dbtype`, `sort`, `min_votes`, `exclude_unrele
 
 | Parameter | Values                                          | Description                                                |
 |-----------|-------------------------------------------------|------------------------------------------------------------|
-| `job`     | `Director`, `Writer`, `Producer`, `Creator`, ... | Show only items where the person held this exact job (case-insensitive). When set, dedupe is skipped because each item has at most one entry per job. |
+| `job`     | `Director`, `Writer`, `Producer`, `Creator`, ... | Show only items where the person held this exact job (case-insensitive). |
 
-Example — only items Ivan Reitman directed:
+Example, only items Ivan Reitman directed:
 ```
 &amp;info_type=crew&amp;person_id=8858&amp;job=Director
 ```
@@ -473,8 +457,7 @@ including TV shows they only guest in and items whose cast list Kodi never recor
 
 With `person_name` alone, Kodi's own cast links answer instead, and `Role` comes from the
 library item's cast. Kodi links only main cast at show level, so guest appearances are
-missing. For Clancy Brown, a name lookup returns 3 TV shows where a filmography match
-returns 48.
+missing.
 
 ---
 
@@ -528,12 +511,6 @@ returns 48.
     </control>
 </control>
 ```
-
----
-
-## Caching
-
-Person data cached for 30 days. Actor matches not cached.
 
 ---
 

@@ -136,7 +136,7 @@ For the same thing over your favourited shows instead, see
 
 ### Behavior
 
-1. Queries in-progress TV shows (sorted by last played)
+1. Takes in-progress TV shows, most recently played first
 2. For each show, finds the last played episode
 3. Returns the next unwatched episode in same season
 4. If season complete, returns first unwatched overall
@@ -241,7 +241,7 @@ The episode half is [Next Up](#next-up). The movie half is every movie with a re
 
 ### Behavior
 
-1. Fetches up to `limit` in-progress movies and up to `limit` in-progress TV shows, each
+1. Takes up to `limit` in-progress movies and up to `limit` in-progress TV shows, each
    sorted by last played
 2. For each show, picks the next unwatched episode the same way Next Up does
 3. Merges both into one list ordered by last played, then trims to `limit`
@@ -262,7 +262,7 @@ episode has never been started.
 
 ## Recent Episodes Grouped
 
-Recently added episodes with intelligent grouping.
+Recently added episodes, grouped by show.
 
 ### Usage
 
@@ -289,7 +289,7 @@ Recently added episodes with intelligent grouping.
 
 ### Behavior
 
-1. Queries recently added TV shows
+1. Takes recently added TV shows
 2. For each show:
    - **1 unwatched episode**: Returns episode item with show artwork
    - **Multiple unwatched**: Returns show folder
@@ -337,11 +337,9 @@ smart playlist type combines movies with episodes.
 
 ### Behavior
 
-1. Fetches movies and episodes added in the last year, each sorted by date added. If that window
-   holds fewer items than `limit`, the whole library is used instead
-2. With `group=true`, each show contributes one row: a show folder when its two newest episodes
+1. With `group=true`, each show contributes one row: a show folder when its two newest episodes
    were added on the same day, otherwise its newest episode
-3. Merges both into one list ordered by date added, then trims to `limit`
+2. Merges both into one list ordered by date added, then trims to `limit`
 
 Grouping keeps a batch add from filling the widget. A season added at once collapses to a single
 row, while a show airing weekly still shows its individual episode.
@@ -349,7 +347,7 @@ row, while a show airing weekly still shows its individual episode.
 ### Item Properties
 
 - **MediaType**: `movie`, `episode`, or `tvshow` for a collapsed show
-- **DateAdded**: set on every item, so lists can be sorted or labelled by it
+- **DateAdded**: set on every item, so lists can be sorted or labeled by it
 - **Artwork**: movie artwork, or TV show artwork plus episode thumb
 
 Collapsed show rows are folders that open the show; everything else is playable.
@@ -396,9 +394,7 @@ favourites list cannot do.
 ### Behavior
 
 1. Reads the favourites list, keeping the order you favourited things
-2. TV shows are matched by the database id stored in the favourite
-3. Movies, episodes and music videos are matched on their file path
-4. Favourites whose item is no longer in the library are skipped
+2. Favourites whose item is no longer in the library are skipped
 
 Favourites pointing at an add-on or a plugin path are not resolved and do not appear. TV show rows
 are folders that open the show; everything else is playable.
@@ -457,11 +453,7 @@ Items featuring a random actor from the source item's cast, or a chosen billing 
 
 ### Actor Locking
 
-With `lock=true`:
-
-- First call picks and stores random actor
-- Subsequent calls reuse stored actor
-- Resets when navigating to different item
+With `lock=true`, every locked widget shows the same actor until focus moves to another item.
 
 **Widget Type:**
 
@@ -477,10 +469,7 @@ Each result ListItem has the standard movie/tvshow infotag fields plus:
 | `Actor`  | Name of the picked actor (same value on every result)      |
 | `Role`   | Character the actor plays in this item                     |
 
-Use `$INFO[ListItem.Property(Role)]` to display the character. Note that
-`ListItem.Label2` is not reliable for results from this widget — Kodi
-overrides it from the VideoInfoTag for video items. The `Role` property
-is the canonical way to get the character name.
+Use `Role`; `Label2` may not hold the character.
 
 ---
 
@@ -556,7 +545,7 @@ certificate and popularity break the tie within each group.
 | `watched` | No | both | `watched`, `unwatched` or `both` |
 | `path` | No | - | Score inside this path instead of the whole library. Takes a `.xsp` file, an inline XSP filter or a smart playlist. |
 
-Results are always **library items** — `tmdb_id` only changes how the seed's genres are obtained.
+Results are always **library items**; `tmdb_id` only changes how the seed's genres are obtained.
 
 ### Ordering
 
@@ -570,7 +559,7 @@ a time until it reaches `limit`. Within a group:
 - **Era**: closer release years
 - **Certificate**: same rating, compared per country so `NL:16` and `GR:16` stay distinct
 - **Popularity**: vote count and rating, which decides items that match on nothing else
-- **Same set**: penalised, because Kodi already groups sets of its own
+- **Same set**: ranked lower
 
 ### Example
 
@@ -737,10 +726,8 @@ Library artists similar to a given artist, matched via Last.fm data.
 
 ### Behavior
 
-1. Resolves artist name from params
-2. Reads similar artists from Last.fm cached data (fetches if not cached)
-3. Matches similar names against AudioLibrary artists (case-insensitive)
-4. Returns matching artists with library artwork
+1. Library artists that Last.fm lists as similar to the given artist
+2. In Last.fm's order, up to `limit`, with library artwork
 
 **Widget Type:** Artist
 
@@ -780,10 +767,8 @@ Albums by a given artist from AudioLibrary.
 
 ### Behavior
 
-1. Resolves artist name from params
-2. Looks up `artistid` in AudioLibrary
-3. Queries albums filtered by `artistid`
-4. Returns album ListItems with cover art
+1. The given artist's albums in the music library, ordered by `sort`
+2. Returns album ListItems with cover art
 
 **Widget Type:** Album
 
@@ -824,10 +809,9 @@ When `dbid`+`dbtype=musicvideo` is provided, that musicvideo is excluded from re
 
 ### Behavior
 
-1. Resolves artist name from params
-2. Queries VideoLibrary filtered by artist name (sorted by year descending)
-3. Excludes source musicvideo if `dbid`+`dbtype=musicvideo` provided
-4. Returns playable musicvideo ListItems
+1. The given artist's music videos, newest year first
+2. Excludes source musicvideo if `dbid`+`dbtype=musicvideo` provided
+3. Returns playable musicvideo ListItems
 
 **Widget Type:** Music Video
 
@@ -867,10 +851,9 @@ Artists in the same genre as a given artist from AudioLibrary.
 
 ### Behavior
 
-1. If no explicit genre: resolves artist name, looks up their genre from AudioLibrary
-2. Queries AudioLibrary artists filtered by genre (random sort)
-3. Excludes source artist
-4. Returns artist ListItems with library artwork
+1. Library artists sharing the given artist's first genre, or `genre` when set, in random order
+2. Excludes source artist
+3. Returns artist ListItems with library artwork
 
 **Widget Type:** Artist
 

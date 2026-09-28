@@ -16,24 +16,23 @@ RGBA slider-based color picker for skin color settings.
 - [Dialog Skinning](#dialog-skinning)
 - [Advanced Usage](#advanced-usage)
   - [Custom Back Button Behavior](#custom-back-button-behavior)
-- [Use Cases](#use-cases)
 - [Troubleshooting](#troubleshooting)
 - [Notes](#notes)
 
 ## Overview
 
-The Color Picker provides a visual interface for selecting and managing colors using a color palette or individual Red, Green, Blue, and Alpha sliders. The dialog is customizable via XML and automatically saves colors to skin settings.
+The Color Picker sets a skin color from a color palette or from Red, Green, Blue and Alpha sliders, and saves it to a skin string. The dialog layout can be replaced with your own XML.
 
 ## Features
 
-- **Color Palette** - Visual grid of predefined colors loaded from colors.xml
-- **RGBA Sliders** - Individual control over Red, Green, Blue, and Alpha channels
-- **Live Preview** - See color changes in real-time as you adjust sliders or select from palette
-- **Auto-Save** - Automatically saves to skin settings on OK
-- **Reset to Default** - Restore original/default color with one click
-- **Custom Back Button Behavior** - Optional onback parameter for advanced navigation control
-- **Fully Skinnable** - Customize the entire dialog appearance via XML
-- **Estuary Default** - Includes clean default dialog matching Estuary style
+- **Color Palette** - Grid of predefined colors loaded from colors.xml
+- **RGBA Sliders** - One slider each for Red, Green, Blue and Alpha
+- **Preview** - Updates as sliders move or a palette color is selected
+- **Save** - OK saves the color to the skin setting
+- **Reset to Default** - Sets the sliders back to the `default` color
+- **Back Button** - Optional `onback` parameter overrides what Back does
+- **Dialog XML** - The dialog can be replaced with your own XML
+- **Default Dialog** - A default dialog in Estuary style is included
 
 ---
 
@@ -208,8 +207,6 @@ The following control IDs are required and must exist:
 
 - **Type:** `slider` or `sliderex`
 - **Range:** 0-100 (percentage, automatically converted to 0-255)
-- Script uses `getPercent()` to read slider values
-- Script uses `setPercent()` to set slider positions
 
 ### Panel Requirements
 
@@ -351,15 +348,8 @@ onback=condition::action||condition::action
 - If no `::` separator, treated as condition-only (closes dialog if condition is true)
 - If `::` with empty condition before it, treated as action-only (always executes, doesn't close)
 
-#### Kodi Condition Operators
-
-You can use standard Kodi boolean operators in conditions:
-
-- `!` - NOT (negation)
-- `+` - AND (all conditions must be true)
-- `|` - OR (at least one condition must be true)
-
-**Example:** `!Control.IsVisible(300)+String.IsEqual(Skin.String(Mode),Advanced)`
+Conditions are Kodi boolean conditions, so `!` (not), `+` (and) and `|` (or) work:
+`!Control.IsVisible(300)+String.IsEqual(Skin.String(Mode),Advanced)`
 
 #### Examples
 
@@ -442,55 +432,6 @@ If palette visible, hide it (and stay open). If palette hidden, close dialog.
 
 ---
 
-## Use Cases
-
-### Theme Customization
-
-Allow users to customize theme colors:
-
-```xml
-<control type="button">
-    <label>Customize Theme Colors</label>
-    <onclick>ActivateWindow(1100)</onclick><!-- Settings window -->
-</control>
-
-<!-- In settings window -->
-<control type="button">
-    <label>Primary Color</label>
-    <label2>$INFO[Skin.String(PrimaryColor)]</label2>
-    <onclick>RunScript(script.skin.info.service,action=colorpicker,setting=PrimaryColor,default=FFFF6DB9)</onclick>
-</control>
-```
-
-### OSD Color Settings
-
-Customize OSD/player colors:
-
-```xml
-<control type="button">
-    <label>Progress Bar Color</label>
-    <onclick>RunScript(script.skin.info.service,action=colorpicker,setting=OSDProgressColor,default=FF00B4FF)</onclick>
-</control>
-
-<control type="button">
-    <label>OSD Background Color</label>
-    <onclick>RunScript(script.skin.info.service,action=colorpicker,setting=OSDBackgroundColor,default=E0000000)</onclick>
-</control>
-```
-
-### Highlight Colors
-
-Customize focus/selection colors:
-
-```xml
-<control type="button">
-    <label>Highlight Bar Color</label>
-    <onclick>RunScript(script.skin.info.service,action=colorpicker,setting=HighlightBarColor,default=FF6DB9E5)</onclick>
-</control>
-```
-
----
-
 ## Troubleshooting
 
 ### Dialog doesn't open
@@ -550,16 +491,10 @@ Customize focus/selection colors:
 ## Notes
 
 - Colors are stored as uppercase hex in skin settings (e.g., `FF6DB9E5`)
-- Slider values are percentages (0-100) converted to integers (0-255)
 - Dialog automatically validates color format before opening
 - Panel control 300 is optional and can be omitted if you only want sliders
-- Panel control 300 requires `allowhiddenfocus="true"` for proper visibility toggling
-- Reset button sets sliders but doesn't auto-save (user must click OK)
 - Cancel button discards all changes including resets
 - Dialog uses modal window - blocks interaction with rest of Kodi until closed
-- Back button default behavior: Closes dialog and discards changes
-- Back button custom behavior: Use `onback` parameter to override default (see Advanced Usage)
-- `onback` parameter supports Kodi conditions, actions, and boolean operators (`!`, `+`, `|`)
 - Preview color property (`SkinInfo.ColorPicker.Preview`) clears after dialog closes
 
 ---

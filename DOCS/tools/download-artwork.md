@@ -83,7 +83,7 @@ This is the same operation as the **Download Artwork** context menu item, so TV 
 ## Notes
 
 - Actor images use the thumbnail URL from Kodi's library (typically from TMDB)
-- TMDB image URLs are automatically upgraded to original quality
+- TMDB images download at full resolution
 - Actor images are skipped if no thumbnail URL exists in the library
 - Duplicate actor names across items share the same image file
 

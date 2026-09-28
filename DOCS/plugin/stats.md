@@ -15,21 +15,7 @@ Path wrapping and statistics for library paths.
 
 ## Path Wrapper
 
-Wraps XSP-filtered library paths in a plugin URL to enable dynamic refresh support.
-
-### Use Cases
-
-**Use for:**
-
-- XSP inline filters with InfoLabels
-- Smart playlists (.xsp files)
-- Dynamically filtered library views
-
-**Do not use for:**
-
-- Full library browsing (`videodb://movies/titles/`)
-- Static directory browsing
-- Paths that don't need refresh support
+Wraps an XSP-filtered library path or smart playlist in a plugin URL, which reloads when its `refresh` value changes.
 
 ### Usage
 
@@ -65,13 +51,6 @@ Wraps XSP-filtered library paths in a plugin URL to enable dynamic refresh suppo
 <onclick>RunScript(script.skin.info.service,action=refresh_counter,uid=PlaylistRefresh)</onclick>
 ```
 
-### How It Works
-
-1. Plugin receives the wrapped path
-2. Uses `Files.GetDirectory` JSON-RPC to fetch contents
-3. Returns items as plugin content
-4. When `refresh` parameter changes, Kodi detects URL change and reloads
-
 ### Notes
 
 - Works with `videodb://`, `musicdb://`, and `special://` paths
@@ -83,13 +62,6 @@ Wraps XSP-filtered library paths in a plugin URL to enable dynamic refresh suppo
 ## Path Statistics
 
 Calculates statistics for video library paths, including counts, watch status, and episode data.
-
-### Use Cases
-
-- Widget headers showing counts (e.g., "Unwatched Movies (42)")
-- Progress indicators for playlists
-- Collection statistics (TV show episode counts)
-- Filter result previews
 
 ### Usage
 
@@ -129,7 +101,7 @@ All properties via `Window(Home).Property(SkinInfo.PathStats.*)`
 - `videodb://tvshows/*` - TV show library paths
 - `special://profile/playlists/video/*` - Smart playlists
 - `plugin://*` - Plugin paths
-- Any path supported by `Files.GetDirectory`
+- Any path Kodi can list
 
 ### Examples
 
@@ -164,7 +136,7 @@ All properties via `Window(Home).Property(SkinInfo.PathStats.*)`
 
 ### Auto-Refresh
 
-Include `reload=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]` in the plugin URL. The service auto-increments this property on library updates, causing Kodi to detect the URL change and re-fetch statistics.
+Include `reload=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]` in the plugin URL. See [Library Refresh](../skin-utilities.md#library-refresh).
 
 ### Categorization Logic
 
