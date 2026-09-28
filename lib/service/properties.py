@@ -249,12 +249,15 @@ def _watch_time_props(details: dict) -> Dict[str, str]:
             if k.startswith("WatchTime")}
 
 
-def set_watch_time_properties(media_type: str, minutes: int, unified: bool) -> None:
-    """Set a show's or season's WatchTime properties, and the unified block's when it owns it."""
+def set_watched_properties(media_type: str, minutes: int, unified: bool,
+                           episodes: Optional[int] = None) -> None:
+    """Set a show's or season's WatchTime, and its WatchedEpisodes when the count is given."""
     data = _watch_time_props({"watch_minutes": minutes})
     props: Dict[str, Optional[str]] = {f"SkinInfo.{media_type}.{k}": v for k, v in data.items()}
     if unified:
         props.update({f"SkinInfo.ListItem.{k}": v for k, v in data.items()})
+    if episodes is not None:
+        props[f"SkinInfo.{media_type}.WatchedEpisodes"] = str(episodes) if episodes else ""
     batch_set_props(props)
 
 

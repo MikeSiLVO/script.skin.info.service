@@ -207,6 +207,16 @@ def _get_season_data(seasonid: int) -> Optional[dict]:
     if not isinstance(details, dict):
         return None
 
+    # GetSeasonDetails never returns watchedepisodes; GetSeasons does
+    tvshowid = details.get("tvshowid")
+    if tvshowid and tvshowid > 0:
+        seasons = extract_result(request("VideoLibrary.GetSeasons", {
+            "tvshowid": tvshowid, "properties": ["watchedepisodes"],
+        }), "seasons")
+        match = next((s for s in seasons if s.get("seasonid") == seasonid), None)
+        if match:
+            details["watchedepisodes"] = match.get("watchedepisodes", 0)
+
     return build_season_data(details)
 
 

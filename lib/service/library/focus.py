@@ -25,7 +25,7 @@ from lib.service.properties import (
     set_episode_properties,
     set_ratings_properties,
     set_movie_extras_aggregates,
-    set_watch_time_properties,
+    set_watched_properties,
     clear_listitem_unified_properties,
 )
 
@@ -123,12 +123,21 @@ def _resolve_season_runtime(tvshowid: int, season: int) -> int:
 
 
 _WATCH_MINUTES: Dict[int, Dict[Optional[int], int]] = {}
+_WATCHED_EPISODES: Dict[int, Dict[int, int]] = {}
 _watch_generation = 0
 
 
 def cached_watch_minutes(tvshowid: int, season: Optional[int] = None) -> Optional[int]:
     """Cached minutes watched for a show, or one of its seasons; None when not fetched yet."""
     show = _WATCH_MINUTES.get(tvshowid)
+    if show is None:
+        return None
+    return show.get(season, 0)
+
+
+def cached_watched_episodes(tvshowid: int, season: int) -> Optional[int]:
+    """Cached count of a season's watched episodes; None when the show is not fetched yet."""
+    show = _WATCHED_EPISODES.get(tvshowid)
     if show is None:
         return None
     return show.get(season, 0)
@@ -149,12 +158,16 @@ def resolve_watch_minutes(tvshowid: int, season: Optional[int] = None) -> int:
     if resp is None:
         return 0
     totals: Dict[Optional[int], int] = {None: 0}
+    watched: Dict[int, int] = {}
     for episode in extract_result(resp, "episodes"):
         minutes = round((episode.get("runtime") or 0) / 60) * (episode.get("playcount") or 0)
+        number = episode.get("season")
         totals[None] += minutes
-        totals[episode.get("season")] = totals.get(episode.get("season"), 0) + minutes
+        totals[number] = totals.get(number, 0) + minutes
+        watched[number] = watched.get(number, 0) + 1
     if generation == _watch_generation:
         _WATCH_MINUTES[tvshowid] = totals
+        _WATCHED_EPISODES[tvshowid] = watched
     return totals.get(season, 0)
 
 
@@ -169,8 +182,10 @@ def forget_watch_minutes(tvshowid: Optional[int] = None) -> None:
     _watch_generation += 1
     if tvshowid is None:
         _WATCH_MINUTES.clear()
+        _WATCHED_EPISODES.clear()
     else:
         _WATCH_MINUTES.pop(tvshowid, None)
+        _WATCHED_EPISODES.pop(tvshowid, None)
 
 
 _CONTAINER_CONTENT_TYPES = {
@@ -498,9 +513,10 @@ class FocusDispatcher:
             season_minutes = resolve_watch_minutes(tvshowid, season) if season is not None else 0
             if self._last_id != focus_id or self._last_type != focus_type:
                 return
-            set_watch_time_properties("TVShow", show, unified=season is None)
+            set_watched_properties("TVShow", show, unified=season is None)
             if season is not None:
-                set_watch_time_properties("Season", season_minutes, unified=True)
+                set_watched_properties("Season", season_minutes, unified=True,
+                                       episodes=cached_watched_episodes(tvshowid, season) or 0)
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -531,6 +547,8 @@ class FocusDispatcher:
             if season_num is not None:
                 key = (int(tvshowid), int(season_num))
                 details["watch_minutes"] = cached_watch_minutes(*key) or 0
+                # GetSeasonDetails never returns watchedepisodes
+                details["watchedepisodes"] = cached_watched_episodes(*key) or 0
                 if show_due:
                     pending = key
         # after the show, which also writes the unified ListItem block
