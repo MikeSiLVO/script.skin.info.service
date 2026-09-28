@@ -265,7 +265,13 @@ _MEDIA_TYPE_HANDLERS = {
 def handle_dbid_query(handle: int, params: dict) -> None:
     """Plugin entry `?action=getdetails&dbid=N&dbtype=X`: one ListItem with library properties."""
     dbid = params.get("dbid", [""])[0]
-    media_type = params.get("dbtype", [""])[0]
+    media_type = params.get("dbtype", [""])[0].lower().strip()
+
+    # music video artist and album nodes are looked up by name and carry no dbid
+    if media_type in ("musicvideo_artist", "musicvideo_album"):
+        from lib.plugin.online import handle_musicvideo_node
+        handle_musicvideo_node(handle, params, media_type)
+        return
 
     if not dbid:
         log("Plugin", "Missing required parameter 'dbid'", xbmc.LOGWARNING)
@@ -284,13 +290,6 @@ def handle_dbid_query(handle: int, params: dict) -> None:
     if not media_type:
         log("Plugin", "Missing required parameter 'dbtype'", xbmc.LOGWARNING)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
-        return
-
-    media_type = media_type.lower().strip()
-
-    if media_type in ("musicvideo_artist", "musicvideo_album"):
-        from lib.plugin.online import handle_musicvideo_node
-        handle_musicvideo_node(handle, params, media_type)
         return
 
     valid_types = (
