@@ -694,7 +694,7 @@ One item, with the info tag filled in as far as TMDB has data:
 | IMDb number           |                                                |
 | Trailer               | YouTube add-on path, when a trailer exists     |
 | Tags                  | TMDB keywords                                  |
-| Poster, fanart, clearlogo | Clearlogo when an English logo exists      |
+| Poster, fanart, clearlogo | Clearlogo in the online metadata language, else English, else one with no language set |
 
 `tmdb_id` is also set as an item property.
 

@@ -9,6 +9,7 @@ import xbmcplugin
 
 from lib.kodi.client import ADDON, log, extract_result
 from lib.data.api.utilities import tmdb_image_url
+from lib.kodi.formatters import pick_clearlogo
 
 
 def handle_person_info(handle: int, params: dict) -> None:
@@ -736,11 +737,9 @@ def handle_tmdb_details(handle: int, params: dict) -> None:
         art['fanart'] = tmdb_image_url(data['backdrop_path'])
 
     images = data.get('images', {})
-    if images.get('logos'):
-        for logo in images['logos']:
-            if logo.get('iso_639_1') in ('en', None):
-                art['clearlogo'] = tmdb_image_url(logo['file_path'])
-                break
+    clearlogo = pick_clearlogo(images.get('logos'))
+    if clearlogo:
+        art['clearlogo'] = clearlogo
 
     if art:
         listitem.setArt(art)

@@ -210,7 +210,7 @@ Properties via `Container(ID).ListItem.Property(...)`
 |----------|-------------|
 | `Poster` | Poster image URL |
 | `Fanart` | Backdrop image URL |
-| `Clearlogo` | Clear logo URL (English preferred) |
+| `Clearlogo` | Clear logo URL, in the online metadata language, else English, else one with no language set |
 
 ### TMDb - IDs
 

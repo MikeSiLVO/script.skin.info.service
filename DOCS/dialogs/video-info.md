@@ -118,7 +118,7 @@ on the media type.
 |----------|-------------|
 | `Poster` | Poster image URL |
 | `Fanart` | Backdrop image URL |
-| `Clearlogo` | Clear logo URL (English preferred) |
+| `Clearlogo` | Clear logo URL, in the online metadata language, else English, else one with no language set |
 | `BlurredPoster` | Blurred copy of `Poster`, generated on open |
 | `BlurredFanart` | Blurred copy of `Fanart`, generated on open |
 

@@ -5,6 +5,7 @@ Maps API field names to Kodi InfoLabel equivalents where applicable.
 """
 from typing import Dict, List, Tuple, Optional, Final
 
+from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import format_date
 from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.utilities import tmdb_image_url
@@ -223,6 +224,17 @@ def format_credits_props(data: dict) -> Dict[str, str]:
     return props
 
 
+def pick_clearlogo(logos: Optional[List[dict]]) -> str:
+    """Pick a TMDB logo in the metadata language, else English, else an untagged one."""
+    usable = [logo for logo in logos or [] if logo.get("file_path")]
+    language = KodiSettings.online_metadata_language().split('-')[0].lower()
+    for wanted in dict.fromkeys((language, "en", None)):
+        logo = next((x for x in usable if x.get("iso_639_1") == wanted), None)
+        if logo:
+            return tmdb_image_url(logo["file_path"])
+    return ""
+
+
 def format_images_props(data: dict) -> Dict[str, str]:
     """Format image URL properties from TMDB data."""
     props: Dict[str, str] = {}
@@ -240,13 +252,7 @@ def format_images_props(data: dict) -> Dict[str, str]:
         props["Fanart"] = tmdb_image_url(backdrop)
 
     images = data.get("images") or {}
-    logos = images.get("logos") or []
-    for logo in logos:
-        if logo.get("iso_639_1") in ("en", None):
-            file_path = logo.get("file_path")
-            if file_path:
-                props["Clearlogo"] = tmdb_image_url(file_path)
-                break
+    props["Clearlogo"] = pick_clearlogo(images.get("logos"))
 
     return props
 

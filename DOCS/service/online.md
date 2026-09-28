@@ -331,7 +331,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 |----------|-------------|
 | `Poster` | Poster image URL |
 | `Fanart` | Backdrop image URL |
-| `Clearlogo` | Clear logo URL (English preferred) |
+| `Clearlogo` | Clear logo URL, in the online metadata language, else English, else one with no language set |
 
 ### IDs
 
