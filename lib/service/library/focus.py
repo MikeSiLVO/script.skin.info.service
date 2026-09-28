@@ -525,17 +525,18 @@ class FocusDispatcher:
             if season_num is not None:
                 details["total_runtime"] = _resolve_season_runtime(int(tvshowid), int(season_num))
 
-        key: Optional[Tuple[int, int]] = None
-        if tvshowid and tvshowid != -1 and season_num is not None:
-            key = (int(tvshowid), int(season_num))
-            details["watch_minutes"] = cached_watch_minutes(*key) or 0
-
-        set_season_properties(details)
-
+        pending: Optional[Tuple[int, int]] = None
         if tvshowid and tvshowid != -1:
             show_due = self._set_tvshow(str(tvshowid), defer=False)
-            if show_due and key:
-                self._defer_watch_minutes(*key, seasonid, "season")
+            if season_num is not None:
+                key = (int(tvshowid), int(season_num))
+                details["watch_minutes"] = cached_watch_minutes(*key) or 0
+                if show_due:
+                    pending = key
+        # after the show, which also writes the unified ListItem block
+        set_season_properties(details)
+        if pending:
+            self._defer_watch_minutes(*pending, seasonid, "season")
 
     def _set_episode(self, episodeid: str) -> None:
         details = get_item_details(
