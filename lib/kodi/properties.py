@@ -1359,10 +1359,6 @@ def build_musicvideo_data(details: dict) -> dict:
     data["FileName"] = _extract_filename(file_path)
     data["FileExtension"] = _extract_file_extension(file_path)
 
-    ratings_dict = details.get("ratings") or {}
-    data["_ratings"] = ratings_dict
-    data.update(_rt_status_props(ratings_dict))
-
     data["_streamdetails"] = details.get("streamdetails") or {}
 
     resume = details.get("resume", {})
