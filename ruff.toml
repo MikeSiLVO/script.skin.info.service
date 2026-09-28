@@ -21,9 +21,3 @@ extend-select = [
 ignore = [
     "E402",  # Module level import not at top - needed for Kodi addon initialization order
 ]
-
-[lint.per-file-ignores]
-# Specific file ignores
-"resources/lib/blur.py" = [
-    "F401",  # Unused import - PIL imports used only to test availability
-]
