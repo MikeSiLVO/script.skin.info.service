@@ -93,7 +93,7 @@ class Top250UpdateService(threading.Thread):
         """Fetch the list, then write to the library only when its contents moved."""
         from lib.infrastructure.dialogs import ProgressDialog, notify_when_idle
         from lib.infrastructure.tasks import ShutdownAbortFlag
-        from lib.script.top250 import apply_updates, compute_updates, fetch_ranks
+        from lib.rating.top250 import apply_updates, compute_updates, fetch_ranks
 
         ranks = fetch_ranks(abort_flag=ShutdownAbortFlag())
         if ranks is None:
