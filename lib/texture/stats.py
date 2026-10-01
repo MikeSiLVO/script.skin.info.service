@@ -65,20 +65,31 @@ def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
     usage_buckets[_bucket_usage(usecount)] += 1
 
 
-def _calculate_disk_usage(thumbnails_path: str) -> int:
-    """Calculate the on-disk size of every file under a folder; 0 on a walk error."""
+def _calculate_disk_usage(thumbnails_path: str, progress: xbmcgui.DialogProgress,
+                          expected_files: int) -> Optional[int]:
+    """Calculate the on-disk size of every readable file under a folder; None if cancelled."""
     disk_usage = 0
-    try:
-        for root, _dirs, files in os.walk(thumbnails_path):
-            for filename in files:
-                filepath = os.path.join(root, filename)
-                try:
-                    disk_usage += os.path.getsize(filepath)
-                except Exception:
-                    pass
-    except Exception as e:
-        log("Texture", f"SkinInfo TextureCache: Disk usage calculation failed: {str(e)}",
-            xbmc.LOGWARNING)
+    seen = 0
+    pending = [thumbnails_path]
+    while pending:
+        try:
+            entries = list(os.scandir(pending.pop()))
+        except OSError as e:
+            log("Texture", f"Disk usage skipped a folder: {e}", xbmc.LOGWARNING)
+            continue
+        for entry in entries:
+            try:
+                if entry.is_dir(follow_symlinks=False):
+                    pending.append(entry.path)
+                    continue
+                disk_usage += entry.stat(follow_symlinks=False).st_size
+            except OSError:
+                continue
+            seen += 1
+            if seen % 200 == 0:
+                if progress.iscanceled():
+                    return None
+                progress.update(80 + min(19, seen * 20 // max(expected_files, 1)))
     return disk_usage
 
 
@@ -111,7 +122,10 @@ def calculate_texture_statistics(textures: list[Dict[str, Any]],
                 _bucket_size_record(size, now, age_buckets, usage_buckets)
 
         progress.update(80, ADDON.getLocalizedString(32425))
-        disk_usage = _calculate_disk_usage(xbmcvfs.translatePath("special://thumbnails"))
+        disk_usage = _calculate_disk_usage(xbmcvfs.translatePath("special://thumbnails"),
+                                           progress, total_sizes)
+        if disk_usage is None:
+            return None
         progress.update(100, ADDON.getLocalizedString(32426))
 
         return {
