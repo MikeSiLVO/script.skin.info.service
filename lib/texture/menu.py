@@ -21,6 +21,7 @@ from lib.texture.cache import (
 )
 from lib.texture.library import get_cached_textures, remove_texture
 from lib.texture.stats import calculate_texture_statistics, format_statistics_report
+from lib.texture.utilities import report_url_lines
 
 
 def run_texture_maintenance() -> None:
@@ -208,7 +209,7 @@ def _execute_precache(selected_types: Optional[List[str]], enable_download: bool
             ADDON.getLocalizedString(32460),
             ADDON.getLocalizedString(32498).format(len(failed_urls))
         ):
-            report_lines = sorted(failed_urls)
+            report_lines = report_url_lines(sorted(failed_urls))
             show_textviewer(ADDON.getLocalizedString(32499), "\n".join(report_lines))
 
     except Exception as e:

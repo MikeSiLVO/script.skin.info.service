@@ -18,7 +18,7 @@ from lib.infrastructure.paths import (
     resolve_media_file,
 )
 from lib.infrastructure.workers import STALL_TIMEOUT_SECONDS
-from lib.texture.utilities import should_precache_url, is_library_artwork_url
+from lib.texture.utilities import should_precache_url, is_library_artwork_url, report_url_lines
 from lib.texture.queues import TextureCache, TextureCacheDownload
 from lib.texture.library import (
     DEFAULT_TEXTURE_MEDIA_TYPES,
@@ -461,9 +461,9 @@ def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
                         "URLs to be removed:",
                         ""
                     ]
-                    for i, texture in enumerate(orphaned, 1):
-                        url = texture.get('url', '')
-                        report_lines.append(f"{i}. {url}")
+                    report_lines.extend(report_url_lines(
+                        [f"{i}. {texture.get('url', '')}" for i, texture in enumerate(orphaned, 1)]
+                    ))
 
                     dialog.textviewer(ADDON.getLocalizedString(32183), "\n".join(report_lines))
                 elif result == 1:

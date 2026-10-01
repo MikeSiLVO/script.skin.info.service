@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import re
 import urllib.parse
+from typing import Final, List
+
 from lib.kodi.client import decode_image_url
+
+# a textviewer lays out every line before it opens
+_REPORT_URL_LIMIT: Final = 500
 
 _SYSTEM_PATH_MARKERS = (
     '/addons/', '\\addons\\', '/system/', '\\system\\', '/userdata/', '\\userdata\\',
@@ -77,3 +82,11 @@ def is_library_artwork_url(url: str) -> bool:
         return True
 
     return False
+
+
+def report_url_lines(urls: List[str]) -> List[str]:
+    """Report lines for the first few hundred URLs, then a count of the rest."""
+    lines = list(urls[:_REPORT_URL_LIMIT])
+    if len(urls) > _REPORT_URL_LIMIT:
+        lines.append(f"...and {len(urls) - _REPORT_URL_LIMIT} more")
+    return lines
