@@ -1266,7 +1266,6 @@ def build_episode_data(details: dict) -> dict:
 
     ratings_dict = details.get("ratings") or {}
     data["_ratings"] = ratings_dict
-    data.update(_rt_status_props(ratings_dict))
 
     data["_streamdetails"] = details.get("streamdetails") or {}
 

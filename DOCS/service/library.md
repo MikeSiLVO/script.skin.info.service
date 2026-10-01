@@ -91,8 +91,8 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Rating.{source}.Votes` | Vote count for source | Movie, TVShow, Episode |
 | `Rating.{source}.Percent` | Source rating as percentage | Movie, TVShow, Episode |
 | `Rating.{source}.Stars` | Roger Ebert and Letterboxd, out of 4 and 5 | Movie, TVShow, Episode |
-| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) | Movie, TVShow, Episode |
-| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) | Movie, TVShow, Episode |
+| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) | Movie, TVShow |
+| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) | Movie, TVShow |
 
 ### Example
 
@@ -503,11 +503,6 @@ Use `%d` as placeholder for index (1-based):
 ### Ratings
 
 `SkinInfo.Episode.Rating.{source}` and its `.Votes`, `.Percent` and `.Stars`, as in the movie [Ratings](#ratings-1).
-
-| Property | Description |
-|----------|-------------|
-| `Tomatometer` | "Fresh" or "Rotten" (based on ≥60%) |
-| `Popcornmeter` | "Fresh" or "Spilled" (based on ≥60%) |
 
 ### Credits
 
