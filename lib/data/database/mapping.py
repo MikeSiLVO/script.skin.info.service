@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Final
 
 from lib.data.database._infrastructure import as_int, get_db, chunked_in_query
 
-_FIND_MISS_TTL_DAYS: Final = 30
+FIND_MISS_TTL_DAYS: Final = 30
 
 
 def save_id_mapping(
@@ -93,7 +93,7 @@ def is_known_find_miss(imdb_id: str, media_type: str) -> bool:
         cursor.execute(
             "SELECT 1 FROM tmdb_find_miss WHERE imdb_id = ? AND media_type = ? "
             "AND checked_at > ?",
-            (imdb_id, media_type, int(time.time()) - _FIND_MISS_TTL_DAYS * 86400),
+            (imdb_id, media_type, int(time.time()) - FIND_MISS_TTL_DAYS * 86400),
         )
         return cursor.fetchone() is not None
 
@@ -136,7 +136,7 @@ def save_unlisted_episode(tmdb_id: str, season: int, episode: int) -> None:
     """Record an episode TMDB does not list at all, for the same window as a `/find` miss."""
     numeric_id = as_int(tmdb_id)
     if numeric_id is not None:
-        _store_episode_miss(numeric_id, season, episode, _FIND_MISS_TTL_DAYS * 24)
+        _store_episode_miss(numeric_id, season, episode, FIND_MISS_TTL_DAYS * 24)
 
 
 def _store_episode_miss(tmdb_id: int, season: int, episode: int, ttl_hours: int) -> None:

@@ -5,7 +5,7 @@ import random
 import time
 import xbmc
 from datetime import datetime
-from typing import Any, NamedTuple, Optional, Dict, List, Tuple
+from typing import Any, NamedTuple, Optional, Dict, List, Tuple, Final
 
 from lib.data.database._infrastructure import (
     as_int,
@@ -16,7 +16,11 @@ from lib.data.database._infrastructure import (
     sql_placeholders,
     chunked_in_modify,
 )
+from lib.data.database.mapping import FIND_MISS_TTL_DAYS
 from lib.kodi.client import log
+
+# under TMDB's six-month cache limit
+_TMDB_KEEP_DAYS: Final = 170
 
 
 class CacheKey(NamedTuple):
@@ -408,8 +412,8 @@ def clear_expired_cache() -> int:
 
         # the row also carries the id mapping, which outlives the payload
         cursor.execute(
-            "UPDATE tmdb_title SET data = X'' WHERE expires_at < ? AND LENGTH(data) > 0",
-            (now - 180 * 86400,))
+            "UPDATE tmdb_title SET data = X'' WHERE fetched_at < ? AND LENGTH(data) > 0",
+            (now - _TMDB_KEEP_DAYS * 86400,))
         metadata_trimmed = cursor.rowcount
 
         cursor.execute('DELETE FROM tmdb_season WHERE expires_at < ?', (now,))
@@ -422,7 +426,8 @@ def clear_expired_cache() -> int:
         person_deleted = cursor.rowcount
 
         # stale online props are still served until a refresh replaces them
-        cursor.execute('DELETE FROM online_props WHERE expires_at < ?', (now - 180 * 86400,))
+        cursor.execute('DELETE FROM online_props WHERE fetched_at < ?',
+                       (now - _TMDB_KEEP_DAYS * 86400,))
         online_deleted = cursor.rowcount
 
         cursor.execute('DELETE FROM provider_response WHERE expires_at < ?', (now,))
@@ -431,9 +436,13 @@ def clear_expired_cache() -> int:
         cursor.execute('DELETE FROM tmdb_episode_miss WHERE expires_at < ?', (now,))
         episode_miss_deleted = cursor.rowcount
 
+        cursor.execute('DELETE FROM tmdb_find_miss WHERE checked_at < ?',
+                       (now - FIND_MISS_TTL_DAYS * 86400,))
+        find_miss_deleted = cursor.rowcount
+
         deleted = (artwork_deleted + metadata_trimmed + season_deleted + genre_deleted
                    + person_deleted + online_deleted + provider_deleted
-                   + episode_miss_deleted)
+                   + episode_miss_deleted + find_miss_deleted)
 
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")

@@ -14,6 +14,7 @@ SKIN_BOOL: Final = "SkinInfo.Service"
 SKIN_BOOL_LIBRARY: Final = "SkinInfo.Service.Library"
 SKIN_BOOL_ONLINE: Final = "SkinInfo.Service.Online"
 POLL_INTERVAL: Final = 1.0
+_CLEANUP_INTERVAL: Final = 24 * 3600
 
 
 class OrchestratorMonitor(xbmc.Monitor):
@@ -72,7 +73,7 @@ class Orchestrator:
             log("Service", "Orchestrator stopped", xbmc.LOGINFO)
 
     def _start_housekeeping(self) -> None:
-        """Start housekeeping 30s after startup: expired cache cleanup and a first DBID sync."""
+        """Start housekeeping 30s after startup: a first DBID sync, and cache cleanup every day."""
         def _run() -> None:
             # the services get the database first
             if self.monitor.waitForAbort(30):
@@ -84,6 +85,8 @@ class Orchestrator:
                 return
             if needs_id_backfill():
                 sync_dbids()
+            while not self.monitor.waitForAbort(_CLEANUP_INTERVAL):
+                clear_expired_cache()
 
         threading.Thread(target=_run, daemon=True).start()
 
