@@ -757,4 +757,5 @@ class ApiTmdb(RatingSource):
     @staticmethod
     def get_attribution() -> str:
         """Get required TMDB attribution text."""
-        return "This product uses the TMDB API but is not endorsed or certified by TMDB."
+        return ("This add-on uses TMDB and the TMDB APIs but is not endorsed, certified, "
+                "or otherwise approved by TMDB.")
