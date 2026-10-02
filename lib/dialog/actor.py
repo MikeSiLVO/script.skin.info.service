@@ -22,7 +22,7 @@ class DialogActorInfo(InfoDialogBase):
 
     def onInit(self) -> None:
         """Populate the dialog and start the profile blur once Kodi has built it."""
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         self.mark_topmost()
         self._set_person_properties()
         self._bind_containers()

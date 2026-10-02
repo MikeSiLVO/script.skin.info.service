@@ -24,7 +24,7 @@ class DialogImageViewer(InfoDialogBase):
 
     def onInit(self) -> None:
         """Mark topmost and jump the list to the item that was opened."""
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         self.mark_topmost()
         try:
             control = cast(xbmcgui.ControlList, self.getControl(_IMAGES_CONTROL_ID))

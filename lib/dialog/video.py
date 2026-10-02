@@ -24,7 +24,7 @@ class DialogVideoInfo(InfoDialogBase):
 
     def onInit(self) -> None:
         """Populate the dialog and start the poster and fanart blur once Kodi has built it."""
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         self.mark_topmost()
         self._set_video_properties()
         self._bind_containers()

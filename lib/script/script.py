@@ -652,11 +652,11 @@ def _restore_focus(args: dict, dialog_xml: str) -> None:
 
 def _handle_dialog_actor_info(args: dict) -> None:
     """Show the busy dialog while the actor info dialog loads."""
-    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
     try:
         _handle_dialog_actor_info_inner(args)
     finally:
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         _restore_focus(args, 'script-skin-info-service-DialogActorInfo.xml')
 
 
@@ -710,11 +710,11 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
 
 def _handle_dialog_image_viewer(args: dict) -> None:
     """Show the busy dialog while the image viewer loads."""
-    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
     try:
         _handle_dialog_image_viewer_inner(args)
     finally:
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         _restore_focus(args, 'script-skin-info-service-DialogImageViewer.xml')
 
 
@@ -737,11 +737,11 @@ def _handle_dialog_image_viewer_inner(args: dict) -> None:
 
 def _handle_dialog_video_info(args: dict) -> None:
     """Show the busy dialog while the video info dialog loads."""
-    xbmc.executebuiltin('ActivateWindow(busydialog)')
+    xbmc.executebuiltin('ActivateWindow(busydialognocancel)')
     try:
         _handle_dialog_video_info_inner(args)
     finally:
-        xbmc.executebuiltin('Dialog.Close(busydialog,true)')
+        xbmc.executebuiltin('Dialog.Close(busydialognocancel,true)')
         _restore_focus(args, 'script-skin-info-service-DialogVideoInfo.xml')
 
 
