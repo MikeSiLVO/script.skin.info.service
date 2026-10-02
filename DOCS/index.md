@@ -26,6 +26,19 @@ Window properties and plugin paths for Kodi skins.
 | [Video Info Dialog](dialogs/video-info.md) | TMDB movie/TV info with cast, recommendations    |
 | [Image Viewer Dialog](dialogs/image-viewer.md) | Full-screen image gallery for any plugin URL |
 
+## Dialog Skinning
+
+Each add-on dialog ships with a default layout. When Estuary is the active skin, the actor info, video info, image viewer and artwork selection dialogs use layouts built from Estuary's own styling instead. A skin replaces any dialog by including an XML file with the same name, and that file always takes priority over the add-on's layouts.
+
+| Dialog              | XML file                                          |
+|---------------------|---------------------------------------------------|
+| Actor Info          | `script-skin-info-service-DialogActorInfo.xml`    |
+| Video Info          | `script-skin-info-service-DialogVideoInfo.xml`    |
+| Image Viewer        | `script-skin-info-service-DialogImageViewer.xml`  |
+| Artwork Selection   | `script.skin.info.service-ArtworkSelection.xml`   |
+| Multi-Art Selection | `script.skin.info.service-MultiArtSelection.xml`  |
+| Color Picker        | `script.skin.info.service-ColorPicker.xml`        |
+
 ## Plugin Paths
 
 | Document                           | Description                          |

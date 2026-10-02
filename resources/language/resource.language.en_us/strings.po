@@ -263,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "Configure Fanart.tv API Key"
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr "Filmography"
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -298,6 +302,10 @@ msgstr "Stopped early: downloads stalled"
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
 msgstr "No progress for over {0} seconds. Run it again to finish the rest."
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
+msgstr "Press OK to read biography"
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"

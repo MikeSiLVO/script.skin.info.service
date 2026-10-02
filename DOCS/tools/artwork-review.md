@@ -271,13 +271,7 @@ Not all art types are available for all items - availability depends on scraper 
 
 ### Artwork Selection Dialog
 
-The default dialog is styled to match Kodi's Estuary skin and uses standard Estuary textures and patterns.
-
-**For Skinners:**
-To customize the artwork selection dialog for your skin, create:
-`script.skin.info.service-ArtworkSelection.xml`
-
-Kodi will automatically use your skin's version if it exists, otherwise falls back to the addon's default.
+To replace this dialog in a skin, see [Dialog Skinning](../index.md#dialog-skinning).
 
 **Required control IDs:**
 

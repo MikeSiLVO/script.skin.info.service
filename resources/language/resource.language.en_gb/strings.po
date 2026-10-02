@@ -260,6 +260,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr ""
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr ""
@@ -294,6 +298,10 @@ msgstr ""
 
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
+msgstr ""
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
 msgstr ""
 
 msgctxt "#32072"
