@@ -42,7 +42,7 @@ def _rebuilt_at(items: List[dict]) -> float:
     newest = 0.0
     for item in items:
         try:
-            parsed = datetime.strptime(item.get("listed_at") or "", "%Y-%m-%dT%H:%M:%S.%fZ")
+            parsed = datetime.fromisoformat((item.get("listed_at") or "").replace("Z", "+00:00"))
         except (ValueError, TypeError):
             continue
         newest = max(newest, parsed.replace(tzinfo=timezone.utc).timestamp())

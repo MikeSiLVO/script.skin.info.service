@@ -27,8 +27,8 @@ def build_person_props(person_data: dict) -> Dict[str, str]:
     if birthday:
         props['Birthday'] = birthday
         try:
-            birth_date = datetime.strptime(birthday, '%Y-%m-%d')
-            end_date = datetime.strptime(deathday, '%Y-%m-%d') if deathday else datetime.now()
+            birth_date = datetime.fromisoformat(birthday)
+            end_date = datetime.fromisoformat(deathday) if deathday else datetime.now()
             age = end_date.year - birth_date.year
             if (end_date.month, end_date.day) < (birth_date.month, birth_date.day):
                 age -= 1
@@ -40,7 +40,7 @@ def build_person_props(person_data: dict) -> Dict[str, str]:
     if deathday:
         props['Deathday'] = deathday
         try:
-            death_date = datetime.strptime(deathday, '%Y-%m-%d')
+            death_date = datetime.fromisoformat(deathday)
             props['DeathdayFormatted'] = death_date.strftime(xbmc.getRegion('dateshort'))
         except (ValueError, TypeError):
             pass

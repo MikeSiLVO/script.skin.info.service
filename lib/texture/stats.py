@@ -55,7 +55,7 @@ def _bucket_size_record(size: dict, now: datetime, age_buckets: Dict[str, int],
 
     if lastusetime:
         try:
-            last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
+            last_used = datetime.fromisoformat(lastusetime)
             age_buckets[_bucket_age((now - last_used).days)] += 1
         except Exception:
             age_buckets['unknown'] += 1

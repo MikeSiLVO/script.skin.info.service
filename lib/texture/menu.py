@@ -382,7 +382,7 @@ def cleanup_textures_by_age(age_days: int,
                 lastusetime = size.get('lastused')
                 if lastusetime:
                     try:
-                        last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
+                        last_used = datetime.fromisoformat(lastusetime)
                         if last_used < cutoff_date:
                             old_textures.append(texture)
                             break
@@ -479,7 +479,7 @@ def _execute_age_cleanup(age_days: int) -> None:
                 lastusetime = size.get('lastused')
                 if lastusetime:
                     try:
-                        last_used = datetime.strptime(lastusetime, '%Y-%m-%d %H:%M:%S')
+                        last_used = datetime.fromisoformat(lastusetime)
                         if last_used < cutoff_date:
                             old_textures.append(texture)
                             if oldest_date is None or last_used < oldest_date:

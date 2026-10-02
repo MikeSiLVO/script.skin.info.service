@@ -323,10 +323,7 @@ def format_date(date_str: str, include_time: bool = False) -> str:
 
     from datetime import datetime
     try:
-        if " " in date_str:
-            dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-        else:
-            dt = datetime.strptime(date_str, "%Y-%m-%d")
+        dt = datetime.fromisoformat(date_str)
 
         if include_time:
             with _CACHE_LOCK:
