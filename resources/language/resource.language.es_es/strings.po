@@ -21,6 +21,10 @@ msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
 msgstr "Skin Info Service provee skins con metadata enriquecida y mejor arte de lo que expone Kodi por defecto. Añade propiedades extra como las valoraciones desde distintas fuentes, arte, detalles de la emisión, elenco y argumento de las películas, programas de TV, episodios, sagas, vídeos musicales, intérpretes y álbumes, pintándolo todo en la colección y datos online. Incluye tambien una herramietna para buscar y añadir carteles de GIF animados para la colección."
 
+msgctxt "Addon Disclaimer"
+msgid "This add-on uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
+msgstr ""
+
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr "Arte Animado"
