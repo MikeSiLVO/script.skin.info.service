@@ -746,7 +746,7 @@ def _handle_dialog_video_info(args: dict) -> None:
 
 
 def _handle_dialog_video_info_inner(args: dict) -> None:
-    """Open the video info dialog, resolving ids from the library when only a dbid is given."""
+    """Open the video info dialog, resolving ids from a dbid or a library dbid from a TMDB id."""
     from lib.data.database._infrastructure import init_database
 
     init_database()
@@ -760,6 +760,12 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
     dbid = args.get('dbid', '')
     tmdb_id = args.get('tmdb_id', '')
     imdb_id = args.get('imdb_id', '')
+
+    if tmdb_id and not dbid and media_type:
+        from lib.data.database.rollcall import get_dbids_by_tmdb
+        found = get_dbids_by_tmdb(media_type, [tmdb_id]).get(str(tmdb_id))
+        if found:
+            dbid = str(found)
 
     if not tmdb_id and not imdb_id:
         if not dbid or not media_type:
