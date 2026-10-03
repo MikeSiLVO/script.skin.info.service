@@ -125,6 +125,7 @@ def _handle_person_filmography(handle: int, person_data: dict, params: dict) -> 
     """Handle `info_type=filmography`: the acting credits, filtered and sorted."""
     credits = person_data.get('combined_credits', {}).get('cast', [])
 
+    credits = _dedupe_credits(credits, 'character', ' / ')
     credits = _filter_credits(credits, params)
     credits = _sort_credits(credits, params)
 
@@ -155,7 +156,7 @@ def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
         target = job_filter.lower()
         credits = [c for c in credits if (c.get('job') or '').lower() == target]
     else:
-        credits = _dedupe_crew_credits(credits)
+        credits = _dedupe_credits(credits, 'job', ', ')
 
     credits = _filter_credits(credits, params)
     credits = _sort_credits(credits, params)
@@ -184,16 +185,16 @@ def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
     xbmcplugin.endOfDirectory(handle, succeeded=True)
 
 
-def _dedupe_crew_credits(credits: list) -> list:
-    """Dedupe credits for the same title into one entry with its jobs joined."""
+def _dedupe_credits(credits: list, field: str, separator: str) -> list:
+    """Dedupe credits for the same title into one entry with one field's values joined."""
     seen: dict = {}
     for credit in credits:
         key = (credit.get('id'), credit.get('media_type'))
         if key in seen:
-            existing = seen[key].get('job') or ''
-            new_job = credit.get('job') or ''
-            if new_job and new_job not in existing.split(', '):
-                seen[key]['job'] = f"{existing}, {new_job}" if existing else new_job
+            existing = seen[key].get(field) or ''
+            new_value = credit.get(field) or ''
+            if new_value and new_value not in existing.split(separator):
+                seen[key][field] = f"{existing}{separator}{new_value}" if existing else new_value
         else:
             seen[key] = dict(credit)
     return list(seen.values())
