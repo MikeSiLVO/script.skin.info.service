@@ -233,7 +233,7 @@
 						<orientation>horizontal</orientation>
 						<scrolltime>200</scrolltime>
 						<visible allowhiddenfocus="true">Integer.IsGreater(Container(1511).NumItems,0)</visible>
-						<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1511).ListItem.Property(tmdb_id)],dbtype=$INFO[Container(1511).ListItem.Property(MediaType)])</onclick>
+						<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1511).ListItem.Property(tmdb_id)],dbtype=$INFO[Container(1511).ListItem.DBType])</onclick>
 						<itemlayout width="260" height="490">
 							<control type="image">
 								<width>240</width>
