@@ -57,8 +57,6 @@ def _needs_write(old_rating: Optional[float], old_votes: int,
         return new_votes != old_votes
     if not old_votes:
         return new_votes > 0
-    if old_votes < 100:
-        return new_votes != old_votes
     swing = abs(new_votes - old_votes) / old_votes
     return swing > (0.1 if old_votes < 1000 else 0.05)
 

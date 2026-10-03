@@ -207,8 +207,7 @@ def get_imdb_changed_items(media_type: Optional[str] = None) -> List[Dict]:
         JOIN imdb_rating r ON s.imdb_id = r.imdb_id
         WHERE ROUND(s.rating, 1) != ROUND(r.rating, 1)
            OR (s.votes = 0 AND r.votes > 0)
-           OR (s.votes > 0 AND s.votes < 100 AND r.votes != s.votes)
-           OR (s.votes >= 100 AND s.votes < 1000
+           OR (s.votes > 0 AND s.votes < 1000
                AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.1)
            OR (s.votes >= 1000 AND ABS(r.votes - s.votes) * 1.0 / s.votes > 0.05)
     '''
