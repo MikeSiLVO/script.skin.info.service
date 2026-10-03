@@ -459,12 +459,15 @@ def dialog_textviewer(
     text: str = '',
     file: str = '',
     usemono: str = 'false',
+    headinginfo: str = '',
+    textinfo: str = '',
     **kwargs
 ) -> None:
-    """Show a text viewer with the given text, or a file's contents when a file is given."""
+    """Show a text viewer with the given text or a named infolabel's, or a file's contents."""
     import xbmcvfs
 
-    heading = _resolve_infolabel(heading) or TEST_DEFAULTS['heading']
+    heading = (xbmc.getInfoLabel(headinginfo) if headinginfo else _resolve_infolabel(heading)
+               ) or TEST_DEFAULTS['heading']
     use_mono = _parse_bool(usemono, False)
 
     if file:
@@ -483,7 +486,8 @@ def dialog_textviewer(
                                 ADDON.getLocalizedString(32563).format(str(e)))
             log('Dialogs', f"textviewer: Error reading file '{file_path}': {str(e)}", xbmc.LOGERROR)
     else:
-        text = _resolve_infolabel(text) or TEST_DEFAULTS['text']
+        text = (xbmc.getInfoLabel(textinfo) if textinfo else _resolve_infolabel(text)
+                ) or TEST_DEFAULTS['text']
         xbmcgui.Dialog().textviewer(heading, text, usemono=use_mono)
 
 

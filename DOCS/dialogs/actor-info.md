@@ -12,11 +12,11 @@ A full-screen actor info dialog with profile image, biography, top credits, and 
 <!-- From a cast list item -->
 <onclick>RunScript(script.skin.info.service,action=dialog_actor_info,
   person_id=$INFO[Container.ListItem.Property(person_id)],
-  name=$ESCINFO[Container.ListItem.Label])</onclick>
+  "name=$INFO[Container.ListItem.Label]")</onclick>
 
 <!-- From a name in plain text (resolves via the parent video's TMDB cast) -->
 <onclick>RunScript(script.skin.info.service,action=dialog_actor_info,
-  name=$ESCINFO[Container.ListItem.Label],
+  "name=$INFO[Container.ListItem.Label]",
   dbid=$INFO[ListItem.DBID],
   dbtype=$INFO[ListItem.DBType])</onclick>
 

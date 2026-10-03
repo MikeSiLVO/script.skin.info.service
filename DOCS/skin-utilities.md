@@ -301,7 +301,7 @@ Show text viewer dialog (read-only scrollable text).
 **Usage:**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,dialog=textviewer,heading=License,text=$INFO[Window.Property(LicenseText)],usemono=true)</onclick>
+<onclick>RunScript(script.skin.info.service,dialog=textviewer,heading=License,textinfo=Window.Property(LicenseText),usemono=true)</onclick>
 ```
 
 **Parameters:**
@@ -310,6 +310,8 @@ Show text viewer dialog (read-only scrollable text).
 | --------- | -------- | -------------- | ----------------------------- |
 | `heading` | No       | "Test Dialog"  | Dialog heading                |
 | `text`    | No       | "Test text..." | Text content (supports $INFO) |
+| `headinginfo` | No   | -              | Infolabel to read the heading from, such as `Window.Property(Name)` |
+| `textinfo` | No      | -              | Infolabel to read the text from; keeps quotes and commas in long text intact |
 | `usemono` | No       | false          | Use monospace font            |
 
 ---
@@ -1559,15 +1561,15 @@ Looks up library items where a person appears as actor or as a specific crew rol
 
 ```xml
 <!-- Actor search (default) -->
-<onclick>RunScript(script.skin.info.service,action=search_library_person,name=$ESCINFO[ListItem.Label])</onclick>
+<onclick>RunScript(script.skin.info.service,action=search_library_person,"name=$INFO[ListItem.Label]")</onclick>
 
 <!-- Director search -->
-<onclick>RunScript(script.skin.info.service,action=search_library_person,name=$ESCINFO[ListItem.Label],crew=director)</onclick>
+<onclick>RunScript(script.skin.info.service,action=search_library_person,"name=$INFO[ListItem.Label]",crew=director)</onclick>
 ```
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `name` | Yes | - | Person name (URL-encoded, use `$ESCINFO[...]`) |
+| `name` | Yes | - | Person name, passed as `"name=$INFO[...]"` |
 | `crew` | No | (actor) | Empty for actor, `director` or `writer` to filter by crew role |
 
 ---

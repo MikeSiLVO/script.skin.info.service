@@ -120,7 +120,7 @@ Use multiple blur instances simultaneously:
 ### Syntax
 
 ```text
-RunScript(script.skin.info.service,action=blur,source="<infolabel>",prefix=<name>,radius=<value>,window_id=<window>)
+RunScript(script.skin.info.service,action=blur,source=<infolabel>,prefix=<name>,radius=<value>,window_id=<window>)
 ```
 
 ### Parameters
@@ -137,27 +137,27 @@ RunScript(script.skin.info.service,action=blur,source="<infolabel>",prefix=<name
 **Basic:**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(poster)")</onclick>
+<onclick>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(poster))</onclick>
 <texture>$INFO[Window(Home).Property(SkinInfo.Custom.BlurredImage)]</texture>
 ```
 
 **Dialog with Custom Prefix:**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(fanart)",prefix=movieinfo,window_id=movieinformation)</onclick>
+<onclick>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(fanart),prefix=movieinfo,window_id=movieinformation)</onclick>
 <texture>$INFO[Window(movieinformation).Property(SkinInfo.movieinfo.BlurredImage)]</texture>
 ```
 
 **Custom Radius:**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(poster)",radius=25)</onclick>
+<onclick>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(poster),radius=25)</onclick>
 ```
 
 **No Prefix (Same as Service Loop):**
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(fanart)",prefix=)</onclick>
+<onclick>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(fanart),prefix=)</onclick>
 <texture>$INFO[Window(Home).Property(SkinInfo.BlurredImage)]</texture>
 ```
 
@@ -220,7 +220,7 @@ Numeric IDs also work: `window_id=12003`
 
 ```xml
 <window type="dialog" id="1101">
-    <onload>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(fanart)",prefix=movieinfo,window_id=movieinformation)</onload>
+    <onload>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(fanart),prefix=movieinfo,window_id=movieinformation)</onload>
     <onunload>ClearProperty(SkinInfo.movieinfo.BlurredImage,movieinformation)</onunload>
     <onunload>ClearProperty(SkinInfo.movieinfo.BlurredImage.Original,movieinformation)</onunload>
 
@@ -245,7 +245,7 @@ Numeric IDs also work: `window_id=12003`
 **Source image not found:**
 
 - Kodi splits RunScript arguments on spaces
-- Always use quotes around `source` parameter: `source="ListItem.Art(poster)"`
+- Always use quotes around `source` parameter: `source=ListItem.Art(poster)`
 - Without quotes, paths with spaces will be split incorrectly
 
 **Properties not updating:**

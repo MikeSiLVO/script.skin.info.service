@@ -112,7 +112,7 @@ See: [Library Widgets](plugin/widgets-library.md), [Discovery Widgets](plugin/wi
 Button-triggered operations.
 
 ```xml
-<onclick>RunScript(script.skin.info.service,action=blur,source="ListItem.Art(fanart)")</onclick>
+<onclick>RunScript(script.skin.info.service,action=blur,source=ListItem.Art(fanart))</onclick>
 ```
 
 See: [Blur](tools/blur.md), [Color Picker](tools/color-picker.md), [Skin Utilities](skin-utilities.md)
