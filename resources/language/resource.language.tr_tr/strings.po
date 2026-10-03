@@ -21,6 +21,10 @@ msgctxt "Addon Description"
 msgid "Skin Info Service provides skins with rich metadata and artwork beyond what Kodi exposes by default. It adds extra properties such as ratings from multiple sources, artwork, stream details, and cast and plot information for movies, TV shows, episodes, sets, music videos, artists, and albums, drawing on both your library and online data. It also includes a tool to find and add animated GIF posters to your library."
 msgstr ""
 
+msgctxt "Addon Disclaimer"
+msgid "This add-on uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB."
+msgstr ""
+
 msgctxt "#32000"
 msgid "Animated Art"
 msgstr ""
@@ -259,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr ""
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr ""
@@ -293,6 +301,10 @@ msgstr ""
 
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
+msgstr ""
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
 msgstr ""
 
 msgctxt "#32072"
