@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta7"
+	   version="2.0.1~beta8"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,21 +32,17 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta7
-- Watch time for TV shows and seasons, from the service and the plugin
-- Plugin TV show and season items now carry runtime and watch time
-- Season watched episode count now fills in
-- Online show info and ratings for episodes
-- Default ratings source setting now takes effect
-- Clear logos follow the online metadata language
-- Music video artist and album node lookups work without a dbid
-- Play all and play random find items again
-- Skin property values keep their commas
-- Texture cleanup menu tidied, age cleanup report added to last report
-- Animated posters found on network shares
-- Editor saves song moods and lists every library value
-- Ratings: Stop All Updates stops at once, RogerEbert thumbs-down and Emmy wins added
-- Many more dialogs and prompts translated, en_us uses US spelling
+2.0.1~beta8
+- Estuary versions of the actor, video info, artwork and image dialogs
+- Busy indicator shows while info dialogs load
+- Filmography lists each title once, with all its roles
+- Recommendations open with their full details and link to your library
+- Image viewer opens at the chosen image
+- Fix empty plot and biography viewer and cast search on Kodi 21
+- Fix missing birth dates, ages and other dates
+- Stinger check uses current TMDB data on each play
+- Fewer IMDb rating rewrites for episodes with few votes
+- Texture reports open faster on large caches, with progress while measuring disk usage
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
