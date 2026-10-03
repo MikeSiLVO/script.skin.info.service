@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import threading
-from typing import Optional, Final
+from typing import Final
 
 import xbmc
 
 from lib.kodi.client import log
+from lib.infrastructure.tasks import ServiceAbortFlag
 from lib.service.online.focus import FocusHandler
 from lib.service.online.player import PlayerHandler
 from lib.service.online.musicplayer import MusicPlayerHandler
@@ -17,22 +18,6 @@ from lib.service.online.updater import UpdaterHandler
 ONLINE_POLL_INTERVAL: Final = 0.10
 
 MAX_REQUEST_SECONDS: Final = 30.0  # runaway backstop; shutdown handled by the connection watcher
-
-
-class ServiceAbortFlag:
-    """Abort flag for online API calls, set on Kodi abort or service stop, with an optional cap."""
-
-    def __init__(self, abort_event: threading.Event,
-                 max_request_seconds: Optional[float] = None):
-        self._abort_event = abort_event
-        self._monitor = xbmc.Monitor()
-        self.max_request_seconds = max_request_seconds
-
-    def is_requested(self) -> bool:
-        """True if the service or Kodi is aborting."""
-        if self._monitor.abortRequested():
-            return True
-        return self._abort_event.is_set()
 
 
 class CancelToken:

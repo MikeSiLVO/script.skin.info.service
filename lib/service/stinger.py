@@ -12,6 +12,7 @@ import xbmcvfs
 
 from lib.kodi.client import log, ADDON, get_item_details, KODI_MOVIE_PROPERTIES
 from lib.kodi.utilities import extract_media_ids
+from lib.infrastructure.tasks import ServiceAbortFlag
 
 # a skin can override it through Skin.String
 DEFAULT_STINGER_ICON = xbmcvfs.translatePath(
@@ -78,40 +79,45 @@ def get_stinger_settings() -> Dict[str, Any]:
     }
 
 
-def get_stinger_from_tmdb(ids: Dict[str, Optional[str]]) -> Optional[StingerInfo]:
-    """Fetch stinger info from the movie's cached TMDB keywords, online service or not."""
+def get_stinger_from_tmdb(ids: Dict[str, Optional[str]],
+                          abort_flag=None) -> Tuple[Optional[StingerInfo], bool]:
+    """Fetch stinger info from fresh TMDB keywords, cached ones on a failed fetch; True if fresh."""
     tmdb_id = ids.get("tmdb")
     if not tmdb_id:
-        return None
+        return None, True
 
+    from lib.data.api.tmdb import ApiTmdb
+    from lib.data.database.cache import get_cached_metadata
     try:
-        from lib.data.api.tmdb import ApiTmdb
-        api = ApiTmdb()
-        data = api.get_complete_data("movie", int(tmdb_id))
+        data = ApiTmdb().get_complete_data("movie", int(tmdb_id), abort_flag=abort_flag,
+                                           force_refresh=True)
     except Exception as e:
         log("Service", f"TMDB stinger fetch error: {e}", xbmc.LOGDEBUG)
-        return None
+        data = None
 
+    fresh = data is not None
+    if not fresh:
+        data = get_cached_metadata("movie", str(tmdb_id))
     if not data:
-        return None
+        return None, fresh
 
     keywords = data.get("keywords") or {}
     keyword_list = keywords.get("keywords") or []
     if not keyword_list:
-        return None
+        return None, fresh
 
     keyword_names = {kw.get("name", "").lower() for kw in keyword_list if isinstance(kw, dict)}
     has_during = TMDB_KEYWORD_DURING in keyword_names
     has_after = TMDB_KEYWORD_AFTER in keyword_names
 
     if has_during or has_after:
-        return StingerInfo(has_during=has_during, has_after=has_after, source="tmdb")
+        return StingerInfo(has_during=has_during, has_after=has_after, source="tmdb"), fresh
 
-    return None
+    return None, fresh
 
 
-def get_stinger_from_trakt(ids: Dict[str, Optional[str]]) -> Optional[StingerInfo]:
-    """Fetch stinger info from Trakt for a movie identified by IMDb/TMDB/Trakt-slug IDs."""
+def get_stinger_from_trakt(ids: Dict[str, Optional[str]], abort_flag=None) -> Optional[StingerInfo]:
+    """Fetch stinger info from fresh Trakt data, the cached copy when the fetch fails."""
     from lib.data.api.trakt import ApiTrakt
 
     clean_ids = {k: v for k, v in ids.items() if v is not None}
@@ -119,7 +125,9 @@ def get_stinger_from_trakt(ids: Dict[str, Optional[str]]) -> Optional[StingerInf
         return None
 
     trakt = ApiTrakt()
-    data = trakt.fetch_data("movie", clean_ids)
+    data = trakt.fetch_data("movie", clean_ids, abort_flag, force_refresh=True)
+    if not data:
+        data = trakt.get_trakt_data("movie", clean_ids)
 
     if not data:
         return None
@@ -151,28 +159,29 @@ def get_stinger_from_kodi_tags(movie_details: Dict[str, Any]) -> Optional[Stinge
 
 
 def get_stinger_info(ids: Optional[Dict[str, Optional[str]]] = None,
-                     movie_details: Optional[Dict[str, Any]] = None
-                     ) -> Optional[StingerInfo]:
-    """Check stinger sources in order: TMDB, Kodi library tags, Trakt."""
+                     movie_details: Optional[Dict[str, Any]] = None,
+                     abort_flag=None) -> Tuple[Optional[StingerInfo], bool]:
+    """Check stinger sources in order: TMDB, Kodi library tags, Trakt; True if TMDB was fresh."""
+    fresh = True
     if ids:
-        info = get_stinger_from_tmdb(ids)
+        info, fresh = get_stinger_from_tmdb(ids, abort_flag)
         if info:
             log("Service", f"Stinger info from TMDB: {info.stinger_type.value}", xbmc.LOGDEBUG)
-            return info
+            return info, fresh
 
     if movie_details:
         info = get_stinger_from_kodi_tags(movie_details)
         if info:
             log("Service", f"Stinger info from Kodi tags: {info.stinger_type.value}", xbmc.LOGDEBUG)
-            return info
+            return info, fresh
 
     if ids:
-        info = get_stinger_from_trakt(ids)
+        info = get_stinger_from_trakt(ids, abort_flag)
         if info:
             log("Service", f"Stinger info from Trakt: {info.stinger_type.value}", xbmc.LOGDEBUG)
-            return info
+            return info, fresh
 
-    return None
+    return None, fresh
 
 
 def set_stinger_properties(
@@ -309,6 +318,9 @@ class StingerTracker:
         self.stinger_info: Optional[StingerInfo] = None
         self.notified: bool = False
         self._settings: Optional[Dict[str, Any]] = None
+        self._ids: Optional[Dict[str, Optional[str]]] = None
+        self._details: Optional[Dict[str, Any]] = None
+        self._stale: bool = False
 
     def reset(self) -> None:
         """Reset state for new playback."""
@@ -316,6 +328,9 @@ class StingerTracker:
         self.stinger_info = None
         self.notified = False
         self._settings = None
+        self._ids = None
+        self._details = None
+        self._stale = False
         clear_stinger_properties()
         set_notify_property(False)
 
@@ -330,7 +345,8 @@ class StingerTracker:
         self,
         movie_id: str,
         ids: Optional[Dict[str, Optional[str]]] = None,
-        movie_details: Optional[Dict[str, Any]] = None
+        movie_details: Optional[Dict[str, Any]] = None,
+        abort_flag=None,
     ) -> None:
         """Handle movie playback start. Resolves stinger info via TMDB/Kodi tags/Trakt."""
         if not self.settings["enabled"]:
@@ -341,14 +357,27 @@ class StingerTracker:
 
         self.reset()
         self.current_movie_id = movie_id
+        self._ids = ids
+        self._details = movie_details
+        self._resolve(abort_flag)
 
-        self.stinger_info = get_stinger_info(ids=ids, movie_details=movie_details)
+    def retry_if_stale(self, abort_flag=None) -> None:
+        """Retry the lookup while TMDB has not answered fresh and the notice has not shown."""
+        if self._stale and self.current_movie_id and not self.notified:
+            self._resolve(abort_flag)
 
-        if self.stinger_info and self.stinger_info.has_stinger:
-            set_stinger_properties(self.stinger_info)
-            log("Service",
-                f"Stinger detected: {self.stinger_info.stinger_type.value}",
-                xbmc.LOGDEBUG)
+    def _resolve(self, abort_flag) -> None:
+        """Look the stinger up and publish the result, from cache until TMDB answers fresh."""
+        info, fresh = get_stinger_info(ids=self._ids, movie_details=self._details,
+                                       abort_flag=abort_flag)
+        self._stale = not fresh
+        self.stinger_info = info
+
+        if info and info.has_stinger:
+            set_stinger_properties(info)
+            log("Service", f"Stinger detected: {info.stinger_type.value}", xbmc.LOGDEBUG)
+        else:
+            clear_stinger_properties()
 
     def check_notification(self) -> None:
         """Check if notification should be shown based on playback position."""
@@ -386,6 +415,7 @@ class StingerService(threading.Thread):
         log("Service", "Stinger service started", xbmc.LOGINFO)
 
         stinger = StingerTracker()
+        abort_flag = ServiceAbortFlag(self.abort)
         current_dbid: Optional[str] = None
         fetched = False
 
@@ -418,15 +448,17 @@ class StingerService(threading.Thread):
                 continue
 
             if not fetched:
-                self._fetch_stinger_info(stinger, dbid)
+                self._fetch_stinger_info(stinger, dbid, abort_flag)
                 fetched = True
+            else:
+                stinger.retry_if_stale(abort_flag)
 
             stinger.check_notification()
 
         stinger.reset()
         log("Service", "Stinger service stopped", xbmc.LOGINFO)
 
-    def _fetch_stinger_info(self, stinger: StingerTracker, dbid: str) -> None:
+    def _fetch_stinger_info(self, stinger: StingerTracker, dbid: str, abort_flag) -> None:
         """Fetch the playing movie's details for the stinger lookup."""
         details = get_item_details(
             'movie',
@@ -438,4 +470,5 @@ class StingerService(threading.Thread):
             return
 
         ids = extract_media_ids(details)
-        stinger.on_playback_start(movie_id=dbid, ids=ids, movie_details=details)
+        stinger.on_playback_start(movie_id=dbid, ids=ids, movie_details=details,
+                                  abort_flag=abort_flag)

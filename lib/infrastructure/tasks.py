@@ -40,6 +40,22 @@ def _write_task_data(data: Dict[str, Any]) -> None:
     _home_window.setProperty(_PROPERTY_TASK, json.dumps(data))
 
 
+class ServiceAbortFlag:
+    """Abort flag for online API calls, set on Kodi abort or service stop, with an optional cap."""
+
+    def __init__(self, abort_event: threading.Event,
+                 max_request_seconds: Optional[float] = None):
+        self._abort_event = abort_event
+        self._monitor = xbmc.Monitor()
+        self.max_request_seconds = max_request_seconds
+
+    def is_requested(self) -> bool:
+        """True if the service or Kodi is aborting."""
+        if self._monitor.abortRequested():
+            return True
+        return self._abort_event.is_set()
+
+
 class ShutdownAbortFlag:
     """Abort flag for script work with no task to cancel; only shutdown or `request` stops it."""
 
