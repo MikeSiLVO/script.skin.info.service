@@ -263,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "配置 Fanart.tv API 密钥"
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -298,6 +302,10 @@ msgstr "提前停止:下载停滞"
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
 msgstr "超过 {0} 秒无进度。请再次运行以完成剩余部分。"
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
+msgstr ""
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"

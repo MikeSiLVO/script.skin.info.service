@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-09-24 14:16+0000\n"
+"PO-Revision-Date: 2026-10-01 03:19+0000\n"
 "Last-Translator: Andrei Stepanov <adem4ik@gmail.com>\n"
 "Language-Team: Russian <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/ru_ru/>\n"
 "Language: ru_ru\n"
@@ -263,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "Настроить ключ API Fanart.tv"
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -298,6 +302,10 @@ msgstr "Досрочная остановка: загрузка зависла"
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
 msgstr "Нет прогресса более {0} секунд. Запустите снова, чтобы завершить остальное."
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
+msgstr ""
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -361,15 +369,15 @@ msgstr "По возрасту (старше...)"
 
 msgctxt "#32090"
 msgid "Identifying uncached artwork..."
-msgstr ""
+msgstr "Определение некэшированных иллюстраций..."
 
 msgctxt "#32091"
 msgid "Finding orphaned textures..."
-msgstr ""
+msgstr "Поиск текстур-сирот..."
 
 msgctxt "#32092"
 msgid "Removing {0} orphaned textures..."
-msgstr ""
+msgstr "Удаление текстур-сирот: {0}..."
 
 msgctxt "#32093"
 msgid "Enter {0} API Key"
@@ -556,7 +564,7 @@ msgstr "Несколько иллюстраций..."
 
 msgctxt "#32131"
 msgid "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
-msgstr ""
+msgstr "Найдено текстур-сирот для удаления: {0}.[CR][CR]Продолжить удаление?"
 
 msgctxt "#32132"
 msgid "Source: All"
@@ -672,7 +680,7 @@ msgstr "Задача уже выполняется"
 
 msgctxt "#32173"
 msgid "Found {0} library artwork URLs"
-msgstr ""
+msgstr "Найдено URL-адресов иллюстраций медиатеки: {0}"
 
 msgctxt "#32180"
 msgid "Texture Cache Statistics"
@@ -880,11 +888,11 @@ msgstr "Ошибок: {0}"
 
 msgctxt "#32288"
 msgid "Found {0} TV shows. Checking which are not cached..."
-msgstr ""
+msgstr "Найдено сериалов: {0}. Проверка, какие из них не кэшированы..."
 
 msgctxt "#32289"
 msgid "All TV shows are already cached."
-msgstr ""
+msgstr "Все сериалы уже кэшированы."
 
 msgctxt "#32290"
 msgid "Download Artwork"
@@ -1411,16 +1419,16 @@ msgstr "Всего: {0} | Самых старых: {1}"
 
 msgctxt "#32485"
 msgid "Failed to analyze textures"
-msgstr ""
+msgstr "Не удалось проанализировать текстуры"
 
 msgctxt "#32486"
 msgid "Overwrite mode is enabled"
-msgstr ""
+msgstr "Включён режим перезаписи"
 
 #. {0} is a list such as "Movies: filename prefix"
 msgctxt "#32487"
 msgid "Filename pattern: {0}"
-msgstr ""
+msgstr "Шаблон имени файла: {0}"
 
 msgctxt "#32488"
 msgid "Texture Cache - Last Run"
@@ -1472,7 +1480,7 @@ msgstr "Отчёт сеанса"
 
 msgctxt "#32501"
 msgid "Mismatches found: {0} files"
-msgstr ""
+msgstr "Найдено несоответствий: файлов {0}"
 
 msgctxt "#32502"
 msgid "Select Missing Artwork"
@@ -1508,7 +1516,7 @@ msgstr "Последний сеанс (любая медиатека)"
 
 msgctxt "#32511"
 msgid "Original artwork will be [B]deleted[/B] after a successful download."
-msgstr ""
+msgstr "Оригинальные иллюстрации будут [B]удалены[/B] после успешного скачивания."
 
 msgctxt "#32512"
 msgid "Session History"
@@ -1517,17 +1525,17 @@ msgstr "История сеансов"
 #. {0} is a library section such as "Movies"
 msgctxt "#32513"
 msgid "{0}: filename prefix"
-msgstr ""
+msgstr "{0}: префикс имени файла"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32514"
 msgid "{0}: no prefix"
-msgstr ""
+msgstr "{0}: без префикса"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32515"
 msgid "Loading {0}..."
-msgstr ""
+msgstr "Загрузка {0}..."
 
 msgctxt "#32520"
 msgid "Artwork Download Report"
@@ -2127,20 +2135,20 @@ msgstr "Похожие исполнители"
 
 msgctxt "#32698"
 msgid "Wait 60s and Retry"
-msgstr ""
+msgstr "Подождать 60 с и повторить"
 
 msgctxt "#32699"
 msgid "Retry Tomorrow"
-msgstr ""
+msgstr "Повторить завтра"
 
 msgctxt "#32700"
 msgid "Stop All Updates"
-msgstr ""
+msgstr "Остановить все обновления"
 
 #. {0} is the provider name, e.g. TRAKT
 msgctxt "#32701"
 msgid "Continue Without {0}"
-msgstr ""
+msgstr "Продолжить без {0}"
 
 #. {0} is a web address, {1} a short code the user types there, {2} the seconds left
 msgctxt "#32702"
@@ -2151,204 +2159,209 @@ msgid ""
 "\n"
 "Waiting for authorization... ({2}s remaining)"
 msgstr ""
+"1. Перейдите на: {0}\n"
+"2. Введите код: [B]{1}[/B]\n"
+"3. Нажмите «Авторизовать» на сайте\n"
+"\n"
+"Ожидание авторизации... (осталось {2} с)"
 
 msgctxt "#32703"
 msgid "Person Info"
-msgstr ""
+msgstr "Информация о человеке"
 
 msgctxt "#32704"
 msgid "Scanning {0}"
-msgstr ""
+msgstr "Сканирование {0}"
 
 msgctxt "#32705"
 msgid "ETA {0}"
-msgstr ""
+msgstr "Осталось {0}"
 
 msgctxt "#32706"
 msgid "Queued: {0}"
-msgstr ""
+msgstr "В очереди: {0}"
 
 msgctxt "#32707"
 msgid "Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "Найдено: {0} | В кэше: {1} | Существующих: {2}"
 
 msgctxt "#32708"
 msgid "Option {0}"
-msgstr ""
+msgstr "Вариант {0}"
 
 #. {2} is a language name
 msgctxt "#32709"
 msgid "{0} of {1} available ({2})"
-msgstr ""
+msgstr "Доступно {0} из {1} ({2})"
 
 msgctxt "#32710"
 msgid "{0} available"
-msgstr ""
+msgstr "Доступно: {0}"
 
 #. {0} is an art type such as Fanart or Poster
 msgctxt "#32711"
 msgid "Multi-Art {0}"
-msgstr ""
+msgstr "Несколько иллюстраций: {0}"
 
 #. {0} is a media type, {1} a list of art types
 msgctxt "#32712"
 msgid "Art type not supported for {0}: {1}"
-msgstr ""
+msgstr "Тип иллюстрации не поддерживается для {0}: {1}"
 
 msgctxt "#32713"
 msgid "No MusicBrainz ID for this artist"
-msgstr ""
+msgstr "Нет идентификатора MusicBrainz для этого исполнителя"
 
 msgctxt "#32714"
 msgid "No MusicBrainz ID for this album"
-msgstr ""
+msgstr "Нет идентификатора MusicBrainz для этого альбома"
 
 msgctxt "#32715"
 msgid "Failed to fetch artwork"
-msgstr ""
+msgstr "Не удалось получить иллюстрации"
 
 #. {0} is a list of art types
 msgctxt "#32716"
 msgid "No {0} artwork found"
-msgstr ""
+msgstr "Иллюстрации типа {0} не найдены"
 
 msgctxt "#32717"
 msgid "Artwork updated"
-msgstr ""
+msgstr "Иллюстрации обновлены"
 
 msgctxt "#32718"
 msgid "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
-msgstr ""
+msgstr "Применено: {0} | Пропущено: {1} | Пропущено автоматически: {2}"
 
 #. {0} is a library name such as Movies
 msgctxt "#32719"
 msgid "{0} - Select Action"
-msgstr ""
+msgstr "{0} — выберите действие"
 
 #. {0} is a library name such as Movies
 msgctxt "#32720"
 msgid "No report available for {0}"
-msgstr ""
+msgstr "Отчёт для {0} недоступен"
 
 msgctxt "#32721"
 msgid "No reports available"
-msgstr ""
+msgstr "Отчёты недоступны"
 
 #. {0} is a library name such as Movies
 msgctxt "#32722"
 msgid "Auto-Fill {0}"
-msgstr ""
+msgstr "Автозаполнение {0}"
 
 msgctxt "#32723"
 msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
-msgstr ""
+msgstr "Автоматически применяет отсутствующие иллюстрации без проверки.[CR]Заполняет только отсутствующие иллюстрации, не заменяет существующие.[CR]Просмотрите результаты после этого в истории сеансов.[CR][CR]Продолжить?"
 
 msgctxt "#32724"
 msgid "Enter the date as YYYY-MM-DD"
-msgstr ""
+msgstr "Введите дату в формате ГГГГ-ММ-ДД"
 
 msgctxt "#32725"
 msgid "That date cannot exist"
-msgstr ""
+msgstr "Такой даты не может существовать"
 
 #. {0} is a field name such as Genre
 msgctxt "#32726"
 msgid "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
-msgstr ""
+msgstr "В медиатеке не найдено существующих значений «{0}».[CR]Используйте вместо этого быстрое редактирование или добавление/удаление."
 
 msgctxt "#32727"
 msgid "{0} votes"
-msgstr ""
+msgstr "Голосов: {0}"
 
 #. {0} is a field name such as Genre
 msgctxt "#32728"
 msgid "{0} updated"
-msgstr ""
+msgstr "{0} обновлено"
 
 #. {0} is how many more values are not shown
 msgctxt "#32729"
 msgid "(+{0} more)"
-msgstr ""
+msgstr "(ещё +{0})"
 
 #. {0} is the name of the running task
 msgctxt "#32730"
 msgid "Cancel Current Task: {0}"
-msgstr ""
+msgstr "Отменить текущую задачу: {0}"
 
 #. {0} is the name of the running task
 msgctxt "#32731"
 msgid "[B]Currently Running:[/B] {0}"
-msgstr ""
+msgstr "[B]Сейчас выполняется:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32732"
 msgid "[B]Duration:[/B] {0}"
-msgstr ""
+msgstr "[B]Длительность:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32733"
 msgid "[B]Last Activity:[/B] {0} ago"
-msgstr ""
+msgstr "[B]Последняя активность:[/B] {0} назад"
 
 #. {0} is the name of the task about to start
 msgctxt "#32734"
 msgid "[B]New Task:[/B] {0}"
-msgstr ""
+msgstr "[B]Новая задача:[/B] {0}"
 
 msgctxt "#32735"
 msgid "Cancelling will stop the current task safely."
-msgstr ""
+msgstr "Отмена безопасно остановит текущую задачу."
 
 msgctxt "#32736"
 msgid "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Не задано в настройках Kodi. Эта папка содержит иллюстрации для киноциклов.[CR][CR]Выбрать папку сейчас?"
 
 msgctxt "#32737"
 msgid "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Не задано в настройках Kodi. Эта папка содержит иллюстрации и метаданные для исполнителей.[CR][CR]Выбрать папку сейчас?"
 
 msgctxt "#32738"
 msgid "Folder saved"
-msgstr ""
+msgstr "Папка сохранена"
 
 msgctxt "#32739"
 msgid "Could not save the setting. Set the folder in Kodi's settings instead."
-msgstr ""
+msgstr "Не удалось сохранить настройку. Задайте папку вместо этого в настройках Kodi."
 
 #. {0} is the image's position in the list
 msgctxt "#32740"
 msgid "Profile Image {0}"
-msgstr ""
+msgstr "Изображение профиля {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32741"
 msgid "Missing IMDb IDs: {0}"
-msgstr ""
+msgstr "Отсутствующие идентификаторы IMDb: {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32742"
 msgid "Invalid TMDB IDs: {0}"
-msgstr ""
+msgstr "Недопустимые идентификаторы TMDB: {0}"
 
 msgctxt "#32743"
 msgid "Fix these issues?"
-msgstr ""
+msgstr "Исправить эти проблемы?"
 
 msgctxt "#32744"
 msgid "Added {0} IMDb IDs"
-msgstr ""
+msgstr "Добавлено идентификаторов IMDb: {0}"
 
 msgctxt "#32745"
 msgid "Fixed {0} TMDB IDs"
-msgstr ""
+msgstr "Исправлено идентификаторов TMDB: {0}"
 
 msgctxt "#32746"
 msgid "Creator"
-msgstr ""
+msgstr "Создатель"
 
 msgctxt "#32747"
 msgid "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
-msgstr ""
+msgstr "Введите 6 или 8 шестнадцатеричных цифр в виде RRGGBB или AARRGGBB"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"

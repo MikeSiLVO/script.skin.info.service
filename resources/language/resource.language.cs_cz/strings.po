@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-09-24 14:16+0000\n"
+"PO-Revision-Date: 2026-10-01 03:19+0000\n"
 "Last-Translator: Michal Várady <miko.vaji@gmail.com>\n"
 "Language-Team: Czech <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/cs_cz/>\n"
 "Language: cs_cz\n"
@@ -263,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "Nastavit klíč API pro Fanart.tv"
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -298,6 +302,10 @@ msgstr "Ukončeno předčasně: stahování se zastavilo"
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
 msgstr "Více než {0} sekund nedošlo k žádnému pokroku. Spusťte akci znovu a dokončete zbytek."
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
+msgstr ""
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -361,15 +369,15 @@ msgstr "Podle stáří (starší než...)"
 
 msgctxt "#32090"
 msgid "Identifying uncached artwork..."
-msgstr ""
+msgstr "Zjišťování grafiky, která není v mezipaměti..."
 
 msgctxt "#32091"
 msgid "Finding orphaned textures..."
-msgstr ""
+msgstr "Vyhledávání osiřelých textur..."
 
 msgctxt "#32092"
 msgid "Removing {0} orphaned textures..."
-msgstr ""
+msgstr "Odstraňování osiřelých textur: {0}..."
 
 msgctxt "#32093"
 msgid "Enter {0} API Key"
@@ -556,7 +564,7 @@ msgstr "Více grafiky..."
 
 msgctxt "#32131"
 msgid "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
-msgstr ""
+msgstr "Počet nalezených osiřelých textur k odstranění: {0}.[CR][CR]Pokračovat v odstraňování?"
 
 msgctxt "#32132"
 msgid "Source: All"
@@ -672,7 +680,7 @@ msgstr "Úloha již běží"
 
 msgctxt "#32173"
 msgid "Found {0} library artwork URLs"
-msgstr ""
+msgstr "Nalezeno adres URL grafiky knihovny: {0}"
 
 msgctxt "#32180"
 msgid "Texture Cache Statistics"
@@ -880,11 +888,11 @@ msgstr "Chyby: {0}"
 
 msgctxt "#32288"
 msgid "Found {0} TV shows. Checking which are not cached..."
-msgstr ""
+msgstr "Nalezeno seriálů: {0}. Zjišťování, které nejsou v mezipaměti..."
 
 msgctxt "#32289"
 msgid "All TV shows are already cached."
-msgstr ""
+msgstr "Všechny seriály už jsou v mezipaměti."
 
 msgctxt "#32290"
 msgid "Download Artwork"
@@ -1411,16 +1419,16 @@ msgstr "Celkem: {0} | Nejstarší: {1}"
 
 msgctxt "#32485"
 msgid "Failed to analyze textures"
-msgstr ""
+msgstr "Analýza textur se nezdařila"
 
 msgctxt "#32486"
 msgid "Overwrite mode is enabled"
-msgstr ""
+msgstr "Režim přepisování je zapnutý"
 
 #. {0} is a list such as "Movies: filename prefix"
 msgctxt "#32487"
 msgid "Filename pattern: {0}"
-msgstr ""
+msgstr "Vzor názvů souborů: {0}"
 
 msgctxt "#32488"
 msgid "Texture Cache - Last Run"
@@ -1472,7 +1480,7 @@ msgstr "Report relace"
 
 msgctxt "#32501"
 msgid "Mismatches found: {0} files"
-msgstr ""
+msgstr "Soubory s nesrovnalostmi: {0}"
 
 msgctxt "#32502"
 msgid "Select Missing Artwork"
@@ -1508,7 +1516,7 @@ msgstr "Poslední relace (libovolná knihovna)"
 
 msgctxt "#32511"
 msgid "Original artwork will be [B]deleted[/B] after a successful download."
-msgstr ""
+msgstr "Původní grafika bude po úspěšném stažení [B]smazána[/B]."
 
 msgctxt "#32512"
 msgid "Session History"
@@ -1517,17 +1525,17 @@ msgstr "Historie relací"
 #. {0} is a library section such as "Movies"
 msgctxt "#32513"
 msgid "{0}: filename prefix"
-msgstr ""
+msgstr "{0}: předpona názvu souboru"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32514"
 msgid "{0}: no prefix"
-msgstr ""
+msgstr "{0}: bez předpony"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32515"
 msgid "Loading {0}..."
-msgstr ""
+msgstr "Načítání: {0}..."
 
 msgctxt "#32520"
 msgid "Artwork Download Report"
@@ -2127,20 +2135,20 @@ msgstr "Podobní interpreti"
 
 msgctxt "#32698"
 msgid "Wait 60s and Retry"
-msgstr ""
+msgstr "Počkat 60 s a zkusit znovu"
 
 msgctxt "#32699"
 msgid "Retry Tomorrow"
-msgstr ""
+msgstr "Zkusit znovu zítra"
 
 msgctxt "#32700"
 msgid "Stop All Updates"
-msgstr ""
+msgstr "Zastavit všechny aktualizace"
 
 #. {0} is the provider name, e.g. TRAKT
 msgctxt "#32701"
 msgid "Continue Without {0}"
-msgstr ""
+msgstr "Pokračovat bez služby {0}"
 
 #. {0} is a web address, {1} a short code the user types there, {2} the seconds left
 msgctxt "#32702"
@@ -2151,204 +2159,209 @@ msgid ""
 "\n"
 "Waiting for authorization... ({2}s remaining)"
 msgstr ""
+"Otevřete: {0}\n"
+"2. Zadejte kód: [B]{1}[/B]\n"
+"3. Na webu klikněte na „Authorize“\n"
+"\n"
+"Čekání na autorizaci... (zbývá {2} s)"
 
 msgctxt "#32703"
 msgid "Person Info"
-msgstr ""
+msgstr "Informace o osobě"
 
 msgctxt "#32704"
 msgid "Scanning {0}"
-msgstr ""
+msgstr "Prohledává se: {0}"
 
 msgctxt "#32705"
 msgid "ETA {0}"
-msgstr ""
+msgstr "Odhadovaný zbývající čas: {0}"
 
 msgctxt "#32706"
 msgid "Queued: {0}"
-msgstr ""
+msgstr "Ve frontě: {0}"
 
 msgctxt "#32707"
 msgid "Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "Nalezeno: {0} | V mezipaměti: {1} | Již existující: {2}"
 
 msgctxt "#32708"
 msgid "Option {0}"
-msgstr ""
+msgstr "Možnost {0}"
 
 #. {2} is a language name
 msgctxt "#32709"
 msgid "{0} of {1} available ({2})"
-msgstr ""
+msgstr "Dostupných {0} z {1} ({2})"
 
 msgctxt "#32710"
 msgid "{0} available"
-msgstr ""
+msgstr "Dostupných: {0}"
 
 #. {0} is an art type such as Fanart or Poster
 msgctxt "#32711"
 msgid "Multi-Art {0}"
-msgstr ""
+msgstr "Více obrázků typu {0}"
 
 #. {0} is a media type, {1} a list of art types
 msgctxt "#32712"
 msgid "Art type not supported for {0}: {1}"
-msgstr ""
+msgstr "Typ grafiky není podporován pro {0}: {1}"
 
 msgctxt "#32713"
 msgid "No MusicBrainz ID for this artist"
-msgstr ""
+msgstr "Pro tohoto interpreta chybí ID MusicBrainz"
 
 msgctxt "#32714"
 msgid "No MusicBrainz ID for this album"
-msgstr ""
+msgstr "Pro toto album chybí ID MusicBrainz"
 
 msgctxt "#32715"
 msgid "Failed to fetch artwork"
-msgstr ""
+msgstr "Grafiku se nepodařilo získat"
 
 #. {0} is a list of art types
 msgctxt "#32716"
 msgid "No {0} artwork found"
-msgstr ""
+msgstr "Nebyla nalezena žádná grafika typu {0}"
 
 msgctxt "#32717"
 msgid "Artwork updated"
-msgstr ""
+msgstr "Grafika aktualizována"
 
 msgctxt "#32718"
 msgid "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
-msgstr ""
+msgstr "Použito: {0} | Přeskočeno: {1} | Automaticky přeskočeno: {2}"
 
 #. {0} is a library name such as Movies
 msgctxt "#32719"
 msgid "{0} - Select Action"
-msgstr ""
+msgstr "{0} – vybrat akci"
 
 #. {0} is a library name such as Movies
 msgctxt "#32720"
 msgid "No report available for {0}"
-msgstr ""
+msgstr "Pro {0} není k dispozici žádná zpráva"
 
 msgctxt "#32721"
 msgid "No reports available"
-msgstr ""
+msgstr "Nejsou k dispozici žádné zprávy"
 
 #. {0} is a library name such as Movies
 msgctxt "#32722"
 msgid "Auto-Fill {0}"
-msgstr ""
+msgstr "Automaticky doplnit: {0}"
 
 msgctxt "#32723"
 msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
-msgstr ""
+msgstr "Automaticky použije chybějící grafiku bez kontroly.[CR]Doplní pouze chybějící grafiku, existující nenahradí.[CR]Výsledky si poté můžete prohlédnout v Historii relací.[CR][CR]Pokračovat?"
 
 msgctxt "#32724"
 msgid "Enter the date as YYYY-MM-DD"
-msgstr ""
+msgstr "Zadejte datum ve formátu YYYY-MM-DD"
 
 msgctxt "#32725"
 msgid "That date cannot exist"
-msgstr ""
+msgstr "Takové datum neexistuje"
 
 #. {0} is a field name such as Genre
 msgctxt "#32726"
 msgid "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
-msgstr ""
+msgstr "V knihovně nebyly nalezeny žádné existující hodnoty pro pole {0}.[CR]Místo toho použijte Rychlou úpravu nebo Přidat/odebrat."
 
 msgctxt "#32727"
 msgid "{0} votes"
-msgstr ""
+msgstr "Počet hlasů: {0}"
 
 #. {0} is a field name such as Genre
 msgctxt "#32728"
 msgid "{0} updated"
-msgstr ""
+msgstr "Aktualizováno: {0}"
 
 #. {0} is how many more values are not shown
 msgctxt "#32729"
 msgid "(+{0} more)"
-msgstr ""
+msgstr "(+{0} dalších)"
 
 #. {0} is the name of the running task
 msgctxt "#32730"
 msgid "Cancel Current Task: {0}"
-msgstr ""
+msgstr "Zrušit aktuální úlohu: {0}"
 
 #. {0} is the name of the running task
 msgctxt "#32731"
 msgid "[B]Currently Running:[/B] {0}"
-msgstr ""
+msgstr "[B]Právě běží:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32732"
 msgid "[B]Duration:[/B] {0}"
-msgstr ""
+msgstr "[B]Doba trvání:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32733"
 msgid "[B]Last Activity:[/B] {0} ago"
-msgstr ""
+msgstr "[B]Poslední aktivita:[/B] před {0}"
 
 #. {0} is the name of the task about to start
 msgctxt "#32734"
 msgid "[B]New Task:[/B] {0}"
-msgstr ""
+msgstr "[B]Nová úloha:[/B] {0}`"
 
 msgctxt "#32735"
 msgid "Cancelling will stop the current task safely."
-msgstr ""
+msgstr "Zrušením se aktuální úloha bezpečně zastaví."
 
 msgctxt "#32736"
 msgid "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Není nastaveno v nastavení Kodi. Tato složka obsahuje grafiku sbírek filmů.[CR][CR]Vybrat složku nyní?"
 
 msgctxt "#32737"
 msgid "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Není nastaveno v nastavení Kodi. Tato složka obsahuje grafiku a metadata interpretů.[CR][CR]Vybrat složku nyní?"
 
 msgctxt "#32738"
 msgid "Folder saved"
-msgstr ""
+msgstr "Složka uložena"
 
 msgctxt "#32739"
 msgid "Could not save the setting. Set the folder in Kodi's settings instead."
-msgstr ""
+msgstr "Nastavení se nepodařilo uložit. Nastavte složku místo toho v nastavení Kodi."
 
 #. {0} is the image's position in the list
 msgctxt "#32740"
 msgid "Profile Image {0}"
-msgstr ""
+msgstr "Profilový obrázek {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32741"
 msgid "Missing IMDb IDs: {0}"
-msgstr ""
+msgstr "Chybějící ID IMDb: {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32742"
 msgid "Invalid TMDB IDs: {0}"
-msgstr ""
+msgstr "Neplatná ID TMDB: {0}"
 
 msgctxt "#32743"
 msgid "Fix these issues?"
-msgstr ""
+msgstr "Opravit tyto problémy?"
 
 msgctxt "#32744"
 msgid "Added {0} IMDb IDs"
-msgstr ""
+msgstr "Přidáno ID IMDb: {0}"
 
 msgctxt "#32745"
 msgid "Fixed {0} TMDB IDs"
-msgstr ""
+msgstr "Opraveno ID TMDB: {0}"
 
 msgctxt "#32746"
 msgid "Creator"
-msgstr ""
+msgstr "Tvůrce"
 
 msgctxt "#32747"
 msgid "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
-msgstr ""
+msgstr "Zadejte 6 nebo 8 hexadecimálních číslic ve formátu RRGGBB nebo AARRGGBB"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"

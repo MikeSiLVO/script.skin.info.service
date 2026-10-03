@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-09-24 14:16+0000\n"
+"PO-Revision-Date: 2026-10-01 03:19+0000\n"
 "Last-Translator: 3vtv <90260969+3vtv@users.noreply.github.com>\n"
 "Language-Team: Polish <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/pl_pl/>\n"
 "Language: pl_pl\n"
@@ -263,6 +263,10 @@ msgctxt "#32057"
 msgid "Configure Fanart.tv API Key"
 msgstr "Skonfiguruj klucz API Fanart.tv"
 
+msgctxt "#32058"
+msgid "Filmography"
+msgstr ""
+
 msgctxt "#32059"
 msgid "Trakt"
 msgstr "Trakt"
@@ -298,6 +302,10 @@ msgstr "Zatrzymano przedwcześnie: pobieranie wstrzymane"
 msgctxt "#32067"
 msgid "No progress for over {0} seconds. Run it again to finish the rest."
 msgstr "Brak postępu przez ponad {0} sekund. Uruchom ponownie, aby dokończyć resztę."
+
+msgctxt "#32068"
+msgid "Press OK to read biography"
+msgstr ""
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -361,15 +369,15 @@ msgstr "Według wieku (starsze niż...)"
 
 msgctxt "#32090"
 msgid "Identifying uncached artwork..."
-msgstr ""
+msgstr "Identyfikowanie grafik niezapisanych w pamięci podręcznej..."
 
 msgctxt "#32091"
 msgid "Finding orphaned textures..."
-msgstr ""
+msgstr "Wyszukiwanie osieroconych tekstur..."
 
 msgctxt "#32092"
 msgid "Removing {0} orphaned textures..."
-msgstr ""
+msgstr "Usuwanie {0} osieroconych tekstur..."
 
 msgctxt "#32093"
 msgid "Enter {0} API Key"
@@ -556,7 +564,7 @@ msgstr "Wiele grafik..."
 
 msgctxt "#32131"
 msgid "Found {0} orphaned textures to remove.[CR][CR]Continue with removal?"
-msgstr ""
+msgstr "Znaleziono {0} osieroconych tekstur do usunięcia.[CR][CR]Kontynuować usuwanie?"
 
 msgctxt "#32132"
 msgid "Source: All"
@@ -672,7 +680,7 @@ msgstr "Zadanie już działa"
 
 msgctxt "#32173"
 msgid "Found {0} library artwork URLs"
-msgstr ""
+msgstr "Znaleziono {0} adresów URL grafik biblioteki"
 
 msgctxt "#32180"
 msgid "Texture Cache Statistics"
@@ -880,11 +888,11 @@ msgstr "Błędy: {0}"
 
 msgctxt "#32288"
 msgid "Found {0} TV shows. Checking which are not cached..."
-msgstr ""
+msgstr "Znaleziono {0} seriali. Sprawdzanie, które z nich nie znajdują się w pamięci podręcznej..."
 
 msgctxt "#32289"
 msgid "All TV shows are already cached."
-msgstr ""
+msgstr "Wszystkie seriale są już w pamięci podręcznej."
 
 msgctxt "#32290"
 msgid "Download Artwork"
@@ -1411,16 +1419,16 @@ msgstr "Łącznie: {0} | Najstarsza: {1}"
 
 msgctxt "#32485"
 msgid "Failed to analyze textures"
-msgstr ""
+msgstr "Nie udało się przeanalizować tekstur"
 
 msgctxt "#32486"
 msgid "Overwrite mode is enabled"
-msgstr ""
+msgstr "Tryb nadpisywania jest włączony"
 
 #. {0} is a list such as "Movies: filename prefix"
 msgctxt "#32487"
 msgid "Filename pattern: {0}"
-msgstr ""
+msgstr "Wzorzec nazwy pliku: {0}"
 
 msgctxt "#32488"
 msgid "Texture Cache - Last Run"
@@ -1472,7 +1480,7 @@ msgstr "Raport sesji"
 
 msgctxt "#32501"
 msgid "Mismatches found: {0} files"
-msgstr ""
+msgstr "Znaleziono niezgodności: {0} plików"
 
 msgctxt "#32502"
 msgid "Select Missing Artwork"
@@ -1508,7 +1516,7 @@ msgstr "Ostatnia sesja (dowolna biblioteka)"
 
 msgctxt "#32511"
 msgid "Original artwork will be [B]deleted[/B] after a successful download."
-msgstr ""
+msgstr "Oryginalny plik zostanie [B]usunięty[/B] po pomyślnym pobraniu."
 
 msgctxt "#32512"
 msgid "Session History"
@@ -1517,17 +1525,17 @@ msgstr "Historia sesji"
 #. {0} is a library section such as "Movies"
 msgctxt "#32513"
 msgid "{0}: filename prefix"
-msgstr ""
+msgstr "{0}: prefiks nazwy pliku"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32514"
 msgid "{0}: no prefix"
-msgstr ""
+msgstr "{0}: brak prefiksu"
 
 #. {0} is a library section such as "Movies"
 msgctxt "#32515"
 msgid "Loading {0}..."
-msgstr ""
+msgstr "Wczytywanie {0}..."
 
 msgctxt "#32520"
 msgid "Artwork Download Report"
@@ -2013,11 +2021,11 @@ msgstr "Oceny zewnętrzne"
 
 msgctxt "#32670"
 msgid "Display Artist"
-msgstr "Wyświetl artystę"
+msgstr "Wyświetl wykonawcę"
 
 msgctxt "#32671"
 msgid "Sort Artist"
-msgstr "Sortuj artystę"
+msgstr "Sortuj wykonawcę"
 
 msgctxt "#32672"
 msgid "Record Label"
@@ -2127,20 +2135,20 @@ msgstr "Podobni wykonawcy"
 
 msgctxt "#32698"
 msgid "Wait 60s and Retry"
-msgstr ""
+msgstr "Odczekaj 60 s i spróbuj ponownie"
 
 msgctxt "#32699"
 msgid "Retry Tomorrow"
-msgstr ""
+msgstr "Ponów jutro"
 
 msgctxt "#32700"
 msgid "Stop All Updates"
-msgstr ""
+msgstr "Zatrzymaj wszystkie aktualizacje"
 
 #. {0} is the provider name, e.g. TRAKT
 msgctxt "#32701"
 msgid "Continue Without {0}"
-msgstr ""
+msgstr "Kontynuuj bez {0}"
 
 #. {0} is a web address, {1} a short code the user types there, {2} the seconds left
 msgctxt "#32702"
@@ -2151,204 +2159,209 @@ msgid ""
 "\n"
 "Waiting for authorization... ({2}s remaining)"
 msgstr ""
+"1. Odwiedź: {0}\n"
+"2. Wpisz kod: [B]{1}[/B]\n"
+"3. Kliknij „Autoryzuj” na stronie\n"
+"\n"
+"Oczekiwanie na autoryzację... (pozostało {2} s)"
 
 msgctxt "#32703"
 msgid "Person Info"
-msgstr ""
+msgstr "Informacje o osobie"
 
 msgctxt "#32704"
 msgid "Scanning {0}"
-msgstr ""
+msgstr "Skanowanie {0}"
 
 msgctxt "#32705"
 msgid "ETA {0}"
-msgstr ""
+msgstr "Szacowany pozostały czas: {0}"
 
 msgctxt "#32706"
 msgid "Queued: {0}"
-msgstr ""
+msgstr "W kolejce: {0}"
 
 msgctxt "#32707"
 msgid "Found: {0} | Cached: {1} | Existing: {2}"
-msgstr ""
+msgstr "Znaleziono: {0} | W pamięci podręcznej: {1} | Istniejące: {2}"
 
 msgctxt "#32708"
 msgid "Option {0}"
-msgstr ""
+msgstr "Opcja {0}"
 
 #. {2} is a language name
 msgctxt "#32709"
 msgid "{0} of {1} available ({2})"
-msgstr ""
+msgstr "{0} z {1} dostępnych ({2})"
 
 msgctxt "#32710"
 msgid "{0} available"
-msgstr ""
+msgstr "Dostępne {0}"
 
 #. {0} is an art type such as Fanart or Poster
 msgctxt "#32711"
 msgid "Multi-Art {0}"
-msgstr ""
+msgstr "Wiele grafik {0}"
 
 #. {0} is a media type, {1} a list of art types
 msgctxt "#32712"
 msgid "Art type not supported for {0}: {1}"
-msgstr ""
+msgstr "Typ grafiki nieobsługiwany dla {0}: {1}"
 
 msgctxt "#32713"
 msgid "No MusicBrainz ID for this artist"
-msgstr ""
+msgstr "Brak identyfikatora MusicBrainz dla tego wykonawcy"
 
 msgctxt "#32714"
 msgid "No MusicBrainz ID for this album"
-msgstr ""
+msgstr "Brak identyfikatora MusicBrainz dla tego albumu"
 
 msgctxt "#32715"
 msgid "Failed to fetch artwork"
-msgstr ""
+msgstr "Nie udało się pobrać grafiki"
 
 #. {0} is a list of art types
 msgctxt "#32716"
 msgid "No {0} artwork found"
-msgstr ""
+msgstr "Nie znaleziono grafiki {0}"
 
 msgctxt "#32717"
 msgid "Artwork updated"
-msgstr ""
+msgstr "Grafika zaktualizowana"
 
 msgctxt "#32718"
 msgid "Applied: {0} | Skipped: {1} | Auto-skipped: {2}"
-msgstr ""
+msgstr "Zastosowano: {0} | Pominięto: {1} | Pominięto automatycznie: {2}"
 
 #. {0} is a library name such as Movies
 msgctxt "#32719"
 msgid "{0} - Select Action"
-msgstr ""
+msgstr "{0} – Wybierz działanie"
 
 #. {0} is a library name such as Movies
 msgctxt "#32720"
 msgid "No report available for {0}"
-msgstr ""
+msgstr "Brak raportu dla {0}"
 
 msgctxt "#32721"
 msgid "No reports available"
-msgstr ""
+msgstr "Brak dostępnych raportów"
 
 #. {0} is a library name such as Movies
 msgctxt "#32722"
 msgid "Auto-Fill {0}"
-msgstr ""
+msgstr "Automatyczne uzupełnianie {0}"
 
 msgctxt "#32723"
 msgid "Automatically applies missing artwork without review.[CR]Only fills in missing artwork, won't replace existing.[CR]View results afterwards in Session History.[CR][CR]Continue?"
-msgstr ""
+msgstr "Automatycznie dodaje brakujące grafiki bez przeglądu.[CR]Uzupełnia tylko brakujące grafiki, nie zastępuje istniejących.[CR]Wyniki zobaczysz później w Historii sesji.[CR][CR]Kontynuować?"
 
 msgctxt "#32724"
 msgid "Enter the date as YYYY-MM-DD"
-msgstr ""
+msgstr "Wprowadź datę w formacie RRRR-MM-DD"
 
 msgctxt "#32725"
 msgid "That date cannot exist"
-msgstr ""
+msgstr "Taka data nie może istnieć"
 
 #. {0} is a field name such as Genre
 msgctxt "#32726"
 msgid "No existing {0} found in library.[CR]Use Quick Edit or Add/Remove instead."
-msgstr ""
+msgstr "W bibliotece nie znaleziono pozycji {0}.[CR]Użyj opcji szybkiej edycji lub dodawania/usuwania."
 
 msgctxt "#32727"
 msgid "{0} votes"
-msgstr ""
+msgstr "Głosy: {0}"
 
 #. {0} is a field name such as Genre
 msgctxt "#32728"
 msgid "{0} updated"
-msgstr ""
+msgstr "Zaktualizowano: {0}"
 
 #. {0} is how many more values are not shown
 msgctxt "#32729"
 msgid "(+{0} more)"
-msgstr ""
+msgstr "(+{0} więcej)"
 
 #. {0} is the name of the running task
 msgctxt "#32730"
 msgid "Cancel Current Task: {0}"
-msgstr ""
+msgstr "Anuluj bieżące zadanie: {0}"
 
 #. {0} is the name of the running task
 msgctxt "#32731"
 msgid "[B]Currently Running:[/B] {0}"
-msgstr ""
+msgstr "[B]Aktualnie uruchomione:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32732"
 msgid "[B]Duration:[/B] {0}"
-msgstr ""
+msgstr "[B]Czas trwania:[/B] {0}"
 
 #. {0} is a time such as 5m 3s
 msgctxt "#32733"
 msgid "[B]Last Activity:[/B] {0} ago"
-msgstr ""
+msgstr "[B]Ostatnia aktywność:[/B] {0} temu"
 
 #. {0} is the name of the task about to start
 msgctxt "#32734"
 msgid "[B]New Task:[/B] {0}"
-msgstr ""
+msgstr "[B]Nowe zadanie:[/B] {0}"
 
 msgctxt "#32735"
 msgid "Cancelling will stop the current task safely."
-msgstr ""
+msgstr "Anulowanie bezpiecznie zatrzyma bieżące zadanie."
 
 msgctxt "#32736"
 msgid "Not set in Kodi's settings. This folder holds the artwork for movie sets.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Nie skonfigurowano w ustawieniach Kodi. Ten folder zawiera grafiki dla kolekcji filmów.[CR][CR]Wybrać folder teraz?"
 
 msgctxt "#32737"
 msgid "Not set in Kodi's settings. This folder holds the artwork and metadata for artists.[CR][CR]Select a folder now?"
-msgstr ""
+msgstr "Nie skonfigurowano w ustawieniach Kodi. Ten folder przechowuje grafiki i metadane wykonawców.[CR][CR]Wybrać folder teraz?"
 
 msgctxt "#32738"
 msgid "Folder saved"
-msgstr ""
+msgstr "Folder zapisany"
 
 msgctxt "#32739"
 msgid "Could not save the setting. Set the folder in Kodi's settings instead."
-msgstr ""
+msgstr "Nie udało się zapisać ustawienia. Ustaw folder w ustawieniach Kodi."
 
 #. {0} is the image's position in the list
 msgctxt "#32740"
 msgid "Profile Image {0}"
-msgstr ""
+msgstr "Obraz profilowy {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32741"
 msgid "Missing IMDb IDs: {0}"
-msgstr ""
+msgstr "Brakujące identyfikatory IMDb: {0}"
 
 #. {0} is a list of counts, such as "12 Movies, 3 TV shows"
 msgctxt "#32742"
 msgid "Invalid TMDB IDs: {0}"
-msgstr ""
+msgstr "Nieprawidłowe identyfikatory TMDB: {0}"
 
 msgctxt "#32743"
 msgid "Fix these issues?"
-msgstr ""
+msgstr "Naprawić te problemy?"
 
 msgctxt "#32744"
 msgid "Added {0} IMDb IDs"
-msgstr ""
+msgstr "Dodano identyfikatory IMDb: {0}"
 
 msgctxt "#32745"
 msgid "Fixed {0} TMDB IDs"
-msgstr ""
+msgstr "Naprawiono identyfikatory TMDB: {0}"
 
 msgctxt "#32746"
 msgid "Creator"
-msgstr ""
+msgstr "Twórca"
 
 msgctxt "#32747"
 msgid "Enter 6 or 8 hex digits, as RRGGBB or AARRGGBB"
-msgstr ""
+msgstr "Wpisz 6 lub 8 cyfr szesnastkowych w formacie RRGGBB lub AARRGGBB"
 
 msgctxt "#32901"
 msgid "Enable Debug Output"
