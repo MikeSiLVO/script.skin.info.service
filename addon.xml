@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta8"
+	   version="2.0.1~beta9"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,17 +32,8 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta8
-- Estuary versions of the actor, video info, artwork and image dialogs
-- Busy indicator shows while info dialogs load
-- Filmography lists each title once, with all its roles
-- Recommendations open with their full details and link to your library
-- Image viewer opens at the chosen image
-- Fix empty plot and biography viewer and cast search on Kodi 21
-- Fix missing birth dates, ages and other dates
-- Stinger check uses current TMDB data on each play
-- Fewer IMDb rating rewrites for episodes with few votes
-- Texture reports open faster on large caches, with progress while measuring disk usage
+2.0.1~beta9
+- Media flags in the Estuary video info dialog, matching each Kodi version
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
