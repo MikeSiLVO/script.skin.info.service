@@ -3,44 +3,40 @@
 	<defaultcontrol always="true">138</defaultcontrol>
 	<controls>
 		<control type="group">
-			<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
+			<animation effect="fade" time="200">WindowClose</animation>
 			<include>ColoredBackgroundImages</include>
 			<control type="image">
 				<include>FullScreenDimensions</include>
 				<aspectratio>scale</aspectratio>
 				<fadetime>400</fadetime>
 				<texture background="true" colordiffuse="37FFFFFF">$INFO[Window.Property(BlurredThumb)]</texture>
-				<animation type="Conditional" condition="![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]" reversible="false">
-					<effect type="fade" start="0" end="0" time="0" />
-				</animation>
-				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
-					<effect type="fade" start="0" end="100" time="300" tween="sine" easing="out" />
-				</animation>
+				<animation effect="fade" end="0" condition="String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating" reversible="false">Conditional</animation>
+				<animation effect="fade" time="300" tween="sine" easing="out" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">Conditional</animation>
 			</control>
 		</control>
 		<control type="group">
-			<centertop>50%</centertop>
-			<height>1080</height>
 			<centerleft>50%</centerleft>
+			<centertop>50%</centertop>
 			<width>1920</width>
+			<height>1080</height>
 			<control type="group">
-				<top>150</top>
 				<left>66</left>
-				<animation type="Conditional" condition="![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]" reversible="false">
-					<effect type="fade" start="0" end="0" time="0" />
-					<effect type="slide" start="-320" end="-320" time="0" />
+				<top>150</top>
+				<animation type="Conditional" condition="String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating" reversible="false">
+					<effect type="fade" end="0" />
+					<effect type="slide" start="-320" end="-320" />
 				</animation>
-				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
-					<effect type="fade" start="0" end="100" time="300" tween="sine" easing="out" />
-					<effect type="slide" start="-320" end="0" time="400" tween="cubic" easing="out" />
+				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
+					<effect type="fade" time="300" tween="sine" easing="out" />
+					<effect type="slide" start="-320" time="400" tween="cubic" easing="out" />
 				</animation>
 				<animation type="WindowClose">
-					<effect type="fade" start="100" end="0" time="300" tween="sine" easing="out" />
-					<effect type="slide" start="0" end="-320" time="300" tween="cubic" easing="out" />
+					<effect type="fade" time="300" tween="sine" easing="out" />
+					<effect type="slide" end="-320" time="300" tween="cubic" easing="out" />
 				</animation>
 				<control type="image">
-					<top>-16</top>
 					<left>-16</left>
+					<top>-16</top>
 					<width>566</width>
 					<height>841</height>
 					<texture>colors/black.png</texture>
@@ -57,20 +53,20 @@
 				</control>
 			</control>
 			<control type="group">
-				<animation type="Conditional" condition="![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]" reversible="false">
-					<effect type="fade" start="0" end="0" time="0" />
-					<effect type="slide" start="320" end="320" time="0" />
-				</animation>
-				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
-					<effect type="fade" start="0" end="100" time="300" tween="sine" easing="out" />
-					<effect type="slide" start="320" end="0" time="400" tween="cubic" easing="out" />
-				</animation>
-				<animation type="WindowClose">
-					<effect type="fade" start="100" end="0" time="300" tween="sine" easing="out" />
-					<effect type="slide" start="0" end="320" time="300" tween="cubic" easing="out" />
-				</animation>
 				<left>620</left>
 				<top>-30</top>
+				<animation type="Conditional" condition="String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating" reversible="false">
+					<effect type="fade" end="0" />
+					<effect type="slide" start="320" end="320" />
+				</animation>
+				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
+					<effect type="fade" time="300" tween="sine" easing="out" />
+					<effect type="slide" start="320" time="400" tween="cubic" easing="out" />
+				</animation>
+				<animation type="WindowClose">
+					<effect type="fade" time="300" tween="sine" easing="out" />
+					<effect type="slide" end="320" time="300" tween="cubic" easing="out" />
+				</animation>
 				<control type="panel" id="1500">
 					<top>158</top>
 					<width>1235</width>
@@ -80,7 +76,7 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),library_movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1500).NumItems,0)]]">Conditional</animation>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),library_movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1500).NumItems,0)]]">Conditional</animation>
 					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,dbid=$INFO[Container(1500).ListItem.DBID],dbtype=$INFO[Container(1500).ListItem.DBType])</onclick>
 					<itemlayout height="317" width="204">
 						<control type="group">
@@ -94,8 +90,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -103,33 +99,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Role)]</label>
 							</control>
 						</control>
@@ -146,8 +140,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -155,17 +149,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -174,9 +168,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -193,7 +187,7 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="videos">$INFO[Window.Property(container.library_movies.path)]</content>
+					<content target="videos">$INFO[Window.Property(Container.Library_Movies.Path)]</content>
 				</control>
 				<control type="panel" id="1501">
 					<top>158</top>
@@ -204,7 +198,7 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),library_tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]]">Conditional</animation>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),library_tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]]">Conditional</animation>
 					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,dbid=$INFO[Container(1501).ListItem.DBID],dbtype=$INFO[Container(1501).ListItem.DBType])</onclick>
 					<itemlayout height="317" width="204">
 						<control type="group">
@@ -218,8 +212,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -227,33 +221,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Role)]</label>
 							</control>
 						</control>
@@ -270,8 +262,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -279,17 +271,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -298,9 +290,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -317,7 +309,7 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="videos">$INFO[Window.Property(container.library_tvshows.path)]</content>
+					<content target="videos">$INFO[Window.Property(Container.Library_TVShows.Path)]</content>
 				</control>
 				<control type="panel" id="1502">
 					<top>158</top>
@@ -328,8 +320,8 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]]">Conditional</animation>
-					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1502).ListItem.Property(tmdb_id)],dbtype=$INFO[Container(1502).ListItem.Property(MediaType)])</onclick>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]]">Conditional</animation>
+					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1502).ListItem.Property(TMDb_ID)],dbtype=$INFO[Container(1502).ListItem.Property(MediaType)])</onclick>
 					<itemlayout height="317" width="204">
 						<control type="group">
 							<top>10</top>
@@ -342,8 +334,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -351,33 +343,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Role)]</label>
 							</control>
 						</control>
@@ -394,8 +384,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -403,17 +393,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -422,9 +412,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -441,7 +431,7 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="videos">$INFO[Window.Property(container.movies.path)]</content>
+					<content target="videos">$INFO[Window.Property(Container.Movies.Path)]</content>
 				</control>
 				<control type="panel" id="1503">
 					<top>158</top>
@@ -452,8 +442,8 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]]">Conditional</animation>
-					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1503).ListItem.Property(tmdb_id)],dbtype=$INFO[Container(1503).ListItem.Property(MediaType)])</onclick>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]]">Conditional</animation>
+					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1503).ListItem.Property(TMDb_ID)],dbtype=$INFO[Container(1503).ListItem.Property(MediaType)])</onclick>
 					<itemlayout height="317" width="204">
 						<control type="group">
 							<top>10</top>
@@ -466,8 +456,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -475,33 +465,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Role)]</label>
 							</control>
 						</control>
@@ -518,8 +506,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -527,17 +515,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -546,9 +534,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -565,7 +553,7 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="videos">$INFO[Window.Property(container.tvshows.path)]</content>
+					<content target="videos">$INFO[Window.Property(Container.TVShows.Path)]</content>
 				</control>
 				<control type="panel" id="1505">
 					<top>158</top>
@@ -576,8 +564,8 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),crew) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]]">Conditional</animation>
-					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1505).ListItem.Property(tmdb_id)],dbtype=$INFO[Container(1505).ListItem.Property(MediaType)])</onclick>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),crew) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]]">Conditional</animation>
+					<onclick>RunScript(script.skin.info.service,action=dialog_video_info,tmdb_id=$INFO[Container(1505).ListItem.Property(TMDb_ID)],dbtype=$INFO[Container(1505).ListItem.Property(MediaType)])</onclick>
 					<itemlayout height="317" width="204">
 						<control type="group">
 							<top>10</top>
@@ -590,8 +578,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -599,33 +587,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Job)]</label>
 							</control>
 						</control>
@@ -642,8 +628,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>185</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
@@ -651,17 +637,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>185</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>175</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -670,9 +656,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>175</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -689,7 +675,7 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="videos">$INFO[Window.Property(container.crew.path)]</content>
+					<content target="videos">$INFO[Window.Property(Container.Crew.Path)]</content>
 				</control>
 				<control type="panel" id="1506">
 					<top>158</top>
@@ -700,8 +686,8 @@
 					<ondown>138</ondown>
 					<scrolltime>200</scrolltime>
 					<orientation>horizontal</orientation>
-					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(section),images) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]]">Conditional</animation>
-					<onclick>RunScript(script.skin.info.service,action=dialog_image_viewer,images_path=$INFO[Window.Property(container.images.path)],selected_index=$INFO[Container(1506).CurrentItem])</onclick>
+					<animation effect="fade" start="100" end="0" time="200" condition="![String.IsEqual(Window.Property(Section),images) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]]">Conditional</animation>
+					<onclick>RunScript(script.skin.info.service,action=dialog_image_viewer,images_path=$INFO[Window.Property(Container.Images.Path)],selected_index=$INFO[Container(1506).CurrentItem])</onclick>
 					<itemlayout height="317" width="245">
 						<control type="group">
 							<top>10</top>
@@ -714,8 +700,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>224</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
@@ -723,33 +709,31 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>224</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>214</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Title]</label>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>214</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
 								<textcolor>grey</textcolor>
-								<scroll>false</scroll>
 								<label>$INFO[ListItem.Property(Dimensions)]</label>
 							</control>
 						</control>
@@ -766,8 +750,8 @@
 								<bordersize>20</bordersize>
 							</control>
 							<control type="image">
-								<top>20</top>
 								<left>20</left>
+								<top>20</top>
 								<width>224</width>
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(thumb)]</texture>
@@ -775,17 +759,17 @@
 							</control>
 							<control type="image">
 								<left>20</left>
+								<bottom>10</bottom>
 								<width>224</width>
 								<height>80</height>
-								<bottom>10</bottom>
 								<texture>overlays/overlayfade.png</texture>
-								<animation effect="fade" start="100" end="80" time="0" condition="true">Conditional</animation>
+								<animation effect="fade" start="100" end="80" condition="true">Conditional</animation>
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>218</top>
 								<width>214</width>
 								<height>67</height>
-								<top>218</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -794,9 +778,9 @@
 							</control>
 							<control type="label">
 								<left>25</left>
+								<top>245</top>
 								<width>214</width>
 								<height>67</height>
-								<top>245</top>
 								<align>center</align>
 								<aligny>center</aligny>
 								<font>font12</font>
@@ -813,64 +797,64 @@
 							</control>
 						</control>
 					</focusedlayout>
-					<content target="images">$INFO[Window.Property(container.images.path)]</content>
+					<content target="images">$INFO[Window.Property(Container.Images.Path)]</content>
 				</control>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1500" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),library_movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1500).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),library_movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1500).NumItems,0)]" />
 				</include>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1501" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),library_tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),library_tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]" />
 				</include>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1502" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]" />
 				</include>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1503" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]" />
 				</include>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1505" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),crew) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),crew) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]" />
 				</include>
 				<include content="LeftRightArrows">
 					<param name="list_id" value="1506" />
 					<param name="left_posx" value="-15" />
 					<param name="right_posx" value="1240" />
 					<param name="posy" value="320" />
-					<param name="visible" value="String.IsEqual(Window.Property(section),images) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]" />
+					<param name="visible" value="String.IsEqual(Window.Property(Section),images) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]" />
 				</include>
 				<control type="button" id="138">
 					<top>468</top>
 					<width>754</width>
 					<height>418</height>
-					<label></label>
+					<label />
 					<onclick>SetProperty(TextViewer_Header,$ESCINFO[Window.Property(Name)],home)</onclick>
 					<onclick>SetProperty(TextViewer_Text,$ESCINFO[Window.Property(Biography)],home)</onclick>
 					<onclick>ActivateWindow(1102)</onclick>
-					<onup condition="String.IsEqual(Window.Property(section),library_movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1500)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),library_tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1501)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]">SetFocus(1502)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]">SetFocus(1503)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),crew) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]">SetFocus(1505)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),images) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]">SetFocus(1506)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),library_movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1500)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),library_tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1501)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]">SetFocus(1502)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]">SetFocus(1503)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),crew) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]">SetFocus(1505)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),images) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]">SetFocus(1506)</onup>
 					<onleft>4000</onleft>
 					<onright>4000</onright>
 					<ondown>5000</ondown>
@@ -897,12 +881,12 @@
 					<top>488</top>
 					<height>377</height>
 					<itemgap>-8</itemgap>
-					<onup condition="String.IsEqual(Window.Property(section),library_movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1500)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),library_tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1501)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),movies) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]">SetFocus(1502)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),tvshows) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]">SetFocus(1503)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),crew) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]">SetFocus(1505)</onup>
-					<onup condition="String.IsEqual(Window.Property(section),images) | [String.IsEmpty(Window.Property(section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]">SetFocus(1506)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),library_movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1500)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),library_tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0)]">SetFocus(1501)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),movies) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0)]">SetFocus(1502)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),tvshows) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0)]">SetFocus(1503)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),crew) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1505).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)]">SetFocus(1505)</onup>
+					<onup condition="String.IsEqual(Window.Property(Section),images) | [String.IsEmpty(Window.Property(Section)) + Integer.IsGreater(Container(1506).NumItems,0) + !Integer.IsGreater(Container(1500).NumItems,0) + !Integer.IsGreater(Container(1501).NumItems,0) + !Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0) + !Integer.IsGreater(Container(1505).NumItems,0)]">SetFocus(1506)</onup>
 					<ondown>5000</ondown>
 					<onleft>138</onleft>
 					<onright>138</onright>
@@ -944,7 +928,6 @@
 					</include>
 				</control>
 				<control type="grouplist" id="5000">
-					<left>0</left>
 					<top>864</top>
 					<width>1248</width>
 					<height>400</height>
@@ -960,8 +943,6 @@
 						<height>142</height>
 						<align>center</align>
 						<aligny>top</aligny>
-						<texturefocus border="21" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
-						<texturenofocus border="21">buttons/button-nofo.png</texturenofocus>
 						<textoffsetx>22</textoffsetx>
 						<textoffsety>78</textoffsety>
 						<radioposx>108</radioposx>
@@ -976,7 +957,7 @@
 						<textureradiooffdisabled colordiffuse="disabled">icons/infodialogs/record.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/infodialogs/record.png</textureradioondisabled>
 						<label>$LOCALIZE[342]</label>
-						<onclick>SetProperty(section,library_movies)</onclick>
+						<onclick>SetProperty(Section,library_movies)</onclick>
 						<onclick>SetFocus(1500)</onclick>
 						<enable>Integer.IsGreater(Container(1500).NumItems,0)</enable>
 					</control>
@@ -985,8 +966,6 @@
 						<height>142</height>
 						<align>center</align>
 						<aligny>top</aligny>
-						<texturefocus border="21" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
-						<texturenofocus border="21">buttons/button-nofo.png</texturenofocus>
 						<textoffsetx>22</textoffsetx>
 						<textoffsety>78</textoffsety>
 						<radioposx>108</radioposx>
@@ -1001,7 +980,7 @@
 						<textureradiooffdisabled colordiffuse="disabled">icons/library_tvshows.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/library_tvshows.png</textureradioondisabled>
 						<label>$LOCALIZE[20343]</label>
-						<onclick>SetProperty(section,library_tvshows)</onclick>
+						<onclick>SetProperty(Section,library_tvshows)</onclick>
 						<onclick>SetFocus(1501)</onclick>
 						<enable>Integer.IsGreater(Container(1501).NumItems,0)</enable>
 					</control>
@@ -1010,8 +989,6 @@
 						<height>142</height>
 						<align>center</align>
 						<aligny>top</aligny>
-						<texturefocus border="21" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
-						<texturenofocus border="21">buttons/button-nofo.png</texturenofocus>
 						<textoffsetx>22</textoffsetx>
 						<textoffsety>78</textoffsety>
 						<radioposx>108</radioposx>
@@ -1026,10 +1003,10 @@
 						<textureradiooffdisabled colordiffuse="disabled">icons/infodialogs/info.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/infodialogs/info.png</textureradioondisabled>
 						<label>$ADDON[script.skin.info.service 32058]</label>
-						<onclick condition="Integer.IsGreater(Container(1502).NumItems,0) + Integer.IsGreater(Container(1503).NumItems,0)">RunScript(script.skin.info.service,dialog=select,heading=$ADDON[script.skin.info.service 32058],items=$LOCALIZE[342]|$LOCALIZE[20343],"executebuiltin_0=SetProperty(section,movies)|SetFocus(1502)","executebuiltin_1=SetProperty(section,tvshows)|SetFocus(1503)")</onclick>
-						<onclick condition="Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)">SetProperty(section,movies)</onclick>
+						<onclick condition="Integer.IsGreater(Container(1502).NumItems,0) + Integer.IsGreater(Container(1503).NumItems,0)">RunScript(script.skin.info.service,dialog=select,heading=$ADDON[script.skin.info.service 32058],items=$LOCALIZE[342]|$LOCALIZE[20343],"executebuiltin_0=SetProperty(Section,movies)|SetFocus(1502)","executebuiltin_1=SetProperty(Section,tvshows)|SetFocus(1503)")</onclick>
+						<onclick condition="Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)">SetProperty(Section,movies)</onclick>
 						<onclick condition="Integer.IsGreater(Container(1502).NumItems,0) + !Integer.IsGreater(Container(1503).NumItems,0)">SetFocus(1502)</onclick>
-						<onclick condition="!Integer.IsGreater(Container(1502).NumItems,0) + Integer.IsGreater(Container(1503).NumItems,0)">SetProperty(section,tvshows)</onclick>
+						<onclick condition="!Integer.IsGreater(Container(1502).NumItems,0) + Integer.IsGreater(Container(1503).NumItems,0)">SetProperty(Section,tvshows)</onclick>
 						<onclick condition="!Integer.IsGreater(Container(1502).NumItems,0) + Integer.IsGreater(Container(1503).NumItems,0)">SetFocus(1503)</onclick>
 						<enable>Integer.IsGreater(Container(1502).NumItems,0) | Integer.IsGreater(Container(1503).NumItems,0)</enable>
 					</control>
@@ -1038,8 +1015,6 @@
 						<height>142</height>
 						<align>center</align>
 						<aligny>top</aligny>
-						<texturefocus border="21" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
-						<texturenofocus border="21">buttons/button-nofo.png</texturenofocus>
 						<textoffsetx>22</textoffsetx>
 						<textoffsety>78</textoffsety>
 						<radioposx>108</radioposx>
@@ -1054,7 +1029,7 @@
 						<textureradiooffdisabled colordiffuse="disabled">icons/infodialogs/director.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/infodialogs/director.png</textureradioondisabled>
 						<label>$ADDON[script.skin.info.service 32680]</label>
-						<onclick>SetProperty(section,crew)</onclick>
+						<onclick>SetProperty(Section,crew)</onclick>
 						<onclick>SetFocus(1505)</onclick>
 						<enable>Integer.IsGreater(Container(1505).NumItems,0)</enable>
 					</control>
@@ -1063,8 +1038,6 @@
 						<height>142</height>
 						<align>center</align>
 						<aligny>top</aligny>
-						<texturefocus border="21" colordiffuse="button_focus">buttons/button-fo.png</texturefocus>
-						<texturenofocus border="21">buttons/button-nofo.png</texturenofocus>
 						<textoffsetx>22</textoffsetx>
 						<textoffsety>78</textoffsety>
 						<radioposx>108</radioposx>
@@ -1079,19 +1052,15 @@
 						<textureradiooffdisabled colordiffuse="disabled">icons/infodialogs/image.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/infodialogs/image.png</textureradioondisabled>
 						<label>$ADDON[script.skin.info.service 32681]</label>
-						<onclick>SetProperty(section,images)</onclick>
+						<onclick>SetProperty(Section,images)</onclick>
 						<onclick>SetFocus(1506)</onclick>
 						<enable>Integer.IsGreater(Container(1506).NumItems,0)</enable>
 					</control>
 				</control>
 			</control>
 			<control type="group">
-				<animation type="Conditional" condition="![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]" reversible="false">
-					<effect type="fade" start="0" end="0" time="0" />
-				</animation>
-				<animation type="Conditional" condition="!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
-					<effect type="fade" start="0" end="100" time="300" tween="sine" easing="out" />
-				</animation>
+				<animation effect="fade" end="0" condition="String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating" reversible="false">Conditional</animation>
+				<animation effect="fade" time="300" tween="sine" easing="out" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">Conditional</animation>
 				<include content="InfoDialogTopBarInfo">
 					<param name="main_label" value="$INFO[Window.Property(Name)]" />
 					<param name="sub_label" value="$INFO[Window.Property(KnownFor)]$INFO[Window.Property(Age), • , $LOCALIZE[652]]" />
@@ -1099,16 +1068,10 @@
 			</control>
 		</control>
 		<control type="group">
-			<visible>![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]</visible>
-			<animation type="Visible" reversible="false">
-				<effect type="fade" start="0" end="100" time="200" delay="300" />
-			</animation>
-			<animation type="WindowOpen">
-				<effect type="fade" start="0" end="100" time="200" delay="300" />
-			</animation>
-			<animation type="Hidden" reversible="false">
-				<effect type="fade" start="100" end="0" time="200" />
-			</animation>
+			<visible>String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating</visible>
+			<animation effect="fade" time="200" delay="300" reversible="false">Visible</animation>
+			<animation effect="fade" time="200" delay="300">WindowOpen</animation>
+			<animation effect="fade" time="200" reversible="false">Hidden</animation>
 			<control type="group">
 				<depth>DepthMax</depth>
 				<centerleft>50%</centerleft>
@@ -1121,7 +1084,7 @@
 					<width>80</width>
 					<height>80</height>
 					<aspectratio>keep</aspectratio>
-					<animation effect="rotate" end="-45" center="auto" time="200" delay="600" loop="true" reversible="false" condition="true">Conditional</animation>
+					<animation effect="rotate" end="-45" center="auto" time="200" delay="600" loop="true" condition="true" reversible="false">Conditional</animation>
 					<texture colordiffuse="button_focus">spinner.png</texture>
 				</control>
 				<control type="image">
@@ -1130,32 +1093,27 @@
 					<width>50</width>
 					<height>50</height>
 					<aspectratio>keep</aspectratio>
-					<animation effect="rotate" end="45" center="auto" time="200" delay="600" loop="true" reversible="false" condition="true">Conditional</animation>
+					<animation effect="rotate" end="45" center="auto" time="200" delay="600" loop="true" condition="true" reversible="false">Conditional</animation>
 					<texture flipx="true" colordiffuse="button_focus">spinner.png</texture>
 				</control>
 			</control>
 		</control>
 		<control type="group">
-			<animation effect="fade" start="0" end="100" time="300" delay="300">WindowOpen</animation>
-			<animation type="Conditional" condition="![!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating]" reversible="false">
-				<effect type="fade" start="0" end="0" time="0" />
-			</animation>
-			<animation type="Conditional" condition="!String.IsEmpty(Window.Property(istop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">
-				<effect type="fade" start="0" end="100" time="300" tween="sine" easing="out" />
-			</animation>
-			<animation effect="fade" start="100" end="0" time="200">WindowClose</animation>
 			<centerleft>50%</centerleft>
-			<width>1920</width>
 			<bottom>10</bottom>
+			<width>1920</width>
 			<height>40</height>
+			<animation effect="fade" time="300" delay="300">WindowOpen</animation>
+			<animation effect="fade" end="0" condition="String.IsEmpty(Window.Property(IsTop)) | Container(1500).IsUpdating | Container(1501).IsUpdating | Container(1502).IsUpdating | Container(1503).IsUpdating | Container(1505).IsUpdating | Container(1506).IsUpdating" reversible="false">Conditional</animation>
+			<animation effect="fade" time="300" tween="sine" easing="out" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">Conditional</animation>
+			<animation effect="fade" time="200">WindowClose</animation>
 			<control type="group">
+				<top>-10</top>
 				<visible>Control.HasFocus(138)</visible>
 				<animation effect="fade" time="200">VisibleChange</animation>
-				<top>-10</top>
-				<left>0</left>
 				<control type="image">
-					<top>4</top>
 					<left>17</left>
+					<top>4</top>
 					<width>36</width>
 					<height>36</height>
 					<texture colordiffuse="grey">lists/played-total.png</texture>
