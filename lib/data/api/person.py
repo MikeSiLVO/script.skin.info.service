@@ -16,40 +16,40 @@ from lib.data.database import cache as db_cache
 
 def build_person_props(person_data: dict) -> Dict[str, str]:
     """Build the display properties a dialog or ListItem shows for a TMDB person."""
-    props: Dict[str, str] = {'Name': person_data.get('name', 'Unknown')}
+    props: Dict[str, str] = {'name': person_data.get('name', 'Unknown')}
 
     if person_data.get('biography'):
-        props['Biography'] = person_data['biography']
+        props['biography'] = person_data['biography']
 
     birthday = person_data.get('birthday')
     deathday = person_data.get('deathday')
 
     if birthday:
-        props['Birthday'] = birthday
+        props['birthday'] = birthday
         try:
             birth_date = datetime.fromisoformat(birthday)
             end_date = datetime.fromisoformat(deathday) if deathday else datetime.now()
             age = end_date.year - birth_date.year
             if (end_date.month, end_date.day) < (birth_date.month, birth_date.day):
                 age -= 1
-            props['Age'] = str(age)
-            props['BirthdayFormatted'] = birth_date.strftime(xbmc.getRegion('dateshort'))
+            props['age'] = str(age)
+            props['birthdayformatted'] = birth_date.strftime(xbmc.getRegion('dateshort'))
         except (ValueError, TypeError):
             pass
 
     if deathday:
-        props['Deathday'] = deathday
+        props['deathday'] = deathday
         try:
             death_date = datetime.fromisoformat(deathday)
-            props['DeathdayFormatted'] = death_date.strftime(xbmc.getRegion('dateshort'))
+            props['deathdayformatted'] = death_date.strftime(xbmc.getRegion('dateshort'))
         except (ValueError, TypeError):
             pass
 
     if person_data.get('place_of_birth'):
-        props['Birthplace'] = person_data['place_of_birth']
+        props['birthplace'] = person_data['place_of_birth']
 
     if person_data.get('known_for_department'):
-        props['KnownFor'] = person_data['known_for_department']
+        props['knownfor'] = person_data['known_for_department']
 
     if person_data.get('id'):
         props['person_id'] = str(person_data['id'])
@@ -59,22 +59,22 @@ def build_person_props(person_data: dict) -> Dict[str, str]:
 
     gender_text = {1: 'Female', 2: 'Male'}.get(person_data.get('gender') or 0)
     if gender_text:
-        props['Gender'] = gender_text
+        props['gender'] = gender_text
 
     external_ids = person_data.get('external_ids', {})
     for key in ('instagram_id', 'twitter_id', 'facebook_id', 'tiktok_id', 'youtube_id'):
         value = external_ids.get(key)
         if value:
-            props[key.replace('_id', '').title()] = value
+            props[key.replace('_id', '')] = value
 
     profile_path = person_data.get('profile_path')
     if profile_path:
-        props['ProfileImage'] = tmdb_image_url(profile_path)
+        props['profileimage'] = tmdb_image_url(profile_path)
 
     cast = person_data.get('combined_credits', {}).get('cast', [])
     if cast:
-        for media_type, title_key, prop in (('movie', 'title', 'TopMovies'),
-                                            ('tv', 'name', 'TopTVShows')):
+        for media_type, title_key, prop in (('movie', 'title', 'topmovies'),
+                                            ('tv', 'name', 'toptvshows')):
             entries = sorted((c for c in cast if c.get('media_type') == media_type),
                              key=lambda c: c.get('popularity', 0), reverse=True)
             seen: set = set()

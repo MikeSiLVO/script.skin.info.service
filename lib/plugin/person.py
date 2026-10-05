@@ -62,7 +62,7 @@ def _handle_person_details(handle: int, person_data: dict) -> None:
     from lib.data.api.person import build_person_props
 
     props = build_person_props(person_data)
-    item = xbmcgui.ListItem(props['Name'], offscreen=True)
+    item = xbmcgui.ListItem(props['name'], offscreen=True)
 
     profile_image = props.get('ProfileImage')
     if profile_image:
@@ -99,21 +99,21 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
         width = image.get('width')
         height = image.get('height')
         if width:
-            item.setProperty('Width', str(width))
+            item.setProperty('width', str(width))
         if height:
-            item.setProperty('Height', str(height))
+            item.setProperty('height', str(height))
         if width and height:
-            item.setProperty('Dimensions', f"{width}x{height}")
+            item.setProperty('dimensions', f"{width}x{height}")
 
         vote_average = image.get('vote_average')
         if vote_average:
-            item.setProperty('Rating', f"{vote_average:.1f}")
+            item.setProperty('rating', f"{vote_average:.1f}")
 
         vote_count = image.get('vote_count')
         if vote_count:
-            item.setProperty('Votes', str(vote_count))
+            item.setProperty('votes', str(vote_count))
 
-        item.setProperty('AspectRatio', str(image.get('aspect_ratio', '')))
+        item.setProperty('aspectratio', str(image.get('aspect_ratio', '')))
 
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
@@ -175,9 +175,9 @@ def _handle_person_crew(handle: int, person_data: dict, params: dict) -> None:
         item = _create_credit_listitem(credit, library_dbids)
 
         if credit.get('job'):
-            item.setProperty('Job', credit['job'])
+            item.setProperty('job', credit['job'])
         if credit.get('department'):
-            item.setProperty('Department', credit['department'])
+            item.setProperty('department', credit['department'])
 
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 
@@ -370,22 +370,22 @@ def _create_library_listitem(item: dict, dbtype: str) -> xbmcgui.ListItem:
     if dbid:
         video_tag.setDbId(dbid)
 
-    listitem.setProperty('Title', title)
+    listitem.setProperty('title', title)
     if year:
         video_tag.setYear(int(year))
-        listitem.setProperty('Year', str(year))
+        listitem.setProperty('year', str(year))
 
     rating = item.get('rating')
     if rating:
-        listitem.setProperty('Rating', f"{rating:.1f}")
+        listitem.setProperty('rating', f"{rating:.1f}")
 
     playcount = item.get('playcount')
     if playcount:
-        listitem.setProperty('Playcount', str(playcount))
+        listitem.setProperty('playcount', str(playcount))
 
     role = item.get('_role', '')
     if role:
-        listitem.setProperty('Role', role)
+        listitem.setProperty('role', role)
         listitem.setLabel2(role)
 
     art = item.get('art', {})
@@ -453,11 +453,11 @@ def _create_credit_listitem(credit: dict, library_dbids: Optional[dict] = None) 
             item.setProperty('isinlibrary', 'true')
 
     character = credit.get('character', '')
-    item.setProperty('Role', character)
-    item.setProperty('ReleaseDate', release_date or '')
+    item.setProperty('role', character)
+    item.setProperty('releasedate', release_date or '')
     if character:
         item.setLabel2(character)
-    item.setProperty('MediaType', media_type)
+    item.setProperty('mediatype', media_type)
 
     return item
 
@@ -548,7 +548,7 @@ def handle_crew_list(handle: int, params: dict) -> None:
         if person_id:
             item.setProperty('person_id', str(person_id))
 
-        item.setProperty('Job', member.get('job', ''))
+        item.setProperty('job', member.get('job', ''))
 
         xbmcplugin.addDirectoryItem(handle, '', item, False)
 

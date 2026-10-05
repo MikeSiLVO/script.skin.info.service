@@ -193,7 +193,7 @@ def _create_listitem(normalized: dict,
     if library_match:
         dbid = int(library_match["dbid"])  # type: ignore[arg-type]
         video_tag.setDbId(dbid)
-        listitem.setProperty("IsInLibrary", "true")
+        listitem.setProperty("isinlibrary", "true")
         url = str(library_match.get("file", ""))
 
     return url, listitem, is_folder

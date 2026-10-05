@@ -278,7 +278,7 @@ def _collapsed_show_row(episodes: list, show_cache: dict) -> tuple:
         if show:
             listitem = _dated(_create_tvshow_listitem(show), added)
             if show.get('season'):
-                listitem.setProperty('TotalSeasons', str(show['season']))
+                listitem.setProperty('totalseasons', str(show['season']))
             return (added, f"videodb://tvshows/titles/{tvshowid}/", listitem, True)
 
     return (added, newest['file'], _dated(_episode_item_from_show({}, newest), added), False)
@@ -411,7 +411,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                 listitem = _create_episode_listitem(episode)
                 _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
                 if show.get('season'):
-                    listitem.setProperty('TotalSeasons', str(show['season']))
+                    listitem.setProperty('totalseasons', str(show['season']))
                 items.append((episode['file'], listitem, False))
 
         elif include_watched:
@@ -432,7 +432,7 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                 if date1 and date1 == date2:
                     listitem = _create_tvshow_listitem(show)
                     if show.get('season'):
-                        listitem.setProperty('TotalSeasons', str(show['season']))
+                        listitem.setProperty('totalseasons', str(show['season']))
                     show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
                     items.append((show_url, listitem, True))
                 else:
@@ -440,19 +440,19 @@ def handle_recent_episodes_grouped(handle: int, params: dict) -> None:
                     listitem = _create_episode_listitem(episode)
                     _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
                     if show.get('season'):
-                        listitem.setProperty('TotalSeasons', str(show['season']))
+                        listitem.setProperty('totalseasons', str(show['season']))
                     items.append((episode['file'], listitem, False))
             elif recent_eps:
                 episode = recent_eps[0]
                 listitem = _create_episode_listitem(episode)
                 _set_episode_artwork_from_show(listitem, show['art'], episode['art'])
                 if show.get('season'):
-                    listitem.setProperty('TotalSeasons', str(show['season']))
+                    listitem.setProperty('totalseasons', str(show['season']))
                 items.append((episode['file'], listitem, False))
         else:
             listitem = _create_tvshow_listitem(show)
             if show.get('season'):
-                listitem.setProperty('TotalSeasons', str(show['season']))
+                listitem.setProperty('totalseasons', str(show['season']))
             show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
             items.append((show_url, listitem, True))
 
@@ -550,10 +550,10 @@ def _create_tvshow_listitem(show: dict) -> xbmcgui.ListItem:
     unwatched_episodes = episode_count - watched_episodes
     # integer math, not round(), to match Kodi's own WatchedEpisodePercent
     watched_percent = (watched_episodes * 100) // episode_count if episode_count > 0 else 0
-    listitem.setProperty('TotalEpisodes', str(episode_count))
-    listitem.setProperty('WatchedEpisodes', str(watched_episodes))
-    listitem.setProperty('UnWatchedEpisodes', str(unwatched_episodes))
-    listitem.setProperty('WatchedEpisodePercent', str(watched_percent))
+    listitem.setProperty('totalepisodes', str(episode_count))
+    listitem.setProperty('watchedepisodes', str(watched_episodes))
+    listitem.setProperty('unwatchedepisodes', str(unwatched_episodes))
+    listitem.setProperty('watchedepisodepercent', str(watched_percent))
 
     listitem.setArt(show.get('art', {}))
 
@@ -652,7 +652,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
                 listitem = _create_movie_listitem(movie)
                 role = _find_actor_role(movie.get('cast', []), actor)
                 if role:
-                    listitem.setProperty('Role', role)
+                    listitem.setProperty('role', role)
                 all_items.append((movie['file'], listitem, False))
 
     if mix or dbtype in ('tvshow', 'season', 'episode'):
@@ -669,14 +669,14 @@ def handle_by_actor(handle: int, params: dict) -> None:
                 listitem = _create_tvshow_listitem(show)
                 role = _find_actor_role(show.get('cast', []), actor)
                 if role:
-                    listitem.setProperty('Role', role)
+                    listitem.setProperty('role', role)
                 show_url = f"videodb://tvshows/titles/{show['tvshowid']}/"
                 all_items.append((show_url, listitem, True))
 
     random.shuffle(all_items)
 
     for url, listitem, isfolder in all_items:
-        listitem.setProperty('Actor', actor)
+        listitem.setProperty('actor', actor)
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
     if mix:
@@ -845,7 +845,7 @@ def handle_by_director(handle: int, params: dict) -> None:
     random.shuffle(all_items)
 
     for url, listitem, isfolder in all_items:
-        listitem.setProperty('Director', director)
+        listitem.setProperty('director', director)
         xbmcplugin.addDirectoryItem(handle, url, listitem, isfolder)
 
     if mix:
@@ -1163,9 +1163,9 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
                 continue
             full['movieid'] = item_id
             listitem = _create_movie_listitem(full)
-            listitem.setProperty('BasedOn', based_on_raw)
+            listitem.setProperty('basedon', based_on_raw)
             if based_on_label:
-                listitem.setProperty('BasedOnLabel', based_on_label)
+                listitem.setProperty('basedonlabel', based_on_label)
             all_items.append((full.get('file', ''), listitem, False))
         else:
             item_id = item_data['tvshowid']
@@ -1176,11 +1176,11 @@ def _render_recommended(handle: int, scored_items: list, based_on_label: str, db
                 continue
             full['tvshowid'] = item_id
             listitem = _create_tvshow_listitem(full)
-            listitem.setProperty('BasedOn', based_on_raw)
+            listitem.setProperty('basedon', based_on_raw)
             if based_on_label:
-                listitem.setProperty('BasedOnLabel', based_on_label)
+                listitem.setProperty('basedonlabel', based_on_label)
             if full.get('season'):
-                listitem.setProperty('TotalSeasons', str(full['season']))
+                listitem.setProperty('totalseasons', str(full['season']))
             all_items.append((f"videodb://tvshows/titles/{item_id}/", listitem, True))
 
     for url, listitem, isfolder in all_items:

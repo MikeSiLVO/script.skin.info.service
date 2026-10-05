@@ -26,7 +26,7 @@ class DialogActorInfo(InfoDialogBase):
         self.mark_topmost()
         self._set_person_properties()
         self._bind_containers()
-        self._start_blur([('BlurredThumb', self.getProperty('ProfileImage'))])
+        self._start_blur([('blurredthumb', self.getProperty('profileimage'))])
 
     def _set_person_properties(self) -> None:
         """Set the person's TMDB details and id as dialog properties."""

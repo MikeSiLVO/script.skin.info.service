@@ -371,7 +371,7 @@ def handle_letter_jump_list(handle: int, params: dict) -> None:
 
         if want_available and not is_available:
             url = ''  # no jump target
-            listitem.setProperty('IsNotAvailable', 'true')
+            listitem.setProperty('isnotavailable', 'true')
         else:
             url = (f'plugin://script.skin.info.service/?action=jump_letter_exec'
                    f'&letter={quote(letter, safe="")}&target={target}')

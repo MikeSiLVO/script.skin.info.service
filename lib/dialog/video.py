@@ -29,8 +29,8 @@ class DialogVideoInfo(InfoDialogBase):
         self._set_video_properties()
         self._bind_containers()
         self._start_blur([
-            ('BlurredPoster', self._online_props.get('Poster', '')),
-            ('BlurredFanart', self._online_props.get('Fanart', '')),
+            ('blurredposter', self._online_props.get('Poster', '')),
+            ('blurredfanart', self._online_props.get('Fanart', '')),
         ])
 
     def _set_load_properties(self) -> None:
