@@ -450,7 +450,7 @@ def _create_credit_listitem(credit: dict, library_dbids: Optional[dict] = None) 
         dbid = (library_dbids or {}).get((media_type, str(tmdb_id)))
         if dbid:
             item.setProperty('dbid', str(dbid))
-            item.setProperty('in_library', 'true')
+            item.setProperty('isinlibrary', 'true')
 
     character = credit.get('character', '')
     item.setProperty('Role', character)

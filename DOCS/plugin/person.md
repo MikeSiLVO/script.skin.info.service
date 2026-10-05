@@ -292,13 +292,13 @@ Acting credits with filtering options.
 | `MediaType`   | "movie" or "tv"                                            |
 | `ReleaseDate` | Release date                                               |
 | `tmdb_id`     | TMDB ID of the movie or show                               |
-| `in_library`  | `true` when the item is in the Kodi library (else not set) |
-| `dbid`        | Library ID, set only alongside `in_library`                |
+| `IsInLibrary` | `true` when the item is in the Kodi library (else not set) |
+| `dbid`        | Library ID, set only alongside `IsInLibrary`               |
 
 To mark titles the user owns:
 
 ```xml
-<visible>String.IsEqual(ListItem.Property(in_library),true)</visible>
+<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
 ```
 
 Title, year, TMDB rating and overview are in `ListItem.Title`, `ListItem.Year`,
