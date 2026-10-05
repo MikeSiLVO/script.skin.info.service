@@ -904,8 +904,8 @@
 					</include>
 					<include content="InfoDialogMetadata">
 						<param name="control_id" value="148" />
-						<param name="label" value="$INFO[Window.Property(Birthplace)]" />
-						<param name="altlabel" value="$INFO[Window.Property(Birthplace)]" />
+						<param name="label" value="[COLOR button_focus]$ADDON[script.skin.info.service 32069]: [/COLOR]$INFO[Window.Property(Birthplace)]" />
+						<param name="altlabel" value="$ADDON[script.skin.info.service 32069]: $INFO[Window.Property(Birthplace)]" />
 						<param name="visible" value="!String.IsEmpty(Window.Property(Birthplace))" />
 					</include>
 					<include content="InfoDialogMetadata">
@@ -1063,7 +1063,7 @@
 				<animation effect="fade" time="300" tween="sine" easing="out" condition="!String.IsEmpty(Window.Property(IsTop)) + !Container(1500).IsUpdating + !Container(1501).IsUpdating + !Container(1502).IsUpdating + !Container(1503).IsUpdating + !Container(1505).IsUpdating + !Container(1506).IsUpdating" reversible="false">Conditional</animation>
 				<include content="InfoDialogTopBarInfo">
 					<param name="main_label" value="$INFO[Window.Property(Name)]" />
-					<param name="sub_label" value="$INFO[Window.Property(KnownFor)]$INFO[Window.Property(Age), • , $LOCALIZE[652]]" />
+					<param name="sub_label" value="$INFO[Window.Property(KnownFor)]$INFO[Window.Property(Age), • , $ADDON[script.skin.info.service 32070]]" />
 				</include>
 			</control>
 		</control>
