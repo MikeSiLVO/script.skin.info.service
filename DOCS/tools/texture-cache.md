@@ -64,6 +64,7 @@ Operation:
 
 - Only removes artwork URLs (`image://` and `http`)
 - Active library artwork is not removed
+- Live TV logos, guide images and picture folder thumbnails are not removed
 - Kodi automatically re-caches when needed
 
 ---

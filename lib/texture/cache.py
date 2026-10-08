@@ -394,7 +394,7 @@ def precache_and_download_artwork(media_types: Optional[List[str]] = None,
 def cleanup_orphaned_textures(media_types: Optional[List[str]] = None,
                               progress_dialog: Optional[ProgressDialog] = None,
                               task_context=None) -> Dict[str, int]:
-    """Remove cached textures whose URL no longer appears in the library; returns the counts."""
+    """Remove cached library artwork no item uses, once confirmed; returns the counts."""
     stats = {
         'total_cached': 0,
         'total_library': 0,

@@ -14,6 +14,9 @@ _SYSTEM_PATH_MARKERS = (
     '/addons/', '\\addons\\', '/system/', '\\system\\', '/userdata/', '\\userdata\\',
 )
 
+# Kodi also wraps PVR, EPG and picture folder images, none of them library art
+_LIBRARY_WRAPPERS = ('video', 'music')
+
 
 def _parse_image_url(url: str) -> str:
     """Strip the `image://` wrapper and trailing `/`. Returns the input unchanged if not wrapped."""
@@ -51,7 +54,7 @@ _LOCAL_PATH_RE = re.compile(r'^([A-Z]:|/)', re.IGNORECASE)
 
 
 def is_library_artwork_url(url: str) -> bool:
-    """True if URL is library artwork; False for addon icons, system files or special folders."""
+    """True if URL is library artwork; not icons, system files, special folders, PVR or pictures."""
     if not url:
         return False
 
@@ -73,7 +76,7 @@ def is_library_artwork_url(url: str) -> bool:
         return True
 
     if url.startswith('image://') and '@' in inner_url:
-        return True
+        return inner_url.split('@', 1)[0] in _LIBRARY_WRAPPERS
 
     if _LOCAL_PATH_RE.match(decoded_url):
         return True
