@@ -159,7 +159,9 @@ Plugin only:
 |----------|-------------|
 | `dbid` | Library ID, when the item was requested by `dbid` |
 
-`Episode.Rating.*` is not set on the plugin item.
+For `dbtype=episode` by `dbid`, `Rating.*` holds the episode's ratings and the show's ratings are
+set under `TVShow.`, as in [Episode and Season Ratings](../service/online.md#episode-and-season-ratings).
+By `tmdb_id` or `imdb_id`, an episode carries only the show's ratings, under `TVShow.`.
 
 ### Example
 

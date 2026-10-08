@@ -67,8 +67,6 @@ The dialog carries the same properties as [Online Properties](../service/online.
 | Trakt | [Trakt](../service/online.md#trakt) |
 | MDBList | [MDBList](../service/online.md#mdblist) |
 
-`Episode.Rating.*` is not set on the dialog.
-
 ### Blurred images
 
 | Property | Description |

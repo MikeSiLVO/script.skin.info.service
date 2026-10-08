@@ -10,7 +10,7 @@ import xbmc
 from lib.kodi.client import log
 from lib.kodi.utilities import clear_group, batch_set_props
 from lib.data.database.cache import CacheKey
-from lib.data.online import fetch_all_online_data, make_cache_key
+from lib.data.online import fetch_all_online_data, make_cache_key, show_scoped_props
 from lib.service.online.helpers import (
     infolabel_imdb_id,
     resolve_ids_from,
@@ -122,6 +122,9 @@ class PlayerHandler:
                 return
             if cache_key != self._fetch_for_key:
                 return
+            # a show here is always the playing episode's
+            if media_type == "tvshow":
+                props = show_scoped_props(props)
 
             props_to_set: Dict[str, Optional[str]] = {
                 f"{PLAYER_ONLINE_PROPERTY_PREFIX}{k}": str(v)

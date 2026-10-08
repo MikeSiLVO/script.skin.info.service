@@ -2,17 +2,14 @@
 from __future__ import annotations
 
 import threading
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional, Set
 
 import xbmc
 
 from lib.data.online import fetch_trakt_data
 from lib.kodi.client import log
 from lib.kodi.formatters import format_rating_props
-from lib.kodi.utilities import batch_set_props, clear_group
-
-if TYPE_CHECKING:
-    pass
+from lib.kodi.utilities import batch_set_props
 
 
 def fetch_episode_ratings(show_imdb: str, show_tmdb: str, season: int, episode: int,
@@ -61,22 +58,28 @@ def fetch_episode_ratings(show_imdb: str, show_tmdb: str, season: int, episode: 
 
 
 class EpisodeRatings:
-    """Publishes the focused or playing episode's online ratings under `<prefix>Episode.`."""
+    """The focused or playing episode's online ratings, published as `Rating.*` properties."""
 
     def __init__(self, prefix: str, abort_flag):
-        self._prefix = f"{prefix}Episode."
+        self._prefix = prefix
         self._abort_flag = abort_flag
         self._dbid: Optional[str] = None
+        self._keys: Set[str] = set()
+
+    def owned(self) -> Set[str]:
+        """Get the keys, without the prefix, that the current episode's ratings occupy."""
+        return set(self._keys)
 
     def reset(self) -> None:
-        """Clear the published ratings once no episode is current."""
+        """Reset the published ratings to blank, forgetting the current episode."""
         if self._dbid is not None:
-            clear_group(self._prefix)
-            self._dbid = None
+            batch_set_props({f"{self._prefix}{k}": "" for k in self._keys})
+            self.forget()
 
     def forget(self) -> None:
         """Forget the current episode after its properties were cleared elsewhere."""
         self._dbid = None
+        self._keys = set()
 
     def update(self, dbid: str, season: str, episode: str, episode_imdb: str,
                show_imdb: str, show_tmdb: str) -> None:
@@ -106,4 +109,5 @@ class EpisodeRatings:
             show_imdb, show_tmdb, season, episode, episode_imdb, self._abort_flag)
         if self._dbid != dbid or self._abort_flag.is_requested():
             return
+        self._keys = set(props)
         batch_set_props({f"{self._prefix}{k}": v for k, v in props.items()})

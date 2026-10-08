@@ -10,7 +10,7 @@ from lib.kodi.client import log
 
 def handle_online(handle: int, params: dict) -> None:
     """Plugin entry for the online-data ListItem, by `dbid`+`dbtype` or by `tmdb_id`/`imdb_id`."""
-    from lib.data.online import fetch_all_online_data
+    from lib.data.online import fetch_all_online_data, show_scoped_props
     from lib.kodi.client import get_item_details
     from lib.data.api.tmdb import ApiTmdb
 
@@ -44,6 +44,7 @@ def handle_online(handle: int, params: dict) -> None:
 
     is_episode = media_type == "episode"
     tvdb_id = ""
+    episode_details: dict = {}
 
     if tmdb_id or imdb_id:
         log("Plugin", f"Online: Direct mode - TMDB: {tmdb_id}, IMDB: {imdb_id}", xbmc.LOGDEBUG)
@@ -60,8 +61,9 @@ def handle_online(handle: int, params: dict) -> None:
         log("Plugin", f"Online: Library mode - {media_type} DBID {dbid}", xbmc.LOGDEBUG)
 
         if is_episode:
-            episode_details = get_item_details("episode", dbid_int, ["tvshowid"])
-            if not episode_details or not episode_details.get("tvshowid"):
+            episode_details = get_item_details(
+                "episode", dbid_int, ["tvshowid", "season", "episode", "uniqueid"]) or {}
+            if not episode_details.get("tvshowid"):
                 log(
                     "Plugin",
                     f"Online: Could not get parent show for episode {dbid}",
@@ -92,7 +94,7 @@ def handle_online(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
         return
 
-    # an episode's online data is its show's
+    # an episode's online data is its show's, ratings aside
     if is_episode:
         media_type = "tvshow"
 
@@ -122,6 +124,14 @@ def handle_online(handle: int, params: dict) -> None:
     if not online_data:
         xbmcplugin.endOfDirectory(handle, succeeded=True)
         return
+
+    if is_episode:
+        online_data = show_scoped_props(online_data)
+        if episode_details:
+            from lib.service.online.fetchers import fetch_episode_ratings
+            online_data.update(fetch_episode_ratings(
+                imdb_id, tmdb_id, episode_details["season"], episode_details["episode"],
+                (episode_details.get("uniqueid") or {}).get("imdb") or ""))
 
     list_item = xbmcgui.ListItem(offscreen=True)
 

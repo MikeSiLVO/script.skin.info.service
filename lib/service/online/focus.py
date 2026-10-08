@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Optional, Set, TYPE_CHECKING, Final
+from typing import Dict, Optional, Set, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -18,7 +18,9 @@ from lib.data.database.cache import (
     online_cache_generation,
     cache_online_properties,
 )
-from lib.data.online import fetch_all_online_data, get_online_ttl, make_cache_key
+from lib.data.online import (
+    fetch_all_online_data, get_online_ttl, make_cache_key, show_scoped_props,
+)
 from lib.service.online.helpers import (
     infolabel_imdb_id,
     resolve_ids_from,
@@ -42,6 +44,7 @@ class FocusHandler:
     def __init__(self, service: 'OnlineServiceMain'):
         self._service = service
         self._last_item_key: Optional[CacheKey] = None
+        self._last_scoped = False
         self._last_item_id: Optional[str] = None
         self._last_expires_at: int = 0
         self._last_generation: int = -1
@@ -57,7 +60,7 @@ class FocusHandler:
         self._episode = EpisodeRatings(ONLINE_PROPERTY_PREFIX, service.capped_abort_flag)
 
     def process(self) -> None:
-        """Read focused ListItem; set cached props or kick off a background fetch."""
+        """Read focused ListItem; set cached props or kick off a fetch, plus episode ratings."""
         if not gui_transition_settled():
             return
         dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
@@ -85,7 +88,8 @@ class FocusHandler:
                 and time.time() < self._last_expires_at):
             return
 
-        if dbtype in ("season", "episode"):
+        scoped = dbtype in ("season", "episode")
+        if scoped:
             imdb_id, tmdb_id = resolve_show_ids(dbtype, dbid, "ListItem")
             effective_type = "tvshow"
         else:
@@ -107,30 +111,21 @@ class FocusHandler:
         cached_props, expires_at = get_cached_online_properties_state(cache_key)
         expired = expires_at <= time.time()
 
-        # id resolution lags the focus, so the key can still be the previous item's
+        # id resolution lags the focus
         self._last_item_id = None
         self._last_expires_at = 0
         if cache_key != self._refreshed_for_key:
             self._refreshed_for_key = None
 
-        if cache_key == self._last_item_key and cached_props and not expired:
+        if (cache_key == self._last_item_key and scoped == self._last_scoped
+                and cached_props and not expired):
             return
 
         self._last_item_key = cache_key
+        self._last_scoped = scoped
 
         if cached_props:
-            props_to_set = {}
-            new_keys = set()
-            for key, value in cached_props.items():
-                if value:
-                    props_to_set[f"{ONLINE_PROPERTY_PREFIX}{key}"] = str(value)
-                    new_keys.add(key)
-            with self._keys_lock:
-                stale_keys = self._last_prop_keys - new_keys
-                self._last_prop_keys = new_keys
-            for old_key in stale_keys:
-                props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
-            batch_set_props(props_to_set)
+            self._publish(cached_props)
 
             if not expired:
                 self._last_item_id = item_id
@@ -171,7 +166,7 @@ class FocusHandler:
 
     def _fetch_worker(self, media_type: str, imdb_id: str, tmdb_id: str,
                       cache_key: CacheKey) -> None:
-        """Fetch and cache online data for a focused item, discarding it if focus has moved."""
+        """Fetch and cache online data for a focused item, publishing it only if focus holds."""
         try:
             abort_flag = self._service.capped_abort_flag
             if abort_flag.is_requested():
@@ -195,23 +190,24 @@ class FocusHandler:
             if cache_key != self._last_item_key:
                 return
 
-            props_to_set = {}
-            new_keys = set()
-            for key, value in props.items():
-                if value:
-                    props_to_set[f"{ONLINE_PROPERTY_PREFIX}{key}"] = str(value)
-                    new_keys.add(key)
-
-            with self._keys_lock:
-                stale_keys = self._last_prop_keys - new_keys
-                self._last_prop_keys = new_keys
-            for old_key in stale_keys:
-                props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
-
-            batch_set_props(props_to_set)
+            self._publish(props)
 
         except Exception as e:
             log("Service", f"Online fetch error: {e}", xbmc.LOGWARNING)
+
+    def _publish(self, props: dict) -> None:
+        """Publish the item's props, its show's ratings under `TVShow.` on a season or episode."""
+        if self._last_scoped:
+            props = show_scoped_props(props)
+        props_to_set: Dict[str, Optional[str]] = {
+            f"{ONLINE_PROPERTY_PREFIX}{k}": str(v) for k, v in props.items() if v}
+        new_keys = {k for k, v in props.items() if v}
+        with self._keys_lock:
+            stale_keys = self._last_prop_keys - new_keys - self._episode.owned()
+            self._last_prop_keys = new_keys
+        for old_key in stale_keys:
+            props_to_set[f"{ONLINE_PROPERTY_PREFIX}{old_key}"] = ""
+        batch_set_props(props_to_set)
 
     def _clear_properties(self) -> None:
         """Clear every `SkinInfo.Online.*` property."""

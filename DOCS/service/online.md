@@ -46,7 +46,7 @@ The online service fetches metadata from external APIs when library items are fo
 <label>$INFO[Window(Home).Property(SkinInfo.Player.Online.Rating.imdb)]</label>
 ```
 
-Supported media types: `movie`, `tvshow`, `season`, `episode`, `musicvideo`. A season or episode carries its show's properties.
+Supported media types: `movie`, `tvshow`, `season`, `episode`, `musicvideo`. A season or episode carries its show's properties, apart from its ratings: see [Episode and Season Ratings](#episode-and-season-ratings).
 
 ---
 
@@ -381,19 +381,28 @@ Which sources appear depends on what the providers return for the title.
 <label>RT Critics: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tomatoes.Percent)]%</label>
 ```
 
-### Episode Ratings
+### Episode and Season Ratings
 
-An episode also gets its own ratings under `Episode.`, beside its show's properties. The sources are
-`imdb`, `tmdb` and `trakt`. `imdb` needs the IMDb dataset, which a ratings update downloads.
+`Rating.*` always describes the focused or playing item. On an episode it holds the episode's own
+ratings from `imdb`, `tmdb` and `trakt`. `imdb` needs the IMDb dataset, which a ratings update
+downloads. A season has no ratings of its own, so `Rating.*` is not set.
 
-| Property Pattern | Description |
-|------------------|-------------|
-| `Episode.Rating.{source}` | Rating value (0-10 scale) |
-| `Episode.Rating.{source}.Votes` | Vote count |
-| `Episode.Rating.{source}.Percent` | Rating as percentage (0-100) |
+On both, the show's ratings and Rotten Tomatoes status are set under `TVShow.`:
+
+| Property | Description |
+|----------|-------------|
+| `TVShow.Rating.{source}` | The show's `Rating.{source}`, see [Ratings](#ratings) |
+| `TVShow.Rating.{source}.Votes` | The show's `Rating.{source}.Votes`, see [Ratings](#ratings) |
+| `TVShow.Rating.{source}.Percent` | The show's `Rating.{source}.Percent`, see [Ratings](#ratings) |
+| `TVShow.Rating.{source}.Stars` | The show's `Rating.{source}.Stars`, see [Ratings](#ratings) |
+| `TVShow.Tomatometer` | The show's critics status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
+| `TVShow.Popcornmeter` | The show's audience status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
+| `TVShow.Metacritic` | The show's Metacritic Must-See, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
+| `TVShow.RogerEbert` | The show's RogerEbert.com thumbs down, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
 
 ```xml
-<label>$INFO[Window(Home).Property(SkinInfo.Online.Episode.Rating.trakt)]</label>
+<label>Episode: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tmdb)]</label>
+<label>Show: $INFO[Window(Home).Property(SkinInfo.Online.TVShow.Rating.tmdb)]</label>
 ```
 
 ---
