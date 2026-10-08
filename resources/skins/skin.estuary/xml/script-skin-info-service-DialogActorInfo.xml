@@ -342,6 +342,14 @@
 								<aspectratio aligny="center">scale</aspectratio>
 							</control>
 							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
+							</control>
+							<control type="image">
 								<left>20</left>
 								<bottom>10</bottom>
 								<width>185</width>
@@ -390,6 +398,14 @@
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
 								<aspectratio aligny="center">scale</aspectratio>
+							</control>
+							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
 							</control>
 							<control type="image">
 								<left>20</left>
@@ -464,6 +480,14 @@
 								<aspectratio aligny="center">scale</aspectratio>
 							</control>
 							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
+							</control>
+							<control type="image">
 								<left>20</left>
 								<bottom>10</bottom>
 								<width>185</width>
@@ -512,6 +536,14 @@
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
 								<aspectratio aligny="center">scale</aspectratio>
+							</control>
+							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
 							</control>
 							<control type="image">
 								<left>20</left>
@@ -586,6 +618,14 @@
 								<aspectratio aligny="center">scale</aspectratio>
 							</control>
 							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
+							</control>
+							<control type="image">
 								<left>20</left>
 								<bottom>10</bottom>
 								<width>185</width>
@@ -634,6 +674,14 @@
 								<height>277</height>
 								<texture background="true">$INFO[ListItem.Art(poster)]</texture>
 								<aspectratio aligny="center">scale</aspectratio>
+							</control>
+							<control type="image">
+								<left>173</left>
+								<top>20</top>
+								<width>32</width>
+								<height>32</height>
+								<visible>String.IsEqual(ListItem.Property(IsInLibrary),true)</visible>
+								<texture>icons/inlibrary.png</texture>
 							</control>
 							<control type="image">
 								<left>20</left>
