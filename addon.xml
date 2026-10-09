@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta9"
+	   version="2.0.1~beta10"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -32,8 +32,13 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta9
-- Media flags in the Estuary video info dialog, matching each Kodi version
+2.0.1~beta10
+- Fix TV shows showing only TMDB ratings
+- Episodes and seasons no longer show their show's ratings, those are under TVShow.Rating.*
+- In-library overlay on posters in the Estuary actor and video info dialogs
+- Actor credits property in_library renamed to IsInLibrary
+- Estuary actor dialog labels the birthplace and fixes the age suffix
+- Texture cleanup keeps Live TV logos, guide images and picture thumbnails
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
