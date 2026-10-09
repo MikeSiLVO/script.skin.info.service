@@ -389,6 +389,6 @@ def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str,
 
 def show_scoped_props(props: Dict[str, str]) -> Dict[str, str]:
     """Move a show's ratings and rating statuses under `TVShow.`, for its episode or season."""
-    badges = set(_STATUS_PROPS.values())
-    return {f"TVShow.{key}" if key.startswith("Rating.") or key in badges else key: value
+    statuses = set(_STATUS_PROPS.values())
+    return {f"TVShow.{key}" if key.startswith("Rating.") or key in statuses else key: value
             for key, value in props.items()}

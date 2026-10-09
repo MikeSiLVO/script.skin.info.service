@@ -75,7 +75,8 @@ class FocusHandler:
                 self._last_item_id = None
                 self._last_expires_at = 0
                 self._last_generation = -1
-                self._last_prop_keys = set()
+                with self._keys_lock:
+                    self._last_prop_keys = set()
                 self._empty_for_key = None
             return
 
@@ -111,7 +112,7 @@ class FocusHandler:
         cached_props, expires_at = get_cached_online_properties_state(cache_key)
         expired = expires_at <= time.time()
 
-        # id resolution lags the focus
+        # id resolution lags the focus; the key can still be the previous item's
         self._last_item_id = None
         self._last_expires_at = 0
         if cache_key != self._refreshed_for_key:

@@ -391,14 +391,8 @@ On both, the show's ratings and Rotten Tomatoes status are set under `TVShow.`:
 
 | Property | Description |
 |----------|-------------|
-| `TVShow.Rating.{source}` | The show's `Rating.{source}`, see [Ratings](#ratings) |
-| `TVShow.Rating.{source}.Votes` | The show's `Rating.{source}.Votes`, see [Ratings](#ratings) |
-| `TVShow.Rating.{source}.Percent` | The show's `Rating.{source}.Percent`, see [Ratings](#ratings) |
-| `TVShow.Rating.{source}.Stars` | The show's `Rating.{source}.Stars`, see [Ratings](#ratings) |
-| `TVShow.Tomatometer` | The show's critics status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
-| `TVShow.Popcornmeter` | The show's audience status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
-| `TVShow.Metacritic` | The show's Metacritic Must-See, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
-| `TVShow.RogerEbert` | The show's RogerEbert.com thumbs down, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
+| `TVShow.Rating.{source}` | The show's `Rating.{source}`, with `.Votes`, `.Percent` and `.Stars`, see [Ratings](#ratings) |
+| `TVShow.Tomatometer`, `TVShow.Popcornmeter`, `TVShow.Metacritic`, `TVShow.RogerEbert` | The show's status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
 
 ```xml
 <label>Episode: $INFO[Window(Home).Property(SkinInfo.Online.Rating.tmdb)]</label>
