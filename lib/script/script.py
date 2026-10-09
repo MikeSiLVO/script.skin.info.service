@@ -746,7 +746,7 @@ def _handle_dialog_video_info(args: dict) -> None:
 
 
 def _handle_dialog_video_info_inner(args: dict) -> None:
-    """Open the video info dialog, resolving ids from a dbid or a library dbid from a TMDB id."""
+    """Open the video info dialog, resolving ids from a dbid, or type and dbid from a TMDB id."""
     from lib.data.database._infrastructure import init_database
 
     init_database()
@@ -761,14 +761,24 @@ def _handle_dialog_video_info_inner(args: dict) -> None:
     tmdb_id = args.get('tmdb_id', '')
     imdb_id = args.get('imdb_id', '')
 
-    if tmdb_id and not dbid and media_type:
+    if tmdb_id and not dbid:
         from lib.data.database.rollcall import get_dbids_by_tmdb
-        found = get_dbids_by_tmdb(media_type, [tmdb_id]).get(str(tmdb_id))
-        if found:
-            dbid = str(found)
+        types = (media_type,) if media_type else ('movie', 'tvshow')
+        found = {}
+        for candidate in types:
+            hit = get_dbids_by_tmdb(candidate, [tmdb_id]).get(str(tmdb_id))
+            if hit:
+                found[candidate] = str(hit)
+        if len(found) == 1:
+            media_type, dbid = found.popitem()
+
+    # TMDB movie and TV ids overlap
+    if not media_type:
+        log("General", "dialog_video_info: No dbtype given or resolvable", xbmc.LOGWARNING)
+        return
 
     if not tmdb_id and not imdb_id:
-        if not dbid or not media_type:
+        if not dbid:
             log("General", "dialog_video_info: Need dbid+dbtype or tmdb_id/imdb_id",
                 xbmc.LOGWARNING)
             return

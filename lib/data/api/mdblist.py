@@ -99,8 +99,8 @@ class ApiMdblist(RatingSource):
         return []
 
     def supports(self, media_type: str) -> bool:
-        """MDBList rates the parent title only; episode ratings ride the show append."""
-        return media_type != "episode"
+        """MDBList rates movies and shows only; episode ratings ride the show append."""
+        return media_type in ("movie", "tvshow")
 
     def fetch_data(
         self,
