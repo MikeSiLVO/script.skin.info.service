@@ -1,20 +1,16 @@
-"""Background updater: refreshes TTL-expired entries, invalidates passed `next_episode_to_air`."""
+"""Background updater: refreshes TTL-expired entries, expires passed `next_episode_to_air`."""
 from __future__ import annotations
 
 import threading
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
 from lib.kodi.client import log
-from lib.data.database.cache import (
-    CacheKey,
-    get_cached_online_keys,
-    get_cached_online_properties,
-    cache_online_properties,
-)
-from lib.data.online import fetch_tmdb_online_data, get_online_ttl, make_cache_key
+from lib.data.database.cache import CacheKey, merge_online_properties
+from lib.data.online import fetch_tmdb_online_data, make_cache_key
 
 if TYPE_CHECKING:
     from lib.service.online.main import OnlineServiceMain
@@ -68,16 +64,15 @@ class UpdaterHandler:
             stale_keys, stale_tmdb_ids = self._get_stale_schedule_keys(shows)
             if stale_keys:
                 from lib.data.database.cache import (
-                    invalidate_online_properties_by_keys, expire_metadata,
+                    expire_online_properties_by_keys, expire_metadata,
                 )
-                invalidate_online_properties_by_keys(stale_keys)
+                expire_online_properties_by_keys(stale_keys)
                 for tmdb_id in stale_tmdb_ids:
                     expire_metadata("tvshow", tmdb_id, ttl_hours=0)
 
-            cached_keys = get_cached_online_keys()
+            now = time.time()
             expired = [
-                s for s in shows
-                if make_cache_key("tvshow", s["imdb_id"], s["tmdb_id"]) not in cached_keys
+                s for s in shows if s["expires_at"] <= now or s["tmdb_id"] in stale_tmdb_ids
             ]
 
             if not expired:
@@ -109,10 +104,7 @@ class UpdaterHandler:
                         "tvshow", imdb_id, tmdb_id, self._service.abort_flag,
                     )
                     if tmdb_props:
-                        existing = get_cached_online_properties(cache_key) or {}
-                        existing.update(tmdb_props)
-                        ttl = get_online_ttl("tvshow", tmdb_id)
-                        cache_online_properties(cache_key, existing, ttl_hours=ttl)
+                        merge_online_properties(cache_key, tmdb_props)
                         fetched += 1
                 finally:
                     self._service.updater_in_progress.discard(cache_key)

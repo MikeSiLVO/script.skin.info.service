@@ -5,7 +5,7 @@ import random
 import time
 import xbmc
 from datetime import datetime
-from typing import Any, NamedTuple, Optional, Dict, List, Tuple, Final
+from typing import Any, NamedTuple, Optional, Dict, List, Set, Tuple, Final
 
 from lib.data.database._infrastructure import (
     as_int,
@@ -394,6 +394,15 @@ def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: in
              _compress_data({str(k): v for k, v in mapping.items()})))
 
 
+def get_fresh_title_ids(media_type: str) -> Set[str]:
+    """Get the TMDB ids of one media type whose cached title data is still fresh."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            'SELECT tmdb_id FROM tmdb_title WHERE media_type = ? AND expires_at > ?',
+            (media_type, _now()))
+        return {str(row['tmdb_id']) for row in cursor.fetchall()}
+
+
 def expire_metadata(media_type: str, tmdb_id: str, ttl_hours: int = 12) -> None:
     """Shorten a title's cache TTL so the next read refetches; an earlier expiry is kept."""
     with get_db(DB_PATH) as cursor:
@@ -465,15 +474,6 @@ def get_cached_person_data(person_id: int) -> Optional[dict]:
     return _fetch_cached(
         'tmdb_person', 'person_id = ? AND expires_at > ?',
         (person_id, _now()), 'person data')
-
-
-def get_cached_online_keys() -> set:
-    """Get every unscoped key whose online props are still fresh."""
-    with get_db(DB_PATH) as cursor:
-        cursor.execute(
-            "SELECT media_type, item_id FROM online_props "
-            "WHERE scope = '' AND expires_at > ?", (_now(),))
-        return {CacheKey(row['media_type'], row['item_id']) for row in cursor.fetchall()}
 
 
 def get_cached_online_properties(key: CacheKey) -> Optional[Dict[str, str]]:
@@ -550,8 +550,8 @@ def invalidate_online_properties(media_type: str, imdb_id: str = '', tmdb_id: st
     return total
 
 
-def invalidate_online_properties_by_keys(keys: List[CacheKey]) -> int:
-    """Invalidate cached online properties by exact key, bumping the generation."""
+def expire_online_properties_by_keys(keys: List[CacheKey]) -> int:
+    """Expire cached online properties by exact key, bumping the generation; the data stays."""
     global _online_generation
     _online_generation += 1
     if not keys:
@@ -560,11 +560,11 @@ def invalidate_online_properties_by_keys(keys: List[CacheKey]) -> int:
     with get_db(DB_PATH) as cursor:
         for key in keys:
             cursor.execute(
-                'DELETE FROM online_props '
+                'UPDATE online_props SET expires_at = 0 '
                 'WHERE media_type = ? AND item_id = ? AND scope = ?', tuple(key))
             total += cursor.rowcount
     if total > 0:
-        log("Cache", f"Invalidated {total} stale online cache entries")
+        log("Cache", f"Expired {total} stale online cache entries")
     return total
 
 
@@ -582,6 +582,30 @@ def cache_online_properties(key: CacheKey, props: Dict[str, str], ttl_hours: int
                 data = excluded.data
         ''', (key.media_type, key.item_id, key.scope, now,
               _expiry(ttl_hours), _compress_data(props)))
+
+
+def merge_online_properties(key: CacheKey, props: Dict[str, str]) -> None:
+    """Merge properties into an item's cached row, keeping its expiry; a new row starts expired."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            'SELECT data FROM online_props '
+            'WHERE media_type = ? AND item_id = ? AND scope = ?', tuple(key))
+        row = cursor.fetchone()
+        merged: Dict[str, str] = {}
+        if row:
+            try:
+                merged = _decompress_data(row['data'])
+            except Exception as e:
+                log("Cache", f"Failed to decompress online properties: {e}", xbmc.LOGERROR)
+        merged.update(props)
+        cursor.execute('''
+            INSERT INTO online_props
+                (media_type, item_id, scope, fetched_at, expires_at, data)
+            VALUES (?, ?, ?, ?, 0, ?)
+            ON CONFLICT (media_type, item_id, scope) DO UPDATE SET
+                fetched_at = excluded.fetched_at,
+                data = excluded.data
+        ''', (key.media_type, key.item_id, key.scope, _now(), _compress_data(merged)))
 
 
 def get_feed_checkpoint(feed: str) -> int:

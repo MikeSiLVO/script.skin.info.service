@@ -189,21 +189,21 @@ def _cleanup_stale_titles(cursor, media_type: str, tmdb_ids: Set[int]) -> None:
 
 
 def get_airing_shows() -> List[Dict]:
-    """Get library TV shows with their cached TMDB schedule columns, by next air date."""
+    """Get library TV shows with their cached TMDB schedule and expiry columns, by next air date."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             # a show scraped from TVDB or IMDb has no tmdb_id to join on
-            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tmdb_id = li.tmdb_id "
             "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NOT NULL "
             "UNION "
-            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.imdb_id = li.imdb_id "
             "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NOT NULL "
             "UNION "
-            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, "
+            "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tvdb_id = li.tvdb_id "
             "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NULL "
@@ -217,6 +217,7 @@ def get_airing_shows() -> List[Dict]:
                 "title": row["title"] or "",
                 "status": row["status"] or "",
                 "next_air_date": row["next_air_date"] or "",
+                "expires_at": row["expires_at"],
                 "tvshowid": row["tvshowid"],
             }
             for row in cursor.fetchall()
