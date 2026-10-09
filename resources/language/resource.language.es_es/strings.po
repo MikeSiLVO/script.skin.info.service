@@ -307,6 +307,15 @@ msgctxt "#32068"
 msgid "Press OK to read biography"
 msgstr ""
 
+msgctxt "#32069"
+msgid "Birthplace"
+msgstr ""
+
+#. Follows a person's age, as in "53 years old"
+msgctxt "#32070"
+msgid "years old"
+msgstr ""
+
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
 msgstr "Cola de Procesamiento de Arte"
