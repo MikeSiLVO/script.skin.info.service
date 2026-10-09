@@ -188,26 +188,31 @@ def _cleanup_stale_titles(cursor, media_type: str, tmdb_ids: Set[int]) -> None:
         [media_type], [str(i) for i in ids])
 
 
+# a title row with no status yet is only an id mapping, still waiting for its first fetch
+_AIRING: Final = "(t.status IS NULL OR t.status NOT IN ('Ended', 'Canceled'))"
+
+
 def get_airing_shows() -> List[Dict]:
-    """Get library TV shows with their cached TMDB schedule and expiry columns, by next air date."""
+    """Get library shows not ended or canceled, with TMDB schedule and expiry, by next air date."""
     with get_db(DB_PATH) as cursor:
         cursor.execute(
             # a show scraped from TVDB or IMDb has no tmdb_id to join on
             "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tmdb_id = li.tmdb_id "
-            "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NOT NULL "
+            f"WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NOT NULL AND {_AIRING} "
             "UNION "
             "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.imdb_id = li.imdb_id "
             "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NOT NULL "
+            f"AND {_AIRING} "
             "UNION "
             "SELECT t.tmdb_id, t.imdb_id, t.title, t.status, t.next_air_date, t.expires_at, "
             "li.dbid AS tvshowid FROM library_item li "
             "JOIN tmdb_title t ON t.media_type = 'tvshow' AND t.tvdb_id = li.tvdb_id "
             "WHERE li.media_type = 'tvshow' AND li.tmdb_id IS NULL AND li.imdb_id IS NULL "
-            "AND li.tvdb_id IS NOT NULL "
+            f"AND li.tvdb_id IS NOT NULL AND {_AIRING} "
             "ORDER BY next_air_date"
         )
         return [
