@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 from typing import List, Final
 
 
@@ -304,6 +305,12 @@ _WORKFLOW_SIDE: List[str] = [
         PRIMARY KEY (feed, item_id)
     ) WITHOUT ROWID
     ''',
+    '''
+    CREATE TABLE IF NOT EXISTS cache_reset (
+        name        TEXT    PRIMARY KEY,
+        applied_at  INTEGER NOT NULL
+    ) WITHOUT ROWID
+    ''',
 ]
 
 SCHEMA: List[str] = _KODI_SIDE + _PROVIDER_SIDE + _IMDB_SIDE + _WORKFLOW_SIDE
@@ -314,3 +321,26 @@ def create_schema(cursor: sqlite3.Cursor) -> None:
     for statement in SCHEMA:
         cursor.execute(statement)
     cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
+
+
+# each runs once per database, keyed by name; an edited entry needs a new name
+CACHE_RESETS: Final = (
+    ('tvshow-online-tmdb-only',
+     "UPDATE online_props SET expires_at = 0 WHERE media_type = 'tvshow' AND scope = ''"),
+)
+
+
+def apply_cache_resets(conn: sqlite3.Connection) -> None:
+    """Apply each cache reset the database has not had yet, under one write lock."""
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        done = {row[0] for row in conn.execute('SELECT name FROM cache_reset')}
+        for name, sql in CACHE_RESETS:
+            if name not in done:
+                conn.execute(sql)
+                conn.execute('INSERT INTO cache_reset (name, applied_at) VALUES (?, ?)',
+                             (name, int(time.time())))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise

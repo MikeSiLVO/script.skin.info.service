@@ -9,7 +9,7 @@ import xbmc
 import xbmcvfs
 from contextlib import contextmanager
 from typing import Any, Generator, Final
-from lib.data.database.schema import create_schema
+from lib.data.database.schema import apply_cache_resets, create_schema
 from lib.kodi.client import log
 
 DB_VERSION: Final = 5
@@ -199,7 +199,7 @@ def _cleanup_old_databases() -> None:
 
 
 def init_database() -> None:
-    """Create every table at DB_PATH; a version bump starts a fresh file and drops the old one."""
+    """Create every table and apply pending cache resets; a version bump replaces the old file."""
     _cleanup_old_databases()
 
     conn = get_connection(DB_PATH)
@@ -210,6 +210,10 @@ def init_database() -> None:
         cursor.execute('PRAGMA journal_mode = WAL')
         create_schema(cursor)
         conn.commit()
+        try:
+            apply_cache_resets(conn)
+        except sqlite3.Error as e:
+            log("Database", f"Cache resets deferred: {e}", xbmc.LOGWARNING)
 
     except Exception as e:
         conn.rollback()
