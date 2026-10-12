@@ -344,7 +344,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 ## Ratings
 
 Ratings from multiple sources. Each source provides three properties, and Roger Ebert and
-Letterboxd add a fourth.
+Letterboxd add a fourth. A source with no rating sets none of them.
 
 | Property Pattern | Description |
 |------------------|-------------|

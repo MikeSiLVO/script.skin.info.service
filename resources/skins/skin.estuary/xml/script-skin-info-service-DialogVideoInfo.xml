@@ -392,6 +392,19 @@
 								<font>font12</font>
 								<textcolor>grey</textcolor>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<left>25</left>
+								<top>245</top>
+								<width>175</width>
+								<height>67</height>
+								<align>center</align>
+								<aligny>center</aligny>
+								<font>font12</font>
+								<textcolor>grey</textcolor>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 						</control>
 					</itemlayout>
@@ -452,6 +465,20 @@
 								<textcolor>grey</textcolor>
 								<scroll>true</scroll>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<left>25</left>
+								<top>245</top>
+								<width>175</width>
+								<height>67</height>
+								<align>center</align>
+								<aligny>center</aligny>
+								<font>font12</font>
+								<textcolor>grey</textcolor>
+								<scroll>true</scroll>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 							<control type="image">
 								<left>16</left>
@@ -522,6 +549,19 @@
 								<font>font12</font>
 								<textcolor>grey</textcolor>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<left>25</left>
+								<top>245</top>
+								<width>175</width>
+								<height>67</height>
+								<align>center</align>
+								<aligny>center</aligny>
+								<font>font12</font>
+								<textcolor>grey</textcolor>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 						</control>
 					</itemlayout>
@@ -574,6 +614,20 @@
 								<textcolor>grey</textcolor>
 								<scroll>true</scroll>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<left>25</left>
+								<top>245</top>
+								<width>175</width>
+								<height>67</height>
+								<align>center</align>
+								<aligny>center</aligny>
+								<font>font12</font>
+								<textcolor>grey</textcolor>
+								<scroll>true</scroll>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 							<control type="image">
 								<left>16</left>

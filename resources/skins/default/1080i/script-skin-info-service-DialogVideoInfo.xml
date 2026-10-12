@@ -258,6 +258,17 @@
 								<textcolor>silver</textcolor>
 								<align>center</align>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<top>400</top>
+								<width>240</width>
+								<height>40</height>
+								<font>font13</font>
+								<textcolor>silver</textcolor>
+								<align>center</align>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
@@ -291,6 +302,17 @@
 									<textcolor>silver</textcolor>
 									<align>center</align>
 									<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+									<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>silver</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Year,, · ]10</label>
+									<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 								</control>
 							</control>
 						</focusedlayout>
@@ -339,6 +361,17 @@
 								<textcolor>silver</textcolor>
 								<align>center</align>
 								<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+								<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+							</control>
+							<control type="label">
+								<top>400</top>
+								<width>240</width>
+								<height>40</height>
+								<font>font13</font>
+								<textcolor>silver</textcolor>
+								<align>center</align>
+								<label>$INFO[ListItem.Year,, · ]10</label>
+								<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 							</control>
 						</itemlayout>
 						<focusedlayout width="260" height="490">
@@ -372,6 +405,17 @@
 									<textcolor>silver</textcolor>
 									<align>center</align>
 									<label>$INFO[ListItem.Year]$INFO[ListItem.Rating, · ]</label>
+									<visible>!Integer.IsEqual(ListItem.Rating,10)</visible>
+								</control>
+								<control type="label">
+									<top>400</top>
+									<width>240</width>
+									<height>40</height>
+									<font>font13</font>
+									<textcolor>silver</textcolor>
+									<align>center</align>
+									<label>$INFO[ListItem.Year,, · ]10</label>
+									<visible>Integer.IsEqual(ListItem.Rating,10)</visible>
 								</control>
 							</control>
 						</focusedlayout>

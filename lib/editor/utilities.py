@@ -6,6 +6,7 @@ from datetime import date
 from typing import Any, Final
 
 from lib.kodi.client import ADDON
+from lib.kodi.formatters import format_rating
 from lib.editor.config import FieldType
 
 
@@ -175,7 +176,7 @@ def format_ratings_display(ratings: dict[str, Any] | None) -> str:
     for source, data in ratings.items():
         if isinstance(data, dict):
             rating = data.get("rating", 0)
-            parts.append(f"{source}: {rating:.1f}")
+            parts.append(f"{source}: {format_rating(rating)}")
         else:
             parts.append(f"{source}: {data}")
 

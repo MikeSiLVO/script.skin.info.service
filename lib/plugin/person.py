@@ -9,7 +9,7 @@ import xbmcplugin
 
 from lib.kodi.client import ADDON, log, extract_result
 from lib.data.api.utilities import tmdb_image_url
-from lib.kodi.formatters import pick_clearlogo
+from lib.kodi.formatters import format_rating, pick_clearlogo
 
 
 def handle_person_info(handle: int, params: dict) -> None:
@@ -107,7 +107,7 @@ def _handle_person_images(handle: int, person_data: dict) -> None:
 
         vote_average = image.get('vote_average')
         if vote_average:
-            item.setProperty('rating', f"{vote_average:.1f}")
+            item.setProperty('rating', format_rating(vote_average))
 
         vote_count = image.get('vote_count')
         if vote_count:
@@ -377,7 +377,7 @@ def _create_library_listitem(item: dict, dbtype: str) -> xbmcgui.ListItem:
 
     rating = item.get('rating')
     if rating:
-        listitem.setProperty('rating', f"{rating:.1f}")
+        listitem.setProperty('rating', format_rating(rating))
 
     playcount = item.get('playcount')
     if playcount:

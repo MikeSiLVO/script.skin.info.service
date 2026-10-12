@@ -349,7 +349,7 @@ def handle_dbid_query(handle: int, params: dict) -> None:
                         max_val = rating_info.get("max", 10)
                         is_default = rating_info.get("default", False)
 
-                        if rating_val is not None:
+                        if rating_val:
                             try:
                                 ratings_for_kodi[rating_type] = (float(rating_val), int(votes_val))
                                 if is_default:

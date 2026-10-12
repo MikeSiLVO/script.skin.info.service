@@ -8,6 +8,7 @@ import xbmcgui
 
 from lib.infrastructure.dialogs import show_select, show_yesno
 from lib.kodi.client import ADDON
+from lib.kodi.formatters import format_rating
 from lib.editor.config import TVSHOW_STATUS_VALUES
 from lib.editor.operations import fetch_library_values_for_field
 from lib.editor.utilities import (
@@ -315,7 +316,7 @@ def _add_remove_items(
 def handle_ratings(
     field_name: str, current_ratings: dict[str, Any] | None
 ) -> tuple[dict[str, Any] | None, bool]:
-    """Handle external ratings editing, returning the edited map once the user backs out."""
+    """Handle external ratings editing, returning the edited map only when something changed."""
     # shared nested dicts would read as unchanged in _edit_field's equality check
     ratings = {source: dict(data) if isinstance(data, dict) else data
                for source, data in (current_ratings or {}).items()}
@@ -333,7 +334,7 @@ def handle_ratings(
                 votes = data.get("votes", 0)
                 default_mark = f" [{xbmc.getLocalizedString(571)}]" if data.get("default") else ""
                 vote_text = ADDON.getLocalizedString(32727).format(f"{votes:,}")
-                options.append(f"{source}: {rating:.1f} ({vote_text}){default_mark}")
+                options.append(f"{source}: {format_rating(rating)} ({vote_text}){default_mark}")
             else:
                 options.append(f"{source}: {data}")
 
@@ -498,7 +499,7 @@ def _edit_single_rating(ratings: dict[str, Any], source: str) -> bool:
     if choice == 0:
         current = data.get("rating", 0)
         new_rating, cancelled = _handle_rating_input(
-            ADDON.getLocalizedString(32565), f"{current:.1f}")
+            ADDON.getLocalizedString(32565), format_rating(current))
         if not cancelled and new_rating is not None:
             data["rating"] = new_rating
             return True

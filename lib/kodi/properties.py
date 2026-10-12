@@ -7,17 +7,18 @@ import os
 from lib.kodi.utilities import (
     clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, join_multi,
 )
-from lib.kodi.formatters import format_number, format_stars, RATING_SOURCE_NORMALIZE
+from lib.kodi.formatters import format_number, format_rating, format_stars, RATING_SOURCE_NORMALIZE
 
 
 def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
-    """Scale a raw rating to 0-10 and compute percentage. Returns (scaled, pct) or None."""
+    """Scale a raw rating to 0-10 and compute percentage; None for 0 or bad input."""
     try:
         scaled = round(float(val) / (float(max_val) / 10.0), 1)
-        pct = max(0, min(100, int(round(scaled * 10))))
-        return scaled, pct
     except (TypeError, ValueError, ZeroDivisionError):
         return None
+    if scaled <= 0:
+        return None
+    return scaled, max(0, min(100, int(round(scaled * 10))))
 
 
 _RESOLUTION_TABLE = [
@@ -293,7 +294,7 @@ def _build_listitem_unified_data(
     userrating: Optional[int] = None,
     ratings_dict: Optional[dict] = None,
 ) -> dict:
-    """Build the `ListItem.*` property dict shared across media types, runtime or duration."""
+    """Build the `ListItem.*` property dict shared across media types, with runtime and duration."""
     data: Dict[str, str] = {}
 
     data["ListItem.Title"] = title
@@ -308,7 +309,7 @@ def _build_listitem_unified_data(
         data[f"ListItem.{key}"] = val
 
     if rating is not None and rating > 0:
-        data["ListItem.Rating"] = f"{rating:.1f}"
+        data["ListItem.Rating"] = format_rating(rating)
         pct = max(0, min(100, int(round(rating * 10))))
         data["ListItem.Rating.Percent"] = str(pct)
     else:
@@ -330,7 +331,7 @@ def _build_listitem_unified_data(
                 continue
             scaled, pct = result
             output_src = RATING_SOURCE_NORMALIZE.get(src, src)
-            data[f"ListItem.Rating.{output_src}"] = str(scaled)
+            data[f"ListItem.Rating.{output_src}"] = format_rating(scaled)
             data[f"ListItem.Rating.{output_src}.Votes"] = format_number(info.get("votes"))
             data[f"ListItem.Rating.{output_src}.Percent"] = str(pct)
             stars = format_stars(output_src, scaled)
@@ -487,7 +488,7 @@ def build_movie_data(details: dict) -> dict:
     data["Path"] = path or ""
     data["Title"] = details.get("title") or ""
     data["Year"] = str(year) if year else ""
-    data["Rating"] = f"{rating:.1f}" if rating else ""
+    data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Genre"] = join_multi(details.get("genre"))
     data["Director"] = join_multi(details.get("director"))
@@ -824,7 +825,7 @@ def build_artist_data(artist: dict, albums: List[dict]) -> dict:
         data[f"Album.{idx}.DBID"] = str(a_albumid) if a_albumid else ""
         data[f"Album.{idx}.Label"] = a.get("albumlabel") or ""
         data[f"Album.{idx}.Playcount"] = str(a_playcount) if a_playcount else ""
-        data[f"Album.{idx}.Rating"] = f"{a_rating:.1f}" if a_rating else ""
+        data[f"Album.{idx}.Rating"] = format_rating(a_rating)
 
         y = a.get("year") or 0
         if y:
@@ -903,8 +904,8 @@ def build_album_data(album: dict, songs: List[dict]) -> dict:
     data["Genre"] = join_multi(album.get("genre"))
     data["Label"] = album.get("albumlabel") or ""
     data["Playcount"] = str(album_playcount) if album_playcount else ""
-    data["Rating"] = f"{album_rating:.1f}" if album_rating else ""
-    data["UserRating"] = f"{album_userrating:.1f}" if album_userrating else ""
+    data["Rating"] = format_rating(album_rating)
+    data["UserRating"] = str(album_userrating) if album_userrating else ""
     data["MusicBrainzID"] = album.get("musicbrainzalbumid") or ""
     data["ReleaseGroupID"] = album.get("musicbrainzreleasegroupid") or ""
     data["LastPlayed"] = format_date(album.get("lastplayed") or "", include_time=False)
@@ -1019,7 +1020,7 @@ def set_ratings_properties(item: dict, media_type: str = "Movie") -> None:
         scaled, pct = result
         output_src = RATING_SOURCE_NORMALIZE.get(src) or src
         current_sources.add(output_src)
-        props[f"{prefix}.{output_src}"] = str(scaled)
+        props[f"{prefix}.{output_src}"] = format_rating(scaled)
         props[f"{prefix}.{output_src}.Votes"] = format_number(info.get("votes"))
         props[f"{prefix}.{output_src}.Percent"] = str(pct)
         stars = format_stars(output_src, scaled)
@@ -1059,7 +1060,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["Plot"] = details.get("plot") or ""
     data["Year"] = str(year) if year else ""
     data["Premiered"] = details.get("premiered") or ""
-    data["Rating"] = f"{rating:.1f}" if rating else ""
+    data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Genre"] = join_multi(details.get("genre"))
     data["Studio"] = join_multi(details.get("studio"))
@@ -1218,7 +1219,7 @@ def build_episode_data(details: dict) -> dict:
 
     data["Title"] = details.get("title") or ""
     data["Plot"] = details.get("plot") or ""
-    data["Rating"] = f"{rating:.1f}" if rating else ""
+    data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Season"] = str(season) if season is not None else ""
     data["Episode"] = str(episode) if episode is not None else ""
@@ -1346,7 +1347,7 @@ def build_musicvideo_data(details: dict) -> dict:
 
     data["LastPlayed"] = format_date(details.get("lastplayed") or "", include_time=False)
     data["DateAdded"] = format_date(details.get("dateadded") or "", include_time=False)
-    data["Rating"] = f"{rating:.1f}" if rating else ""
+    data["Rating"] = format_rating(rating)
     data["UserRating"] = str(userrating) if userrating else ""
     data["Track"] = str(track) if track else ""
 

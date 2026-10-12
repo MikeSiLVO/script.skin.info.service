@@ -32,6 +32,16 @@ def format_stars(source: Optional[str], rating: float) -> str:
     return f"{stars:.1f}"
 
 
+def format_rating(rating: Optional[float]) -> str:
+    """Format a 0-10 rating to one decimal; empty for no rating or 0."""
+    if not rating:
+        return ""
+    value = round(float(rating), 1)
+    if value <= 0:
+        return ""
+    return f"{value:.1f}"
+
+
 def format_number(value) -> str:
     """Format number with thousand separators."""
     if not value:
@@ -43,11 +53,14 @@ def format_number(value) -> str:
 
 
 def format_rating_props(source: str, rating: float, votes: int) -> Dict[str, str]:
-    """Format rating data into property dict for a given source."""
+    """Format rating data into property dict for a given source; empty for a 0 rating."""
+    text = format_rating(rating)
+    if not text:
+        return {}
     scaled = round(rating, 1)
     pct = max(0, min(100, int(round(scaled * 10))))
     props = {
-        f"Rating.{source}": str(scaled),
+        f"Rating.{source}": text,
         f"Rating.{source}.Votes": format_number(votes),
         f"Rating.{source}.Percent": str(pct)
     }
