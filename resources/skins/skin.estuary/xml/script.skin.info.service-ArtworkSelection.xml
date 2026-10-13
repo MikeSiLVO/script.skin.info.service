@@ -53,11 +53,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>173</left>
-						<top>37</top>
+						<left>183</left>
+						<top>32</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -95,11 +95,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>173</left>
-						<top>37</top>
+						<left>183</left>
+						<top>32</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -127,12 +127,20 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>413</left>
-						<top>59</top>
+						<left>423</left>
+						<top>54</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
+					</control>
+					<control type="image">
+						<left>25</left>
+						<top>54</top>
+						<width>32</width>
+						<height>32</height>
+						<texture>icons/inherited.png</texture>
+						<visible>String.IsEqual(ListItem.Property(is_inherited),true)</visible>
 					</control>
 					<control type="label">
 						<left>5</left>
@@ -169,12 +177,20 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>413</left>
-						<top>59</top>
+						<left>423</left>
+						<top>54</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
+					</control>
+					<control type="image">
+						<left>25</left>
+						<top>54</top>
+						<width>32</width>
+						<height>32</height>
+						<texture>icons/inherited.png</texture>
+						<visible>String.IsEqual(ListItem.Property(is_inherited),true)</visible>
 					</control>
 					<control type="label">
 						<left>5</left>
@@ -201,11 +217,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>284</left>
-						<top>32</top>
+						<left>294</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -243,11 +259,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>284</left>
-						<top>32</top>
+						<left>294</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -275,11 +291,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>285</left>
-						<top>32</top>
+						<left>295</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -317,11 +333,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>285</left>
-						<top>32</top>
+						<left>295</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -349,11 +365,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>207</left>
-						<top>32</top>
+						<left>217</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -391,11 +407,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>207</left>
-						<top>32</top>
+						<left>217</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -423,11 +439,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>653</left>
-						<top>53</top>
+						<left>663</left>
+						<top>48</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -465,11 +481,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>653</left>
-						<top>53</top>
+						<left>663</left>
+						<top>48</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -497,11 +513,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>411</left>
-						<top>32</top>
+						<left>421</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -539,11 +555,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>411</left>
-						<top>32</top>
+						<left>421</left>
+						<top>27</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -571,11 +587,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>47</left>
-						<top>30</top>
+						<left>57</left>
+						<top>25</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -613,11 +629,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>47</left>
-						<top>30</top>
+						<left>57</left>
+						<top>25</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -645,11 +661,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>293</left>
-						<top>68</top>
+						<left>303</left>
+						<top>63</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -687,11 +703,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>293</left>
-						<top>68</top>
+						<left>303</left>
+						<top>63</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -719,11 +735,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>413</left>
-						<top>81</top>
+						<left>423</left>
+						<top>76</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -761,11 +777,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>413</left>
-						<top>81</top>
+						<left>423</left>
+						<top>76</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -793,11 +809,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>293</left>
-						<top>74</top>
+						<left>303</left>
+						<top>69</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
@@ -835,11 +851,11 @@
 						<bordersize>20</bordersize>
 					</control>
 					<control type="image">
-						<left>293</left>
-						<top>74</top>
+						<left>303</left>
+						<top>69</top>
 						<width>32</width>
 						<height>32</height>
-						<texture>OverlayWatched.png</texture>
+						<texture>icons/current.png</texture>
 						<visible>String.IsEqual(ListItem.Property(Is_Current),true)</visible>
 					</control>
 					<control type="label">
