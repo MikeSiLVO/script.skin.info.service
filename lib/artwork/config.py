@@ -49,7 +49,7 @@ ART_TYPES_BY_MEDIA = {
             'keyart'],
     'tvshow': ['poster', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'characterart',
                'keyart'],
-    'season': ['poster', 'banner', 'landscape', 'keyart'],
+    'season': ['poster', 'fanart', 'banner', 'landscape', 'keyart'],
     'episode': ['thumb'],
     'musicvideo': ['thumb', 'fanart'],
     'artist': ['thumb', 'fanart', 'clearlogo', 'clearart', 'banner', 'landscape', 'cutout'],
@@ -62,12 +62,25 @@ AUDIODB_ONLY_ART_TYPES = {
     'album': ('back', 'spine', '3dcase', '3dflat', '3dface', '3dthumb'),
 }
 
+# the show's fanart is the only source, and Kodi already falls back to it
+MANUAL_ONLY_ART_TYPES = {
+    'season': ('fanart',),
+}
+
 
 def bulk_art_types(media_type: str) -> list:
-    """Art types a scan or auto-apply can fill, leaving out the TheAudioDB-only ones."""
-    excluded = AUDIODB_ONLY_ART_TYPES.get(media_type, ())
+    """Art types a scan or auto-apply can fill, minus the TheAudioDB-only and manual-only ones."""
+    excluded = (AUDIODB_ONLY_ART_TYPES.get(media_type, ())
+                + MANUAL_ONLY_ART_TYPES.get(media_type, ()))
     return [art_type for art_type in ART_TYPES_BY_MEDIA.get(media_type, [])
             if art_type not in excluded]
+
+
+def inherited_art_url(media_type: str, art_type: str, art: dict) -> str:
+    """Parent art Kodi shows in an empty slot; only a season's fanart inherits, from its show."""
+    if media_type == 'season' and art_type == 'fanart':
+        return art.get('tvshow.fanart') or ''
+    return ''
 
 
 FANART_DIMENSIONS_VARIANTS = {

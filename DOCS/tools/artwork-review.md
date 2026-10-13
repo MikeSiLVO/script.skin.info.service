@@ -150,11 +150,13 @@ Art types accepted per media type:
 |------------|-----------|
 | `movie`, `set` | `poster`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `discart`, `keyart` |
 | `tvshow` | `poster`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `characterart`, `keyart` |
-| `season` | `poster`, `banner`, `landscape`, `keyart` |
+| `season` | `poster`, `fanart`, `banner`, `landscape`, `keyart` |
 | `episode` | `thumb` |
 | `musicvideo` | `thumb`, `fanart` |
 | `artist` | `thumb`, `fanart`, `clearlogo`, `clearart`, `banner`, `landscape`, `cutout` |
 | `album` | `thumb`, `discart`, `back`, `spine`, `3dcase`, `3dflat`, `3dface`, `3dthumb` |
+
+Season `fanart` offers the show's fanart. It is left out of the missing-art scan and auto-fill.
 
 ---
 
@@ -313,6 +315,7 @@ To replace this dialog in a skin, see [Dialog Skinning](../index.md#dialog-skinn
 - `ListItem.Art(thumb)`: Preview image
 - `ListItem.Property(fullurl)`: Full resolution image URL
 - `ListItem.Property(is_current)`: "true" when this option is the currently assigned artwork (set only on the matching item)
+- `ListItem.Property(is_inherited)`: "true" on the show's fanart in a season fanart list, the image Kodi shows while the season has none (set only on the matching item)
 - `ListItem.Property(dimensions)`: Width x Height (e.g., "1920x1080") when known
 - `ListItem.Property(width)`: Image width in pixels (when known)
 - `ListItem.Property(height)`: Image height in pixels (when known)
@@ -378,6 +381,7 @@ This dialog uses a "working set" approach for managing extra art slots (fanart1+
 - `ListItem.Art(thumb)`: Preview image
 - `ListItem.Property(fullurl)`: Full resolution image URL
 - `ListItem.Property(is_current)`: "true" if this option matches the item's current main art, else "false"
+- `ListItem.Property(is_inherited)`: "true" if this option is the show's fanart in a season fanart list, else "false"
 - `ListItem.Property(dimensions)`: Width x Height (e.g., "1920x1080") when known
 - `ListItem.Property(width)`: Image width in pixels (when known)
 - `ListItem.Property(height)`: Image height in pixels (when known)

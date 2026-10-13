@@ -33,6 +33,7 @@ from lib.artwork.config import (
     REVIEW_MODE_MISSING,
     SESSION_DETAIL_KEYS,
     default_session_stats as _default_session_stats,
+    inherited_art_url,
     load_session_stats as _load_session_stats,
     scope_label,
 )
@@ -637,6 +638,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
         filtered_art = filter_artwork_by_language(full_artwork_list, art_type=selected_art_type)
 
         current_url = current_art.get(selected_art_type, "")
+        inherited_url = inherited_art_url(dbtype, selected_art_type, current_art)
 
         action, selected_art, queued_multiart = show_artwork_selection_dialog(
             title=title,
@@ -646,6 +648,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             media_type=dbtype,
             year=str(year) if year else "",
             current_url=current_url,
+            inherited_url=inherited_url,
             dbid=dbid_int
         )
 

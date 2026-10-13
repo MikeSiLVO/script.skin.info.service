@@ -107,7 +107,7 @@ class ApiArtworkFetcher:
     ) -> Dict[str, List[dict]]:
         """Every artwork type for an item; a cache marker stops an art-less item refetching."""
         if media_type == 'season':
-            return self._fetch_season_artwork(dbid, season_number)
+            return self._fetch_season_artwork(dbid, season_number, bulk=bulk)
         elif media_type == 'episode':
             return self._fetch_episode_artwork(dbid, season_number, episode_number)
         elif media_type == 'set':
@@ -237,9 +237,9 @@ class ApiArtworkFetcher:
         return artwork
 
     def _fetch_season_artwork(
-        self, season_dbid: int, season_number: Optional[int] = None
+        self, season_dbid: int, season_number: Optional[int] = None, bulk: bool = False
     ) -> Dict[str, List[dict]]:
-        """Fetch artwork for a TV season from TMDB and fanart.tv."""
+        """Fetch artwork for a season from TMDB, fanart.tv, plus show fanart outside bulk runs."""
         details = get_item_details('season', season_dbid, ['season', 'tvshowid'])
         if not isinstance(details, dict):
             return {}
@@ -268,6 +268,12 @@ class ApiArtworkFetcher:
             fanart_art = self.fanart_api.get_season_artwork(tvdb_id, season_number)
             for art_type, artworks in fanart_art.items():
                 all_art.setdefault(art_type, []).extend(artworks)
+
+        # no provider has season fanart
+        if not bulk:
+            show_fanart = self.fetch_all('tvshow', tvshow_id).get('fanart')
+            if show_fanart:
+                all_art['fanart'] = list(show_fanart)
 
         return self._finalize_artwork('season', all_art)
 

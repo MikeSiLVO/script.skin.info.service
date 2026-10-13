@@ -44,6 +44,7 @@ class ArtworkDialogSelect(ArtworkDialogBase):
         self.media_type = kwargs.get('media_type', '')
         self.year = kwargs.get('year', '')
         self.current_url = kwargs.get('current_url', '')
+        self.inherited_url = kwargs.get('inherited_url', '')
         self.dbid = kwargs.get('dbid', 0)
         self.test_mode = kwargs.get('test_mode', False)
         self.review_mode = kwargs.get('review_mode', 'missing')
@@ -117,22 +118,24 @@ class ArtworkDialogSelect(ArtworkDialogBase):
                 pass
 
     def _populate_artwork_list(self) -> None:
-        """Fill the list with the displayed artwork, flagging the one already in use."""
+        """Fill the list with the displayed artwork, flagging the in-use and inherited ones."""
         try:
             control = self.getControl(self.ARTWORK_LIST)
         except Exception:
             return
 
         normalized_current = self._normalize_url(self.current_url) if self.current_url else None
+        normalized_inherited = self._normalize_url(self.inherited_url)
 
         items = []
         for idx, art_info in enumerate(self.available_art):
             item = self.create_artwork_listitem(art_info, idx)
-            if normalized_current:
-                art_url = art_info.get('url', '')
-                normalized_art = self._normalize_url(art_url) if art_url else ''
-                if normalized_current == normalized_art:
-                    item.setProperty('is_current', 'true')
+            art_url = art_info.get('url', '')
+            normalized_art = self._normalize_url(art_url) if art_url else ''
+            if normalized_current and normalized_current == normalized_art:
+                item.setProperty('is_current', 'true')
+            if normalized_inherited and normalized_inherited == normalized_art:
+                item.setProperty('is_inherited', 'true')
             items.append(item)
 
         self.populate_list_batch(control, items)
@@ -347,6 +350,7 @@ def show_artwork_selection_dialog(
     media_type: str = '',
     year: str = '',
     current_url: str = '',
+    inherited_url: str = '',
     dbid: int = 0,
     test_mode: bool = False,
     review_mode: str = 'missing'
@@ -370,6 +374,7 @@ def show_artwork_selection_dialog(
         media_type=media_type,
         year=year,
         current_url=current_url,
+        inherited_url=inherited_url,
         dbid=dbid,
         test_mode=test_mode,
         review_mode=review_mode

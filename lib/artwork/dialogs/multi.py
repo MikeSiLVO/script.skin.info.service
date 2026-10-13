@@ -6,7 +6,7 @@ import xbmcgui
 from typing import Optional, cast
 from lib.artwork.dialogs.base import ArtworkDialogBase
 from lib.artwork.utilities import parse_art_slot_index
-from lib.artwork.config import FANART_DIMENSIONS_VARIANTS
+from lib.artwork.config import FANART_DIMENSIONS_VARIANTS, inherited_art_url
 from lib.kodi.client import get_item_details, KODI_GET_DETAILS_METHODS, log, ADDON
 
 
@@ -31,6 +31,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
 
         self.current_extra_art = {}
         self.current_main_art = None
+        self.inherited_art = ''
         self.available_art = []
         self.full_artwork_list = []
         self.working_art = []
@@ -67,7 +68,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         self._publish_source_pref_state()
 
     def _load_current_extra_art(self) -> None:
-        """Load current extra art URLs from library (numbered slots only) and main art."""
+        """Load the library's extra art URLs (numbered slots only), main and inherited art."""
         if self.media_type not in KODI_GET_DETAILS_METHODS:
             return
 
@@ -78,6 +79,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         art = details.get('art', {})
 
         self.current_main_art = art.get(self.art_type)
+        self.inherited_art = inherited_art_url(self.media_type, self.art_type, art)
 
         for key, url in art.items():
             if key.startswith(self.art_type) and key != self.art_type:
@@ -210,7 +212,7 @@ class ArtworkDialogMulti(ArtworkDialogBase):
         self.populate_list_batch(control, items)
 
     def create_artwork_listitem(self, art_info: dict, index: int) -> xbmcgui.ListItem:
-        """Create the base ListItem, flagging artwork already set as the main art."""
+        """Create the base ListItem, flagging artwork already set as the main art or inherited."""
         item = super().create_artwork_listitem(art_info, index)
 
         if self.current_main_art:
@@ -225,6 +227,10 @@ class ArtworkDialogMulti(ArtworkDialogBase):
                 item.setProperty('is_current', 'false')
         else:
             item.setProperty('is_current', 'false')
+
+        inherited = bool(self.inherited_art) and (
+            self._normalize_url(self.inherited_art) == self._normalize_url(art_info.get('url', '')))
+        item.setProperty('is_inherited', 'true' if inherited else 'false')
 
         return item
 
