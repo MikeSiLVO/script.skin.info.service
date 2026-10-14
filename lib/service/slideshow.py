@@ -38,13 +38,18 @@ def _cache_image_url(url: str) -> bool:
 
 # category -> ((skin property, pool row field), ...); an artist row's name is its title
 _CATEGORY_PROPS = {
-    'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
-    'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
-    'Video': (('Title', 'title'), ('FanArt', 'fanart'), ('Plot', 'plot'), ('Year', 'year')),
-    'Music': (('Artist', 'title'), ('FanArt', 'fanart'), ('Description', 'plot')),
+    'Movie': (('Title', 'title'), ('FanArt', 'fanart'), ('ClearLogo', 'clearlogo'),
+              ('Plot', 'plot'), ('Year', 'year')),
+    'TV': (('Title', 'title'), ('FanArt', 'fanart'), ('ClearLogo', 'clearlogo'),
+           ('Plot', 'plot'), ('Year', 'year')),
+    'Video': (('Title', 'title'), ('FanArt', 'fanart'), ('ClearLogo', 'clearlogo'),
+              ('Plot', 'plot'), ('Year', 'year')),
+    'Music': (('Artist', 'title'), ('FanArt', 'fanart'), ('ClearLogo', 'clearlogo'),
+              ('Description', 'plot')),
     'MusicVideo': (('Title', 'title'), ('Artist', 'artist'), ('FanArt', 'fanart'),
-                   ('Plot', 'plot'), ('Year', 'year')),
-    'Global': (('Title', 'title'), ('FanArt', 'fanart'), ('Description', 'plot')),
+                   ('ClearLogo', 'clearlogo'), ('Plot', 'plot'), ('Year', 'year')),
+    'Global': (('Title', 'title'), ('FanArt', 'fanart'), ('ClearLogo', 'clearlogo'),
+               ('Description', 'plot')),
 }
 
 
@@ -63,7 +68,7 @@ def clear_slideshow_properties() -> None:
 _PLAYLIST_PREFIX: Final = 'SkinInfo.Slideshow.Playlist.'
 _PLAYLIST_PATHS = _PLAYLIST_PREFIX + 'Paths'
 _PLAYLIST_MUSIC_TYPES = {'song', 'album', 'artist'}
-_PLAYLIST_SUFFIXES = ('Title', 'FanArt', 'Plot', 'Year', 'Artist', 'Description')
+_PLAYLIST_SUFFIXES = ('Title', 'FanArt', 'ClearLogo', 'Plot', 'Year', 'Artist', 'Description')
 
 # movie-set nodes report type 'unknown'; the id/fanart checks drop the rest of that bucket
 _PLAYLIST_TYPES = frozenset(
@@ -74,6 +79,7 @@ _PLAYLIST_PROPS = ['art', 'title', 'plot', 'year', 'firstaired', 'displayartist'
 
 # episodes/songs/albums inherit fanart from the show/artist
 _FANART_KEYS = ('fanart', 'tvshow.fanart', 'artist.fanart', 'albumartist.fanart')
+_CLEARLOGO_KEYS = ('clearlogo', 'tvshow.clearlogo', 'artist.clearlogo', 'albumartist.clearlogo')
 
 # items are held whole
 _PLAYLIST_POOL_LIMIT: Final = 200
@@ -84,13 +90,13 @@ _PLAYLIST_REFETCH_MIN_S: Final = 60
 LOOKAHEAD_DEPTH: Final = 2
 
 
-def _item_fanart(item: Dict[str, Any]) -> str:
-    """Fanart for a directory-listing item, falling back to its parent show/artist art."""
+def _item_art(item: Dict[str, Any], keys: tuple) -> str:
+    """Art for a directory-listing item, falling back to its parent show/artist art."""
     art = item.get('art', {})
-    for key in _FANART_KEYS:
-        fanart = art.get(key, '').strip()
-        if fanart:
-            return fanart
+    for key in keys:
+        url = art.get(key, '').strip()
+        if url:
+            return url
     return ''
 
 
@@ -247,7 +253,7 @@ class PlaylistRotator:
                 self._publish_video(name, entry)
 
     def _refill(self) -> None:
-        """Force-cache each cursor's next fanart and fill the lookaheads."""
+        """Force-cache each cursor's next fanart and clearlogo, then fill the lookaheads."""
         for slot in self._slots.values():
             cursor = slot['cursor']
             for item in cursor.wanted():
@@ -255,14 +261,16 @@ class PlaylistRotator:
 
     @staticmethod
     def _resolve(item: Dict[str, Any]) -> Optional[dict]:
-        """Entry from a pool item; None if it has no fanart or caching fails."""
+        """Entry from a pool item; None if it has no fanart or its fanart fails to cache."""
         media_type = item.get('type', '')
-        fanart = _item_fanart(item)
+        fanart = _item_art(item, _FANART_KEYS)
         if not fanart or not _cache_image_url(fanart):
             return None
+        clearlogo = _item_art(item, _CLEARLOGO_KEYS)
+        _cache_image_url(clearlogo)
         if media_type in _PLAYLIST_MUSIC_TYPES and not item.get('description'):
             item['description'] = _artist_description(item.get('artistid'))
-        return {'type': media_type, 'detail': item, 'fanart': fanart}
+        return {'type': media_type, 'detail': item, 'fanart': fanart, 'clearlogo': clearlogo}
 
     @staticmethod
     def _publish_video(name: str, entry: Dict[str, Any]) -> None:
@@ -271,6 +279,7 @@ class PlaylistRotator:
         prefix = f'{_PLAYLIST_PREFIX}{name}.'
         set_prop(prefix + 'Title', detail.get('title', '') or detail.get('label', ''))
         set_prop(prefix + 'FanArt', entry['fanart'])
+        set_prop(prefix + 'ClearLogo', entry['clearlogo'])
         set_prop(prefix + 'Plot', detail.get('plot', ''))
         set_prop(prefix + 'Year', _year_of(detail))
 
@@ -285,6 +294,7 @@ class PlaylistRotator:
             artist = ' / '.join(raw) if isinstance(raw, list) else raw
         set_prop(prefix + 'Artist', artist or detail.get('label', ''))
         set_prop(prefix + 'FanArt', entry['fanart'])
+        set_prop(prefix + 'ClearLogo', entry['clearlogo'])
         set_prop(prefix + 'Description', detail.get('description', ''))
 
     @staticmethod
@@ -384,11 +394,15 @@ class LibrarySlideshow:
                 _publish_library(category, entry)
 
     def _refill(self) -> None:
-        """Force-cache each cursor's next fanart and fill the lookaheads."""
+        """Force-cache each cursor's next fanart and clearlogo, then fill the lookaheads."""
         for cursors in self._categories.values():
             for cursor in cursors.values():
                 for row in cursor.wanted():
-                    cursor.deliver([row if _cache_image_url(row.get('fanart', '')) else None])
+                    if not _cache_image_url(row.get('fanart', '')):
+                        cursor.deliver([None])
+                        continue
+                    _cache_image_url(row.get('clearlogo') or '')
+                    cursor.deliver([row])
 
 
 class SlideshowMonitor(xbmc.Monitor):

@@ -6,7 +6,7 @@ import time
 from typing import List, Final
 
 
-SCHEMA_VERSION: Final = 1
+SCHEMA_VERSION: Final = 2
 
 _KODI_SIDE: List[str] = [
     '''
@@ -53,6 +53,7 @@ _KODI_SIDE: List[str] = [
         plot        TEXT,
         year        INTEGER,
         artist      TEXT,
+        clearlogo   TEXT,
         PRIMARY KEY (media_type, dbid)
     ) WITHOUT ROWID
     ''',
@@ -316,8 +317,21 @@ _WORKFLOW_SIDE: List[str] = [
 SCHEMA: List[str] = _KODI_SIDE + _PROVIDER_SIDE + _IMDB_SIDE + _WORKFLOW_SIDE
 
 
+# tables built only from the Kodi library, with the newest column each must have
+_LIBRARY_BUILT: Final = {'slideshow_pool': 'clearlogo'}
+
+
+def _drop_outdated_library_tables(cursor: sqlite3.Cursor) -> None:
+    """Drop a library-built table missing its newest column, for the schema to recreate empty."""
+    for table, column in _LIBRARY_BUILT.items():
+        columns = {row[1] for row in cursor.execute(f'PRAGMA table_info({table})')}
+        if columns and column not in columns:
+            cursor.execute(f'DROP TABLE {table}')
+
+
 def create_schema(cursor: sqlite3.Cursor) -> None:
-    """Create every table and index on an open cursor."""
+    """Create every table and index on an open cursor, replacing outdated library-built ones."""
+    _drop_outdated_library_tables(cursor)
     for statement in SCHEMA:
         cursor.execute(statement)
     cursor.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')

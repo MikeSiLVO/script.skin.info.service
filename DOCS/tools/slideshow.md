@@ -50,11 +50,14 @@ The slideshow feature provides rotating fanart backgrounds for your skin. It exp
 
 All slideshow properties use the `SkinInfo.Slideshow.*` and are accessible as window properties.
 
+`ClearLogo` is empty for an item with no clearlogo.
+
 ### Movie Properties
 
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.Plot)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.Year)]
 ```
@@ -64,6 +67,7 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.Movie.Year)]
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.TV.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.TV.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.TV.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.TV.Plot)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.TV.Year)]
 ```
@@ -73,6 +77,7 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.TV.Year)]
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Video.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Video.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Video.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Video.Plot)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Video.Year)]
 ```
@@ -82,6 +87,7 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.Video.Year)]
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.Artist)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Music.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.Description)]
 ```
 
@@ -91,6 +97,7 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.Music.Description)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Artist)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Plot)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.MusicVideo.Year)]
 ```
@@ -106,6 +113,7 @@ Global properties rotate through all media types (movies, TV, music, music video
 ```xml
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.Title)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.FanArt)]
+$INFO[Window(Home).Property(SkinInfo.Slideshow.Global.ClearLogo)]
 $INFO[Window(Home).Property(SkinInfo.Slideshow.Global.Description)]
 ```
 
@@ -139,6 +147,7 @@ $INFO[Window(Home).Property(SkinInfo.Slideshow.Playlist.unwatched.Title)]
 |---------------|----------------------------------------------------|
 | `Title`       | Item title                                         |
 | `FanArt`      | Fanart, falling back to the show or artist art     |
+| `ClearLogo`   | Clearlogo, falling back to the show or artist logo |
 | `Plot`        | Plot                                               |
 | `Year`        | Year                                               |
 | `Artist`      | Artist, for music and music video items            |

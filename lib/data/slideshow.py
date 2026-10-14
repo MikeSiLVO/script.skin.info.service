@@ -32,7 +32,8 @@ def _build_pool_records(media_type: str, items: list, id_key: str, title_key: st
             fanart,
             item.get(plot_key, ''),
             year,
-            _joined_artist(item.get('artist')) if media_type == 'musicvideo' else ''
+            _joined_artist(item.get('artist')) if media_type == 'musicvideo' else '',
+            item.get('art', {}).get('clearlogo', '')
         ))
     return records
 
@@ -139,7 +140,8 @@ def refresh_pool_item(media_type: str, dbid: int) -> None:
         year = detail.get('year')
 
     artist = _joined_artist(detail.get('artist')) if media_type == 'musicvideo' else ''
-    db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, plot, year, artist)
+    clearlogo = detail.get('art', {}).get('clearlogo', '')
+    db_slideshow.upsert_pool_item(media_type, dbid, title, fanart, plot, year, artist, clearlogo)
 
 
 def _video_items_with_fanart(method: str, result_key: str,
@@ -167,7 +169,7 @@ def _get_tvshows_with_fanart() -> Optional[list]:
 def _get_artists_with_fanart() -> Optional[list]:
     """Artists with fanart, or None if the library fetch failed (vs [] = none have fanart)."""
     response = request("AudioLibrary.GetArtists", {
-        "properties": ["fanart", "description"]
+        "properties": ["fanart", "description", "art"]
     })
 
     if response is None:
@@ -185,7 +187,8 @@ def _get_artists_with_fanart() -> Optional[list]:
                 'artistid': artist.get('artistid'),
                 'artist': artist.get('artist', ''),
                 'fanart': fanart,
-                'description': artist.get('description', '')
+                'description': artist.get('description', ''),
+                'art': {'clearlogo': (artist.get('art') or {}).get('clearlogo', '')},
             })
 
     log("Service", f"Slideshow: Found {len(artists_with_fanart)} artists with fanart")

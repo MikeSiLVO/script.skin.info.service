@@ -6,11 +6,11 @@ from typing import List, Optional, Final
 from lib.data.database._infrastructure import get_db, sql_placeholders
 
 _POOL_INSERT_SQL: Final = '''
-    INSERT INTO slideshow_pool (media_type, dbid, title, fanart, plot, year, artist)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO slideshow_pool (media_type, dbid, title, fanart, plot, year, artist, clearlogo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT (media_type, dbid) DO UPDATE SET
         title = excluded.title, fanart = excluded.fanart, plot = excluded.plot,
-        year = excluded.year, artist = excluded.artist
+        year = excluded.year, artist = excluded.artist, clearlogo = excluded.clearlogo
 '''
 
 _pool_generation = 0
@@ -33,11 +33,11 @@ def populate_pool(*record_sets: List[tuple]) -> None:
 
 
 def upsert_pool_item(media_type: str, dbid: int, title: str, fanart: str,
-                     plot: str, year: Optional[int], artist: str = '') -> None:
+                     plot: str, year: Optional[int], artist: str = '', clearlogo: str = '') -> None:
     """Upsert one pool row, then bump the generation."""
     with get_db() as cursor:
         cursor.execute(_POOL_INSERT_SQL,
-                       (media_type, dbid, title, fanart, plot, year, artist))
+                       (media_type, dbid, title, fanart, plot, year, artist, clearlogo))
     _bump_generation()
 
 
@@ -52,16 +52,16 @@ def delete_pool_item(media_type: str, dbid: int) -> None:
 
 
 def get_pool_compare_fields(media_types: tuple) -> dict:
-    """Get `(media_type, dbid) -> (title, fanart, plot, year, artist)` for the reconcile diff."""
+    """Get `(media_type, dbid) -> (title, fanart, plot, year, artist, clearlogo)` to reconcile."""
     if not media_types:
         return {}
     placeholders = sql_placeholders(len(media_types))
     with get_db() as cursor:
         cursor.execute(
-            'SELECT media_type, dbid, title, fanart, plot, year, artist FROM slideshow_pool '
-            f'WHERE media_type IN ({placeholders})',
+            'SELECT media_type, dbid, title, fanart, plot, year, artist, clearlogo '
+            f'FROM slideshow_pool WHERE media_type IN ({placeholders})',
             tuple(media_types))
-        return {(r[0], r[1]): (r[2], r[3], r[4], r[5], r[6]) for r in cursor.fetchall()}
+        return {(r[0], r[1]): (r[2], r[3], r[4], r[5], r[6], r[7]) for r in cursor.fetchall()}
 
 
 def apply_pool_diff(upserts: List[tuple], deletes: List[tuple]) -> None:
@@ -85,7 +85,8 @@ def pool_generation() -> int:
 def get_all_pool_rows() -> list:
     """Get every pool row of every type, for building the rotation cursors."""
     with get_db() as cursor:
-        cursor.execute('SELECT media_type, title, fanart, plot, year, artist FROM slideshow_pool')
+        cursor.execute(
+            'SELECT media_type, title, fanart, plot, year, artist, clearlogo FROM slideshow_pool')
         return cursor.fetchall()
 
 
