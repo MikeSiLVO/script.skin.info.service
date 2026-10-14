@@ -2,7 +2,7 @@
 from typing import Dict, List, Tuple, Optional, Final
 
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utilities import format_date
+from lib.kodi.utilities import format_date, format_region_date
 from lib.kodi.utilities import MULTI_VALUE_SEP
 from lib.data.api.utilities import tmdb_image_url
 
@@ -180,17 +180,20 @@ def format_tvshow_props(data: dict) -> Dict[str, str]:
 
     next_ep = data.get("next_episode_to_air")
     next_air = (next_ep.get("air_date") or "") if next_ep else ""
-    from datetime import date
+    from datetime import date, datetime
     if next_ep and next_air and next_air >= date.today().isoformat():
         props["NextEpisodeTitle"] = next_ep.get("name") or ""
         props["NextEpisode"] = str(next_ep.get("episode_number") or "")
         props["NextEpisodeSeason"] = str(next_ep.get("season_number") or "")
         props["NextEpisodeAired"] = format_date(next_air)
+        props["NextEpisodeAiredLong"] = format_region_date(
+            datetime.fromisoformat(next_air), "datelong")
     else:
         props["NextEpisodeTitle"] = ""
         props["NextEpisode"] = ""
         props["NextEpisodeSeason"] = ""
         props["NextEpisodeAired"] = ""
+        props["NextEpisodeAiredLong"] = ""
 
     add_content_rating_props(props, data)
     add_trailer_props(props, data)

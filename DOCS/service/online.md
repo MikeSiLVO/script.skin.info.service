@@ -298,6 +298,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `NextEpisode` | Next episode number |
 | `NextEpisodeSeason` | Next episode season |
 | `NextEpisodeAired` | Next episode air date (formatted) |
+| `NextEpisodeAiredLong` | Next episode air date in the long date format, day and month names in Kodi's language |
 
 ### Credits
 
