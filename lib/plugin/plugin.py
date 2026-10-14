@@ -210,6 +210,12 @@ def _handle_next_aired(handle: int, params: dict) -> None:
     handle_next_aired(handle, params)
 
 
+def _handle_artwork_viewer(handle: int, params: dict) -> None:
+    """List the artwork image a picker opened full size."""
+    from lib.dialog.image import handle_artwork_viewer
+    handle_artwork_viewer(handle, params)
+
+
 def _handle_continue_watching(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_continue_watching
     handle_continue_watching(handle, params)
@@ -346,6 +352,7 @@ _HANDLERS = {
     'next_up': _handle_next_up,
     'next_up_favourites': _handle_next_up_favourites,
     'next_aired': _handle_next_aired,
+    'artwork_viewer': _handle_artwork_viewer,
     'continue_watching': _handle_continue_watching,
     'favourites': _handle_favourites,
     'recent_episodes_grouped': _handle_recent_episodes_grouped,

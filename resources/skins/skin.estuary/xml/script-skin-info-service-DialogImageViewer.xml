@@ -64,6 +64,16 @@
 					<height>44</height>
 					<shadowcolor>text_shadow</shadowcolor>
 					<label>$INFO[Container(1520).CurrentItem]$INFO[Container(1520).NumItems, / ,]$INFO[Container(1520).ListItem.Property(Dimensions),  •  ]</label>
+					<visible>String.IsEmpty(Window.Property(Artwork_View))</visible>
+				</control>
+				<control type="label">
+					<left>21</left>
+					<top>-10</top>
+					<width>1000</width>
+					<height>44</height>
+					<shadowcolor>text_shadow</shadowcolor>
+					<label>$INFO[Container(1520).ListItem.Property(Source)]$INFO[Container(1520).ListItem.Property(Dimensions),  •  ]</label>
+					<visible>!String.IsEmpty(Window.Property(Artwork_View))</visible>
 				</control>
 			</control>
 		</control>

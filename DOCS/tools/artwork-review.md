@@ -173,6 +173,8 @@ For each art type, a visual dialog shows:
 ### User Actions
 
 - **Select**: Click the image or Select button to apply that artwork
+- **Info**: View the focused image full size; Info again or Back returns. Right-click and
+  long-press do the same. Works in the Multi-Art dialog too
 - **Skip**: Skip this art type and leave it unchanged
 - **Cancel**: Exit the review process (progress is saved)
 
@@ -284,6 +286,14 @@ To replace this dialog in a skin, see [Dialog Skinning](../index.md#dialog-skinn
 - **204**: Change Language button (visibility controlled by show_change_language property)
 - **205**: Sort button (visibility controlled by show_sort_button property)
 - **206**: Source filter button (visibility controlled by show_source_button property)
+
+Info and the context menu on a list item open that one image full size in the
+[Image Viewer](../dialogs/image-viewer.md). The included dialogs show a hint for it; to show the
+same text in your own XML:
+
+```xml
+<label>$ADDON[script.skin.info.service 32078]</label>
+```
 
 **Window Properties:**
 

@@ -34,3 +34,15 @@ Set on the dialog window while it's open.
 | Property | Description |
 |----------|-------------|
 | `container.viewer.path` | The image plugin URL currently being shown |
+| `artwork_view` | `true` when an artwork picker opened the viewer on one image; empty otherwise |
+
+## Artwork Pickers
+
+Info in an artwork picker opens the focused image in this viewer, one image at a time. Info, the
+context menu, Back or Esc closes it. Its one item also carries `ListItem.Property(Source)`, the
+provider (`TMDB` or `fanart.tv`), so a skin can show that in place of the image count:
+
+```xml
+<visible>!String.IsEmpty(Window.Property(artwork_view))</visible>
+<label>$INFO[Container(1520).ListItem.Property(Source)]</label>
+```

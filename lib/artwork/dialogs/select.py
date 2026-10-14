@@ -166,10 +166,12 @@ class ArtworkDialogSelect(ArtworkDialogBase):
             self._toggle_source_pref()
 
     def onAction(self, action):
-        """Cancel and close on Back or Menu."""
+        """Cancel and close on Back or Menu; other actions go to the shared handling."""
         if action.getId() in (xbmcgui.ACTION_NAV_BACK, xbmcgui.ACTION_PREVIOUS_MENU):
             self.result = None
             self.close()
+            return
+        super().onAction(action)
 
     def _select_current(self) -> None:
         """Select the focused artwork and close the dialog."""

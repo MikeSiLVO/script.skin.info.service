@@ -880,11 +880,22 @@
 				<onleft>100</onleft>
 				<onright>9000</onright>
 			</control>
-			<control type="grouplist" id="9000">
+			<control type="label">
 				<left>1510</left>
 				<top>92</top>
 				<width>300</width>
-				<height>800</height>
+				<height>50</height>
+				<font>font12</font>
+				<textcolor>grey</textcolor>
+				<align>center</align>
+				<aligny>center</aligny>
+				<label>$ADDON[script.skin.info.service 32078]</label>
+			</control>
+			<control type="grouplist" id="9000">
+				<left>1510</left>
+				<top>142</top>
+				<width>300</width>
+				<height>750</height>
 				<orientation>vertical</orientation>
 				<itemgap>-10</itemgap>
 				<onleft>100</onleft>

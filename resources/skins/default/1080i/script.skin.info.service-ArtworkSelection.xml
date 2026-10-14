@@ -80,6 +80,17 @@
 				<aligny>center</aligny>
 				<label>$INFO[Window.Property(arttype)]$INFO[Window.Property(count), - ]</label>
 			</control>
+			<!-- Full size hint -->
+			<control type="label">
+				<top>60</top>
+				<width>1800</width>
+				<height>60</height>
+				<font>font12</font>
+				<textcolor>FFCCCCCC</textcolor>
+				<align>right</align>
+				<aligny>center</aligny>
+				<label>$ADDON[script.skin.info.service 32078]</label>
+			</control>
 			<control type="group">
 				<centerleft>50%</centerleft>
 				<centertop>50%</centertop>

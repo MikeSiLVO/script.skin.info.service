@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Final, List
 import xbmcgui
 from lib.artwork.utilities import get_language_display_name
 from lib.kodi.client import decode_image_url, ADDON
+
+_FULL_SIZE_ACTIONS: Final = (xbmcgui.ACTION_SHOW_INFO, xbmcgui.ACTION_CONTEXT_MENU)
 
 
 class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
@@ -17,6 +19,28 @@ class ArtworkDialogBase(xbmcgui.WindowXMLDialog):
     full_artwork_list: list = []
     sort_mode: str = 'popularity'
     source_pref: str = 'all'
+
+    def onAction(self, action):
+        """Open the focused artwork full size on Info or the context menu."""
+        if action.getId() in _FULL_SIZE_ACTIONS:
+            self._view_full_size()
+            return
+        super().onAction(action)
+
+    def _view_full_size(self) -> None:
+        """View the focused artwork full size in the image viewer."""
+        try:
+            control = self.getControl(self.getFocusId())
+        except (RuntimeError, TypeError):
+            return
+        if not isinstance(control, xbmcgui.ControlList):
+            return
+        item = control.getSelectedItem()
+        url = (item.getProperty('fullurl') or item.getProperty('url')) if item else ''
+        if not url:
+            return
+        from lib.dialog.image import open_artwork_viewer
+        open_artwork_viewer(url, item.getProperty('dimensions'), item.getProperty('source'))
 
     def _normalize_url(self, url: str) -> str:
         """Normalize URL for comparison; collapses fanart.tv paths to filename only."""

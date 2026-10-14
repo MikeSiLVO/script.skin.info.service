@@ -344,6 +344,11 @@ msgctxt "#32077"
 msgid "TMDB"
 msgstr "TMDB"
 
+#. "Info" is the remote and keyboard button
+msgctxt "#32078"
+msgid "Info: view full size"
+msgstr "Info: view full size"
+
 msgctxt "#32080"
 msgid "API Key"
 msgstr "API Key"
