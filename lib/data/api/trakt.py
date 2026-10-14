@@ -432,6 +432,22 @@ class ApiTrakt(RatingSource):
             requires_auth=True, abort_flag=abort_flag
         )
 
+    def get_show_calendar(self, start_date: str, days: int, abort_flag=None) -> Optional[list]:
+        """Get every show episode airing in a span from a UTC date; None when the fetch fails."""
+        endpoint = f"/calendars/all/shows/{start_date}/{days}"
+        try:
+            data = self.session.get(
+                endpoint, params={"extended": "full"}, abort_flag=abort_flag
+            )
+        except RateLimitHit as e:
+            log("Trakt", f"Rate limit hit on {endpoint} (Retry-After={e.retry_after_seconds})",
+                xbmc.LOGWARNING)
+            return None
+        except Exception as e:
+            log("Trakt", f"Calendar fetch error: {e}", xbmc.LOGWARNING)
+            return None
+        return data if isinstance(data, list) else None
+
     def test_connection(self) -> bool:
         """Test Trakt API connection; requires a valid OAuth token."""
         token = self._get_valid_token()

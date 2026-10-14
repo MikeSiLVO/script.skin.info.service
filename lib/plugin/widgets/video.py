@@ -4,6 +4,8 @@ from __future__ import annotations
 import math
 import random
 import re
+import time
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional, Final
 
 import xbmc
@@ -27,6 +29,11 @@ _FULL_SHOW_PROPERTIES = ['art', 'episode', 'watchedepisodes', 'title', 'plot', '
 _MOVIE_PROPERTIES = ['title', 'art', 'file', 'year', 'rating', 'userrating', 'playcount',
                      'plot', 'tagline', 'runtime', 'genre', 'director', 'studio', 'mpaa',
                      'trailer', 'votes', 'tag', 'dateadded', 'lastplayed', 'resume']
+
+_CALENDAR_DAYS: Final = 31
+_CALENDAR_FRESH_SECONDS: Final = 6 * 3600
+_CALENDAR_ID_SOURCES: Final = ('tmdb', 'tvdb', 'imdb')
+_CALENDAR_SHOW_PROPERTIES = ['title', 'art', 'studio', 'mpaa', 'genre']
 
 _RECENT_WINDOW = {'field': 'dateadded', 'operator': 'inthelast', 'value': '365 days'}
 _IN_PROGRESS = {'field': 'inprogress', 'operator': 'true', 'value': ''}
@@ -226,6 +233,165 @@ def handle_continue_watching(handle: int, params: dict) -> None:
         xbmcplugin.addDirectoryItem(handle, url, listitem, False)
 
     xbmcplugin.setContent(handle, 'videos')
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
+def _trim_calendar_entry(entry: dict) -> dict:
+    """Trim one Trakt calendar entry to the fields an upcoming episode item reads."""
+    show = entry.get('show') or {}
+    episode = entry.get('episode') or {}
+    ids = show.get('ids') or {}
+    return {
+        'aired': entry.get('first_aired') or '',
+        'tmdb': ids.get('tmdb'),
+        'tvdb': ids.get('tvdb'),
+        'imdb': ids.get('imdb'),
+        'status': show.get('status') or '',
+        'network': show.get('network') or '',
+        'season': episode.get('season') or 0,
+        'episode': episode.get('number') or 0,
+        'title': episode.get('title') or '',
+        'plot': episode.get('overview') or '',
+        'runtime': episode.get('runtime') or show.get('runtime') or 0,
+        'type': episode.get('episode_type') or '',
+    }
+
+
+def _calendar_episodes() -> list:
+    """Trakt's episodes from yesterday on, refetched daily or when stale; kept if a fetch fails."""
+    from lib.data.database.cache import cache_show_calendar, get_cached_show_calendar
+    start = (date.today() - timedelta(days=1)).isoformat()
+    cached = get_cached_show_calendar()
+    if (cached and cached.get('start') == start
+            and time.time() - cached.get('fetched_at', 0) < _CALENDAR_FRESH_SECONDS):
+        return cached.get('episodes', [])
+
+    from lib.data.api.trakt import ApiTrakt
+    entries = ApiTrakt().get_show_calendar(start, _CALENDAR_DAYS + 2)
+    if entries is None:
+        return cached.get('episodes', []) if cached else []
+
+    episodes = [_trim_calendar_entry(entry) for entry in entries]
+    cache_show_calendar({'start': start, 'fetched_at': int(time.time()), 'episodes': episodes})
+    return episodes
+
+
+def _local_air_time(aired: str) -> Optional[datetime]:
+    """Trakt's UTC air time as a local datetime; None when it is missing or unreadable."""
+    try:
+        return datetime.fromisoformat(aired[:19]).replace(tzinfo=timezone.utc).astimezone()
+    except ValueError:
+        return None
+
+
+def _library_shows_by_id() -> dict:
+    """Map each library show's TMDB, TVDB and IMDb ids to its tvshowid."""
+    from lib.kodi.utilities import extract_media_ids
+    result = request('VideoLibrary.GetTVShows', {'properties': ['uniqueid']})
+    by_id = {}
+    for show in extract_result(result, 'tvshows', []):
+        ids = extract_media_ids(show)
+        for source in _CALENDAR_ID_SOURCES:
+            if ids[source]:
+                by_id[(source, ids[source])] = show['tvshowid']
+    return by_id
+
+
+def _library_tvshowid(entry: dict, library: dict) -> Optional[int]:
+    """Library tvshowid for a calendar entry, matched on its TMDB, then TVDB, then IMDb id."""
+    for source in _CALENDAR_ID_SOURCES:
+        tvshowid = library.get((source, str(entry[source]))) if entry[source] else None
+        if tvshowid is not None:
+            return tvshowid
+    return None
+
+
+def _tvshows_by_id(tvshowids, properties: list) -> dict:
+    """Library shows for the given DBIDs, keyed by DBID, fetched in one batch."""
+    tvshowids = sorted(tvshowids)
+    responses = batch_request([
+        {'method': 'VideoLibrary.GetTVShowDetails',
+         'params': {'tvshowid': tvshowid, 'properties': properties}}
+        for tvshowid in tvshowids
+    ])
+    shows = {}
+    for tvshowid, response in zip(tvshowids, responses):
+        details = extract_result(response, 'tvshowdetails', {})
+        if details:
+            details['tvshowid'] = tvshowid
+            shows[tvshowid] = details
+    return shows
+
+
+def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem:
+    """Upcoming episode ListItem with the library show's art and its local air date and time."""
+    from lib.kodi.utilities import format_region_date, format_region_time
+    listitem = _create_episode_listitem({
+        'title': entry['title'],
+        'season': entry['season'],
+        'episode': entry['episode'],
+        'showtitle': show.get('title', ''),
+        'plot': entry['plot'],
+        'firstaired': aired.date().isoformat(),
+        'runtime': entry['runtime'] * 60,
+    })
+    _set_episode_artwork_from_show(listitem, show.get('art', {}), {})
+
+    video_tag = listitem.getVideoInfoTag()
+    studios = show.get('studio') or ([entry['network']] if entry['network'] else [])
+    if studios:
+        video_tag.setStudios(studios)
+    if show.get('mpaa'):
+        video_tag.setMpaa(show['mpaa'])
+    if show.get('genre'):
+        video_tag.setGenres(show['genre'])
+    if entry['status']:
+        video_tag.setTvShowStatus(entry['status'].title())
+
+    listitem.setProperties({
+        'airdate': format_region_date(aired, 'dateshort'),
+        'airdatelong': format_region_date(aired, 'datelong'),
+        'airday': xbmc.getLocalizedString(11 + aired.weekday()),
+        'airtime': format_region_time(aired),
+        'episodetype': entry['type'],
+        'tvshowdbid': str(show['tvshowid']),
+    })
+    return listitem
+
+
+def handle_next_aired(handle: int, params: dict) -> None:
+    """Plugin entry: library shows' episodes airing on the requested days, in air time order."""
+    xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32071))
+    today = date.today()
+    weekday = _int_param(params, 'weekday', -1)
+    if 0 <= weekday <= 6:
+        first = (weekday - today.weekday()) % 7
+    else:
+        first = min(max(_int_param(params, 'day', 0), 0), _CALENDAR_DAYS - 1)
+    days = min(max(_int_param(params, 'days', 1), 1), _CALENDAR_DAYS - first)
+    start = today + timedelta(days=first)
+    end = start + timedelta(days=days)
+
+    library = _library_shows_by_id()
+    rows = []
+    for entry in _calendar_episodes():
+        aired = _local_air_time(entry['aired'])
+        if not aired or not start <= aired.date() < end:
+            continue
+        tvshowid = _library_tvshowid(entry, library)
+        if tvshowid is not None:
+            rows.append((aired, tvshowid, entry))
+
+    shows = _tvshows_by_id({tvshowid for _, tvshowid, _ in rows}, _CALENDAR_SHOW_PROPERTIES)
+    rows = [row for row in rows if row[1] in shows]
+    rows.sort(key=lambda row: (row[0], shows[row[1]].get('title', ''),
+                               row[2]['season'], row[2]['episode']))
+    for aired, tvshowid, entry in rows:
+        xbmcplugin.addDirectoryItem(
+            handle, f"videodb://tvshows/titles/{tvshowid}/",
+            _calendar_item(entry, aired, shows[tvshowid]), isFolder=True)
+
+    xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 

@@ -66,25 +66,13 @@ def _items_by_file(media_type: str, paths: list, properties: list) -> dict:
     return found
 
 
-def _tvshows_by_id(tvshowids: set, properties: list) -> dict:
-    """Library shows for the given DBIDs, keyed by DBID."""
-    from lib.kodi.client import get_item_details
-
-    shows = {}
-    for tvshowid in tvshowids:
-        details = get_item_details('tvshow', tvshowid, properties)
-        if details:
-            details['tvshowid'] = tvshowid
-            shows[tvshowid] = details
-    return shows
-
-
 def handle_favourites(handle: int, params: dict) -> None:
     """Plugin entry: favourites resolved to library items; `dbtype` narrows to one media type."""
     from lib.plugin.widgets.music import _create_musicvideo_listitem, _MUSICVIDEO_PROPERTIES
     from lib.plugin.widgets.video import (_create_movie_listitem, _create_tvshow_listitem,
-                                          _episode_item_from_show, _EPISODE_PROPERTIES,
-                                          _FULL_SHOW_PROPERTIES, _MOVIE_PROPERTIES)
+                                          _episode_item_from_show, _tvshows_by_id,
+                                          _EPISODE_PROPERTIES, _FULL_SHOW_PROPERTIES,
+                                          _MOVIE_PROPERTIES)
 
     dbtype = params.get('dbtype', [''])[0].lower()
     limit = int(params.get('limit', ['0'])[0])

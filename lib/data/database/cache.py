@@ -394,6 +394,24 @@ def cache_tmdb_genre_list(tmdb_type: str, mapping: Dict[int, str], ttl_hours: in
              _compress_data({str(k): v for k, v in mapping.items()})))
 
 
+def get_cached_show_calendar() -> Optional[dict]:
+    """Get the cached show calendar, past its refresh time or not; None when none is kept."""
+    return _fetch_cached(
+        'blob_cache', "kind = 'trakt_calendar' AND cache_key = 'shows' AND expires_at > ?",
+        (_now(),), 'show calendar')
+
+
+def cache_show_calendar(calendar: dict, keep_days: int = 3) -> None:
+    """Cache the show calendar, kept for days as the fallback when a refetch fails."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            "INSERT INTO blob_cache (kind, cache_key, expires_at, data) "
+            "VALUES ('trakt_calendar', 'shows', ?, ?) "
+            'ON CONFLICT (kind, cache_key) DO UPDATE SET '
+            'expires_at = excluded.expires_at, data = excluded.data',
+            (_expiry(keep_days * 24), _compress_data(calendar)))
+
+
 def get_fresh_title_ids(media_type: str) -> Set[str]:
     """Get the TMDB ids of one media type whose cached title data is still fresh."""
     with get_db(DB_PATH) as cursor:

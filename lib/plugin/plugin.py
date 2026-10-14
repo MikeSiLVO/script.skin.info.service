@@ -63,6 +63,9 @@ def _handle_widgets_menu(handle: int) -> None:
         (ADDON.getLocalizedString(32685),
          "plugin://script.skin.info.service/?action=next_up_favourites",
          "DefaultTVShows.png", True),
+        (ADDON.getLocalizedString(32071),
+         "plugin://script.skin.info.service/?action=next_aired&days=7",
+         "DefaultTVShows.png", True),
         (ADDON.getLocalizedString(32696),
          "plugin://script.skin.info.service/?action=continue_watching",
          "DefaultVideo.png", True),
@@ -201,6 +204,12 @@ def _handle_next_up_favourites(handle: int, params: dict) -> None:
     handle_next_up_favourites(handle, params)
 
 
+def _handle_next_aired(handle: int, params: dict) -> None:
+    """List the library shows' episodes airing on the requested days."""
+    from lib.plugin.widgets.video import handle_next_aired
+    handle_next_aired(handle, params)
+
+
 def _handle_continue_watching(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_continue_watching
     handle_continue_watching(handle, params)
@@ -336,6 +345,7 @@ _HANDLERS = {
     'discover_tvshows_menu': _handle_discover_tvshows_menu_action,
     'next_up': _handle_next_up,
     'next_up_favourites': _handle_next_up_favourites,
+    'next_aired': _handle_next_aired,
     'continue_watching': _handle_continue_watching,
     'favourites': _handle_favourites,
     'recent_episodes_grouped': _handle_recent_episodes_grouped,

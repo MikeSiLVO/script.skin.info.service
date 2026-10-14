@@ -6,6 +6,7 @@ import threading
 import time
 import xbmc
 import xbmcgui
+from datetime import datetime
 from typing import Any, Dict, Final, List, Optional, Tuple
 from collections import OrderedDict
 
@@ -344,6 +345,45 @@ def format_date(date_str: str, include_time: bool = False) -> str:
     except Exception as e:
         log("General", f"Unexpected error formatting date '{date_str}': {str(e)}", xbmc.LOGERROR)
         return date_str
+
+
+_NAME_TOKEN: Final = re.compile(r'(%[AaBb])')
+
+
+def format_region_date(when: datetime, region: str) -> str:
+    """Format a datetime in a Kodi region format, its day and month names in Kodi's language."""
+    names = {
+        '%A': 11 + when.weekday(), '%a': 41 + when.weekday(),
+        '%B': 20 + when.month, '%b': 50 + when.month,
+    }
+    return ''.join(
+        xbmc.getLocalizedString(names[part]) if part in names else when.strftime(part)
+        for part in _NAME_TOKEN.split(xbmc.getRegion(region)) if part
+    )
+
+
+_TIME_TOKEN: Final = re.compile(r"'[^']*'|h+|H+|m+|.?s+|x+")
+
+
+def format_region_time(when: datetime) -> str:
+    """Format a time as Kodi's clock shows it: the region time format, seconds left out."""
+    hour12 = when.hour % 12 or 12
+    meridiem = xbmc.getRegion('meridiem').split('/')
+
+    def part(match) -> str:
+        token = match.group(0)
+        if token.startswith("'"):
+            return token[1:-1]
+        if token[0] in 'hH':
+            hour = hour12 if token[0] == 'h' else when.hour
+            return str(hour) if len(token) == 1 else f'{hour:02}'
+        if token[0] == 'm':
+            return str(when.minute) if len(token) == 1 else f'{when.minute:02}'
+        if token[0] == 'x':
+            return meridiem[when.hour > 11] if len(meridiem) == 2 else ''
+        return ''
+
+    return _TIME_TOKEN.sub(part, xbmc.getRegion('timeraw'))
 
 
 _build_version: Optional[str] = None

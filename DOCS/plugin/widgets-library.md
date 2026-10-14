@@ -12,6 +12,7 @@ Widget content sourced from the Kodi library. See also: [Discovery Widgets](widg
 - [TV Show Items](#tv-show-items)
 - [Next Up](#next-up)
 - [Next Up (Favourites)](#next-up-favourites)
+- [Upcoming Episodes](#upcoming-episodes)
 - [Continue Watching](#continue-watching)
 - [Recent Episodes Grouped](#recent-episodes-grouped)
 - [Recent Videos](#recent-videos)
@@ -41,6 +42,7 @@ language instead of hardcoded English:
 |--------|--------|-------|
 | Next Up | `next_up` | 32620 |
 | Next Up (Favourites) | `next_up_favourites` | 32685 |
+| Upcoming Episodes | `next_aired` | 32071 |
 | Continue Watching | `continue_watching` | 32696 |
 | Recent Episodes Grouped | `recent_episodes_grouped` | 32621, renders "Recent Episodes" |
 | Recent Videos | `recent_videos` | 32686 |
@@ -202,6 +204,69 @@ ignored.
 - **Video Info**: title, season, episode, showtitle, plot, rating, runtime, firstaired
 - **Artwork**: TV show artwork + episode thumb
 - **Resume Point**: If partially watched
+
+**Widget Type:** Episode
+
+---
+
+## Upcoming Episodes
+
+Episodes of the TV shows in your library that air in the coming days, from Trakt's TV calendar,
+in air time order.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=next_aired&amp;days=7</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `day` | No | 0 | First day to list, counted from today: 0 is today, 1 tomorrow, up to 30 |
+| `days` | No | 1 | Number of days to list from `day`; the list ends 31 days from today at most |
+| `weekday` | No | | One weekday, 0 Monday to 6 Sunday: the next one, today included. Used instead of `day` |
+
+### Examples
+
+```xml
+<!-- Today -->
+<content>plugin://script.skin.info.service/?action=next_aired</content>
+
+<!-- Tomorrow -->
+<content>plugin://script.skin.info.service/?action=next_aired&amp;day=1</content>
+
+<!-- The next 7 days -->
+<content>plugin://script.skin.info.service/?action=next_aired&amp;days=7</content>
+
+<!-- Thursday -->
+<content>plugin://script.skin.info.service/?action=next_aired&amp;weekday=3</content>
+```
+
+### Behavior
+
+1. Days and times are local, so an episode can land on a different day than the network lists
+2. Each episode is its own item, so a show releasing a whole season at once lists every episode
+3. Selecting an item opens the show in the library
+4. Episode titles and plots are in English
+
+### Item Properties
+
+- **Label**: Formatted as `2x05. Episode Title`
+- **MediaType**: `episode`
+- **Video Info**: title, season, episode, showtitle, plot, runtime, firstaired (the local air
+  date), studio, mpaa, genre, status
+- **Artwork**: TV show artwork
+
+| Property | Description |
+|----------|-------------|
+| `AirDate` | Air date in the short date format of Kodi's region settings |
+| `AirDateLong` | Air date in the long date format |
+| `AirDay` | Weekday name |
+| `AirTime` | Air time, formatted like Kodi's clock |
+| `EpisodeType` | `standard`, or a premiere or finale such as `season_premiere`, `mid_season_finale` or `series_finale` |
+| `TVShowDBID` | The show's library DBID |
 
 **Widget Type:** Episode
 

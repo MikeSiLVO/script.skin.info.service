@@ -316,6 +316,10 @@ msgctxt "#32070"
 msgid "years old"
 msgstr "years old"
 
+msgctxt "#32071"
+msgid "Upcoming Episodes"
+msgstr "Upcoming Episodes"
+
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
 msgstr "Processing Artwork Queue"
