@@ -438,10 +438,50 @@ Awards data from OMDb. Requires OMDb API key.
 |----------|-------------|
 | `Awards` | Full awards text |
 
+#### Award Counts
+
+Wins and nominations for a movie or TV show, for every award below. Nominations include wins. On a
+season or episode they are the show's. An award the title was never nominated for has no
+properties. No API key is needed, and the counts update after each awards season without an
+add-on update.
+
+| Property | Description |
+|----------|-------------|
+| `Awards.<Award>.Wins` | Times won |
+| `Awards.<Award>.Nominations` | Times nominated, wins included |
+| `Awards.<Award>.Won` | `"true"` when won at least once |
+| `Awards.<Award>.Nominated` | `"true"` when nominated at least once |
+
+| `<Award>` | Award |
+|-----------|-------|
+| `Oscar` | Academy Awards |
+| `GoldenGlobe` | Golden Globe Awards |
+| `BAFTA` | BAFTA Film and Television Awards |
+| `Emmy` | Primetime Emmy Awards |
+| `InternationalEmmy` | International Emmy Awards |
+| `SAG` | Screen Actors Guild Awards (now the Actor Awards) |
+| `CriticsChoice` | Critics' Choice Awards |
+| `DGA` | Directors Guild of America Awards |
+| `WGA` | Writers Guild of America Awards |
+| `PGA` | Producers Guild of America Awards |
+| `Spirit` | Independent Spirit Awards |
+| `Cesar` | César Awards |
+| `Annie` | Annie Awards |
+| `Saturn` | Saturn Awards |
+| `Razzie` | Golden Raspberry Awards |
+
+```xml
+<label>$INFO[Window(Home).Property(SkinInfo.Online.Awards.Oscar.Wins),Won , Oscars]</label>
+```
+
+Award data from Wikipedia (CC BY-SA 4.0) and the Television Academy.
+
 #### Awards (MDBList)
 
 MDBList tags whether a title won or was nominated, never how many times. These sit alongside the
 `Awards` text above, which comes from OMDb. Each is `"true"` when it applies and absent otherwise.
+For an award in the counts above, the flags are also set from the counts. The Oscar flags come
+from the counts alone.
 
 | Property | Description |
 |----------|-------------|

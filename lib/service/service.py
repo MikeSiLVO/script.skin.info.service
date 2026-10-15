@@ -73,7 +73,17 @@ class Orchestrator:
             log("Service", "Orchestrator stopped", xbmc.LOGINFO)
 
     def _start_housekeeping(self) -> None:
-        """Start housekeeping 30s after startup: a first DBID sync, and cache cleanup every day."""
+        """Start housekeeping 30s in: a first DBID sync, then daily cleanup and an awards check."""
+        def _refresh_awards() -> None:
+            from lib.data.api.awards import refresh_awards_file
+            from lib.infrastructure.tasks import ShutdownAbortFlag
+            try:
+                if refresh_awards_file(ShutdownAbortFlag()):
+                    from lib.data.awards import forget
+                    forget()
+            except Exception as e:
+                log("Service", f"Awards check stopped: {e}", xbmc.LOGDEBUG)
+
         def _run() -> None:
             # the services get the database first
             if self.monitor.waitForAbort(30):
@@ -85,8 +95,10 @@ class Orchestrator:
                 return
             if needs_id_backfill():
                 sync_dbids()
+            _refresh_awards()
             while not self.monitor.waitForAbort(_CLEANUP_INTERVAL):
                 clear_expired_cache()
+                _refresh_awards()
 
         threading.Thread(target=_run, daemon=True).start()
 

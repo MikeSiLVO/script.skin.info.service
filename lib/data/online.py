@@ -210,7 +210,7 @@ def fetch_trakt_data(
 def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                           abort_flag=None,
                           is_library_item: bool = True) -> Dict[str, str]:
-    """Fetch TMDB details and OMDb, MDBList and Trakt ratings as one flat property dict."""
+    """Fetch TMDB details, OMDb, MDBList and Trakt ratings, and award counts as one flat dict."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from lib.data.api.tmdb import resolve_tmdb_id
 
@@ -293,7 +293,8 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
         if source in results:
             props.update(results[source])
 
-    return props
+    from lib.data.awards import apply_awards
+    return apply_awards(props, media_type, imdb_id, resolved_tmdb_id or "")
 
 
 def fetch_tmdb_online_data(

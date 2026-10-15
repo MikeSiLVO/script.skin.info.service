@@ -18,6 +18,7 @@ from lib.data.database.cache import (
     online_cache_generation,
     cache_online_properties,
 )
+from lib.data.awards import apply_awards
 from lib.data.online import (
     fetch_all_online_data, get_online_ttl, make_cache_key, show_scoped_props,
 )
@@ -126,7 +127,7 @@ class FocusHandler:
         self._last_scoped = scoped
 
         if cached_props:
-            self._publish(cached_props)
+            self._publish(apply_awards(dict(cached_props), effective_type, imdb_id, tmdb_id))
 
             if not expired:
                 self._last_item_id = item_id
