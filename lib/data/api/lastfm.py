@@ -100,6 +100,12 @@ class ApiLastfm:
         """Raw `artist` dict from Last.fm, or None."""
         return self._get_info("artist", {"artist": artist}, mbid, lang, abort_flag)
 
+    def get_similar_artists(self, mbid: str, limit: int, abort_flag=None) -> Optional[dict]:
+        """Raw `similarartists` dict from Last.fm for an artist's MBID, or None."""
+        data = self._request("artist.getSimilar", {"mbid": mbid, "limit": limit}, abort_flag)
+        similar = data.get("similarartists") if data else None
+        return similar if isinstance(similar, dict) else None
+
     def get_album_info(
         self,
         artist: str,

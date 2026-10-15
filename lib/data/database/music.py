@@ -23,6 +23,7 @@ _KEY_SEP: Final = '\x1f'
 SOURCE_AUDIODB: Final = 'audiodb'
 SOURCE_LASTFM: Final = 'lastfm'
 SOURCE_WIKIPEDIA: Final = 'wikipedia'
+SOURCE_MUSICBRAINZ: Final = 'musicbrainz'
 
 _SOURCE_MULTIPLIER = {
     SOURCE_AUDIODB: 0.5,
@@ -275,6 +276,18 @@ def cache_artist(source: str, data: dict, *, mbid: str = '', name: str = '',
             name_key = f'{name_key}:{lang}'
         if name_key and name_key != key:
             _cache_entry('artist', source, name_key, data, has_content, ttl)
+
+
+def get_cached_artist_list(entity: str, source: str, mbid: str) -> Optional[dict]:
+    """Get a cached per-artist list, such as studio albums, from one source, or None."""
+    return _get_cached(entity, source, mbid) if mbid else None
+
+
+def cache_artist_list(entity: str, source: str, mbid: str, data: dict,
+                      has_content: bool) -> None:
+    """Cache a per-artist list for 30 days; an empty one backs off as a miss."""
+    if mbid:
+        _cache_entry(entity, source, mbid, data, has_content, _apply_jitter(30 * 24))
 
 
 def get_cached_album(source: str, *, mbid: str = '', artist: str = '',

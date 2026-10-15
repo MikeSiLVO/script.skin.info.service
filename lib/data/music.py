@@ -2,21 +2,24 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Final, List, Optional, Tuple
 
 import xbmc
 
 from lib.data.database.music import (
     SOURCE_AUDIODB,
     SOURCE_LASTFM,
+    SOURCE_MUSICBRAINZ,
     SOURCE_WIKIPEDIA,
     audiodb_text_field,
     cache_album,
     cache_artist,
+    cache_artist_list,
     cache_track,
     get_best_artist_bio,
     get_cached_album,
     get_cached_artist,
+    get_cached_artist_list,
     get_cached_track,
     lastfm_text,
 )
@@ -24,6 +27,8 @@ from lib.kodi.client import log
 from lib.kodi.formatters import format_number
 from lib.kodi.settings import KodiSettings
 from lib.kodi.utilities import MULTI_VALUE_SEP
+
+_LIST_SIZE: Final = 10
 
 
 def resolve_artist_mbids(artist_name: str, *, mbids: Optional[List[str]] = None,
@@ -195,17 +200,19 @@ def fetch_and_cache_artist_artwork(
 
 class MusicOnlineResult:
     """Result container for fetch_artist_online_data."""
-    __slots__ = ('bio', 'fanart_urls', 'artist_art')
+    __slots__ = ('bio', 'fanart_urls', 'artist_art', 'mbid')
 
     def __init__(
         self,
         bio: str,
         fanart_urls: List[str],
         artist_art: Dict[str, str],
+        mbid: str,
     ):
         self.bio = bio
         self.fanart_urls = fanart_urls
         self.artist_art = artist_art
+        self.mbid = mbid
 
 
 def _fetch_source(label: str, fetch, *, skip: bool = False) -> Optional[dict]:
@@ -310,7 +317,8 @@ def fetch_artist_online_data(
 
     artist_art = read_cached_artist_art(resolved_mbids)
 
-    return MusicOnlineResult(bio=bio, fanart_urls=fanart_urls, artist_art=artist_art)
+    return MusicOnlineResult(bio=bio, fanart_urls=fanart_urls, artist_art=artist_art,
+                             mbid=primary_mbid)
 
 
 def fetch_track_online_data(
@@ -495,16 +503,7 @@ def get_similar_artist_names(artist_name: str) -> List[str]:
 
     if not isinstance(cached, dict):
         return []
-
-    similar = cached.get('similar')
-    if not isinstance(similar, dict):
-        return []
-
-    artists = similar.get('artist')
-    if not isinstance(artists, list):
-        return []
-
-    return [a['name'] for a in artists if isinstance(a, dict) and a.get('name')]
+    return _similar_names(cached.get('similar'))
 
 
 def extract_album_properties(artist: str, album: str, *, mbid: str = '') -> Dict[str, str]:
@@ -539,6 +538,67 @@ def extract_album_properties(artist: str, album: str, *, mbid: str = '') -> Dict
             props['Label'] = label
 
     return props
+
+
+def _newest_album_titles(data: Optional[dict]) -> List[str]:
+    """Studio album titles from a MusicBrainz search, newest ten in release order, undated last."""
+    groups = data.get('release-groups') if isinstance(data, dict) else None
+    if not isinstance(groups, list):
+        return []
+    dated = sorted((g.get('first-release-date') or '9999', g['title'])
+                   for g in groups if isinstance(g, dict) and g.get('title'))
+    return [title for _, title in dated[-_LIST_SIZE:]]
+
+
+def _similar_names(data: Optional[dict]) -> List[str]:
+    """Artist names from a Last.fm similar-artist block, ten at most."""
+    artists = data.get('artist') if isinstance(data, dict) else None
+    if not isinstance(artists, list):
+        return []
+    names = [a['name'] for a in artists if isinstance(a, dict) and a.get('name')]
+    return names[:_LIST_SIZE]
+
+
+def fetch_artist_lists(mbid: str, *, abort_flag=None) -> Tuple[List[str], List[str]]:
+    """Fetch and cache an artist's newest studio albums and similar artists, ten of each at most."""
+    albums = get_cached_artist_list('discography', SOURCE_MUSICBRAINZ, mbid)
+    similar = get_cached_artist_list('similar', SOURCE_LASTFM, mbid)
+    if albums is None or similar is None:
+        from lib.data.api.lastfm import ApiLastfm
+        from lib.data.api.musicbrainz import get_musicbrainz
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            albums_future = executor.submit(
+                _fetch_source, "MusicBrainz albums",
+                lambda: get_musicbrainz().get_studio_albums(mbid, abort_flag),
+                skip=albums is not None)
+            similar_future = executor.submit(
+                _fetch_source, "Last.fm similar artists",
+                lambda: ApiLastfm().get_similar_artists(mbid, _LIST_SIZE, abort_flag),
+                skip=similar is not None)
+            fetched_albums = albums_future.result()
+            fetched_similar = similar_future.result()
+
+        if abort_flag and abort_flag.is_requested():
+            return [], []
+        if albums is None:
+            albums = fetched_albums or {}
+            cache_artist_list('discography', SOURCE_MUSICBRAINZ, mbid, albums,
+                              bool(_newest_album_titles(albums)))
+        if similar is None:
+            similar = fetched_similar or {}
+            cache_artist_list('similar', SOURCE_LASTFM, mbid, similar,
+                              bool(_similar_names(similar)))
+
+    return _newest_album_titles(albums), _similar_names(similar)
+
+
+def fill_artist_lists(props: Dict[str, Optional[str]], prefix: str, albums: List[str],
+                      similar: List[str]) -> None:
+    """Fill the Artist.Discography.N.Name and .Similar.N.Name properties, blanking unused slots."""
+    for group, names in (('Discography', albums), ('Similar', similar)):
+        for i in range(_LIST_SIZE):
+            props[f"{prefix}Artist.{group}.{i + 1}.Name"] = names[i] if i < len(names) else ""
 
 
 def fill_artist_online_props(

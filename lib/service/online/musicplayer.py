@@ -156,7 +156,7 @@ class MusicPlayerHandler:
 
     def _fetch_worker(self, mode: _Mode, state: _State, artist_name: str,
                       part_key: Tuple[str, str], fetch_artist: bool) -> None:
-        """Off-thread fetch, discarded if the artist or track changed while it ran."""
+        """Fetch off-thread, discarding the result if the artist or track changed while it ran."""
         try:
             if self._service.abort_flag.is_requested():
                 return
@@ -183,6 +183,7 @@ class MusicPlayerHandler:
                 return
 
             self._apply(mode, artist_name, result, title, album)
+            self._apply_lists(mode, state, artist_name, result.mbid)
 
         except Exception as e:
             log("Service", f"{mode.log_label} online fetch error: {e}", xbmc.LOGWARNING)
@@ -221,6 +222,17 @@ class MusicPlayerHandler:
                                     abort_flag=self._service.capped_abort_flag)
             if album_props:
                 batch_set_props(album_props)
+
+    def _apply_lists(self, mode: _Mode, state: _State, artist_name: str, mbid: str) -> None:
+        """Fetch and apply the artist's studio albums and similar artists if still playing."""
+        from lib.data.music import fetch_artist_lists, fill_artist_lists
+
+        albums, similar = fetch_artist_lists(mbid, abort_flag=self._service.capped_abort_flag)
+        if artist_name != state.key:
+            return
+        props: Dict[str, Optional[str]] = {}
+        fill_artist_lists(props, mode.prefix, albums, similar)
+        batch_set_props(props)
 
     def _reset(self, mode: _Mode, state: _State) -> None:
         """Clear this player's properties once it stops."""

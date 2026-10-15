@@ -21,7 +21,8 @@ from lib.kodi.client import log, ADDON
 ConnectReadTimeout = Tuple[float, float]
 RequestsPerWindow = Tuple[int, float]
 
-_USER_AGENT = f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
+_USER_AGENT = (f"script.skin.info.service/{ADDON.getAddonInfo('version')}"
+               " ( https://github.com/MikeSiLVO/script.skin.info.service )")
 
 
 def _parse_retry_after(value: Optional[str]) -> Optional[float]:

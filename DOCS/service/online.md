@@ -142,7 +142,7 @@ Properties fetched from AudioDB, Last.fm, Wikipedia, and Fanart.tv when music vi
 
 ## Music Player Online Properties
 
-Properties fetched from AudioDB, Last.fm, Wikipedia, and Fanart.tv during playback. Works with library items, local files, and radio addon streams.
+Properties fetched from AudioDB, Last.fm, Wikipedia, MusicBrainz, and Fanart.tv during playback. Works with library items, local files, and radio addon streams.
 
 Audio and music video playback use separate prefixes:
 
@@ -162,6 +162,8 @@ Audio and music video playback use separate prefixes:
 | `Artist.Thumb`     | Artist thumbnail (Fanart.tv / AudioDB)     |
 | `Artist.Clearlogo` | Artist clearlogo (Fanart.tv / AudioDB)     |
 | `Artist.Banner`    | Artist banner (Fanart.tv / AudioDB)        |
+| `Artist.Discography.<N>.Name` | Studio albums, `<N>` 1 to 10: the ten newest, oldest first (MusicBrainz) |
+| `Artist.Similar.<N>.Name` | Similar artists, `<N>` 1 to 10 (Last.fm) |
 
 ### Track
 
