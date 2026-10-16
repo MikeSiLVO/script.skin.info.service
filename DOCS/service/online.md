@@ -346,8 +346,8 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 
 ## Ratings
 
-Ratings from multiple sources. Each source provides three properties, and Roger Ebert and
-Letterboxd add a fourth. A source with no rating sets none of them.
+Ratings from multiple sources. Each source provides three properties, Roger Ebert and
+Letterboxd add a fourth, and RT Critics adds two. A source with no rating sets none of them.
 
 | Property Pattern | Description |
 |------------------|-------------|
@@ -355,6 +355,7 @@ Letterboxd add a fourth. A source with no rating sets none of them.
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Rating as percentage (0-100) |
 | `Rating.{source}.Stars` | Roger Ebert and Letterboxd only, on their own scale out of 4 and 5 |
+| `Rating.tomatoes.Fresh`, `Rating.tomatoes.Rotten` | RT Critics only: fresh and rotten review counts, either can be off by one. Empty without a vote count |
 
 ### Available Sources
 
@@ -394,7 +395,7 @@ On both, the show's ratings and Rotten Tomatoes status are set under `TVShow.`:
 
 | Property | Description |
 |----------|-------------|
-| `TVShow.Rating.{source}` | The show's `Rating.{source}`, with `.Votes`, `.Percent` and `.Stars`, see [Ratings](#ratings) |
+| `TVShow.Rating.{source}` | The show's `Rating.{source}`, with `.Votes`, `.Percent`, `.Stars`, `.Fresh` and `.Rotten`, see [Ratings](#ratings) |
 | `TVShow.Tomatometer`, `TVShow.Popcornmeter`, `TVShow.Metacritic`, `TVShow.RogerEbert` | The show's status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
 
 ```xml

@@ -210,7 +210,7 @@ def fetch_trakt_data(
 def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
                           abort_flag=None,
                           is_library_item: bool = True) -> Dict[str, str]:
-    """Fetch TMDB details, OMDb, MDBList and Trakt ratings, and award counts as one flat dict."""
+    """Fetch TMDB details, OMDb, MDBList and Trakt ratings, plus derived props, as one flat dict."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from lib.data.api.tmdb import resolve_tmdb_id
 
@@ -293,8 +293,32 @@ def fetch_all_online_data(media_type: str, imdb_id: str, tmdb_id: str,
         if source in results:
             props.update(results[source])
 
+    return apply_derived_props(props, media_type, imdb_id, resolved_tmdb_id or "")
+
+
+def _tomatoes_split(props: Dict[str, str]) -> None:
+    """Set the tomatoes fresh and rotten review counts from its percent and votes."""
+    try:
+        percent = int(props.get("Rating.tomatoes.Percent") or "")
+        votes = int((props.get("Rating.tomatoes.Votes") or "").replace(",", ""))
+    except ValueError:
+        percent = votes = 0
+    if votes <= 0:
+        props.pop("Rating.tomatoes.Fresh", None)
+        props.pop("Rating.tomatoes.Rotten", None)
+        return
+    fresh = (percent * votes + 50) // 100
+    props["Rating.tomatoes.Fresh"] = f"{fresh:,}"
+    props["Rating.tomatoes.Rotten"] = f"{votes - fresh:,}"
+
+
+def apply_derived_props(props: Dict[str, str], media_type: str, imdb_id: str,
+                        tmdb_id: str) -> Dict[str, str]:
+    """Apply what is computed rather than fetched: award counts and the tomatoes review split."""
     from lib.data.awards import apply_awards
-    return apply_awards(props, media_type, imdb_id, resolved_tmdb_id or "")
+
+    _tomatoes_split(props)
+    return apply_awards(props, media_type, imdb_id, tmdb_id)
 
 
 def fetch_tmdb_online_data(
