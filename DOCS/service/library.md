@@ -136,6 +136,7 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Runtime.Hours` | Runtime hours component |
 | `Runtime.Minutes` | Runtime minutes component |
 | `Premiered` | Premiere date |
+| `PremieredFormatted` | `Premiered` in the region's date format |
 | `PercentPlayed` | Playback progress percentage |
 | `IsResumable` | `true` when there is a resume point |
 | `WatchTime` | Total minutes watched (`Runtime × Playcount`) |
@@ -341,6 +342,7 @@ Use `%d` as placeholder for index (1-based):
 | `Year` | Year started |
 | `Plot` | Full plot description |
 | `Premiered` | Premiere date |
+| `PremieredFormatted` | `Premiered` in the region's date format |
 | `Rating` | Default rating value |
 | `Votes` | Number of votes |
 | `UserRating` | User's rating (0-10) |
@@ -565,6 +567,7 @@ Use `%d` as placeholder for index (1-based):
 | `Duration` | Runtime as `m:ss` or `h:mm:ss` |
 | `Duration.Seconds` | Runtime in seconds |
 | `Premiered` | Release date |
+| `PremieredFormatted` | `Premiered` in the region's date format |
 | `Track` | Track number |
 | `WatchTime` | Total minutes watched (`Runtime × Playcount`) |
 | `WatchTime.Hours` | Hours component |

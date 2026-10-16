@@ -513,6 +513,7 @@ def build_movie_data(details: dict) -> dict:
 
     data["OriginalTitle"] = details.get("originaltitle") or ""
     data["Premiered"] = details.get("premiered") or ""
+    data["PremieredFormatted"] = format_date(data["Premiered"])
     data["Trailer"] = details.get("trailer") or ""
     data["Set"] = details.get("set") or ""
     data["SetID"] = str(setid) if setid else ""
@@ -1059,6 +1060,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["Plot"] = details.get("plot") or ""
     data["Year"] = str(year) if year else ""
     data["Premiered"] = details.get("premiered") or ""
+    data["PremieredFormatted"] = format_date(data["Premiered"])
     data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Genre"] = join_multi(details.get("genre"))
@@ -1327,6 +1329,7 @@ def build_musicvideo_data(details: dict) -> dict:
     data["Studio"] = join_multi(details.get("studio"))
     data["Path"] = path or ""
     data["Premiered"] = details.get("premiered") or ""
+    data["PremieredFormatted"] = format_date(data["Premiered"])
     data["Tag"] = join_multi(details.get("tag"))
     data["Playcount"] = str(playcount) if playcount else ""
 
