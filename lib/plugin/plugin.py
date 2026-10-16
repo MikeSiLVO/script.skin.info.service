@@ -267,6 +267,18 @@ def _handle_tmdb_recommendations(handle: int, params: dict) -> None:
     handle_tmdb_recommendations(handle, params)
 
 
+def _handle_trakt_lists(handle: int, params: dict) -> None:
+    """List Trakt lists as folders, each opening into its items."""
+    from lib.plugin.widgets.discovery import handle_trakt_lists
+    handle_trakt_lists(handle, params)
+
+
+def _handle_trakt_list_items(handle: int, params: dict) -> None:
+    """List the movies and shows on one Trakt list."""
+    from lib.plugin.widgets.discovery import handle_trakt_list_items
+    handle_trakt_list_items(handle, params)
+
+
 def _handle_tmdb_posters(handle: int, params: dict) -> None:
     """List a movie's or TV show's TMDB posters for a dialog panel or the image viewer."""
     from lib.plugin.widgets.discovery import handle_tmdb_posters
@@ -376,6 +388,8 @@ _HANDLERS = {
     'tmdb_recommendations': _handle_tmdb_recommendations,
     'tmdb_discover': _handle_tmdb_discover,
     'tmdb_posters': _handle_tmdb_posters,
+    'trakt_lists': _handle_trakt_lists,
+    'trakt_list_items': _handle_trakt_list_items,
     'seasonal': _handle_seasonal,
     'similar_artists': _handle_similar_artists,
     'artist_albums': _handle_artist_albums,

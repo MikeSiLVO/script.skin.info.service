@@ -5,6 +5,7 @@ from typing import Any, Optional, Dict, List, Set, Tuple, Final
 from datetime import datetime, timedelta
 import json
 import threading
+from urllib.parse import quote
 import xbmc
 import xbmcvfs
 
@@ -23,6 +24,8 @@ _UP_NEXT_HOURS: Final = 6
 _TRENDING_HOURS: Final = 1
 _CHART_HOURS: Final = 24
 _PERIOD_HOURS: Final = {"daily": 1, "weekly": 6}
+_LIST_ITEMS_HOURS: Final = 6
+_LIST_ITEM_TYPES: Final = {"movie": "movie", "tv": "show"}
 
 
 def _stamp(activity: dict, path: str) -> str:
@@ -522,6 +525,30 @@ class ApiTrakt(RatingSource):
         return self._user_list(
             f"/recommendations/{media_type}s", ("recommendations.updated_at",),
             _USER_LIST_HOURS, limit, page, abort_flag)
+
+    def get_lists(self, kind: str, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        """Get the account's own or liked Trakt lists, or Trakt's popular or trending ones."""
+        if kind == "mine":
+            entries = self._user_list("/users/me/lists", ("lists.updated_at",),
+                                      _USER_LIST_HOURS, limit, page, abort_flag)
+        elif kind == "liked":
+            entries = self._user_list("/users/likes/lists", ("lists.liked_at",),
+                                      _USER_LIST_HOURS, limit, page, abort_flag)
+        else:
+            hours = _TRENDING_HOURS if kind == "trending" else _CHART_HOURS
+            entries = self._public_list(f"/lists/{kind}", hours, limit, page, abort_flag)
+        return [entry.get("list", entry) for entry in entries if isinstance(entry, dict)]
+
+    def get_list_items(self, user: str, list_id: str, media_type: str = "", limit: int = 20,
+                       page: int = 1, abort_flag=None) -> list:
+        """Get the movies and shows on a Trakt list in rank order; `me` is the signed-in account."""
+        types = _LIST_ITEM_TYPES.get(media_type, "movie,show")
+        path = f"/lists/{quote(list_id, safe='')}/items/{types}"
+        if user == "me":
+            return self._user_list(f"/users/me{path}", ("lists.updated_at",),
+                                   _USER_LIST_HOURS, limit, page, abort_flag)
+        return self._public_list(f"/users/{quote(user, safe='')}{path}", _LIST_ITEMS_HOURS,
+                                 limit, page, abort_flag)
 
     def get_show_calendar(self, start_date: str, days: int, abort_flag=None) -> Optional[list]:
         """Get every show episode airing in a span from a UTC date; None when the fetch fails."""

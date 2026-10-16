@@ -370,6 +370,116 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
 
 
+_TRAKT_LIST_KINDS: Final = ("mine", "liked", "popular", "trending")
+
+
+def handle_trakt_lists(handle: int, params: dict) -> None:
+    """Plugin entry for Trakt lists as folders: the account's own or liked, popular or trending."""
+    try:
+        kind = params.get("kind", ["popular"])[0]
+        if kind not in _TRAKT_LIST_KINDS:
+            kind = "popular"
+        limit = int(params.get("limit", ["20"])[0])
+        page = int(params.get("page", ["1"])[0])
+
+        from lib.data.api.trakt import ApiTrakt
+        api = ApiTrakt()
+        if kind in ("mine", "liked") and not api.is_authorized():
+            _warn_trakt_auth()
+            xbmcplugin.endOfDirectory(handle, succeeded=True)
+            return
+
+        from urllib.parse import urlencode
+        for entry in api.get_lists(kind, limit=limit, page=page):
+            list_id = (entry.get("ids") or {}).get("trakt")
+            owner = entry.get("user") or {}
+            user = "me" if kind == "mine" else (owner.get("ids") or {}).get("slug", "")
+            if not list_id or not user:
+                continue
+            count = str(entry.get("item_count") or "")
+            item = xbmcgui.ListItem(entry.get("name", ""), count, offscreen=True)
+            item.getVideoInfoTag().setPlot(entry.get("description") or "")
+            poster = _trakt_image_url((entry.get("images") or {}).get("posters"))
+            if poster:
+                item.setArt({"poster": poster, "thumb": poster})
+            props = {
+                "user": owner.get("name") or owner.get("username") or "",
+                "item_count": count,
+                "likes": str(entry.get("likes") or ""),
+            }
+            for key, value in props.items():
+                if value:
+                    item.setProperty(key, value)
+            query = urlencode({"action": "trakt_list_items", "user": user, "list": list_id})
+            xbmcplugin.addDirectoryItem(
+                handle, f"plugin://script.skin.info.service/?{query}", item, True)
+
+        xbmcplugin.setContent(handle, "videos")
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+    except Exception as e:
+        import traceback
+        log("Plugin", f"Trakt Lists: Error - {e}", xbmc.LOGERROR)
+        log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+
+
+def handle_trakt_list_items(handle: int, params: dict) -> None:
+    """Plugin entry for the movies and shows on one Trakt list, in its rank order."""
+    try:
+        user = params.get("user", [""])[0]
+        list_id = params.get("list", [""])[0]
+        if not user or not list_id:
+            log("Plugin", "Trakt List Items: Missing user or list", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+        media_type = params.get("type", [""])[0]
+        source = params.get("source", ["online"])[0]
+        limit = int(params.get("limit", ["20"])[0])
+        page = int(params.get("page", ["1"])[0])
+
+        from lib.data.api.trakt import ApiTrakt
+        api = ApiTrakt()
+        if user == "me" and not api.is_authorized():
+            _warn_trakt_auth()
+            xbmcplugin.endOfDirectory(handle, succeeded=True)
+            return
+
+        normalized = []
+        for entry in api.get_list_items(user, list_id, media_type, limit=limit, page=page):
+            kind = entry.get("type")
+            media = entry.get(kind) if kind in ("movie", "show") else None
+            if isinstance(media, dict):
+                normalized.append(
+                    _normalize_trakt_item(media, "movie" if kind == "movie" else "tv"))
+
+        lookups: Dict[str, Dict[str, Dict[str, object]]] = {}
+        for item_type, kodi_type in (("movie", "movie"), ("tv", "tvshow")):
+            tmdb_ids = [n["tmdb_id"] for n in normalized
+                        if n["media_type"] == item_type and n.get("tmdb_id")]
+            lookups[item_type] = _get_library_lookup(kodi_type, tmdb_ids) if tmdb_ids else {}
+
+        for normalized_item in normalized:
+            lib_match = lookups[normalized_item["media_type"]].get(
+                str(normalized_item.get("tmdb_id", "")))
+            if source == "library" and not lib_match:
+                continue
+            url, listitem, is_folder = _create_listitem(normalized_item, lib_match)
+            xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
+
+        item_types = {n["media_type"] for n in normalized}
+        content = {frozenset({"movie"}): "movies", frozenset({"tv"}): "tvshows"}.get(
+            frozenset(item_types), "videos")
+        xbmcplugin.setContent(handle, content)
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+    except Exception as e:
+        import traceback
+        log("Plugin", f"Trakt List Items: Error - {e}", xbmc.LOGERROR)
+        log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+
+
 def _seed_tmdb_id(dbtype: str, params: dict) -> int:
     """TMDB id of the item a list is seeded by, from `tmdb_id` or a library `dbid`; 0 if unknown."""
     tmdb_id_str = params.get('tmdb_id', [''])[0]

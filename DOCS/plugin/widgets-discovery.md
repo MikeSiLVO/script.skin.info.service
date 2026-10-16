@@ -32,6 +32,8 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [Trakt Watchlist](#trakt-watchlist) (OAuth)
 - [Trakt History](#trakt-history) (OAuth)
 - [Trakt In Progress](#trakt-in-progress) (OAuth)
+- [Trakt Lists](#trakt-lists)
+- [Trakt List Items](#trakt-list-items)
 
 **Reference**
 - [Common Parameters](#common-parameters)
@@ -319,7 +321,7 @@ Clicking a poster can open it full screen in the [Image Viewer](../dialogs/image
 | `tmdb_id` | Conditional | - | TMDB ID of the item. Provide this OR `dbid`. |
 | `dbid` | Conditional | - | Library ID of the item. |
 
-### Item Properties
+### Poster Properties
 
 | Property | Description |
 |----------|-------------|
@@ -609,6 +611,73 @@ Shows hidden from progress on Trakt are left out.
 ```
 
 **Widget Type:** TV Show
+
+---
+
+## Trakt Lists
+
+Trakt lists as folders, each opening into its movies and shows (see [Trakt List Items](#trakt-list-items)).
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_lists&amp;kind=mine</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `kind` | No | `popular` | `mine` (your lists), `liked` (lists you liked), `popular` or `trending` |
+| `limit` | No | `20` | Maximum lists |
+| `page` | No | `1` | Pagination |
+
+`mine` and `liked` require Trakt OAuth and return an empty list if no Trakt account is linked.
+
+### List Properties
+
+| Property | Description |
+|----------|-------------|
+| `ListItem.Label` | List name |
+| `ListItem.Label2` | Number of items on the list |
+| `ListItem.Plot` | List description |
+| `ListItem.Art(poster)`, `ListItem.Art(thumb)` | The list's poster, when Trakt has one |
+| `ListItem.Property(user)` | Name of the list's owner |
+| `ListItem.Property(item_count)` | Same as `Label2` |
+| `ListItem.Property(likes)` | Number of likes |
+
+**Widget Type:** Folders
+
+---
+
+## Trakt List Items
+
+The movies and shows on one Trakt list, in the list's rank order. Seasons, episodes and people on
+the list are left out.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_list_items&amp;user=justin&amp;list=2142753</content>
+```
+
+The folders from [Trakt Lists](#trakt-lists) open this path with `user` and `list` filled in.
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `user` | Yes | - | The list owner's Trakt username, or `me` for your own lists |
+| `list` | Yes | - | The list's Trakt ID or slug |
+| `type` | No | - | `movie` or `tv` for one type only; both when left out |
+| `limit` | No | `20` | Maximum items |
+| `page` | No | `1` | Pagination |
+| `source` | No | `online` | `online` returns all; `library` filters to items in your library |
+
+`user=me` requires Trakt OAuth and returns an empty list if no Trakt account is linked. Item
+properties match the other Trakt widgets, see [Item Properties](#item-properties).
+
+**Widget Type:** Movie, TV Show, or both
 
 ---
 
