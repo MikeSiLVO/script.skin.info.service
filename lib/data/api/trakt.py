@@ -20,6 +20,9 @@ _ACTIVITY_MINUTES: Final = 1
 _USER_LIST_HOURS: Final = 24
 # newly aired episodes change it without any account activity
 _UP_NEXT_HOURS: Final = 6
+_TRENDING_HOURS: Final = 1
+_CHART_HOURS: Final = 24
+_PERIOD_HOURS: Final = {"daily": 1, "weekly": 6}
 
 
 def _stamp(activity: dict, path: str) -> str:
@@ -348,17 +351,18 @@ class ApiTrakt(RatingSource):
 
         return None
 
-    def _get_list(
-        self,
-        endpoint: str,
-        limit: int = 20,
-        page: int = 1,
-        extended: str = 'full',
-        requires_auth: bool = False,
-        abort_flag=None
-    ) -> list:
-        """Paged Trakt list request; empty when it fails or lacks authorization."""
-        return self._request_list(endpoint, limit, page, extended, requires_auth, abort_flag) or []
+    def _public_list(self, endpoint: str, max_hours: float, limit: int, page: int,
+                     abort_flag=None) -> list:
+        """Get a public Trakt list, cached under a caller-set TTL; empty when it fails."""
+        cache_key = f"{endpoint}?limit={limit}&page={page}"
+        cached = get_cached_trakt(cache_key)
+        if isinstance(cached, list):
+            return cached
+        items = self._request_list(endpoint, limit, page, abort_flag=abort_flag)
+        if items is None:
+            return []
+        cache_trakt(cache_key, items, max_hours)
+        return items
 
     def _request_list(
         self,
@@ -440,43 +444,40 @@ class ApiTrakt(RatingSource):
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
         """Get Trakt's trending movies or shows."""
-        return self._get_list(
-            f"/{media_type}s/trending", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/trending", _TRENDING_HOURS, limit, page, abort_flag)
 
     def get_popular(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
         """Get Trakt's popular movies or shows."""
-        return self._get_list(
-            f"/{media_type}s/popular", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/popular", _CHART_HOURS, limit, page, abort_flag)
 
     def get_anticipated(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
         """Get Trakt's most anticipated movies or shows."""
-        return self._get_list(
-            f"/{media_type}s/anticipated", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/anticipated", _CHART_HOURS, limit, page, abort_flag)
 
     def get_most_watched(
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
         abort_flag=None
     ) -> list:
         """Get Trakt's most watched movies or shows for a period."""
-        return self._get_list(
-            f"/{media_type}s/watched/{period}", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/watched/{period}", _PERIOD_HOURS.get(period, _CHART_HOURS),
+            limit, page, abort_flag)
 
     def get_most_played(
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
         abort_flag=None
     ) -> list:
         """Get Trakt's most played movies or shows for a period."""
-        return self._get_list(
-            f"/{media_type}s/played/{period}", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/played/{period}", _PERIOD_HOURS.get(period, _CHART_HOURS),
+            limit, page, abort_flag)
 
     def get_watchlist(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
@@ -506,13 +507,13 @@ class ApiTrakt(RatingSource):
         abort_flag=None
     ) -> list:
         """Get Trakt's most collected movies or shows for a period."""
-        return self._get_list(
-            f"/{media_type}s/collected/{period}", limit=limit, page=page, abort_flag=abort_flag
-        )
+        return self._public_list(
+            f"/{media_type}s/collected/{period}", _PERIOD_HOURS.get(period, _CHART_HOURS),
+            limit, page, abort_flag)
 
     def get_box_office(self, limit: int = 20, abort_flag=None) -> list:
         """Get Trakt's weekend box office movies."""
-        return self._get_list("/movies/boxoffice", limit=limit, abort_flag=abort_flag)
+        return self._public_list("/movies/boxoffice", _CHART_HOURS, limit, 1, abort_flag)
 
     def get_recommendations(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
