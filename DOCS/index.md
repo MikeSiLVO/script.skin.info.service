@@ -65,6 +65,7 @@ The Tools menu opens with `RunScript(script.skin.info.service,action=tools)`. Wh
 | [Download Artwork](tools/download-artwork.md) | Download artwork and actor images to filesystem |
 | [Fix Library IDs](tools/fix-library-ids.md) | Resolve missing IMDb/TMDB/TVDB uniqueids |
 | [GIF Scanner](tools/gif-scanner.md)       | Find animated artwork in library  |
+| [Image Color](tools/image-color.md)       | Main color of the focused item's image |
 | [Metadata Editor](tools/metadata-editor.md) | Edit library item metadata      |
 | [Ratings Update](tools/ratings-update.md) | Refresh IMDb/TMDB/Trakt ratings in bulk |
 | [Slideshow](tools/slideshow.md)           | Rotating fanart backgrounds       |

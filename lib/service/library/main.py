@@ -7,8 +7,9 @@ from typing import Final
 import xbmc
 
 from lib.kodi.client import log
+from lib.kodi.utilities import gui_transition_settled
 from lib.service.library.refresh import RefreshTracker
-from lib.service.library.blur import BlurHandler
+from lib.service.library.blur import BlurHandler, ImageColorHandler
 from lib.service.library.player import PlayerVideoTracker, PlayerMusicTracker
 from lib.service.library.musicvideo import MusicVideoArt
 from lib.service.library.slideshow import SlideshowDriver
@@ -117,6 +118,7 @@ class ServiceMain(threading.Thread):
         self.abort = threading.Event()
         self.refresh = RefreshTracker()
         self.blur = BlurHandler()
+        self.color = ImageColorHandler()
         self.player = PlayerVideoTracker(self)
         self.music_player = PlayerMusicTracker()
         self.musicvideo = MusicVideoArt()
@@ -164,8 +166,10 @@ class ServiceMain(threading.Thread):
             log("Service", "Library service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
-        """One service tick: player blur, video/audio player tracking, focus dispatch."""
+        """One service tick: player blur, video/audio player tracking, focus, image color."""
         self.blur.handle_player()
         self.player.handle()
         self.music_player.handle()
         self.focus.process()
+        if gui_transition_settled():
+            self.color.handle_focus()

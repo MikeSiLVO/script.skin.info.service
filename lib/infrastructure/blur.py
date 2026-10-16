@@ -1,8 +1,9 @@
-"""Image blur processing module for creating blurred background artwork."""
+"""Blurred background copies and main colors of artwork images."""
 
+import colorsys
 import hashlib
 import os
-from typing import Optional
+from typing import Final, Optional
 
 import xbmc
 import xbmcvfs
@@ -11,6 +12,9 @@ from lib.kodi.client import log, decode_image_url, encode_image_url
 
 
 PIL_AVAILABLE = None
+
+_COLOR_LIGHTNESS: Final = 0.75
+_COLOR_SATURATION: Final = 0.75
 
 
 def _check_pil():
@@ -26,7 +30,8 @@ def _check_pil():
         return True
     except ImportError:
         PIL_AVAILABLE = False
-        log("Blur", "PIL (Pillow) not available - blur feature will not work", xbmc.LOGWARNING)
+        log("Blur", "PIL (Pillow) not available - blur and image color will not work",
+            xbmc.LOGWARNING)
         return False
 
 
@@ -130,82 +135,76 @@ def _skin_radius() -> int:
     return radius if radius >= 1 else 40
 
 
-def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[str]:
-    """Return a cached blurred copy of an image, at the skin's radius unless given 1+."""
-    if not source_path:
-        return None
-    if blur_radius is None or blur_radius < 1:
-        blur_radius = _skin_radius()
-
+def _unreadable(source_path: str) -> bool:
+    """True for an image Kodi holds where neither its texture cache nor VFS can read it."""
     # resource add-ons ship images packed in Textures.xbt, which neither the cache nor VFS reads
     if source_path.startswith('resource://'):
-        return None
-
+        return True
     # Kodi's virtual icons, such as DefaultShortcut.png
     basename = source_path.rsplit('/', 1)[-1].rsplit('\\', 1)[-1]
-    if basename.startswith('Default') and basename.endswith('.png'):
-        return None
+    return basename.startswith('Default') and basename.endswith('.png')
 
-    cache_dir = _get_cache_dir()
-    if cache_dir:
-        cache_filename = _generate_cache_key(source_path, blur_radius)
-        cache_path = os.path.join(cache_dir, cache_filename)
-        if xbmcvfs.exists(cache_path) and _cache_is_fresh(source_path, cache_path):
-            return cache_path
 
-    if not _check_pil():
-        return None
-
-    original_path = source_path
-
-    img_bytes = None
+def _read_image(source_path: str) -> Optional[bytearray]:
+    """Read an image's bytes, Kodi's texture-cache copy first; None if it can't be read."""
     if source_path.startswith('image://') and '@' in source_path:
         log("Blur", f"Not fetchable, Kodi-internal art: {source_path}", xbmc.LOGDEBUG)
         return None
-
     if _is_skin_texture(source_path):
-        log("Blur", f"Skin texture, nothing to blur: {source_path}", xbmc.LOGDEBUG)
+        log("Blur", f"Skin texture, nothing to read: {source_path}", xbmc.LOGDEBUG)
         return None
 
     if source_path.startswith(('http://', 'https://', 'image://')):
         local_path = _url_to_cached_path(source_path)
-
         if not local_path:
             try:
                 with xbmcvfs.File(encode_image_url(source_path), 'rb') as f:
                     img_bytes = f.readBytes()
-
-                if not img_bytes:
-                    log("Blur", f"Failed to download artwork: {source_path}", xbmc.LOGWARNING)
-                    return None
-
             except Exception as e:
                 log("Blur", f"Failed to download artwork: {source_path}: {e}", xbmc.LOGWARNING)
                 return None
-        else:
-            source_path = local_path
+            if not img_bytes:
+                log("Blur", f"Failed to download artwork: {source_path}", xbmc.LOGWARNING)
+                return None
+            return img_bytes
+        path = local_path
     else:
-        source_path = xbmcvfs.translatePath(source_path)
+        path = xbmcvfs.translatePath(source_path)
 
-    if img_bytes is None and not xbmcvfs.exists(source_path):
-        log("Blur", f"Source image does not exist: {source_path}", xbmc.LOGWARNING)
+    if not xbmcvfs.exists(path):
+        log("Blur", f"Source image does not exist: {path}", xbmc.LOGWARNING)
+        return None
+    try:
+        with xbmcvfs.File(path, 'rb') as f:
+            return f.readBytes()
+    except Exception as e:
+        log("Blur", f"Failed to read image {path}: {e}", xbmc.LOGWARNING)
         return None
 
+
+def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[str]:
+    """Return a cached blurred copy of an image, at the skin's radius unless given 1+."""
+    if not source_path or _unreadable(source_path):
+        return None
+    if blur_radius is None or blur_radius < 1:
+        blur_radius = _skin_radius()
+
+    cache_dir = _get_cache_dir()
     if not cache_dir:
         return None
+    cache_path = os.path.join(cache_dir, _generate_cache_key(source_path, blur_radius))
+    if xbmcvfs.exists(cache_path) and _cache_is_fresh(source_path, cache_path):
+        return cache_path
 
-    cache_filename = _generate_cache_key(original_path, blur_radius)
-    cache_path = os.path.join(cache_dir, cache_filename)
+    if not _check_pil():
+        return None
+    img_data = _read_image(source_path)
+    if not img_data:
+        return None
 
     try:
         from PIL import Image, ImageFilter
         import io
-
-        if img_bytes is None:
-            with xbmcvfs.File(source_path, 'rb') as f:
-                img_data = f.readBytes()
-        else:
-            img_data = img_bytes
 
         with Image.open(io.BytesIO(img_data)) as img:
             if img.format == 'JPEG':
@@ -229,3 +228,30 @@ def blur_image(source_path: str, blur_radius: Optional[int] = None) -> Optional[
     except Exception as e:
         log("Blur", f"Failed to blur image {source_path}: {e}", xbmc.LOGERROR)
         return None
+
+
+def main_color(source_path: str) -> str:
+    """Main color as FFRRGGBB, average's hue at set lightness and saturation; empty on failure."""
+    if not source_path or _unreadable(source_path) or not _check_pil():
+        return ''
+    img_data = _read_image(source_path)
+    if not img_data:
+        return ''
+
+    try:
+        from PIL import Image, ImageStat
+        import io
+
+        with Image.open(io.BytesIO(img_data)) as img:
+            if img.format == 'JPEG':
+                img.draft('RGB', (128, 128))
+            img = img.convert('RGB')
+            img.thumbnail((128, 128))
+            red, green, blue = ImageStat.Stat(img).mean[:3]
+    except Exception as e:
+        log("Blur", f"Failed to read the color of {source_path}: {e}", xbmc.LOGWARNING)
+        return ''
+
+    hue = colorsys.rgb_to_hls(red / 255, green / 255, blue / 255)[0]
+    rgb = colorsys.hls_to_rgb(hue, _COLOR_LIGHTNESS, _COLOR_SATURATION)
+    return 'FF' + ''.join(f'{round(channel * 255):02X}' for channel in rgb)

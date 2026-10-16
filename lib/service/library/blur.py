@@ -1,13 +1,17 @@
-"""Blur orchestration: focus blur and audio player blur, both async-threaded."""
+"""Focus and audio player blur, plus the focused image's main color, each off-thread."""
 from __future__ import annotations
 
 import threading
-from typing import List, Optional
+from collections import OrderedDict
+from typing import Final, List, Optional
 
 import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import set_prop, clear_prop, get_prop, skin_bool
+
+_COLOR_PROP: Final = "SkinInfo.ImageColor.Main"
+_COLOR_CACHE_SIZE: Final = 1000
 
 
 class BlurHandler:
@@ -171,3 +175,60 @@ class BlurHandler:
             self._focus_thread = thread
         else:
             self._player_thread = thread
+
+
+class ImageColorHandler:
+    """Publisher of `SkinInfo.ImageColor.Main`, the main color of the focused item's image."""
+
+    def __init__(self):
+        self._thread: Optional[threading.Thread] = None
+        self._last_source: Optional[str] = None
+        self._colors: "OrderedDict[str, str]" = OrderedDict()
+
+    def handle_focus(self) -> None:
+        """Handle a focus tick: publish the image's color, computing a new image's off-thread."""
+        if not skin_bool("SkinInfo.ImageColor"):
+            self._clear()
+            return
+
+        sources = get_prop("SkinInfo.ImageColorSource") or "ListItem.Art(poster)"
+        source = BlurHandler._resolve_with_fallbacks(sources.split("|"), is_var=False)
+        if not source:
+            self._clear()
+            return
+        if source == self._last_source:
+            return
+
+        color = self._colors.get(source)
+        if color:
+            self._last_source = source
+            set_prop(_COLOR_PROP, color)
+            return
+        if self._thread is not None and self._thread.is_alive():
+            return
+
+        self._last_source = source
+        self._thread = threading.Thread(target=self._worker, args=(source,), daemon=True)
+        self._thread.start()
+
+    def _worker(self, source: str) -> None:
+        """Compute and remember one image's color, publishing it if still the latest requested."""
+        try:
+            from lib.infrastructure.blur import main_color
+            color = main_color(source)
+        except Exception as e:
+            log("Blur", f"Failed to read image color: {e}", xbmc.LOGERROR)
+            color = ""
+
+        if color:
+            self._colors[source] = color
+            if len(self._colors) > _COLOR_CACHE_SIZE:
+                self._colors.popitem(last=False)
+        if source == self._last_source:
+            set_prop(_COLOR_PROP, color)
+
+    def _clear(self) -> None:
+        """Clear the color once the feature is off or the item has no image."""
+        if self._last_source is not None:
+            clear_prop(_COLOR_PROP)
+            self._last_source = None
