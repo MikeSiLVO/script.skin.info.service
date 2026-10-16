@@ -41,8 +41,10 @@
 			<height>100%</height>
 			<texture background="true">$INFO[Container(1520).ListItem.Art(thumb)]</texture>
 			<aspectratio>keep</aspectratio>
+			<visible>!String.IsEmpty(Window.Property(viewer_ready))</visible>
 		</control>
 		<control type="group">
+			<visible>!String.IsEmpty(Window.Property(viewer_ready))</visible>
 			<animation effect="fade" start="100" end="0" time="300" condition="System.IdleTime(3)">Conditional</animation>
 			<animation effect="fade" start="0" end="100" time="300" condition="!System.IdleTime(3)">Conditional</animation>
 			<control type="image">

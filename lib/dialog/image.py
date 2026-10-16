@@ -58,6 +58,13 @@ class DialogImageViewer(InfoDialogBase):
                 control.selectItem(self._selected_index)
             except Exception:
                 pass
+            # selectItem only queues the move for the GUI thread
+            moved = (f'Integer.IsEqual(Container({_IMAGES_CONTROL_ID}).CurrentItem,'
+                     f'{self._selected_index + 1})')
+            for _ in range(_LOAD_POLLS):
+                if self._closing or monitor.abortRequested() or xbmc.getCondVisibility(moved):
+                    break
+                monitor.waitForAbort(0.02)
         self.setProperty('viewer_ready', 'true')
 
 

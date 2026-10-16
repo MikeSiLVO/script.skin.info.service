@@ -40,6 +40,7 @@ Set on the dialog window while it's open.
 |----------|-------------|
 | `container.viewer.path` | The image plugin URL currently being shown |
 | `artwork_view` | `true` when an artwork picker opened the viewer on one image; empty otherwise |
+| `viewer_ready` | `true` once the opened image is selected; empty while the list loads |
 
 ## Artwork Pickers
 
