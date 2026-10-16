@@ -1,6 +1,7 @@
 """Discovery widgets for trending, popular, and upcoming content."""
 from __future__ import annotations
 
+import sys
 from typing import Dict, Iterable, List, Optional, Tuple, Final
 
 import xbmc
@@ -477,6 +478,7 @@ def handle_tmdb_posters(handle: int, params: dict) -> None:
         posters = [p for p in (data.get('images') or {}).get('posters') or []
                    if p.get('file_path') and not p['file_path'].lower().endswith('.svg')]
         posters.sort(key=lambda p: order.get(p.get('iso_639_1') or '', 3))
+        images_path = sys.argv[0] + sys.argv[2]
 
         for poster in posters:
             language = poster.get('iso_639_1') or ''
@@ -496,6 +498,7 @@ def handle_tmdb_posters(handle: int, params: dict) -> None:
                 'rating': format_rating(poster.get('vote_average')),
                 'votes': str(poster.get('vote_count') or ''),
                 'aspectratio': str(poster.get('aspect_ratio') or ''),
+                'images_path': images_path,
             }
             for key, value in props.items():
                 if value:

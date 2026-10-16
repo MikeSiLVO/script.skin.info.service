@@ -305,8 +305,11 @@ English, then text-free ones; posters in other languages are not listed.
 <content>plugin://script.skin.info.service/?action=tmdb_posters&amp;dbtype=movie&amp;dbid=$INFO[ListItem.DBID]</content>
 ```
 
-The [Image Viewer](../dialogs/image-viewer.md) opens a poster full screen when given the same path
-as `images_path`.
+Clicking a poster can open it full screen in the [Image Viewer](../dialogs/image-viewer.md):
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=dialog_image_viewer,images_path=$INFO[ListItem.Property(images_path)],selected_index=$INFO[ListItem.CurrentItem])</onclick>
+```
 
 ### Parameters
 
@@ -329,6 +332,7 @@ as `images_path`.
 | `ListItem.Property(dimensions)` | Same as `Label2` |
 | `ListItem.Property(aspectratio)` | Width divided by height |
 | `ListItem.Property(rating)`, `ListItem.Property(votes)` | TMDB user rating and vote count |
+| `ListItem.Property(images_path)` | This list's own path, for the image viewer |
 
 **Widget Type:** Images
 

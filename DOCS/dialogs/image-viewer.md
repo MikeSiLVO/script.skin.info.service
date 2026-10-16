@@ -14,10 +14,10 @@ A full-screen image viewer for any plugin URL that returns image items. Left/rig
   images_path=$INFO[Window.Property(container.images.path)],
   selected_index=$INFO[Container(1506).CurrentItem])</onclick>
 
-<!-- From the video info dialog's Posters panel -->
+<!-- From a TMDB Posters list, in any dialog -->
 <onclick>RunScript(script.skin.info.service,action=dialog_image_viewer,
-  images_path=$INFO[Window.Property(container.posters.path)],
-  selected_index=$INFO[Container.CurrentItem])</onclick>
+  images_path=$INFO[ListItem.Property(images_path)],
+  selected_index=$INFO[ListItem.CurrentItem])</onclick>
 
 <!-- From any container whose content is an image directory -->
 <onclick>RunScript(script.skin.info.service,action=dialog_image_viewer,
