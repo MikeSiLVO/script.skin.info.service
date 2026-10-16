@@ -275,6 +275,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `Premiered` | Release/first air date (`YYYY-MM-DD`) | Movie, TVShow |
 | `PremieredFormatted` | Formatted date | Movie, TVShow |
 | `Genre` | Genres separated by " / " | Movie, TVShow |
+| `GenrePrimary` | First genre only | Movie, TVShow |
 | `Country` | Countries separated by " / " | Movie, TVShow |
 | `Studio` | Studios/networks separated by " / " | Movie, TVShow |
 | `StudioPrimary` | First studio or network only | Movie, TVShow |

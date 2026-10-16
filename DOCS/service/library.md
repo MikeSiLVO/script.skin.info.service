@@ -172,6 +172,7 @@ Clock-formatted counterpart to `Runtime`. `m:ss` under an hour, `h:mm:ss` at an 
 | `Writer` | Writer(s), `" / "` separated |
 | `Cast` | Cast members, `" / "` separated |
 | `Genre` | Genre(s), `" / "` separated |
+| `GenrePrimary` | First genre only |
 | `Studio` | Studio(s), `" / "` separated |
 | `StudioPrimary` | First studio only |
 | `Country` | Country(ies), `" / "` separated |
@@ -309,6 +310,7 @@ Use `%d` as placeholder for index (1-based):
 | `Movie.%d.Plot` | Full plot |
 | `Movie.%d.PlotOutline` | Short summary |
 | `Movie.%d.Genre` | Genre(s) |
+| `Movie.%d.GenrePrimary` | First genre only |
 | `Movie.%d.Director` | Director(s) |
 | `Movie.%d.Writer` | Writer(s) |
 | `Movie.%d.Studio` | Studio(s) |
@@ -397,6 +399,7 @@ Use `%d` as placeholder for index (1-based):
 |----------|-------------|
 | `Cast` | Cast members, `" / "` separated |
 | `Genre` | Genre(s), `" / "` separated |
+| `GenrePrimary` | First genre only |
 | `Studio` | Studio(s), `" / "` separated |
 | `StudioPrimary` | First studio only |
 | `Tag` | Tags, `" / "` separated |
@@ -514,6 +517,7 @@ Use `%d` as placeholder for index (1-based):
 | `Director` | Director(s), `" / "` separated |
 | `Writer` | Writer(s), `" / "` separated |
 | `Genre` | Genre(s), `" / "` separated |
+| `GenrePrimary` | First genre only |
 | `Studio` | Studio(s), `" / "` separated |
 
 ### Technical
@@ -593,6 +597,7 @@ Use `%d` as placeholder for index (1-based):
 | Property | Description |
 |----------|-------------|
 | `Genre` | Genre(s), `" / "` separated |
+| `GenrePrimary` | First genre only |
 | `Director` | Director(s), `" / "` separated |
 | `Studio` | Studio(s), `" / "` separated |
 | `Tag` | Tags, `" / "` separated |

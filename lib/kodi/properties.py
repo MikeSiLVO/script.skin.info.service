@@ -430,6 +430,7 @@ def _trim_indexed(prefix: str, prev: int, now: int) -> None:
         "TrackNumber",
         "FileExtension",
         "Genre",
+        "GenrePrimary",
         "Studio",
         "StudioPrimary",
         "Country",
@@ -490,6 +491,7 @@ def build_movie_data(details: dict) -> dict:
     data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Genre"] = join_multi(details.get("genre"))
+    data["GenrePrimary"] = _first_or_empty(details.get("genre"))
     data["Director"] = join_multi(details.get("director"))
     data["Studio"] = join_multi(details.get("studio"))
     data["Country"] = join_multi(details.get("country"))
@@ -635,6 +637,7 @@ def build_movieset_data(set_details: dict, movies: List[dict]) -> dict:
         data[f"Movie.{idx}.HDRType"] = info.get("hdrtype") or ""
         data[f"Movie.{idx}.MPAA"] = m.get("mpaa") or ""
         data[f"Movie.{idx}.Genre"] = join_multi(m.get("genre"))
+        data[f"Movie.{idx}.GenrePrimary"] = _first_or_empty(m.get("genre"))
         data[f"Movie.{idx}.Director"] = join_multi(m.get("director"))
         data[f"Movie.{idx}.Writer"] = join_multi(m.get("writer"))
         data[f"Movie.{idx}.Studio"] = join_multi(m.get("studio"))
@@ -1064,6 +1067,7 @@ def build_tvshow_data(details: dict) -> dict:
     data["Rating"] = format_rating(rating)
     data["Votes"] = format_number(details.get("votes"))
     data["Genre"] = join_multi(details.get("genre"))
+    data["GenrePrimary"] = _first_or_empty(details.get("genre"))
     data["Studio"] = join_multi(details.get("studio"))
     data["MPAA"] = details.get("mpaa") or ""
     data["Status"] = details.get("status") or ""
@@ -1250,6 +1254,7 @@ def build_episode_data(details: dict) -> dict:
     data["UserRating"] = str(userrating) if userrating else ""
     data["SeasonID"] = str(seasonid) if seasonid else ""
     data["Genre"] = join_multi(details.get("genre"))
+    data["GenrePrimary"] = _first_or_empty(details.get("genre"))
     data["Studio"] = join_multi(details.get("studio"))
 
     cast_names = extract_cast_names(details.get("cast"))
@@ -1321,6 +1326,7 @@ def build_musicvideo_data(details: dict) -> dict:
     data["Artist"] = join_multi(details.get("artist"))
     data["Album"] = details.get("album") or ""
     data["Genre"] = join_multi(details.get("genre"))
+    data["GenrePrimary"] = _first_or_empty(details.get("genre"))
     data["Year"] = str(year) if year else ""
     data["Plot"] = details.get("plot") or ""
     data.update(_runtime_props(_seconds_to_minutes(runtime_seconds), int(playcount or 0)))

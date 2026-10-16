@@ -333,11 +333,12 @@ def _runtime_split(props: Dict[str, str]) -> None:
     props.update(format_minutes("Runtime", minutes))
 
 
-def _studio_primary(props: Dict[str, str]) -> None:
-    """Set the primary studio, the first of its studios or networks."""
-    first = (props.get("Studio") or "").partition(MULTI_VALUE_SEP)[0]
-    if first:
-        props["StudioPrimary"] = first
+def _primaries(props: Dict[str, str]) -> None:
+    """Set the primary studio and genre, the first of each list."""
+    for key in ("Studio", "Genre"):
+        first = (props.get(key) or "").partition(MULTI_VALUE_SEP)[0]
+        if first:
+            props[f"{key}Primary"] = first
 
 
 def _library_names(props: Dict[str, str]) -> None:
@@ -354,7 +355,7 @@ def apply_derived_props(props: Dict[str, str], media_type: str, imdb_id: str,
 
     _tomatoes_split(props)
     _runtime_split(props)
-    _studio_primary(props)
+    _primaries(props)
     _library_names(props)
     props.update(format_default_rating(props))
     return apply_awards(props, media_type, imdb_id, tmdb_id)
