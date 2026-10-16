@@ -7,7 +7,9 @@ import os
 from lib.kodi.utilities import (
     clear_prop, clear_group, batch_set_props, format_date, extract_cast_names, join_multi,
 )
-from lib.kodi.formatters import format_number, format_rating, format_stars, RATING_SOURCE_NORMALIZE
+from lib.kodi.formatters import (
+    format_minutes, format_number, format_rating, format_stars, RATING_SOURCE_NORMALIZE,
+)
 
 
 def _scale_rating(val: Any, max_val: Any) -> Optional[Tuple[float, int]]:
@@ -228,10 +230,7 @@ def _runtime_props(minutes: int, playcount: int = 0, watched: int = 0) -> Dict[s
         watched = minutes * playcount
     props: Dict[str, str] = {}
     for key, total in (("Runtime", minutes), ("WatchTime", watched)):
-        hrs, mins = divmod(total, 60)
-        props[key] = str(total) if total > 0 else ""
-        props[f"{key}.Hours"] = str(hrs) if hrs else ""
-        props[f"{key}.Minutes"] = str(mins) if mins >= 1 else ""
+        props.update(format_minutes(key, total))
     return props
 
 

@@ -52,6 +52,16 @@ def format_number(value) -> str:
         return str(value)
 
 
+def format_minutes(key: str, total: int) -> Dict[str, str]:
+    """Format a minute total plus its `.Hours` and `.Minutes` parts; zeros are empty."""
+    hrs, mins = divmod(total, 60)
+    return {
+        key: str(total) if total > 0 else "",
+        f"{key}.Hours": str(hrs) if hrs else "",
+        f"{key}.Minutes": str(mins) if mins >= 1 else "",
+    }
+
+
 def format_rating_props(source: str, rating: float, votes: int) -> Dict[str, str]:
     """Format rating data into property dict for a given source; empty for a 0 rating."""
     text = format_rating(rating)
@@ -68,6 +78,15 @@ def format_rating_props(source: str, rating: float, votes: int) -> Dict[str, str
     if stars:
         props[f"Rating.{source}.Stars"] = stars
     return props
+
+
+def format_default_rating(props: Dict[str, str]) -> Dict[str, str]:
+    """Format the default source's rating as `Rating` and `Votes`, TMDb's when it has none."""
+    for source in (KodiSettings.ratings_default_source(), "tmdb"):
+        rating = props.get(f"Rating.{source}")
+        if rating:
+            return {"Rating": rating, "Votes": props.get(f"Rating.{source}.Votes") or ""}
+    return {}
 
 
 def format_movie_props(data: dict) -> Dict[str, str]:

@@ -261,9 +261,12 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `Title` | Title | Movie, TVShow |
 | `OriginalTitle` | Original title | Movie, TVShow |
 | `Plot` | Overview/description | Movie, TVShow |
+| `PlotOutline` | Short plot in English, from OMDb. Requires OMDb API key | Movie, TVShow |
 | `Tagline` | Tagline | Movie, TVShow |
 | `Status` | Release status | Movie, TVShow |
 | `Runtime` | Runtime in minutes | Movie, TVShow |
+| `Runtime.Hours` | Hours component, empty under an hour | Movie, TVShow |
+| `Runtime.Minutes` | Minutes component, empty on the hour | Movie, TVShow |
 | `Popularity` | TMDb popularity score | Movie, TVShow |
 | `Homepage` | Official website URL | Movie, TVShow |
 | `Year` | Release year | Movie, TVShow |
@@ -272,6 +275,7 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | `Genre` | Genres separated by " / " | Movie, TVShow |
 | `Country` | Countries separated by " / " | Movie, TVShow |
 | `Studio` | Studios/networks separated by " / " | Movie, TVShow |
+| `StudioPrimary` | First studio or network only | Movie, TVShow |
 
 ### Movie-Specific
 
@@ -287,8 +291,8 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 | Property | Description |
 |----------|-------------|
 | `Type` | Show type (Scripted, Documentary, etc.) |
-| `Seasons` | Total season count |
-| `Episodes` | Total episode count |
+| `Seasons`, `Season` | Total season count |
+| `Episodes`, `Episode` | Total episode count |
 | `Creator` | Creator(s) separated by " / " |
 | `LastAired` | Last air date (`YYYY-MM-DD`) |
 | `LastAiredFormatted` | Formatted last air date |
@@ -329,9 +333,9 @@ TMDb uses a built-in API key by default. You can optionally provide your own key
 
 | Property | Description |
 |----------|-------------|
-| `IMDBNumber` | IMDB ID |
-| `TMDBID` | TMDb ID |
-| `TVDBID` | TVDB ID (TV shows only) |
+| `IMDBNumber`, `UniqueID.IMDB` | IMDB ID |
+| `TMDBID`, `UniqueID.TMDB` | TMDb ID |
+| `TVDBID`, `UniqueID.TVDB` | TVDB ID (TV shows only) |
 
 ### Other
 
@@ -351,6 +355,7 @@ Letterboxd add a fourth, and RT Critics adds two. A source with no rating sets n
 
 | Property Pattern | Description |
 |------------------|-------------|
+| `Rating`, `Votes` | Rating and vote count from the Default ratings source setting, TMDb's when that source has none |
 | `Rating.{source}` | Rating value (0-10 scale) |
 | `Rating.{source}.Votes` | Vote count |
 | `Rating.{source}.Percent` | Rating as percentage (0-100) |
@@ -395,6 +400,8 @@ On both, the show's ratings and Rotten Tomatoes status are set under `TVShow.`:
 
 | Property | Description |
 |----------|-------------|
+| `TVShow.Rating`, `TVShow.Votes` | The show's `Rating` and `Votes` |
+| `TVShow.Season`, `TVShow.Episode` | The show's season and episode counts |
 | `TVShow.Rating.{source}` | The show's `Rating.{source}`, with `.Votes`, `.Percent`, `.Stars`, `.Fresh` and `.Rotten`, see [Ratings](#ratings) |
 | `TVShow.Tomatometer`, `TVShow.Popcornmeter`, `TVShow.Metacritic`, `TVShow.RogerEbert` | The show's status, see [Rotten Tomatoes Status](#rotten-tomatoes-status) |
 

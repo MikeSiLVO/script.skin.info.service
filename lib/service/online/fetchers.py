@@ -8,13 +8,13 @@ import xbmc
 
 from lib.data.online import fetch_trakt_data
 from lib.kodi.client import log
-from lib.kodi.formatters import format_rating_props
+from lib.kodi.formatters import format_default_rating, format_rating_props
 from lib.kodi.utilities import batch_set_props
 
 
 def fetch_episode_ratings(show_imdb: str, show_tmdb: str, season: int, episode: int,
                           episode_imdb: str = "", abort_flag=None) -> Dict[str, str]:
-    """Fetch one episode's IMDb, TMDB and Trakt ratings as `Rating.*` properties."""
+    """Fetch an episode's IMDb, TMDB and Trakt ratings as `Rating.*`, the default as `Rating`."""
     from lib.data.api.imdb import get_imdb_dataset
     from lib.data.api.tmdb import ApiTmdb
 
@@ -54,6 +54,7 @@ def fetch_episode_ratings(show_imdb: str, show_tmdb: str, season: int, episode: 
             ).items() if k.startswith("Rating.")
         })
 
+    props.update(format_default_rating(props))
     return props
 
 

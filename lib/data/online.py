@@ -8,6 +8,8 @@ import xbmc
 from lib.data.database.cache import CacheKey
 from lib.kodi.client import log
 from lib.kodi.formatters import (
+    format_default_rating,
+    format_minutes,
     format_rating_props,
     build_common_sense_summary,
     RATING_SOURCE_NORMALIZE,
@@ -44,9 +46,17 @@ _STATUS_PROPS = {
     "rogerebert": "RogerEbert",
 }
 
+_LIBRARY_NAMES = {
+    "IMDBNumber": "UniqueID.IMDB",
+    "TMDBID": "UniqueID.TMDB",
+    "TVDBID": "UniqueID.TVDB",
+    "Seasons": "Season",
+    "Episodes": "Episode",
+}
+
 
 def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str, str]:
-    """Fetch OMDb awards plus ratings (imdb/metacritic/rotten tomatoes) from the same response."""
+    """Fetch OMDb awards, short plot and ratings (imdb/metacritic/rotten tomatoes) together."""
     from lib.data.api.omdb import ApiOmdb
 
     props: Dict[str, str] = {}
@@ -59,9 +69,11 @@ def fetch_omdb_data(media_type: str, imdb_id: str, abort_flag=None) -> Dict[str,
 
     try:
         omdb = ApiOmdb()
-        awards = omdb.get_awards(media_type, imdb_id, abort_flag=abort_flag)
-        if awards:
-            props["Awards"] = awards
+        data = (omdb.get_omdb_data(media_type, imdb_id)
+                or omdb.fetch_data(media_type, imdb_id, abort_flag) or {})
+        for key, field in (("Awards", "Awards"), ("PlotOutline", "Plot")):
+            if data.get(field) and data[field] != "N/A":
+                props[key] = data[field]
 
         ratings = omdb.fetch_ratings(media_type, {"imdb": imdb_id}, abort_flag=abort_flag)
         if ratings:
@@ -312,12 +324,39 @@ def _tomatoes_split(props: Dict[str, str]) -> None:
     props["Rating.tomatoes.Rotten"] = f"{votes - fresh:,}"
 
 
+def _runtime_split(props: Dict[str, str]) -> None:
+    """Set the runtime hours and minutes from its total in minutes."""
+    try:
+        minutes = int(props.get("Runtime") or "")
+    except ValueError:
+        return
+    props.update(format_minutes("Runtime", minutes))
+
+
+def _studio_primary(props: Dict[str, str]) -> None:
+    """Set the primary studio, the first of its studios or networks."""
+    first = (props.get("Studio") or "").partition(MULTI_VALUE_SEP)[0]
+    if first:
+        props["StudioPrimary"] = first
+
+
+def _library_names(props: Dict[str, str]) -> None:
+    """Copy each value the library sets under another name, such as its `UniqueID.*` keys."""
+    for key, name in _LIBRARY_NAMES.items():
+        if props.get(key):
+            props[name] = props[key]
+
+
 def apply_derived_props(props: Dict[str, str], media_type: str, imdb_id: str,
                         tmdb_id: str) -> Dict[str, str]:
-    """Apply what is computed rather than fetched: award counts and the tomatoes review split."""
+    """Apply what is computed, not fetched: award counts, tomatoes split, library properties."""
     from lib.data.awards import apply_awards
 
     _tomatoes_split(props)
+    _runtime_split(props)
+    _studio_primary(props)
+    _library_names(props)
+    props.update(format_default_rating(props))
     return apply_awards(props, media_type, imdb_id, tmdb_id)
 
 
@@ -413,7 +452,7 @@ def make_cache_key(media_type: str, imdb_id: str, tmdb_id: str,
 
 
 def show_scoped_props(props: Dict[str, str]) -> Dict[str, str]:
-    """Move a show's ratings and rating statuses under `TVShow.`, for its episode or season."""
-    statuses = set(_STATUS_PROPS.values())
-    return {f"TVShow.{key}" if key.startswith("Rating.") or key in statuses else key: value
+    """Move a show's ratings, statuses and counts under `TVShow.`, for its episode or season."""
+    scoped = set(_STATUS_PROPS.values()) | {"Rating", "Votes", "Season", "Episode"}
+    return {f"TVShow.{key}" if key.startswith("Rating.") or key in scoped else key: value
             for key, value in props.items()}

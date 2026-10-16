@@ -13,7 +13,7 @@ from lib.kodi.formatters import RT_SOURCE_TOMATOES
 
 
 class ApiOmdb(RatingSource):
-    """OMDb rating source that also serves a title's awards."""
+    """OMDb rating source that also serves a title's awards and short plot."""
 
     BASE_URL = "https://www.omdbapi.com"
 
@@ -97,15 +97,6 @@ class ApiOmdb(RatingSource):
     def supports(self, media_type: str) -> bool:
         """OMDb rates the parent title only; it has no per-episode entry."""
         return media_type != "episode"
-
-    def get_awards(self, media_type: str, imdb_id: str, abort_flag=None) -> Optional[str]:
-        """Get a title's awards line from OMDb as written, fetching if not cached."""
-        data = self.get_omdb_data(media_type, imdb_id)
-        if not data:
-            data = self.fetch_data(media_type, imdb_id, abort_flag)
-
-        awards = data.get('Awards') if data else None
-        return awards if awards and awards != "N/A" else None
 
     def _extract_ratings(self, data: dict) -> Dict[str, Dict[str, float]]:
         """Extract ratings from the OMDb response, every scale converted to 0-10."""

@@ -23,6 +23,16 @@ def _get_metadata_language() -> str:
     return lang
 
 
+def _fill_episode_runtime(data: dict) -> None:
+    """Fill a missing episode runtime from the first season's median, dropping that season."""
+    season = data.pop("season/1", None) or {}
+    if data.get("episode_run_time"):
+        return
+    runtimes = sorted(e["runtime"] for e in season.get("episodes") or [] if e.get("runtime"))
+    if runtimes:
+        data["episode_run_time"] = [runtimes[(len(runtimes) - 1) // 2]]
+
+
 def format_tmdb_image(image: dict, preview_size: str, rank: int) -> Optional[dict]:
     """Format a TMDB image entry to the common artwork format, keeping its place in TMDB's order."""
     file_path = image.get('file_path')
@@ -584,13 +594,17 @@ class ApiTmdb(RatingSource):
         )
 
     def get_tv_details_extended(self, tmdb_id: int, abort_flag=None) -> Optional[dict]:
-        """Fetch complete TV show data in one API call. Returns base details plus appended data."""
-        return self._fetch_details_extended(
+        """Fetch complete TV show data in one call, filling a missing runtime from season 1."""
+        data = self._fetch_details_extended(
             f"/tv/{tmdb_id}",
-            "credits,aggregate_credits,videos,keywords,content_ratings,images,external_ids,recommendations",
+            "credits,aggregate_credits,videos,keywords,content_ratings,images,external_ids,"
+            "recommendations,season/1",
             include_image_language=True,
             abort_flag=abort_flag,
         )
+        if data:
+            _fill_episode_runtime(data)
+        return data
 
     def get_episode_details_extended(self, tmdb_id: int, season: int, episode: int,
                                      abort_flag=None) -> Optional[dict]:
