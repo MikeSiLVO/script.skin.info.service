@@ -256,6 +256,12 @@ def _handle_recommended(handle: int, params: dict) -> None:
     handle_recommended(handle, params)
 
 
+def _handle_tmdb_discover(handle: int, params: dict) -> None:
+    """List titles sharing a seed item's trait, or the TMDB catalogue in one order."""
+    from lib.plugin.widgets.discovery import handle_tmdb_discover
+    handle_tmdb_discover(handle, params)
+
+
 def _handle_tmdb_recommendations(handle: int, params: dict) -> None:
     from lib.plugin.widgets.discovery import handle_tmdb_recommendations
     handle_tmdb_recommendations(handle, params)
@@ -362,6 +368,7 @@ _HANDLERS = {
     'similar': _handle_similar,
     'recommended': _handle_recommended,
     'tmdb_recommendations': _handle_tmdb_recommendations,
+    'tmdb_discover': _handle_tmdb_discover,
     'seasonal': _handle_seasonal,
     'similar_artists': _handle_similar_artists,
     'artist_albums': _handle_artist_albums,

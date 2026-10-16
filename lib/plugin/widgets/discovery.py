@@ -344,12 +344,22 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
 
 
+def _seed_tmdb_id(dbtype: str, params: dict) -> int:
+    """TMDB id of the item a list is seeded by, from `tmdb_id` or a library `dbid`; 0 if unknown."""
+    tmdb_id_str = params.get('tmdb_id', [''])[0]
+    if tmdb_id_str.isdigit():
+        return int(tmdb_id_str)
+    dbid_str = params.get('dbid', [''])[0]
+    if dbid_str.isdigit():
+        from lib.data.api.person import library_tmdb_id
+        return library_tmdb_id(dbtype, int(dbid_str)) or 0
+    return 0
+
+
 def handle_tmdb_recommendations(handle: int, params: dict) -> None:
-    """Plugin entry for an item's TMDB recommendations, read from its cached TMDB data."""
+    """Plugin entry for an item's TMDB recommendations, read from its complete TMDB data."""
     try:
         dbtype = params.get('dbtype', [''])[0]
-        tmdb_id_str = params.get('tmdb_id', [''])[0]
-        dbid_str = params.get('dbid', [''])[0]
         limit = int(params.get('limit', ['25'])[0])
         source = params.get('source', ['online'])[0]
 
@@ -360,22 +370,7 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
 
         xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32682))
 
-        tmdb_id = 0
-        if tmdb_id_str:
-            try:
-                tmdb_id = int(tmdb_id_str)
-            except (ValueError, TypeError):
-                tmdb_id = 0
-
-        if not tmdb_id and dbid_str:
-            from lib.data.api.person import library_tmdb_id
-            try:
-                dbid = int(dbid_str)
-                resolved = library_tmdb_id(dbtype, dbid)
-                tmdb_id = resolved or 0
-            except (ValueError, TypeError):
-                tmdb_id = 0
-
+        tmdb_id = _seed_tmdb_id(dbtype, params)
         if not tmdb_id:
             log("Plugin", "TMDB Recommendations: Could not resolve tmdb_id", xbmc.LOGWARNING)
             xbmcplugin.endOfDirectory(handle, succeeded=False)
@@ -428,6 +423,112 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
     except Exception as e:
         import traceback
         log("Plugin", f"TMDB Recommendations: Error - {e}", xbmc.LOGERROR)
+        log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+
+
+_DISCOVER_SORTS: Final = {
+    "popularity": "popularity.desc", "votes": "vote_count.desc", "revenue": "revenue.desc",
+}
+
+
+def _directed_movies(seed: dict) -> list:
+    """Movies the seed's director directed, most popular first."""
+    from lib.data.api.person import get_person_data
+    crew = (seed.get("credits") or {}).get("crew") or []
+    director = next((c for c in crew if c.get("job") == "Director"), None)
+    if not director:
+        return []
+    person = get_person_data(int(director["id"])) or {}
+    credits = (person.get("combined_credits") or {}).get("crew") or []
+    movies = {c["id"]: c for c in credits
+              if c.get("job") == "Director" and c.get("media_type") == "movie"}
+    return sorted(movies.values(), key=lambda c: c.get("popularity") or 0, reverse=True)
+
+
+def _seeded_results(by: str, media_type: str, seed: dict, sort: str, page: int) -> list:
+    """Raw results sharing the seed's studio, network, genre, year, cast, director or collection."""
+    from lib.data.api.tmdb import ApiTmdb
+    api = ApiTmdb()
+    if by == "director":
+        return _directed_movies(seed) if media_type == "movie" else []
+    if by == "collection":
+        collection = seed.get("belongs_to_collection") or {}
+        parts = api.get_collection(int(collection["id"])) if collection.get("id") else []
+        return sorted(parts, key=lambda p: p.get("release_date") or "9999")
+
+    filters = {"sort_by": sort}
+    if by == "studio":
+        ids = [str(c["id"]) for c in seed.get("production_companies") or []][:1]
+        filters["with_companies"] = "".join(ids)
+    elif by == "network":
+        ids = [str(n["id"]) for n in seed.get("networks") or []][:1]
+        filters["with_networks"] = "".join(ids)
+    elif by == "genre":
+        ids = [str(g["id"]) for g in seed.get("genres") or []][:1]
+        filters["with_genres"] = "".join(ids)
+    elif by == "year":
+        year = (seed.get("release_date") or seed.get("first_air_date") or "")[:4]
+        filters["primary_release_year" if media_type == "movie" else "first_air_date_year"] = year
+    elif by == "cast" and media_type == "movie":
+        cast = (seed.get("credits") or {}).get("cast") or []
+        filters["with_cast"] = "|".join(str(c["id"]) for c in cast[:3])
+    else:
+        return []
+    if not all(filters.values()):
+        return []
+    return api.discover(media_type if media_type == "movie" else "tv", filters, page)
+
+
+def handle_tmdb_discover(handle: int, params: dict) -> None:
+    """Plugin entry for TMDB discover: titles sharing a seed item's trait, or a sorted catalogue."""
+    try:
+        dbtype = params.get("dbtype", ["movie"])[0]
+        if dbtype not in ("movie", "tvshow"):
+            dbtype = "movie"
+        media_type = "movie" if dbtype == "movie" else "tv"
+        by = params.get("by", [""])[0]
+        sort_name = params.get("sort", ["popularity"])[0]
+        if sort_name == "revenue" and media_type != "movie":
+            sort_name = "popularity"
+        sort = _DISCOVER_SORTS.get(sort_name, _DISCOVER_SORTS["popularity"])
+        limit = int(params.get("limit", ["20"])[0])
+        page = int(params.get("page", ["1"])[0])
+        source = params.get("source", ["online"])[0]
+
+        from lib.data.api.tmdb import ApiTmdb
+        api = ApiTmdb()
+        seed_id = 0
+        if by:
+            seed_id = _seed_tmdb_id(dbtype, params)
+            seed = api.get_complete_data(dbtype, seed_id) if seed_id else None
+            raw_items = _seeded_results(by, media_type, seed, sort, page) if seed else []
+        else:
+            raw_items = api.discover(media_type, {"sort_by": sort}, page)
+
+        genre_map = api.get_genre_list(media_type)
+        normalized_items = [_normalize_tmdb_item(raw, media_type, genre_map)
+                            for raw in raw_items if raw.get("id") != seed_id][:limit]
+        library_lookup = _get_library_lookup(
+            dbtype, [n.get("tmdb_id") for n in normalized_items])
+
+        count = 0
+        for normalized in normalized_items:
+            lib_match = library_lookup.get(str(normalized.get("tmdb_id", "")))
+            if source == "library" and not lib_match:
+                continue
+            url, listitem, is_folder = _create_listitem(normalized, lib_match)
+            xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
+            count += 1
+
+        xbmcplugin.setContent(handle, "movies" if media_type == "movie" else "tvshows")
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+        log("Plugin", f"TMDB Discover: by={by or '-'} {dbtype} returned {count} items",
+            xbmc.LOGDEBUG)
+
+    except Exception as e:
+        import traceback
+        log("Plugin", f"TMDB Discover: Error - {e}", xbmc.LOGERROR)
         log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
         xbmcplugin.endOfDirectory(handle, succeeded=False)
 

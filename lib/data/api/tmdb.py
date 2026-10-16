@@ -718,6 +718,12 @@ class ApiTmdb(RatingSource):
             return data.get("results", [])
         return []
 
+    def discover(self, media_type: str, filters: Dict[str, str], page: int = 1,
+                 abort_flag=None) -> list:
+        """Get TMDB's discover list of movies or shows, filtered and sorted as requested."""
+        return self._get_list(f"/discover/{media_type}", page=page, extra_params=filters,
+                              abort_flag=abort_flag)
+
     def get_trending(self, media_type: str, window: str = 'week', page: int = 1,
                      abort_flag=None) -> list:
         """Get TMDB's trending movies or shows for the day or week."""

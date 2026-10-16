@@ -17,6 +17,7 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [TMDB Airing Today](#tmdb-airing-today)
 - [TMDB On The Air](#tmdb-on-the-air)
 - [TMDB Recommendations](#tmdb-recommendations)
+- [TMDB Discover](#tmdb-discover)
 
 **Trakt**
 - [Trakt Trending](#trakt-trending)
@@ -230,6 +231,57 @@ TV shows with episodes airing within the next 7 days.
 
 ### Notes
 
+- Each item gets `IsInLibrary=true` set when it matches an item in the Kodi library.
+- Item properties match the other TMDB widgets, see [Item Properties](#item-properties).
+
+**Widget Type:** Movie or TV Show
+
+---
+
+## TMDB Discover
+
+Titles that share a trait with a seed item, or the whole TMDB catalogue in one order.
+
+### Usage
+
+```xml
+<!-- More from the focused movie's studio -->
+<content>plugin://script.skin.info.service/?action=tmdb_discover&amp;dbtype=movie&amp;dbid=$INFO[ListItem.DBID]&amp;by=studio</content>
+
+<!-- Same, for a TMDB-only item -->
+<content>plugin://script.skin.info.service/?action=tmdb_discover&amp;dbtype=movie&amp;tmdb_id=$INFO[ListItem.Property(tmdb_id)]&amp;by=studio</content>
+
+<!-- Most voted movies of all time -->
+<content>plugin://script.skin.info.service/?action=tmdb_discover&amp;dbtype=movie&amp;sort=votes</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | No | `movie` | `movie` or `tvshow` |
+| `tmdb_id` | Conditional | - | TMDB ID of the seed item. Provide this OR `dbid` when `by` is set. |
+| `dbid` | Conditional | - | Library ID of the seed item. |
+| `by` | No | - | What the titles share with the seed, see below. Without it, the list is the whole catalogue in `sort` order. |
+| `sort` | No | `popularity` | `popularity`, `votes` (most voted) or `revenue` (movies only) |
+| `limit` | No | `20` | Maximum items |
+| `page` | No | `1` | Pagination |
+| `source` | No | `online` | `online` returns all; `library` filters to items in your library |
+
+| `by` | Lists | Types |
+|------|-------|-------|
+| `studio` | Titles from the seed's first production company | Movie, TV show |
+| `network` | Shows from the seed's first network | TV show |
+| `genre` | Titles in the seed's first genre | Movie, TV show |
+| `year` | Titles from the seed's release or first-air year | Movie, TV show |
+| `cast` | Movies with any of the seed's first three cast members | Movie |
+| `director` | Movies the seed's director directed, most popular first | Movie |
+| `collection` | The other parts of the seed's collection, in release order | Movie |
+
+### Notes
+
+- The seed item itself is left out.
+- A seed with nothing for its `by`, such as a movie in no collection, gives an empty list.
 - Each item gets `IsInLibrary=true` set when it matches an item in the Kodi library.
 - Item properties match the other TMDB widgets, see [Item Properties](#item-properties).
 
