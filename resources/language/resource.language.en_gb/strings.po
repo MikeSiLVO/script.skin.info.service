@@ -367,6 +367,10 @@ msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
 msgstr ""
 
+msgctxt "#32084"
+msgid "Trakt Watchlist"
+msgstr ""
+
 msgctxt "#32085"
 msgid "Statistics & Info"
 msgstr ""
@@ -518,6 +522,18 @@ msgstr ""
 
 msgctxt "#32122"
 msgid "Text-free / Untagged"
+msgstr ""
+
+msgctxt "#32123"
+msgid "Trakt History"
+msgstr ""
+
+msgctxt "#32124"
+msgid "Trakt In Progress"
+msgstr ""
+
+msgctxt "#32125"
+msgid "Trakt Most Played"
 msgstr ""
 
 msgctxt "#32128"

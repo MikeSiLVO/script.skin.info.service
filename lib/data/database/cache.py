@@ -413,6 +413,24 @@ def cache_show_calendar(calendar: dict, keep_days: int = 3) -> None:
             (_expiry(keep_days * 24), _compress_data(calendar)))
 
 
+def get_cached_trakt(cache_key: str) -> Optional[Any]:
+    """Get a cached Trakt response, or None when missing or expired."""
+    return _fetch_cached(
+        'blob_cache', "kind = 'trakt' AND cache_key = ? AND expires_at > ?",
+        (cache_key, _now()), 'Trakt data')
+
+
+def cache_trakt(cache_key: str, data: Any, ttl_hours: float) -> None:
+    """Cache a Trakt response under a caller-set TTL."""
+    with get_db(DB_PATH) as cursor:
+        cursor.execute(
+            "INSERT INTO blob_cache (kind, cache_key, expires_at, data) "
+            "VALUES ('trakt', ?, ?, ?) "
+            'ON CONFLICT (kind, cache_key) DO UPDATE SET '
+            'expires_at = excluded.expires_at, data = excluded.data',
+            (cache_key, _expiry(ttl_hours), _compress_data(data)))
+
+
 def get_fresh_title_ids(media_type: str) -> Set[str]:
     """Get the TMDB ids of one media type whose cached title data is still fresh."""
     with get_db(DB_PATH) as cursor:

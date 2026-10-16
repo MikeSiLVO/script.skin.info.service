@@ -13,6 +13,7 @@ from lib.data.api.utilities import tmdb_image_url
 # Trakt wrapped responses nest the media object under "movie" or "show"
 _TRAKT_WRAPPED = {
     "trakt_trending", "trakt_anticipated", "trakt_watched", "trakt_collected", "trakt_boxoffice",
+    "trakt_played", "trakt_watchlist", "trakt_history", "trakt_inprogress",
 }
 
 WIDGET_REGISTRY: Dict[str, dict] = {
@@ -32,7 +33,18 @@ WIDGET_REGISTRY: Dict[str, dict] = {
     "trakt_recommendations": {
         "provider": "trakt", "types": ("movie", "tv"), "label": 32640, "auth": "oauth",
     },
+    "trakt_played":      {"provider": "trakt", "types": ("movie", "tv"), "label": 32125},
+    "trakt_watchlist": {
+        "provider": "trakt", "types": ("movie", "tv"), "label": 32084, "auth": "oauth",
+    },
+    "trakt_history": {
+        "provider": "trakt", "types": ("movie", "tv"), "label": 32123, "auth": "oauth",
+    },
+    "trakt_inprogress": {"provider": "trakt", "types": ("tv",), "label": 32124, "auth": "oauth"},
 }
+
+# show history lists episodes, several per show
+_HISTORY_EPISODES_PER_SHOW = 5
 
 
 def _get_library_lookup(media_type: str, tmdb_ids: Iterable) -> Dict[str, Dict[str, object]]:
@@ -234,6 +246,13 @@ def _fetch_trakt(action: str, media_type: str, limit: int, page: int, period: st
         "trakt_boxoffice": lambda: api.get_box_office(limit=limit),
         "trakt_recommendations": lambda: api.get_recommendations(
             trakt_type, limit=limit, page=page),
+        "trakt_played": lambda: api.get_most_played(
+            trakt_type, period=period, limit=limit, page=page),
+        "trakt_watchlist": lambda: api.get_watchlist(trakt_type, limit=limit, page=page),
+        "trakt_history": lambda: api.get_history(
+            trakt_type, page=page,
+            limit=limit if trakt_type == "movie" else limit * _HISTORY_EPISODES_PER_SHOW),
+        "trakt_inprogress": lambda: api.get_up_next(limit=limit, page=page),
     }
     return dispatch[action]()
 
@@ -309,8 +328,14 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
                 if media_obj:
                     medias.append(media_obj)
 
+            seen = set()
             for media_obj in medias:
-                normalized_items.append(_normalize_trakt_item(media_obj, media_type))
+                normalized = _normalize_trakt_item(media_obj, media_type)
+                key = normalized.get("tmdb_id") or normalized.get("title")
+                if key not in seen:
+                    seen.add(key)
+                    normalized_items.append(normalized)
+            normalized_items = normalized_items[:limit]
 
         library_lookup = _get_library_lookup(
             kodi_media_type, [n.get("tmdb_id") for n in normalized_items]

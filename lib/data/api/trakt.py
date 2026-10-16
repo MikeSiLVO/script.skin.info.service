@@ -1,7 +1,7 @@
 """Trakt API client and the standalone IMDb Top 250 fetch."""
 from __future__ import annotations
 
-from typing import Any, Optional, Dict, Set, Tuple
+from typing import Any, Optional, Dict, List, Set, Tuple, Final
 from datetime import datetime, timedelta
 import json
 import threading
@@ -13,7 +13,19 @@ from lib.data.api.source import RatingSource
 from lib.data.api.client import RateLimitHit, RetryableError
 from lib.data.api.utilities import decode_key
 from lib.data.api import tracker as usage_tracker
+from lib.data.database.cache import cache_trakt, get_cached_trakt
 from lib.kodi.client import log
+
+_ACTIVITY_MINUTES: Final = 1
+_USER_LIST_HOURS: Final = 24
+# newly aired episodes change it without any account activity
+_UP_NEXT_HOURS: Final = 6
+
+
+def _stamp(activity: dict, path: str) -> str:
+    """One last-change stamp from Trakt's activity map, by a path such as `watchlist.updated_at`."""
+    section, _, field = path.partition(".")
+    return str((activity.get(section) or {}).get(field) or "")
 
 
 def _as_part(value) -> int:
@@ -345,12 +357,24 @@ class ApiTrakt(RatingSource):
         requires_auth: bool = False,
         abort_flag=None
     ) -> list:
-        """Paged Trakt list request, returning empty when auth is required but missing."""
+        """Paged Trakt list request; empty when it fails or lacks authorization."""
+        return self._request_list(endpoint, limit, page, extended, requires_auth, abort_flag) or []
+
+    def _request_list(
+        self,
+        endpoint: str,
+        limit: int = 20,
+        page: int = 1,
+        extended: str = 'full',
+        requires_auth: bool = False,
+        abort_flag=None
+    ) -> Optional[List[dict]]:
+        """Request one page of a Trakt list; None when it fails or lacks authorization."""
         headers: Optional[Dict[str, str]] = None
         if requires_auth:
             headers = self._auth_headers(abort_flag)
             if not headers:
-                return []
+                return None
 
         params: Dict[str, str | int] = {"limit": limit, "page": page}
         if extended:
@@ -363,18 +387,54 @@ class ApiTrakt(RatingSource):
                 headers=headers,
                 abort_flag=abort_flag
             )
-            if data and isinstance(data, list):
-                return data
-            return []
+            return data if isinstance(data, list) else None
         except RateLimitHit as e:
             wait = e.retry_after_seconds
             log("Trakt",
                 f"Rate limit hit on {endpoint} (Retry-After={wait}); returning empty list",
                 xbmc.LOGWARNING)
-            return []
+            return None
         except Exception as e:
             log("Trakt", f"List fetch error for {endpoint}: {e}", xbmc.LOGWARNING)
-            return []
+            return None
+
+    def _activities(self, abort_flag=None) -> Optional[dict]:
+        """Get the account's last-change stamps, kept a minute for every user list to share."""
+        cached = get_cached_trakt("activities")
+        if isinstance(cached, dict):
+            return cached
+        headers = self._auth_headers(abort_flag)
+        if not headers:
+            return None
+        try:
+            data = self.session.get(
+                "/sync/last_activities", headers=headers, abort_flag=abort_flag)
+        except Exception as e:
+            log("Trakt", f"Activity check failed: {e}", xbmc.LOGWARNING)
+            return None
+        if not isinstance(data, dict):
+            return None
+        cache_trakt("activities", data, _ACTIVITY_MINUTES / 60)
+        return data
+
+    def _user_list(self, endpoint: str, stamp_keys: Tuple[str, ...], max_hours: float,
+                   limit: int, page: int, abort_flag=None) -> list:
+        """Get a user list, cached while its activity stamps hold, fetched and cached otherwise."""
+        cache_key = f"{endpoint}?limit={limit}&page={page}"
+        cached = get_cached_trakt(cache_key)
+        cached_items = cached.get("items") or [] if isinstance(cached, dict) else []
+        activity = self._activities(abort_flag)
+        if activity is None:
+            return cached_items
+        stamps = [_stamp(activity, key) for key in stamp_keys]
+        if isinstance(cached, dict) and cached.get("stamps") == stamps:
+            return cached_items
+        items = self._request_list(
+            endpoint, limit, page, requires_auth=True, abort_flag=abort_flag)
+        if items is None:
+            return cached_items
+        cache_trakt(cache_key, {"stamps": stamps, "items": items}, max_hours)
+        return items
 
     def get_trending(
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
@@ -409,6 +469,38 @@ class ApiTrakt(RatingSource):
             f"/{media_type}s/watched/{period}", limit=limit, page=page, abort_flag=abort_flag
         )
 
+    def get_most_played(
+        self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
+        abort_flag=None
+    ) -> list:
+        """Get Trakt's most played movies or shows for a period."""
+        return self._get_list(
+            f"/{media_type}s/played/{period}", limit=limit, page=page, abort_flag=abort_flag
+        )
+
+    def get_watchlist(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
+        """Get the user's Trakt watchlist of movies or shows; empty without authorization."""
+        return self._user_list(
+            f"/sync/watchlist/{media_type}s", ("watchlist.updated_at",),
+            _USER_LIST_HOURS, limit, page, abort_flag)
+
+    def get_history(
+        self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
+    ) -> list:
+        """Get the user's Trakt watch history, newest first; empty without authorization."""
+        stamp = "movies.watched_at" if media_type == "movie" else "episodes.watched_at"
+        return self._user_list(
+            f"/sync/history/{media_type}s", (stamp,), _USER_LIST_HOURS, limit, page, abort_flag)
+
+    def get_up_next(self, limit: int = 20, page: int = 1, abort_flag=None) -> list:
+        """Get the user's shows with aired episodes left to watch, most recently watched first."""
+        return self._user_list(
+            "/sync/progress/up_next",
+            ("episodes.watched_at", "shows.hidden_at", "shows.dropped_at"),
+            _UP_NEXT_HOURS, limit, page, abort_flag)
+
     def get_most_collected(
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
         abort_flag=None
@@ -426,11 +518,9 @@ class ApiTrakt(RatingSource):
         self, media_type: str, limit: int = 20, page: int = 1, abort_flag=None
     ) -> list:
         """Get Trakt's recommendations for the user; empty without authorization."""
-        return self._get_list(
-            f"/recommendations/{media_type}s",
-            limit=limit, page=page,
-            requires_auth=True, abort_flag=abort_flag
-        )
+        return self._user_list(
+            f"/recommendations/{media_type}s", ("recommendations.updated_at",),
+            _USER_LIST_HOURS, limit, page, abort_flag)
 
     def get_show_calendar(self, start_date: str, days: int, abort_flag=None) -> Optional[list]:
         """Get every show episode airing in a span from a UTC date; None when the fetch fails."""

@@ -27,6 +27,10 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [Trakt Most Collected](#trakt-most-collected)
 - [Trakt Box Office](#trakt-box-office)
 - [Trakt Recommendations](#trakt-recommendations) (OAuth)
+- [Trakt Most Played](#trakt-most-played)
+- [Trakt Watchlist](#trakt-watchlist) (OAuth)
+- [Trakt History](#trakt-history) (OAuth)
+- [Trakt In Progress](#trakt-in-progress) (OAuth)
 
 **Reference**
 - [Common Parameters](#common-parameters)
@@ -477,6 +481,89 @@ Personalized recommendations based on the user's Trakt watch history and ratings
 ```
 
 **Widget Type:** Movie or TV Show
+
+---
+
+## Trakt Most Played
+
+Items played the most over a time period, counting every play including rewatches.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_played&amp;type=movie</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `type` | No | `movie` | `movie` or `tv` |
+| `period` | No | `weekly` | `daily`, `weekly`, `monthly`, or `all` |
+
+**Widget Type:** Movie or TV Show
+
+---
+
+## Trakt Watchlist
+
+The user's Trakt watchlist, in the order set on Trakt.
+
+**Requires Trakt OAuth.** Returns empty list if no Trakt account is linked.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_watchlist&amp;type=movie</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `type` | No | `movie` | `movie` or `tv` |
+
+**Widget Type:** Movie or TV Show
+
+---
+
+## Trakt History
+
+What the user watched most recently. A show is listed once, however many of its episodes were
+watched.
+
+**Requires Trakt OAuth.** Returns empty list if no Trakt account is linked.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_history&amp;type=tv</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `type` | No | `movie` | `movie` or `tv` |
+
+**Widget Type:** Movie or TV Show
+
+---
+
+## Trakt In Progress
+
+Shows the user has started with aired episodes left to watch, the most recently watched first.
+Shows hidden from progress on Trakt are left out.
+
+**Requires Trakt OAuth.** Returns empty list if no Trakt account is linked.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_inprogress</content>
+```
+
+**Widget Type:** TV Show
 
 ---
 
