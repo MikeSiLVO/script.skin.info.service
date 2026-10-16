@@ -102,4 +102,5 @@ Plugin URLs the dialog populates. Bind them to any container `<content>` in your
 | `container.recommendations.path` | TMDB "you might also like" |
 | `container.similar.path` | Library items with overlapping genres |
 | `container.crew.path` | Full crew, sorted by job importance |
+| `container.posters.path` | TMDB posters, see [TMDB Posters](../plugin/widgets-discovery.md#tmdb-posters) |
 | `container.library.path` | The item's full local library record as a single ListItem (only when `dbid` is known), read via `Container(<id>).ListItem.*` for all local art, stream details, watched state |

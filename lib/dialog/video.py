@@ -53,7 +53,7 @@ class DialogVideoInfo(InfoDialogBase):
         self.set_properties(props)
 
     def _bind_containers(self) -> None:
-        """Point the skin's containers at plugin paths for cast, crew and related titles."""
+        """Bind the skin's containers to plugin paths for credits, posters and related titles."""
         base_url = 'plugin://script.skin.info.service/'
         containers: Dict[str, str] = {}
 
@@ -81,6 +81,9 @@ class DialogVideoInfo(InfoDialogBase):
             )
             containers['similar'] = (
                 f"{base_url}?action=similar&dbtype={self._media_type}&{id_query}"
+            )
+            containers['posters'] = (
+                f"{base_url}?action=tmdb_posters&dbtype={self._media_type}&{id_query}"
             )
 
         if self._dbid:

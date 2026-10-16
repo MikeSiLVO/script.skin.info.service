@@ -18,6 +18,7 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [TMDB On The Air](#tmdb-on-the-air)
 - [TMDB Recommendations](#tmdb-recommendations)
 - [TMDB Discover](#tmdb-discover)
+- [TMDB Posters](#tmdb-posters)
 
 **Trakt**
 - [Trakt Trending](#trakt-trending)
@@ -290,6 +291,46 @@ Titles that share a trait with a seed item, or the whole TMDB catalogue in one o
 - Item properties match the other TMDB widgets, see [Item Properties](#item-properties).
 
 **Widget Type:** Movie or TV Show
+
+---
+
+## TMDB Posters
+
+A movie's or TV show's posters from TMDB. Posters in the online metadata language come first, then
+English, then text-free ones; posters in other languages are not listed.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=tmdb_posters&amp;dbtype=movie&amp;dbid=$INFO[ListItem.DBID]</content>
+```
+
+The [Image Viewer](../dialogs/image-viewer.md) opens a poster full screen when given the same path
+as `images_path`.
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `dbtype` | Yes | - | `movie` or `tvshow` |
+| `tmdb_id` | Conditional | - | TMDB ID of the item. Provide this OR `dbid`. |
+| `dbid` | Conditional | - | Library ID of the item. |
+
+### Item Properties
+
+| Property | Description |
+|----------|-------------|
+| `ListItem.Label` | Poster language, or `Text-free / Untagged` |
+| `ListItem.Label2` | Dimensions, e.g. `2000x3000` |
+| `ListItem.Art(thumb)`, `ListItem.Art(poster)` | The poster |
+| `ListItem.Property(language)` | Language name, empty when text-free |
+| `ListItem.Property(language_short)` | Language code, e.g. `en` |
+| `ListItem.Property(width)`, `ListItem.Property(height)` | Size in pixels |
+| `ListItem.Property(dimensions)` | Same as `Label2` |
+| `ListItem.Property(aspectratio)` | Width divided by height |
+| `ListItem.Property(rating)`, `ListItem.Property(votes)` | TMDB user rating and vote count |
+
+**Widget Type:** Images
 
 ---
 

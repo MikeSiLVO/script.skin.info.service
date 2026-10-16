@@ -267,6 +267,12 @@ def _handle_tmdb_recommendations(handle: int, params: dict) -> None:
     handle_tmdb_recommendations(handle, params)
 
 
+def _handle_tmdb_posters(handle: int, params: dict) -> None:
+    """List a movie's or TV show's TMDB posters for a dialog panel or the image viewer."""
+    from lib.plugin.widgets.discovery import handle_tmdb_posters
+    handle_tmdb_posters(handle, params)
+
+
 def _handle_seasonal(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_seasonal
     handle_seasonal(handle, params)
@@ -369,6 +375,7 @@ _HANDLERS = {
     'recommended': _handle_recommended,
     'tmdb_recommendations': _handle_tmdb_recommendations,
     'tmdb_discover': _handle_tmdb_discover,
+    'tmdb_posters': _handle_tmdb_posters,
     'seasonal': _handle_seasonal,
     'similar_artists': _handle_similar_artists,
     'artist_albums': _handle_artist_albums,

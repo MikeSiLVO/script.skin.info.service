@@ -452,6 +452,66 @@ def handle_tmdb_recommendations(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=False)
 
 
+def handle_tmdb_posters(handle: int, params: dict) -> None:
+    """Plugin entry for an item's TMDB posters, the metadata language first, then English."""
+    try:
+        dbtype = params.get('dbtype', [''])[0]
+        tmdb_id = _seed_tmdb_id(dbtype, params) if dbtype in ('movie', 'tvshow') else 0
+        if not tmdb_id:
+            log("Plugin", f"TMDB Posters: No tmdb_id for dbtype '{dbtype}'", xbmc.LOGWARNING)
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        from lib.data.api.tmdb import ApiTmdb
+        from lib.artwork.utilities import get_language_display_name
+        from lib.kodi.formatters import format_rating
+        from lib.kodi.settings import KodiSettings
+
+        data = ApiTmdb().get_complete_data(dbtype, tmdb_id)
+        if not data:
+            xbmcplugin.endOfDirectory(handle, succeeded=False)
+            return
+
+        preferred = KodiSettings.online_metadata_language().split('-')[0]
+        order = {preferred: 0, 'en': 1, '': 2}
+        posters = [p for p in (data.get('images') or {}).get('posters') or []
+                   if p.get('file_path') and not p['file_path'].lower().endswith('.svg')]
+        posters.sort(key=lambda p: order.get(p.get('iso_639_1') or '', 3))
+
+        for poster in posters:
+            language = poster.get('iso_639_1') or ''
+            width = poster.get('width')
+            height = poster.get('height')
+            dimensions = f"{width}x{height}" if width and height else ''
+            item = xbmcgui.ListItem(get_language_display_name(language), dimensions,
+                                    offscreen=True)
+            url = tmdb_image_url(poster['file_path'], 'w780')
+            item.setArt({'thumb': url, 'poster': url, 'icon': url})
+            props = {
+                'language': get_language_display_name(language) if language else '',
+                'language_short': language,
+                'width': str(width or ''),
+                'height': str(height or ''),
+                'dimensions': dimensions,
+                'rating': format_rating(poster.get('vote_average')),
+                'votes': str(poster.get('vote_count') or ''),
+                'aspectratio': str(poster.get('aspect_ratio') or ''),
+            }
+            for key, value in props.items():
+                if value:
+                    item.setProperty(key, value)
+            xbmcplugin.addDirectoryItem(handle, '', item, False)
+
+        xbmcplugin.setContent(handle, 'images')
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+
+    except Exception as e:
+        import traceback
+        log("Plugin", f"TMDB Posters: Error - {e}", xbmc.LOGERROR)
+        log("Plugin", traceback.format_exc(), xbmc.LOGERROR)
+        xbmcplugin.endOfDirectory(handle, succeeded=False)
+
+
 _DISCOVER_SORTS: Final = {
     "popularity": "popularity.desc", "votes": "vote_count.desc", "revenue": "revenue.desc",
 }
