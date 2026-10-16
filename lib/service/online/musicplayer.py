@@ -156,7 +156,7 @@ class MusicPlayerHandler:
 
     def _fetch_worker(self, mode: _Mode, state: _State, artist_name: str,
                       part_key: Tuple[str, str], fetch_artist: bool) -> None:
-        """Fetch off-thread, discarding the result if the artist or track changed while it ran."""
+        """Fetch off-thread, discarding a stale result and clearing properties on an empty one."""
         try:
             if self._service.abort_flag.is_requested():
                 return
@@ -179,7 +179,11 @@ class MusicPlayerHandler:
                 abort_flag=self._service.capped_abort_flag,
             )
 
-            if artist_name != state.key or not result:
+            if artist_name != state.key:
+                return
+            if not result:
+                clear_group(mode.prefix)
+                self._apply_parts(mode, artist_name, title, album)
                 return
 
             self._apply(mode, artist_name, result, title, album)
