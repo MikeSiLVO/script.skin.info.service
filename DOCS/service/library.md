@@ -790,6 +790,7 @@ Set during video playback of a library item, cleared when playback stops.
 | `SkinInfo.Player.Rating.*` | Movie or episode | `{source}`, `{source}.Votes`, `{source}.Percent`, `{source}.Stars`, as in the movie [Ratings](#ratings-1) |
 | `SkinInfo.Player.TVShow.*` | Episode | The parent show's [Basic Information](#tv-shows), Show Details and `WatchTime` |
 | `SkinInfo.Player.TVShow.Rating.*` | Episode | The parent show's ratings, as `SkinInfo.Player.Rating.*` |
+| `SkinInfo.Player.Season.*` | Episode | The episode's season, as [Seasons](#seasons): `Episode` is its episode count |
 | `SkinInfo.Player.MusicVideo.*` | Music video | Every [Music Videos](#music-videos) property except artwork, plus its Music Library Cross-Reference |
 
 ---

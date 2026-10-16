@@ -77,10 +77,10 @@ class PlayerVideoTracker:
         set_ratings_properties(details, "Player")
 
     def _set_episode(self, episodeid: str) -> None:
-        """Set rating properties for the playing episode and its show."""
+        """Set rating properties for the playing episode, and its show's and season's properties."""
         details = get_item_details(
             'episode', int(episodeid),
-            ["title", "ratings", "tvshowid", "season", "episode", "showtitle"],
+            ["title", "ratings", "tvshowid", "seasonid", "season", "episode", "showtitle"],
             cache_key=f"episode:{episodeid}:player",
         )
         if not isinstance(details, dict):
@@ -90,6 +90,9 @@ class PlayerVideoTracker:
         tvshowid = details.get("tvshowid")
         if tvshowid and tvshowid != -1:
             self._set_tvshow(str(tvshowid))
+        seasonid = details.get("seasonid")
+        if seasonid and seasonid != -1:
+            self._set_season(int(seasonid))
 
     def _set_tvshow(self, tvshowid: str) -> None:
         """Set tvshow properties for the playing item, with runtime from its episodes."""
@@ -120,6 +123,35 @@ class PlayerVideoTracker:
         batch_set_props(props)
 
         set_ratings_properties(details, "Player.TVShow")
+
+    def _set_season(self, seasonid: int) -> None:
+        """Set season properties for the playing episode's season, its episode count included."""
+        details = get_item_details(
+            'season', seasonid,
+            ["season", "showtitle", "playcount", "episode", "tvshowid", "userrating", "title"],
+            cache_key=f"season:{seasonid}:player",
+        )
+        if not isinstance(details, dict):
+            return
+
+        from lib.kodi.library import (
+            cached_watch_minutes, cached_watched_episodes, resolve_season_runtime,
+            resolve_show_runtime,
+        )
+        tvshowid = details.get("tvshowid")
+        season = details.get("season")
+        if tvshowid and tvshowid != -1 and season is not None:
+            _, avg = resolve_show_runtime(int(tvshowid))
+            if avg:
+                details["runtime"] = avg
+            details["total_runtime"] = resolve_season_runtime(
+                int(tvshowid), int(season), details.get("episode"))
+            details["watch_minutes"] = cached_watch_minutes(int(tvshowid), int(season)) or 0
+            details["watchedepisodes"] = cached_watched_episodes(int(tvshowid), int(season)) or 0
+
+        from lib.kodi.properties import build_season_data
+        data = build_season_data(details)
+        batch_set_props({f"SkinInfo.Player.Season.{k}": v for k, v in data.items()})
 
     def _set_musicvideo(self, musicvideoid: str) -> None:
         """Set musicvideo properties and library art for the playing item."""
