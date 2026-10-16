@@ -22,11 +22,15 @@ _MENU_REGISTRY = (
 
 
 def main() -> None:
-    """Context-menu entry: offer the enabled actions for the item, then run the chosen one."""
+    """Context-menu entry: run the chosen library item action, or open a programme's match fix."""
     addon: xbmcaddon.Addon = xbmcaddon.Addon()
 
     listitem = getattr(sys, 'listitem', None)
     if listitem is None:
+        return
+
+    if listitem.getPath().startswith('pvr://'):
+        xbmc.executebuiltin('RunScript(script.skin.info.service,action=pvr_match)')
         return
 
     db_id: int = 0

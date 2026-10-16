@@ -202,6 +202,19 @@ _PROVIDER_SIDE: List[str] = [
     ) WITHOUT ROWID
     ''',
     'CREATE INDEX IF NOT EXISTS mb_id_alias_canonical ON mb_id_alias(canonical_id)',
+    '''
+    CREATE TABLE IF NOT EXISTS pvr_match (
+        title_key   TEXT    NOT NULL,
+        year        INTEGER NOT NULL,
+        kind        TEXT    NOT NULL,
+        media_type  TEXT    NOT NULL,
+        tmdb_id     INTEGER NOT NULL,
+        checked_at  INTEGER NOT NULL,
+        last_seen   INTEGER NOT NULL,
+        manual      INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (title_key, year, kind)
+    ) WITHOUT ROWID
+    ''',
 ]
 
 _IMDB_SIDE: List[str] = [

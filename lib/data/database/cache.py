@@ -17,6 +17,7 @@ from lib.data.database._infrastructure import (
     chunked_in_modify,
 )
 from lib.data.database.mapping import FIND_MISS_TTL_DAYS
+from lib.data.database.pvr import prune_pvr_matches
 from lib.kodi.client import log
 
 # under TMDB's six-month cache limit
@@ -471,6 +472,7 @@ def clear_expired_cache() -> int:
                    + person_deleted + online_deleted + provider_deleted
                    + episode_miss_deleted + find_miss_deleted)
 
+    deleted += prune_pvr_matches()
     if deleted > 0:
         log("Database", f"Cleared {deleted} expired cache entries")
 

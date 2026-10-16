@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 import xbmc
 import xbmcgui
 
@@ -194,8 +194,10 @@ def show_textviewer(heading: str, text: str, use_mono: bool = False) -> None:
 
 def show_select(
     heading: str,
-    options: list[str],
-    preselect: int = -1
+    options: Sequence[Union[str, xbmcgui.ListItem]],
+    preselect: int = -1,
+    use_details: bool = False
 ) -> int:
-    """Show a select dialog; the chosen index, or -1 when cancelled."""
-    return xbmcgui.Dialog().select(heading, options, preselect=preselect)  # type: ignore[arg-type]
+    """Show a select dialog, optionally detailed with art; the chosen index, -1 when cancelled."""
+    return xbmcgui.Dialog().select(
+        heading, list(options), preselect=preselect, useDetails=use_details)

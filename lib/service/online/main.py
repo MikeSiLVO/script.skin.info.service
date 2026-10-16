@@ -12,6 +12,8 @@ from lib.service.online.focus import FocusHandler
 from lib.service.online.player import PlayerHandler
 from lib.service.online.musicplayer import MusicPlayerHandler
 from lib.service.online.musicvideo import MusicVideoFocusHandler
+from lib.service.online.pvr import PvrFocusHandler
+from lib.data.pvr import MATCH_CHANGED
 from lib.service.online.updater import UpdaterHandler
 
 
@@ -38,16 +40,18 @@ class CancelToken:
 
 
 class OnlineScanMonitor(xbmc.Monitor):
-    """Triggers online updater refresh when Kodi finishes a library scan."""
+    """Monitor asking for an updater refresh on a library scan and a PVR reread on a new match."""
 
     def __init__(self, online_service: "OnlineServiceMain"):
         super().__init__()
         self._online_service = online_service
 
     def onNotification(self, sender: str, method: str, data: str) -> None:
-        """Ask for an update once a library scan finishes."""
+        """Ask for an update once a library scan finishes; reread the programme on a new match."""
         if method == 'VideoLibrary.OnScanFinished':
             self._online_service.request_update()
+        elif method == f'Other.{MATCH_CHANGED}':
+            self._online_service.pvr.forget()
 
 
 class OnlineServiceMain(threading.Thread):
@@ -65,6 +69,7 @@ class OnlineServiceMain(threading.Thread):
         self.player = PlayerHandler(self)
         self.music = MusicPlayerHandler(self)
         self.musicvideo = MusicVideoFocusHandler(self)
+        self.pvr = PvrFocusHandler(self)
         self.updater = UpdaterHandler(self)
 
     def new_cancel_token(self) -> CancelToken:
@@ -96,9 +101,10 @@ class OnlineServiceMain(threading.Thread):
             log("Service", "Online service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
-        """One pass over the focus, player, music and musicvideo handlers."""
+        """One pass over the focus, player, music, musicvideo and PVR handlers."""
         self.focus.process()
         self.player.process()
         self.music.process()
         self.music.rotate_fanart()
         self.musicvideo.process()
+        self.pvr.process()

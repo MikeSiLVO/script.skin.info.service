@@ -16,6 +16,7 @@ Window properties and plugin paths for Kodi skins.
 |----------------------------------------|--------------------------------------|
 | [Library Properties](service/library.md) | Focused item metadata and artwork  |
 | [Online Properties](service/online.md) | External API data (TMDb, etc.)       |
+| [Live TV Properties](service/pvr.md) | Artwork and details for live TV programmes |
 | [Stinger Notifications](service/stinger.md) | Mid/post-credits scene detection |
 
 ## Info Dialogs

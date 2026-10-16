@@ -349,6 +349,11 @@ msgctxt "#32078"
 msgid "Info: view full size"
 msgstr "Info: view full size"
 
+#. "match" is the movie or TV show found for a programme, not a sports match
+msgctxt "#32079"
+msgid "Fix match"
+msgstr "Fix match"
+
 msgctxt "#32080"
 msgid "API Key"
 msgstr "API Key"

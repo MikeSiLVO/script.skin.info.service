@@ -539,6 +539,15 @@ def _handle_search_library_person(args: dict) -> None:
             xbmc.executebuiltin(f'ActivateWindow(Videos,videodb://episodes/{item["id"]},return)')
 
 
+def _handle_pvr_match(_args: dict) -> None:
+    """Let the user fix the focused live TV programme's match."""
+    from lib.data.database._infrastructure import init_database
+    from lib.script.pvr import fix_match
+
+    init_database()
+    fix_match()
+
+
 def _handle_online_fetch(args: dict) -> None:
     """Fetch online data into a window property; an episode resolves ids via its parent show."""
     from lib.data.online import fetch_all_online_data
@@ -843,6 +852,7 @@ _HANDLERS: Dict[str, Callable[[dict], None]] = {
     "tmdb_search": _handle_tmdb_search,
     "search_library_person": _handle_search_library_person,
     "online_fetch": _handle_online_fetch,
+    "pvr_match": _handle_pvr_match,
     "dialog_actor_info": _handle_dialog_actor_info,
     "dialog_video_info": _handle_dialog_video_info,
     "dialog_image_viewer": _handle_dialog_image_viewer,

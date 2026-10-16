@@ -673,12 +673,13 @@ class ApiTmdb(RatingSource):
         media_type: str = 'movie',
         year: int = 0,
         abort_flag=None
-    ) -> list[dict]:
-        """Search TMDB movies, TV shows or people; a year filters movies and TV only."""
+    ) -> list[dict] | None:
+        """Search TMDB movies, TV shows, people or all three; None when the request fails."""
         endpoint_map = {
             'movie': '/search/movie',
             'tv': '/search/tv',
             'person': '/search/person',
+            'multi': '/search/multi',
         }
 
         endpoint = endpoint_map.get(media_type, '/search/movie')
@@ -691,7 +692,7 @@ class ApiTmdb(RatingSource):
             params[year_param] = year
 
         data = self.session.get(endpoint, params=params, abort_flag=abort_flag)
-        return data.get('results', []) if data else []
+        return None if data is None else data.get('results') or []
 
     def _get_list(
         self,
