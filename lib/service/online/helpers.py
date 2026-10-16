@@ -26,6 +26,21 @@ def infolabel_imdb_id(info_prefix: str) -> str:
     return imdb_id
 
 
+def unlisted_ids(scoped: bool) -> Tuple[str, str]:
+    """Ids a focused item outside the library carries, its show's for a season or episode."""
+    if scoped:
+        imdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tvshow.imdb)")
+                   or xbmc.getInfoLabel("ListItem.Property(tvshow.imdb_id)"))
+        tmdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tvshow.tmdb)")
+                   or xbmc.getInfoLabel("ListItem.Property(tvshow.tmdb_id)"))
+    else:
+        imdb_id = infolabel_imdb_id("ListItem")
+        tmdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tmdb)")
+                   or xbmc.getInfoLabel("ListItem.Property(tmdb_id)"))
+    return (imdb_id if imdb_id.startswith("tt") else "",
+            tmdb_id if tmdb_id.isdigit() else "")
+
+
 def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
     """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> ID map -> JSON-RPC fallback."""
     imdb_id = infolabel_imdb_id(info_prefix)

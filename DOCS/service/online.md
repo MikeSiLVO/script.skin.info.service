@@ -1,6 +1,6 @@
 # Online Properties
 
-Window properties from external APIs, updated automatically when library items are focused or during playback.
+Window properties from external APIs, updated automatically when movies and TV shows are focused or during playback.
 
 [← Back to Index](../index.md)
 
@@ -25,14 +25,14 @@ Window properties from external APIs, updated automatically when library items a
 
 ## Overview
 
-The online service fetches metadata from external APIs when library items are focused or during video playback:
+The online service fetches metadata from external APIs when movies and TV shows are focused or during video playback:
 
 - **TMDb** - Full metadata, images, credits, trailers
 - **OMDb** - Awards data
 - **MDBList** - Ratings, Common Sense Media, RT status
 - **Trakt** - Ratings, subgenres
 
-**Library browsing** - Properties set with `SkinInfo.Online.*` prefix:
+**Browsing** - Properties set with `SkinInfo.Online.*` prefix:
 
 ```xml
 <label>$INFO[Window(Home).Property(SkinInfo.Online.Title)]</label>
@@ -47,6 +47,8 @@ The online service fetches metadata from external APIs when library items are fo
 ```
 
 Supported media types: `movie`, `tvshow`, `season`, `episode`, `musicvideo`. A season or episode carries its show's properties, apart from its ratings: see [Episode and Season Ratings](#episode-and-season-ratings).
+
+Items outside the library are covered too, such as add-on widgets, when they carry a TMDb or IMDb ID or a title to look up. A season or episode outside the library needs its show's ID or title, and gets no episode ratings.
 
 ---
 

@@ -312,6 +312,23 @@ def match_programme(programme: Programme, abort_flag=None) -> Optional[PvrTitle]
     return None
 
 
+def match_title(title: str, year: int, media_type: str, abort_flag=None) -> Optional[int]:
+    """Match a movie or TV show title to a TMDB id; None when nothing fits clearly."""
+    from lib.data.api.tmdb import ApiTmdb
+
+    folded = normalize(title)
+    if not folded:
+        return None
+    results = ApiTmdb().search(title, "multi", abort_flag=abort_flag)
+    if results is None:
+        raise PvrLookupFailed(title)
+    wanted = "movie" if media_type == "movie" else "tv"
+    candidates = [r for r in _candidates(results, folded, "tv" if wanted == "tv" else "", year)
+                  if r.get("media_type") == wanted]
+    picked = _pick(candidates)
+    return int(picked["id"]) if picked else None
+
+
 def programme_candidates(programme: Programme, abort_flag=None) -> List[dict]:
     """Search results to pick from: exact title matches, else every movie and show found."""
     from lib.data.api.tmdb import ApiTmdb
