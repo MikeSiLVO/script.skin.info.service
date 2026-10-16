@@ -1,4 +1,4 @@
-"""PVR focus handler: sets `SkinInfo.PVR.*` for the focused live TV programme."""
+"""PVR handlers: set `SkinInfo.PVR.*` and `SkinInfo.Player.PVR.*` for live TV programmes."""
 from __future__ import annotations
 
 import threading
@@ -29,45 +29,29 @@ if TYPE_CHECKING:
 
 
 PVR_PREFIX: Final = "SkinInfo.PVR."
+PLAYER_PVR_PREFIX: Final = "SkinInfo.Player.PVR."
 SKIN_BOOL: Final = "SkinInfo.PVR"
 
 _MAX_MISSES: Final = 5000
+_PLAYING_PATHS: Final = ("pvr://channels/tv/", "pvr://recordings/tv/")
 
 
-class PvrFocusHandler:
-    """Handler setting `SkinInfo.PVR.*` for the focused guide entry, channel, recording or timer."""
+class _PvrHandler:
+    """Base for the PVR handlers: match a programme, then publish its props under one prefix."""
 
-    def __init__(self, service: 'OnlineServiceMain'):
+    def __init__(self, service: 'OnlineServiceMain', prefix: str):
         self._service = service
-        self._last_focus: Optional[Tuple[str, str]] = None
+        self._prefix = prefix
+        self._last_read: Optional[Tuple[str, str]] = None
         self._last_key: Optional[PvrMatchKey] = None
         self._token: Optional['CancelToken'] = None
         self._published: Set[str] = set()
         self._keys_lock = threading.Lock()
         self._misses: Set[PvrMatchKey] = set()
 
-    def process(self) -> None:
-        """Read the focused programme; publish its cached props or start a lookup."""
-        if not skin_bool(SKIN_BOOL):
-            if self._last_focus is not None:
-                self._reset()
-            return
-        if not gui_transition_settled():
-            return
-        path = xbmc.getInfoLabel("ListItem.FileNameAndPath")
-        title = xbmc.getInfoLabel("ListItem.Title") if path.startswith("pvr://") else ""
-        if title and (path, title) == self._last_focus:
-            return
-        programme = read_programme(title) if is_programme_path(path) else None
-        if programme is None:
-            if self._last_focus is not None and not modal_dialog_active():
-                self._reset()
-            return
-        # fields are read one call at a time and can straddle a focus move
-        if xbmc.getInfoLabel("ListItem.FileNameAndPath") != path:
-            return
-        self._last_focus = (path, title)
-
+    def _handle(self, read: Tuple[str, str], programme: Programme) -> None:
+        """Handle a new programme read: publish its cached props, start a lookup when due."""
+        self._last_read = read
         key = None if is_skipped(programme) else match_key(programme)
         if key == self._last_key:
             return
@@ -99,8 +83,8 @@ class PvrFocusHandler:
                          daemon=True).start()
 
     def forget(self) -> None:
-        """Forget the focused programme after its match was changed by hand."""
-        self._last_focus = None
+        """Forget the current programme after its match was changed by hand."""
+        self._last_read = None
         self._last_key = None
 
     @staticmethod
@@ -153,26 +137,83 @@ class PvrFocusHandler:
     def _publish(self, props: Dict[str, str]) -> None:
         """Publish one programme's props, blanking the previous programme's leftovers."""
         new_keys = {k for k, v in props.items() if v}
-        to_set: Dict[str, Optional[str]] = {f"{PVR_PREFIX}{k}": str(props[k]) for k in new_keys}
+        to_set: Dict[str, Optional[str]] = {f"{self._prefix}{k}": str(props[k]) for k in new_keys}
         with self._keys_lock:
             stale = self._published - new_keys
             self._published = new_keys
         for old in stale:
-            to_set[f"{PVR_PREFIX}{old}"] = ""
+            to_set[f"{self._prefix}{old}"] = ""
         if to_set:
             batch_set_props(to_set)
 
     def _cancel_pending(self) -> None:
-        """Cancel the previous programme's lookup so a fast scroll stops piling on."""
+        """Cancel the previous programme's lookup."""
         if self._token is not None:
             self._token.cancel()
             self._token = None
 
     def _reset(self) -> None:
-        """Clear every `SkinInfo.PVR.*` property when focus leaves live TV or the skin unsets it."""
+        """Clear every property under the prefix once its programme goes or the skin unsets it."""
         self._cancel_pending()
-        clear_group(PVR_PREFIX)
+        clear_group(self._prefix)
         with self._keys_lock:
             self._published = set()
-        self._last_focus = None
+        self._last_read = None
         self._last_key = None
+
+
+class PvrFocusHandler(_PvrHandler):
+    """Handler setting `SkinInfo.PVR.*` for the focused guide entry, channel, recording or timer."""
+
+    def __init__(self, service: 'OnlineServiceMain'):
+        super().__init__(service, PVR_PREFIX)
+
+    def process(self) -> None:
+        """Read the focused programme; publish its cached props or start a lookup."""
+        if not skin_bool(SKIN_BOOL):
+            if self._last_read is not None:
+                self._reset()
+            return
+        if not gui_transition_settled():
+            return
+        path = xbmc.getInfoLabel("ListItem.FileNameAndPath")
+        title = xbmc.getInfoLabel("ListItem.Title") if path.startswith("pvr://") else ""
+        if title and (path, title) == self._last_read:
+            return
+        programme = read_programme(title) if is_programme_path(path) else None
+        if programme is None:
+            if self._last_read is not None and not modal_dialog_active():
+                self._reset()
+            return
+        # fields are read one call at a time and can straddle a focus move
+        if xbmc.getInfoLabel("ListItem.FileNameAndPath") != path:
+            return
+        self._handle((path, title), programme)
+
+
+class PvrPlayerHandler(_PvrHandler):
+    """Handler setting `SkinInfo.Player.PVR.*` for the playing TV programme or TV recording."""
+
+    def __init__(self, service: 'OnlineServiceMain'):
+        super().__init__(service, PLAYER_PVR_PREFIX)
+
+    def process(self) -> None:
+        """Read the playing programme; publish its cached props or start a lookup."""
+        if not skin_bool(SKIN_BOOL):
+            if self._last_read is not None:
+                self._reset()
+            return
+        path = xbmc.getInfoLabel("Player.FilenameAndPath")
+        if not path.startswith(_PLAYING_PATHS):
+            if self._last_read is not None:
+                self._reset()
+            return
+        title = xbmc.getInfoLabel("VideoPlayer.Title")
+        if title and (path, title) == self._last_read:
+            return
+        programme = read_programme(title, "VideoPlayer")
+        if programme is None:
+            if self._last_read is not None:
+                self._reset()
+            return
+        self._handle((path, title), programme)

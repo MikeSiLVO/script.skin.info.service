@@ -57,6 +57,18 @@ moment after focus settles.
 
 ---
 
+## Playback
+
+While a TV channel or TV recording plays, the same properties are set under
+`SkinInfo.Player.PVR.` for the programme playing. They change when the channel moves on to the next
+programme, and clear when playback stops.
+
+```xml
+<texture>$INFO[Window(Home).Property(SkinInfo.Player.PVR.Fanart)]</texture>
+```
+
+---
+
 ## Fix a Match
 
 **Fix match** in the context menu of a covered item lists the movies and TV shows found for its

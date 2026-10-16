@@ -103,8 +103,8 @@ def is_programme_path(path: str) -> bool:
     return False
 
 
-def read_programme(title: str) -> Optional[Programme]:
-    """Read the focused item's EPG fields; None when its title stands for no programme."""
+def read_programme(title: str, source: str = "ListItem") -> Optional[Programme]:
+    """Read a programme's EPG fields from the focused item or the player; None for no programme."""
     global _no_programme
     if not title:
         return None
@@ -114,14 +114,14 @@ def read_programme(title: str) -> Optional[Programme]:
         return None
     return Programme(
         title=title,
-        original_title=xbmc.getInfoLabel("ListItem.OriginalTitle"),
-        year=max(_int_label(xbmc.getInfoLabel("ListItem.Year")), 0),
-        season=_int_label(xbmc.getInfoLabel("ListItem.Season")),
-        episode=_int_label(xbmc.getInfoLabel("ListItem.Episode")),
-        episode_name=xbmc.getInfoLabel("ListItem.EpisodeName"),
-        genre=xbmc.getInfoLabel("ListItem.Genre"),
-        imdb_id=xbmc.getInfoLabel("ListItem.IMDBNumber"),
-        plot=xbmc.getInfoLabel("ListItem.Plot"),
+        original_title=xbmc.getInfoLabel(f"{source}.OriginalTitle"),
+        year=max(_int_label(xbmc.getInfoLabel(f"{source}.Year")), 0),
+        season=_int_label(xbmc.getInfoLabel(f"{source}.Season")),
+        episode=_int_label(xbmc.getInfoLabel(f"{source}.Episode")),
+        episode_name=xbmc.getInfoLabel(f"{source}.EpisodeName"),
+        genre=xbmc.getInfoLabel(f"{source}.Genre"),
+        imdb_id=xbmc.getInfoLabel(f"{source}.IMDBNumber"),
+        plot=xbmc.getInfoLabel(f"{source}.Plot"),
     )
 
 

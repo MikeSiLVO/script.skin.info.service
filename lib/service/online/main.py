@@ -12,7 +12,7 @@ from lib.service.online.focus import FocusHandler
 from lib.service.online.player import PlayerHandler
 from lib.service.online.musicplayer import MusicPlayerHandler
 from lib.service.online.musicvideo import MusicVideoFocusHandler
-from lib.service.online.pvr import PvrFocusHandler
+from lib.service.online.pvr import PvrFocusHandler, PvrPlayerHandler
 from lib.data.pvr import MATCH_CHANGED
 from lib.service.online.updater import UpdaterHandler
 
@@ -52,6 +52,7 @@ class OnlineScanMonitor(xbmc.Monitor):
             self._online_service.request_update()
         elif method == f'Other.{MATCH_CHANGED}':
             self._online_service.pvr.forget()
+            self._online_service.pvr_player.forget()
 
 
 class OnlineServiceMain(threading.Thread):
@@ -70,6 +71,7 @@ class OnlineServiceMain(threading.Thread):
         self.music = MusicPlayerHandler(self)
         self.musicvideo = MusicVideoFocusHandler(self)
         self.pvr = PvrFocusHandler(self)
+        self.pvr_player = PvrPlayerHandler(self)
         self.updater = UpdaterHandler(self)
 
     def new_cancel_token(self) -> CancelToken:
@@ -101,10 +103,11 @@ class OnlineServiceMain(threading.Thread):
             log("Service", "Online service stopped", xbmc.LOGINFO)
 
     def _loop(self) -> None:
-        """One pass over the focus, player, music, musicvideo and PVR handlers."""
+        """One pass over the focus, player, music, musicvideo and both PVR handlers."""
         self.focus.process()
         self.player.process()
         self.music.process()
         self.music.rotate_fanart()
         self.musicvideo.process()
         self.pvr.process()
+        self.pvr_player.process()
