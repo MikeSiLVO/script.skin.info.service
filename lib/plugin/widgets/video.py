@@ -257,6 +257,35 @@ def _trim_calendar_entry(entry: dict) -> dict:
     }
 
 
+_TRAKT_SHOW_ART: Final = (('poster', 'poster'), ('fanart', 'fanart'), ('clearlogo', 'logo'),
+                           ('banner', 'banner'), ('landscape', 'thumb'), ('clearart', 'clearart'))
+
+
+def _trim_account_entry(entry: dict) -> dict:
+    """Trim one account calendar entry, keeping a stand-in show for shows not in the library."""
+    from lib.data.api.utilities import trakt_image_url
+    trimmed = _trim_calendar_entry(entry)
+    show = entry.get('show') or {}
+    images = show.get('images') or {}
+    episode_images = (entry.get('episode') or {}).get('images') or {}
+    trimmed['thumb'] = trakt_image_url(episode_images.get('screenshot'))
+    trimmed['show'] = {
+        'title': show.get('title') or '',
+        'art': {key: trakt_image_url(images.get(name)) for key, name in _TRAKT_SHOW_ART},
+        'genre': [g.replace('-', ' ').title() for g in show.get('genres') or []],
+        'mpaa': show.get('certification') or '',
+    }
+    return trimmed
+
+
+def _account_calendar_episodes() -> list:
+    """The Trakt account's show episodes from yesterday on, library or not."""
+    from lib.data.api.trakt import ApiTrakt
+    start = (date.today() - timedelta(days=1)).isoformat()
+    entries = ApiTrakt().get_my_calendar(start, _CALENDAR_DAYS + 2)
+    return [_trim_account_entry(entry) for entry in entries if isinstance(entry, dict)]
+
+
 def _calendar_episodes() -> list:
     """Trakt's episodes from yesterday on, refetched daily or when stale; kept if a fetch fails."""
     from lib.data.database.cache import cache_show_calendar, get_cached_show_calendar
@@ -324,7 +353,7 @@ def _tvshows_by_id(tvshowids, properties: list) -> dict:
 
 
 def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem:
-    """Upcoming episode ListItem with the library show's art and its local air date and time."""
+    """Upcoming episode ListItem with the show's art and its local air date and time."""
     from lib.kodi.utilities import format_region_date, format_region_time
     listitem = _create_episode_listitem({
         'title': entry['title'],
@@ -335,7 +364,7 @@ def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem
         'firstaired': aired.date().isoformat(),
         'runtime': entry['runtime'] * 60,
     })
-    _set_episode_artwork_from_show(listitem, show.get('art', {}), {})
+    _set_episode_artwork_from_show(listitem, show.get('art', {}), {'thumb': entry.get('thumb', '')})
 
     video_tag = listitem.getVideoInfoTag()
     studios = show.get('studio') or ([entry['network']] if entry['network'] else [])
@@ -354,13 +383,14 @@ def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem
         'airday': xbmc.getLocalizedString(11 + aired.weekday()),
         'airtime': format_region_time(aired),
         'episodetype': entry['type'],
-        'tvshowdbid': str(show['tvshowid']),
+        'tvshowdbid': str(show.get('tvshowid') or ''),
+        'tvshowtmdbid': str(entry['tmdb'] or ''),
     })
     return listitem
 
 
 def handle_next_aired(handle: int, params: dict) -> None:
-    """Plugin entry: library shows' episodes airing on the requested days, in air time order."""
+    """Plugin entry: library or Trakt account shows' episodes airing on the requested days."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32071))
     today = date.today()
     weekday = _int_param(params, 'weekday', -1)
@@ -372,24 +402,38 @@ def handle_next_aired(handle: int, params: dict) -> None:
     start = today + timedelta(days=first)
     end = start + timedelta(days=days)
 
+    account = params.get('shows', ['library'])[0] == 'trakt'
+    if account:
+        from lib.data.api.trakt import ApiTrakt
+        if not ApiTrakt().is_authorized():
+            from lib.plugin.widgets.discovery import warn_trakt_auth
+            warn_trakt_auth()
+            xbmcplugin.endOfDirectory(handle, succeeded=True)
+            return
     library = _library_shows_by_id()
-    rows = []
-    for entry in _calendar_episodes():
+    matched = []
+    for entry in _account_calendar_episodes() if account else _calendar_episodes():
         aired = _local_air_time(entry['aired'])
         if not aired or not start <= aired.date() < end:
             continue
         tvshowid = _library_tvshowid(entry, library)
-        if tvshowid is not None:
-            rows.append((aired, tvshowid, entry))
+        if tvshowid is not None or account:
+            matched.append((aired, tvshowid, entry))
 
-    shows = _tvshows_by_id({tvshowid for _, tvshowid, _ in rows}, _CALENDAR_SHOW_PROPERTIES)
-    rows = [row for row in rows if row[1] in shows]
-    rows.sort(key=lambda row: (row[0], shows[row[1]].get('title', ''),
+    shows = _tvshows_by_id({tvshowid for _, tvshowid, _ in matched if tvshowid is not None},
+                           _CALENDAR_SHOW_PROPERTIES)
+    rows = []
+    for aired, tvshowid, entry in matched:
+        show = shows.get(tvshowid) if tvshowid is not None else entry['show']
+        if show:
+            rows.append((aired, show, entry))
+    rows.sort(key=lambda row: (row[0], row[1].get('title', ''),
                                row[2]['season'], row[2]['episode']))
-    for aired, tvshowid, entry in rows:
+    for aired, show, entry in rows:
+        tvshowid = show.get('tvshowid')
+        url = f"videodb://tvshows/titles/{tvshowid}/" if tvshowid else ''
         xbmcplugin.addDirectoryItem(
-            handle, f"videodb://tvshows/titles/{tvshowid}/",
-            _calendar_item(entry, aired, shows[tvshowid]), isFolder=True)
+            handle, url, _calendar_item(entry, aired, show), isFolder=bool(tvshowid))
 
     xbmcplugin.setContent(handle, 'episodes')
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)

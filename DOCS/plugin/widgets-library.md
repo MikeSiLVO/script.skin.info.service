@@ -212,7 +212,8 @@ ignored.
 ## Upcoming Episodes
 
 Episodes of the TV shows in your library that air in the coming days, from Trakt's TV calendar,
-in air time order.
+in air time order. With `shows=trakt`, the shows on your Trakt account instead, in the library or
+not.
 
 ### Usage
 
@@ -227,6 +228,7 @@ in air time order.
 | `day` | No | 0 | First day to list, counted from today: 0 is today, 1 tomorrow, up to 30 |
 | `days` | No | 1 | Number of days to list from `day`; the list ends 31 days from today at most |
 | `weekday` | No | | One weekday, 0 Monday to 6 Sunday: the next one, today included. Used instead of `day` |
+| `shows` | No | `library` | `library`, or `trakt` for the shows on your Trakt account. `trakt` requires Trakt OAuth and returns an empty list if no Trakt account is linked |
 
 ### Examples
 
@@ -242,13 +244,16 @@ in air time order.
 
 <!-- Thursday -->
 <content>plugin://script.skin.info.service/?action=next_aired&amp;weekday=3</content>
+
+<!-- Your Trakt shows, the next 7 days -->
+<content>plugin://script.skin.info.service/?action=next_aired&amp;days=7&amp;shows=trakt</content>
 ```
 
 ### Behavior
 
 1. Days and times are local, so an episode can land on a different day than the network lists
 2. Each episode is its own item, so a show releasing a whole season at once lists every episode
-3. Selecting an item opens the show in the library
+3. Selecting an item opens the show in the library; an episode of a show not in the library has no action
 4. Episode titles and plots are in English
 
 ### Item Properties
@@ -257,7 +262,8 @@ in air time order.
 - **MediaType**: `episode`
 - **Video Info**: title, season, episode, showtitle, plot, runtime, firstaired (the local air
   date), studio, mpaa, genre, status
-- **Artwork**: TV show artwork
+- **Artwork**: TV show artwork, from Trakt for a show not in the library. With `shows=trakt`, the
+  episode still as `thumb` when Trakt has one
 
 | Property | Description |
 |----------|-------------|
@@ -266,7 +272,8 @@ in air time order.
 | `AirDay` | Weekday name |
 | `AirTime` | Air time, formatted like Kodi's clock |
 | `EpisodeType` | `standard`, or a premiere or finale such as `season_premiere`, `mid_season_finale` or `series_finale` |
-| `TVShowDBID` | The show's library DBID |
+| `TVShowDBID` | The show's library DBID; empty for a show not in the library |
+| `TVShowTMDBID` | The show's TMDB ID |
 
 **Widget Type:** Episode
 

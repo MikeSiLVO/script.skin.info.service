@@ -19,8 +19,10 @@ from lib.kodi.client import log
 
 _ACTIVITY_MINUTES: Final = 1
 _USER_LIST_HOURS: Final = 24
-# newly aired episodes change it without any account activity
-_UP_NEXT_HOURS: Final = 6
+# airing episodes change these without any account activity
+_AIRING_HOURS: Final = 6
+_MY_SHOWS_STAMPS: Final = ("episodes.watched_at", "episodes.collected_at",
+                           "shows.watchlisted_at", "shows.hidden_at")
 _TRENDING_HOURS: Final = 1
 _CHART_HOURS: Final = 24
 _PERIOD_HOURS: Final = {"daily": 1, "weekly": 6}
@@ -503,7 +505,7 @@ class ApiTrakt(RatingSource):
         return self._user_list(
             "/sync/progress/up_next",
             ("episodes.watched_at", "shows.hidden_at", "shows.dropped_at"),
-            _UP_NEXT_HOURS, limit, page, abort_flag)
+            _AIRING_HOURS, limit, page, abort_flag)
 
     def get_most_collected(
         self, media_type: str, period: str = 'weekly', limit: int = 20, page: int = 1,
@@ -565,6 +567,11 @@ class ApiTrakt(RatingSource):
             log("Trakt", f"Calendar fetch error: {e}", xbmc.LOGWARNING)
             return None
         return data if isinstance(data, list) else None
+
+    def get_my_calendar(self, start_date: str, days: int, abort_flag=None) -> list:
+        """Get the account's show episodes airing in a span from a UTC date; empty without one."""
+        return self._user_list(f"/calendars/my/shows/{start_date}/{days}", _MY_SHOWS_STAMPS,
+                               _AIRING_HOURS, 100, 1, abort_flag)
 
     def test_connection(self) -> bool:
         """Test Trakt API connection; requires a valid OAuth token."""

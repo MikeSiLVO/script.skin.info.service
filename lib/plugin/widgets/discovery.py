@@ -9,7 +9,7 @@ import xbmcgui
 import xbmcplugin
 
 from lib.kodi.client import ADDON, log, get_item_details
-from lib.data.api.utilities import tmdb_image_url
+from lib.data.api.utilities import tmdb_image_url, trakt_image_url
 
 # Trakt wrapped responses nest the media object under "movie" or "show"
 _TRAKT_WRAPPED = {
@@ -107,18 +107,6 @@ def _extract_trakt_media(item: dict, action: str, media_type: str) -> Optional[d
     return item
 
 
-def _trakt_image_url(paths: Optional[list]) -> str:
-    """Pick the first Trakt image URL and prefix `https://`. Trakt URLs are protocol-less."""
-    if not paths or not isinstance(paths, list):
-        return ""
-    raw = paths[0]
-    if not raw:
-        return ""
-    if raw.startswith("http://") or raw.startswith("https://"):
-        return raw
-    return f"https://{raw}"
-
-
 def _normalize_trakt_item(media: dict, media_type: str) -> dict:
     """Convert a Trakt media object (`extended=full` images) to a normalized listitem dict."""
     is_movie = media_type == "movie"
@@ -131,8 +119,8 @@ def _normalize_trakt_item(media: dict, media_type: str) -> dict:
     genres_raw = media.get("genres", [])
     genres = [g.replace("-", " ").title() for g in genres_raw]
     images = media.get("images") or {}
-    poster = _trakt_image_url(images.get("poster"))
-    fanart = _trakt_image_url(images.get("fanart"))
+    poster = trakt_image_url(images.get("poster"))
+    fanart = trakt_image_url(images.get("fanart"))
 
     return {
         "title": media.get("title", ""),
@@ -262,8 +250,8 @@ _AUTH_WARN_PROP: Final = "SkinInfo.Trakt.AuthWarned"
 _AUTH_WARN_COOLDOWN: Final = 10.0
 
 
-def _warn_trakt_auth() -> None:
-    """Notify that a Trakt widget needs an account, at most once per cooldown across widgets."""
+def warn_trakt_auth() -> None:
+    """Warn that a Trakt widget needs an account, at most once per cooldown across widgets."""
     import time
     from lib.kodi.utilities import get_prop, set_prop
     last = get_prop(_AUTH_WARN_PROP)
@@ -295,7 +283,7 @@ def handle_discover(handle: int, action: str, params: dict) -> None:
         if config.get("auth") == "oauth":
             from lib.data.api.trakt import ApiTrakt
             if not ApiTrakt().is_authorized():
-                _warn_trakt_auth()
+                warn_trakt_auth()
                 xbmcplugin.endOfDirectory(handle, succeeded=True)
                 return
 
@@ -385,7 +373,7 @@ def handle_trakt_lists(handle: int, params: dict) -> None:
         from lib.data.api.trakt import ApiTrakt
         api = ApiTrakt()
         if kind in ("mine", "liked") and not api.is_authorized():
-            _warn_trakt_auth()
+            warn_trakt_auth()
             xbmcplugin.endOfDirectory(handle, succeeded=True)
             return
 
@@ -399,7 +387,7 @@ def handle_trakt_lists(handle: int, params: dict) -> None:
             count = str(entry.get("item_count") or "")
             item = xbmcgui.ListItem(entry.get("name", ""), count, offscreen=True)
             item.getVideoInfoTag().setPlot(entry.get("description") or "")
-            poster = _trakt_image_url((entry.get("images") or {}).get("posters"))
+            poster = trakt_image_url((entry.get("images") or {}).get("posters"))
             if poster:
                 item.setArt({"poster": poster, "thumb": poster})
             props = {
@@ -441,7 +429,7 @@ def handle_trakt_list_items(handle: int, params: dict) -> None:
         from lib.data.api.trakt import ApiTrakt
         api = ApiTrakt()
         if user == "me" and not api.is_authorized():
-            _warn_trakt_auth()
+            warn_trakt_auth()
             xbmcplugin.endOfDirectory(handle, succeeded=True)
             return
 

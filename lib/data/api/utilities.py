@@ -20,6 +20,16 @@ def tmdb_image_url(path: Optional[str], size: str = "original") -> str:
     return f"{TMDB_IMAGE_BASE}/{size}{path}"
 
 
+def trakt_image_url(paths: Optional[list]) -> str:
+    """Build a URL from the first of Trakt's image paths, which come without a scheme."""
+    if not paths or not isinstance(paths, list) or not paths[0]:
+        return ""
+    raw = paths[0]
+    if raw.startswith("http://") or raw.startswith("https://"):
+        return raw
+    return f"https://{raw}"
+
+
 def is_valid_tmdb_id(tmdb_id: Optional[str]) -> bool:
     """Check if a TMDB ID looks valid (numeric only, reasonable length)."""
     if not tmdb_id:
