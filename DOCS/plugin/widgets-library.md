@@ -270,6 +270,7 @@ not.
 | `AirDate` | Air date in the short date format of Kodi's region settings |
 | `AirDateLong` | Air date in the long date format |
 | `AirDay` | Weekday name |
+| `AirDayShort` | Short weekday name, such as `Wed` |
 | `AirTime` | Air time, formatted like Kodi's clock |
 | `EpisodeType` | `standard`, or a premiere or finale such as `season_premiere`, `mid_season_finale` or `series_finale` |
 | `TVShowDBID` | The show's library DBID; empty for a show not in the library |

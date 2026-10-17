@@ -462,6 +462,7 @@ def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem
         'airdate': format_region_date(aired, 'dateshort'),
         'airdatelong': format_region_date(aired, 'datelong'),
         'airday': xbmc.getLocalizedString(11 + aired.weekday()),
+        'airdayshort': xbmc.getLocalizedString(41 + aired.weekday()),
         'airtime': format_region_time(aired),
     })
     return listitem
