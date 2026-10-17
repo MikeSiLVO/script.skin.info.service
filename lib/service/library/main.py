@@ -7,13 +7,13 @@ from typing import Final
 import xbmc
 
 from lib.kodi.client import log
-from lib.kodi.utilities import gui_transition_settled
+from lib.kodi.utilities import LabelSnapshot
 from lib.service.library.refresh import RefreshTracker
 from lib.service.library.blur import BlurHandler, ImageColorHandler
 from lib.service.library.player import PlayerVideoTracker, PlayerMusicTracker
 from lib.service.library.musicvideo import MusicVideoArt
 from lib.service.library.slideshow import SlideshowDriver
-from lib.service.library.focus import FocusDispatcher
+from lib.service.library.focus import FOCUS_LABELS, FocusDispatcher
 
 SERVICE_POLL_INTERVAL: Final = 0.10
 MAX_CONSECUTIVE_ERRORS: Final = 10
@@ -170,6 +170,7 @@ class ServiceMain(threading.Thread):
         self.blur.handle_player()
         self.player.handle()
         self.music_player.handle()
-        self.focus.process()
-        if gui_transition_settled():
-            self.color.handle_focus()
+        labels = LabelSnapshot((*FOCUS_LABELS, *self.blur.focus_labels(),
+                                *self.color.focus_labels()))
+        self.focus.process(labels)
+        self.color.handle_focus(labels)

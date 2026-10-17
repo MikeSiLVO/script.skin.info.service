@@ -7,7 +7,7 @@ import time
 import xbmc
 import xbmcgui
 from datetime import datetime
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, Iterable, List, Optional, Tuple
 from collections import OrderedDict
 
 from lib.kodi.settings import KodiSettings
@@ -52,6 +52,33 @@ WINDOW_INVALID: Final = 9999
 def gui_transition_settled() -> bool:
     """False while a window/dialog transition is in flight; gates off-thread ListItem reads."""
     return _transition_gate.settled()
+
+
+def read_labels(labels: Iterable[str]) -> Dict[str, str]:
+    """Read infolabels on Kodi's main thread in one call; '' for each one the call loses."""
+    wanted = list(dict.fromkeys(labels))
+    response = request('XBMC.GetInfoLabels', {'labels': wanted}) if wanted else None
+    result = (response or {}).get('result') or {}
+    return {label: result.get(label) or '' for label in wanted}
+
+
+class LabelSnapshot:
+    """Infolabels read on Kodi's main thread a batch at a time, then served from memory."""
+
+    def __init__(self, labels: Iterable[str]) -> None:
+        self._values = read_labels(labels)
+
+    def read(self, labels: Iterable[str]) -> None:
+        """Read the labels not yet held, in one call."""
+        missing = [label for label in labels if label not in self._values]
+        if missing:
+            self._values.update(read_labels(missing))
+
+    def get(self, label: str) -> str:
+        """Get a label's value, reading it alone when no batch held it."""
+        if label not in self._values:
+            self.read((label,))
+        return self._values[label]
 
 
 def modal_dialog_active() -> bool:

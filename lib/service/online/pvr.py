@@ -9,7 +9,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    batch_set_props, clear_group, gui_transition_settled, modal_dialog_active, skin_bool,
+    LabelSnapshot, batch_set_props, clear_group, modal_dialog_active, skin_bool,
 )
 from lib.data.database.cache import (
     CacheKey, cache_online_properties, get_cached_online_properties_state,
@@ -21,7 +21,7 @@ from lib.data.database.pvr import (
 from lib.data.online import get_online_ttl
 from lib.data.pvr import (
     Programme, PvrLookupFailed, PvrTitle, fetch_programme_props, is_programme_path, is_skipped,
-    match_key, match_programme, read_programme,
+    match_key, match_programme, programme_labels, read_programme,
 )
 
 if TYPE_CHECKING:
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 PVR_PREFIX: Final = "SkinInfo.PVR."
 PLAYER_PVR_PREFIX: Final = "SkinInfo.Player.PVR."
 SKIN_BOOL: Final = "SkinInfo.PVR"
+FOCUS_LABELS: Final = ("ListItem.FileNameAndPath", "ListItem.Title")
 
 _MAX_MISSES: Final = 5000
 _PLAYING_PATHS: Final = ("pvr://channels/tv/", "pvr://recordings/tv/")
@@ -168,25 +169,26 @@ class PvrFocusHandler(_PvrHandler):
     def __init__(self, service: 'OnlineServiceMain'):
         super().__init__(service, PVR_PREFIX)
 
-    def process(self) -> None:
+    def process(self, labels: LabelSnapshot) -> None:
         """Read the focused programme; publish its cached props or start a lookup."""
         if not skin_bool(SKIN_BOOL):
             if self._last_read is not None:
                 self._reset()
             return
-        if not gui_transition_settled():
-            return
-        path = xbmc.getInfoLabel("ListItem.FileNameAndPath")
-        title = xbmc.getInfoLabel("ListItem.Title") if path.startswith("pvr://") else ""
+        path = labels.get("ListItem.FileNameAndPath")
+        title = labels.get("ListItem.Title") if path.startswith("pvr://") else ""
         if title and (path, title) == self._last_read:
             return
-        programme = read_programme(title) if is_programme_path(path) else None
+        programme = None
+        if title and is_programme_path(path):
+            fields = LabelSnapshot((*programme_labels("ListItem"), "ListItem.FileNameAndPath"))
+            # a second read, which can straddle a focus move
+            if fields.get("ListItem.FileNameAndPath") != path:
+                return
+            programme = read_programme(title, "ListItem", fields.get)
         if programme is None:
             if self._last_read is not None and not modal_dialog_active():
                 self._reset()
-            return
-        # fields are read one call at a time and can straddle a focus move
-        if xbmc.getInfoLabel("ListItem.FileNameAndPath") != path:
             return
         self._handle((path, title), programme)
 

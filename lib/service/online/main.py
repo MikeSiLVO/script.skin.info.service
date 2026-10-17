@@ -8,10 +8,13 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.infrastructure.tasks import ServiceAbortFlag
-from lib.service.online.focus import FocusHandler
+from lib.kodi.utilities import LabelSnapshot
+from lib.service.online.focus import FOCUS_LABELS, FocusHandler
 from lib.service.online.player import PlayerHandler
 from lib.service.online.musicplayer import MusicPlayerHandler
+from lib.service.online.musicvideo import FOCUS_LABELS as MUSICVIDEO_LABELS
 from lib.service.online.musicvideo import MusicVideoFocusHandler
+from lib.service.online.pvr import FOCUS_LABELS as PVR_LABELS
 from lib.service.online.pvr import PvrFocusHandler, PvrPlayerHandler
 from lib.data.pvr import MATCH_CHANGED
 from lib.service.online.updater import UpdaterHandler
@@ -104,10 +107,11 @@ class OnlineServiceMain(threading.Thread):
 
     def _loop(self) -> None:
         """One pass over the focus, player, music, musicvideo and both PVR handlers."""
-        self.focus.process()
+        labels = LabelSnapshot((*FOCUS_LABELS, *MUSICVIDEO_LABELS, *PVR_LABELS))
+        self.focus.process(labels)
         self.player.process()
         self.music.process()
         self.music.rotate_fanart()
-        self.musicvideo.process()
-        self.pvr.process()
+        self.musicvideo.process(labels)
+        self.pvr.process(labels)
         self.pvr_player.process()

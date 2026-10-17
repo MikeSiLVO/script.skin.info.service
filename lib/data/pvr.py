@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Dict, Final, FrozenSet, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, Final, FrozenSet, List, NamedTuple, Optional, Tuple
 
 import xbmc
 
@@ -11,6 +11,8 @@ from lib.data.database.pvr import PvrMatchKey
 
 # JSON-RPC notification the match picker sends once it saves a match
 MATCH_CHANGED: Final = "pvr_match_changed"
+_PROGRAMME_FIELDS: Final = ("OriginalTitle", "Year", "Season", "Episode", "EpisodeName", "Genre",
+                            "IMDBNumber", "Plot")
 
 _LEADING = re.compile(r'^(?:new|premiere|movie|film|live)\s*[:\-]\s*', re.IGNORECASE)
 _TRAILING = re.compile(
@@ -103,7 +105,13 @@ def is_programme_path(path: str) -> bool:
     return False
 
 
-def read_programme(title: str, source: str = "ListItem") -> Optional[Programme]:
+def programme_labels(source: str) -> List[str]:
+    """Infolabels a programme read takes from the focused item or the player."""
+    return [f"{source}.{field}" for field in _PROGRAMME_FIELDS]
+
+
+def read_programme(title: str, source: str = "ListItem",
+                   read: Callable[[str], str] = xbmc.getInfoLabel) -> Optional[Programme]:
     """Read a programme's EPG fields from the focused item or the player; None for no programme."""
     global _no_programme
     if not title:
@@ -114,14 +122,14 @@ def read_programme(title: str, source: str = "ListItem") -> Optional[Programme]:
         return None
     return Programme(
         title=title,
-        original_title=xbmc.getInfoLabel(f"{source}.OriginalTitle"),
-        year=max(_int_label(xbmc.getInfoLabel(f"{source}.Year")), 0),
-        season=_int_label(xbmc.getInfoLabel(f"{source}.Season")),
-        episode=_int_label(xbmc.getInfoLabel(f"{source}.Episode")),
-        episode_name=xbmc.getInfoLabel(f"{source}.EpisodeName"),
-        genre=xbmc.getInfoLabel(f"{source}.Genre"),
-        imdb_id=xbmc.getInfoLabel(f"{source}.IMDBNumber"),
-        plot=xbmc.getInfoLabel(f"{source}.Plot"),
+        original_title=read(f"{source}.OriginalTitle"),
+        year=max(_int_label(read(f"{source}.Year")), 0),
+        season=_int_label(read(f"{source}.Season")),
+        episode=_int_label(read(f"{source}.Episode")),
+        episode_name=read(f"{source}.EpisodeName"),
+        genre=read(f"{source}.Genre"),
+        imdb_id=read(f"{source}.IMDBNumber"),
+        plot=read(f"{source}.Plot"),
     )
 
 

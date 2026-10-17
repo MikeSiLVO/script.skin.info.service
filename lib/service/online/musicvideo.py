@@ -8,7 +8,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    batch_set_props, clear_group, gui_transition_settled, modal_dialog_active,
+    LabelSnapshot, batch_set_props, clear_group, modal_dialog_active, normalize_dbtype,
 )
 
 if TYPE_CHECKING:
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 
 ONLINE_PREFIX: Final = "SkinInfo.MusicVideo.Online."
+FOCUS_LABELS: Final = ("ListItem.DBType", "ListItem.DBID", "ListItem.Property(musicvideomediatype)",
+                       "ListItem.Artist", "ListItem.Album", "ListItem.Title", "ListItem.Label")
 
 _ONLINE_KEYS = (
     "Artist.Bio", "Artist.FanArt", "Artist.FanArt.Count",
@@ -34,11 +36,9 @@ class MusicVideoFocusHandler:
         self._fetch_thread: Optional[threading.Thread] = None
         self._token: Optional['CancelToken'] = None
 
-    def process(self) -> None:
-        """Read the focused music video and kick off a background online fetch."""
-        if not gui_transition_settled():
-            return
-        artist, album, title = self._read_focus()
+    def process(self, labels: LabelSnapshot) -> None:
+        """Read the focused music video or artist node and start a background online fetch."""
+        artist, album, title = self._read_focus(labels)
         if not artist:
             if modal_dialog_active():
                 return
@@ -71,20 +71,17 @@ class MusicVideoFocusHandler:
             self._token = None
 
     @staticmethod
-    def _read_focus() -> Tuple[str, str, str]:
+    def _read_focus(labels: LabelSnapshot) -> Tuple[str, str, str]:
         """Read (artist, album, title) for a focused music video or artist node, else empties."""
-        if xbmc.getCondVisibility("String.IsEqual(ListItem.DBType,musicvideo)"):
-            if xbmc.getCondVisibility("String.IsEmpty(ListItem.DBID)"):
+        dbtype = normalize_dbtype(labels.get("ListItem.DBType"))
+        if dbtype == "musicvideo":
+            if not labels.get("ListItem.DBID"):
                 return "", "", ""
-            return (
-                xbmc.getInfoLabel("ListItem.Artist") or "",
-                xbmc.getInfoLabel("ListItem.Album") or "",
-                xbmc.getInfoLabel("ListItem.Title") or "",
-            )
-        if xbmc.getCondVisibility(
-                "String.IsEqual(ListItem.DBType,actor) + "
-                "String.IsEqual(ListItem.Property(musicvideomediatype),artist)"):
-            return xbmc.getInfoLabel("ListItem.Label") or "", "", ""
+            return (labels.get("ListItem.Artist"), labels.get("ListItem.Album"),
+                    labels.get("ListItem.Title"))
+        mediatype = labels.get("ListItem.Property(musicvideomediatype)")
+        if dbtype == "actor" and normalize_dbtype(mediatype) == "artist":
+            return labels.get("ListItem.Label"), "", ""
         return "", "", ""
 
     def _fetch_worker(self, artist: str, album: str, title: str,

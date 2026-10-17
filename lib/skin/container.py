@@ -8,7 +8,7 @@ import xbmcgui
 import xbmcplugin
 
 from lib.kodi.client import log, request
-from lib.kodi.utilities import clear_window_prop
+from lib.kodi.utilities import clear_window_prop, read_labels
 
 
 _SMS_MAP = {
@@ -283,10 +283,8 @@ def _container_too_large(target: str) -> bool:
 def _probe_letters(target: str, indexes: list) -> dict:
     """Folded letter at each absolute index, from one batched `GetInfoLabels` call."""
     labels = [f'Container({target}).ListItemAbsolute({i}).SortLetter' for i in indexes]
-    response = request('XBMC.GetInfoLabels', {'labels': labels})
-    result = response.get('result', {}) if response else {}
-    return {index: _fold_letter(result.get(label, ''))
-            for index, label in zip(indexes, labels)}
+    result = read_labels(labels)
+    return {index: _fold_letter(result[label]) for index, label in zip(indexes, labels)}
 
 
 def _sweep_letters(target: str, start_index: int, all_count: int) -> set[str]:

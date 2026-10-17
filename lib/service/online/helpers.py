@@ -1,7 +1,7 @@
 """Online service helpers: item ids from the InfoLabels, and dropping an item's online cache."""
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 import xbmc
 
@@ -16,35 +16,36 @@ def invalidate_online_cache_for_dbid(media_type: str, dbid: str) -> None:
         invalidate_online_properties(media_type, imdb_id=imdb_id, tmdb_id=tmdb_id)
 
 
-def infolabel_imdb_id(info_prefix: str) -> str:
+def infolabel_imdb_id(info_prefix: str,
+                      read: Callable[[str], str] = xbmc.getInfoLabel) -> str:
     """IMDb id from the InfoLabels; `IMDBNumber` holds the default id, which may be another kind."""
-    imdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(imdb)") or ""
+    imdb_id = read(f"{info_prefix}.UniqueID(imdb)") or ""
     if not imdb_id:
-        imdbnumber = xbmc.getInfoLabel(f"{info_prefix}.IMDBNumber") or ""
+        imdbnumber = read(f"{info_prefix}.IMDBNumber") or ""
         if imdbnumber.startswith("tt"):
             imdb_id = imdbnumber
     return imdb_id
 
 
-def unlisted_ids(scoped: bool) -> Tuple[str, str]:
+def unlisted_ids(scoped: bool, read: Callable[[str], str]) -> Tuple[str, str]:
     """Ids a focused item outside the library carries, its show's for a season or episode."""
     if scoped:
-        imdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tvshow.imdb)")
-                   or xbmc.getInfoLabel("ListItem.Property(tvshow.imdb_id)"))
-        tmdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tvshow.tmdb)")
-                   or xbmc.getInfoLabel("ListItem.Property(tvshow.tmdb_id)"))
+        imdb_id = (read("ListItem.UniqueID(tvshow.imdb)")
+                   or read("ListItem.Property(tvshow.imdb_id)"))
+        tmdb_id = (read("ListItem.UniqueID(tvshow.tmdb)")
+                   or read("ListItem.Property(tvshow.tmdb_id)"))
     else:
-        imdb_id = infolabel_imdb_id("ListItem")
-        tmdb_id = (xbmc.getInfoLabel("ListItem.UniqueID(tmdb)")
-                   or xbmc.getInfoLabel("ListItem.Property(tmdb_id)"))
+        imdb_id = infolabel_imdb_id("ListItem", read)
+        tmdb_id = read("ListItem.UniqueID(tmdb)") or read("ListItem.Property(tmdb_id)")
     return (imdb_id if imdb_id.startswith("tt") else "",
             tmdb_id if tmdb_id.isdigit() else "")
 
 
-def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
+def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str,
+                     read: Callable[[str], str] = xbmc.getInfoLabel) -> Tuple[str, str]:
     """Resolve `(imdb_id, tmdb_id)`: InfoLabel -> ID map -> JSON-RPC fallback."""
-    imdb_id = infolabel_imdb_id(info_prefix)
-    tmdb_id = xbmc.getInfoLabel(f"{info_prefix}.UniqueID(tmdb)") or ""
+    imdb_id = infolabel_imdb_id(info_prefix, read)
+    tmdb_id = read(f"{info_prefix}.UniqueID(tmdb)") or ""
 
     if not imdb_id and tmdb_id:
         from lib.data.database.mapping import get_imdb_id
@@ -58,10 +59,11 @@ def resolve_ids_from(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str
     return imdb_id, tmdb_id
 
 
-def resolve_show_ids(dbtype: str, dbid: str, info_prefix: str) -> Tuple[str, str]:
+def resolve_show_ids(dbtype: str, dbid: str, info_prefix: str,
+                     read: Callable[[str], str] = xbmc.getInfoLabel) -> Tuple[str, str]:
     """Resolve the parent show's `(imdb_id, tmdb_id)` for a season or episode."""
     from lib.kodi.client import get_item_details, get_item_uniqueids
-    tvshowid = xbmc.getInfoLabel(f"{info_prefix}.TvShowDBID") or ""
+    tvshowid = read(f"{info_prefix}.TvShowDBID") or ""
     if not tvshowid or tvshowid == "-1":
         details = get_item_details(dbtype, int(dbid), ["tvshowid"])
         if not details or not isinstance(details, dict):

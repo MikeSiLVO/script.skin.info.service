@@ -9,8 +9,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    clear_group, batch_set_props, gui_transition_settled, modal_dialog_active,
-    normalize_dbtype,
+    LabelSnapshot, clear_group, batch_set_props, modal_dialog_active, normalize_dbtype,
 )
 from lib.data.database.cache import (
     CacheKey,
@@ -35,6 +34,14 @@ if TYPE_CHECKING:
 
 
 ONLINE_PROPERTY_PREFIX: Final = "SkinInfo.Online."
+FOCUS_LABELS: Final = (
+    "ListItem.DBID", "ListItem.DBType", "ListItem.FileNameAndPath", "ListItem.Label",
+    "ListItem.Season", "ListItem.Episode", "ListItem.TvShowDBID", "ListItem.UniqueID(imdb)",
+    "ListItem.IMDBNumber", "ListItem.UniqueID(tmdb)", "ListItem.Property(tmdb_id)",
+    "ListItem.UniqueID(tvshow.imdb)", "ListItem.Property(tvshow.imdb_id)",
+    "ListItem.UniqueID(tvshow.tmdb)", "ListItem.Property(tvshow.tmdb_id)",
+    "ListItem.Title", "ListItem.TVShowTitle", "ListItem.Year",
+)
 
 # a fetch that came back empty must not respawn a worker on the next tick
 FETCH_BACKOFF_S: Final = 300
@@ -68,17 +75,15 @@ class FocusHandler:
         self._title_thread: Optional[threading.Thread] = None
         self._no_data_item: Optional[str] = None
 
-    def process(self) -> None:
+    def process(self, labels: LabelSnapshot) -> None:
         """Read the focused item; set cached props or start a fetch, and library episode ratings."""
-        if not gui_transition_settled():
-            return
-        dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
-        dbtype = normalize_dbtype(xbmc.getInfoLabel("ListItem.DBType"))
+        dbid = labels.get("ListItem.DBID")
+        dbtype = normalize_dbtype(labels.get("ListItem.DBType"))
 
         if dbtype not in ("movie", "tvshow", "episode", "season"):
             self._leave_item()
             return
-        path = "" if dbid else xbmc.getInfoLabel("ListItem.FileNameAndPath")
+        path = "" if dbid else labels.get("ListItem.FileNameAndPath")
         if path.startswith("pvr://"):
             self._leave_item()
             return
@@ -86,7 +91,7 @@ class FocusHandler:
         if dbtype != "episode" or not dbid:
             self._episode.reset()
 
-        item_id = f"{dbtype}:{dbid or path or xbmc.getInfoLabel('ListItem.Label')}"
+        item_id = f"{dbtype}:{dbid or path or labels.get('ListItem.Label')}"
         if item_id == self._no_data_item:
             return
         generation = online_cache_generation()
@@ -97,17 +102,17 @@ class FocusHandler:
         scoped = dbtype in ("season", "episode")
         effective_type = "tvshow" if scoped else dbtype
         if not dbid:
-            imdb_id, tmdb_id = unlisted_ids(scoped)
+            imdb_id, tmdb_id = unlisted_ids(scoped, labels.get)
             if not imdb_id and not tmdb_id:
-                title_id = self._title_id(effective_type, scoped)
+                title_id = self._title_id(effective_type, scoped, labels)
                 if title_id is None:
                     self._leave_item()
                     return
                 tmdb_id = title_id
         elif scoped:
-            imdb_id, tmdb_id = resolve_show_ids(dbtype, dbid, "ListItem")
+            imdb_id, tmdb_id = resolve_show_ids(dbtype, dbid, "ListItem", labels.get)
         else:
-            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem")
+            imdb_id, tmdb_id = resolve_ids_from(dbtype, dbid, "ListItem", labels.get)
 
         if not imdb_id and not tmdb_id:
             if not dbid:
@@ -117,8 +122,8 @@ class FocusHandler:
 
         if dbtype == "episode" and dbid:
             self._episode.update(
-                dbid, xbmc.getInfoLabel("ListItem.Season"), xbmc.getInfoLabel("ListItem.Episode"),
-                infolabel_imdb_id("ListItem"), imdb_id, tmdb_id)
+                dbid, labels.get("ListItem.Season"), labels.get("ListItem.Episode"),
+                infolabel_imdb_id("ListItem", labels.get), imdb_id, tmdb_id)
 
         cache_key = make_cache_key(effective_type, imdb_id, tmdb_id)
         if not cache_key:
@@ -227,10 +232,10 @@ class FocusHandler:
                 self._last_prop_keys = set()
             self._empty_for_key = None
 
-    def _title_id(self, media_type: str, scoped: bool) -> Optional[str]:
+    def _title_id(self, media_type: str, scoped: bool, labels: LabelSnapshot) -> Optional[str]:
         """Resolve the item's TMDB id by title; empty for none, None while a search is due."""
-        title = xbmc.getInfoLabel("ListItem.TVShowTitle" if scoped else "ListItem.Title")
-        year = xbmc.getInfoLabel("ListItem.Year")
+        title = labels.get("ListItem.TVShowTitle" if scoped else "ListItem.Title")
+        year = labels.get("ListItem.Year")
         key = (media_type, title, int(year) if year.isdigit() and not scoped else 0)
         if not title:
             return ""

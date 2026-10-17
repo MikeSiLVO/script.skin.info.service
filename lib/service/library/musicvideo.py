@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import xbmc
 
 from lib.kodi.client import get_item_details, log
-from lib.kodi.utilities import batch_set_props
+from lib.kodi.utilities import LabelSnapshot, batch_set_props
 
 
 class MusicVideoArt:
@@ -16,20 +16,21 @@ class MusicVideoArt:
     def __init__(self):
         self._art_generation = 0
 
-    def set_artist_node(self) -> None:
+    def set_artist_node(self, labels: LabelSnapshot) -> None:
         """Set art for an artist musicvideo node (DBID-less, name from ListItem.Label)."""
-        artist_name = xbmc.getInfoLabel("ListItem.Label") or ""
+        artist_name = labels.get("ListItem.Label")
         if not artist_name:
             return
         details: dict = {"artist": [artist_name], "album": ""}
         self.set_library_art(details)
 
-    def set_album_node(self) -> None:
+    def set_album_node(self, labels: LabelSnapshot) -> None:
         """Set art for an album musicvideo node."""
-        album_name = xbmc.getInfoLabel("ListItem.Label") or ""
+        labels.read(("ListItem.Label", "ListItem.Artist"))
+        album_name = labels.get("ListItem.Label")
         if not album_name:
             return
-        artist_name = xbmc.getInfoLabel("ListItem.Artist") or ""
+        artist_name = labels.get("ListItem.Artist")
         details: dict = {
             "artist": [artist_name] if artist_name else [],
             "album": album_name,
