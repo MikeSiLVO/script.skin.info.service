@@ -42,7 +42,8 @@ Whole numbers from 1. Unset or anything else uses 40. A value gives the same loo
 
 **Using a VAR:**
 
-When using `BlurSourceVar`, set the VAR **name** (not `$VAR[]`):
+When using `BlurSourceVar`, set the VAR **name** (not `$VAR[]`). Its values take any label syntax
+except `$FEATURE[]`; a VAR using that gets no blur.
 
 ```xml
 <!-- In your skin's Includes.xml -->

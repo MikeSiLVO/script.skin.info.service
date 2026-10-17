@@ -9,15 +9,13 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    LabelSnapshot, clear_prop, get_prop, gui_transition_settled, parse_pipe_list, set_prop,
-    skin_bool,
+    LabelSnapshot, clear_prop, get_prop, parse_pipe_list, set_prop, skin_bool,
 )
+from lib.skin.labels import resolve_variables, variable_labels
 
 _COLOR_PROP: Final = "SkinInfo.ImageColor.Main"
 _COLOR_CACHE_SIZE: Final = 1000
 _COLOR_SOURCE: Final = "ListItem.Art(poster)"
-_VAR_TRIGGERS: Final = ("ListItem.DBID", "ListItem.DBType", "ListItem.Label",
-                        "ListItem.FileNameAndPath", "Container.FolderPath", "System.CurrentWindow")
 
 
 class BlurHandler:
@@ -30,14 +28,13 @@ class BlurHandler:
         self._player_last_source: Optional[str] = None
         self._player = xbmc.Player()
         self._warned_source = ""
-        self._var_focus: Optional[tuple] = None
-        self._var_source = ""
 
     @staticmethod
     def focus_labels() -> List[str]:
         """Infolabels the focus blur needs from the tick's batched read."""
-        if get_prop("SkinInfo.BlurSourceVar"):
-            return list(_VAR_TRIGGERS)
+        names = get_prop("SkinInfo.BlurSourceVar")
+        if names:
+            return variable_labels(parse_pipe_list(names))
         return parse_pipe_list(get_prop("SkinInfo.BlurSource"))
 
     def handle_focus(self, labels: LabelSnapshot) -> None:
@@ -79,7 +76,7 @@ class BlurHandler:
 
     def _process(self, setting: str, source_property: str, slot: str, prop_base: str,
                  cache_key_suffix: str = "", labels: Optional[LabelSnapshot] = None) -> None:
-        """Process one blur slot: start a blur of its resolved source, clearing when unset."""
+        """Process one blur slot: start a blur of its source; clear it when off or without one."""
         if not skin_bool(setting):
             if self._get_last(slot) is not None:
                 self._clear_props(prop_base)
@@ -88,10 +85,8 @@ class BlurHandler:
 
         blur_source_var = get_prop(source_property + "Var")
         if blur_source_var:
-            var_path = self._resolve_var(blur_source_var, labels)
-            if var_path is None:
-                return
-            source_path = var_path
+            names = parse_pipe_list(blur_source_var)
+            source_path = resolve_variables(names, labels or LabelSnapshot(variable_labels(names)))
         else:
             blur_source_infolabel = get_prop(source_property)
             if not blur_source_infolabel:
@@ -108,9 +103,8 @@ class BlurHandler:
                     f"Set raw infolabel instead. Got: {blur_source_infolabel}",
                     xbmc.LOGWARNING)
 
-            source_path = self._resolve_with_fallbacks(
-                blur_source_infolabel.split("|"), is_var=False, labels=labels
-            )
+            sources = parse_pipe_list(blur_source_infolabel)
+            source_path = self._resolve_with_fallbacks(sources, labels or LabelSnapshot(sources))
 
         if not source_path:
             if self._get_last(slot) is not None:
@@ -155,34 +149,11 @@ class BlurHandler:
         finally:
             self._set_thread(slot, None)
 
-    def _resolve_var(self, names: str, labels: Optional[LabelSnapshot]) -> Optional[str]:
-        """Resolve skin variables, for the focus only once it moves; None while a window settles."""
-        if labels is None:
-            return self._resolve_with_fallbacks(names.split("|"), is_var=True)
-        focus = (names, *(labels.get(label) for label in _VAR_TRIGGERS))
-        if focus == self._var_focus:
-            return self._var_source
-        # a skin variable has no main-thread read
-        if not gui_transition_settled():
-            return None
-        self._var_focus = focus
-        self._var_source = self._resolve_with_fallbacks(names.split("|"), is_var=True)
-        return self._var_source
-
     @staticmethod
-    def _resolve_with_fallbacks(sources: List[str], is_var: bool,
-                                labels: Optional[LabelSnapshot] = None) -> str:
-        """Resolve the first non-empty source, reading plain labels from the batched read if any."""
+    def _resolve_with_fallbacks(sources: List[str], labels: LabelSnapshot) -> str:
+        """Resolve the first source with a value, read from the batched labels."""
         for source in sources:
-            source = source.strip()
-            if not source:
-                continue
-            if is_var:
-                resolved = xbmc.getInfoLabel(f"$VAR[{source}]")
-            elif labels is not None:
-                resolved = labels.get(source)
-            else:
-                resolved = xbmc.getInfoLabel(source)
+            resolved = labels.get(source)
             if resolved:
                 return resolved
         return ""
@@ -235,8 +206,7 @@ class ImageColorHandler:
             self._clear()
             return
 
-        source = BlurHandler._resolve_with_fallbacks(self.focus_labels(), is_var=False,
-                                                     labels=labels)
+        source = BlurHandler._resolve_with_fallbacks(self.focus_labels(), labels)
         if not source:
             self._clear()
             return

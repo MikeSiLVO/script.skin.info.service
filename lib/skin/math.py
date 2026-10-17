@@ -1,10 +1,10 @@
 """Math expression evaluation utilities for skin integration."""
 import ast
 import operator
-import re
 import xbmc
 from lib.kodi.client import log
 from lib.kodi.utilities import set_window_prop, clear_window_prop
+from lib.skin.labels import resolve_label
 
 
 _ALLOWED_OPERATORS = {
@@ -53,22 +53,14 @@ def safe_eval_math(expression):
 
 
 def evaluate_math(expression, prefix='', window='home'):
-    """Evaluate a math expression, `$INFO` and `$VAR` resolved, into `SkinInfo.Math.*.Result`."""
+    """Evaluate a math expression, skin labels resolved, into `SkinInfo.Math.*.Result`."""
     prop_name = f'SkinInfo.Math.{prefix}.Result' if prefix else 'SkinInfo.Math.Result'
 
     if not expression:
         clear_window_prop(prop_name, window)
         return
 
-    resolved_expression = expression
-    if '$INFO[' in expression or '$VAR[' in expression:
-        infolabel_pattern = r'\$(?:INFO|VAR)\[[^\]]+\]'
-        infolabels = re.findall(infolabel_pattern, expression)
-
-        for infolabel in infolabels:
-            resolved_value = xbmc.getInfoLabel(infolabel)
-            resolved_expression = resolved_expression.replace(infolabel, resolved_value, 1)
-
+    resolved_expression = resolve_label(expression) if '$' in expression else expression
     result = safe_eval_math(resolved_expression)
 
     if result is not None:

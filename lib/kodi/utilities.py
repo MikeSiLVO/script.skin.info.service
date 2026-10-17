@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import re
 import threading
-import time
 import xbmc
 import xbmcgui
 from datetime import datetime
@@ -16,42 +15,14 @@ HOME = xbmcgui.Window(10000)
 
 
 def resolve_infolabel(value: str) -> str:
-    """Resolve a `$INFO[...]` or `$VAR[...]` wrapped string via Kodi, else pass through."""
+    """Resolve a `$`-prefixed skin label on Kodi's main thread, else pass it through."""
     if value and value.startswith('$'):
-        return xbmc.getInfoLabel(value)
+        from lib.skin.labels import resolve_label
+        return resolve_label(value)
     return value
 
 
-class _TransitionGate:
-    """Gate holding off-thread ListItem reads until a window change settles; early reads crash."""
-
-    _SETTLE_SECONDS = 0.2
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._last_ids: Optional[Tuple[int, int]] = None
-        self._settle_until = 0.0
-
-    def settled(self) -> bool:
-        """True once the window and dialog ids have held steady for the settle time."""
-        ids = (xbmcgui.getCurrentWindowId(), xbmcgui.getCurrentWindowDialogId())
-        now = time.monotonic()
-        with self._lock:
-            if ids != self._last_ids:
-                self._last_ids = ids
-                self._settle_until = now + self._SETTLE_SECONDS
-                return False
-            return now >= self._settle_until
-
-
-_transition_gate = _TransitionGate()
-
 WINDOW_INVALID: Final = 9999
-
-
-def gui_transition_settled() -> bool:
-    """False while a window/dialog transition is in flight; gates off-thread ListItem reads."""
-    return _transition_gate.settled()
 
 
 def read_labels(labels: Iterable[str]) -> Dict[str, str]:
@@ -60,6 +31,14 @@ def read_labels(labels: Iterable[str]) -> Dict[str, str]:
     response = request('XBMC.GetInfoLabels', {'labels': wanted}) if wanted else None
     result = (response or {}).get('result') or {}
     return {label: result.get(label) or '' for label in wanted}
+
+
+def read_conditions(conditions: Iterable[str]) -> Dict[str, bool]:
+    """Read conditions on Kodi's main thread in one call; False for each one the call loses."""
+    wanted = list(dict.fromkeys(conditions))
+    response = request('XBMC.GetInfoBooleans', {'booleans': wanted}) if wanted else None
+    result = (response or {}).get('result') or {}
+    return {condition: bool(result.get(condition)) for condition in wanted}
 
 
 class LabelSnapshot:
