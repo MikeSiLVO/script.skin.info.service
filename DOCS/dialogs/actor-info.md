@@ -32,14 +32,15 @@ A full-screen actor info dialog with profile image, biography, top credits, and 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `person_id` | Conditional | TMDB person ID. Opens directly. |
-| `name` | Conditional | Person name. Used to look up `person_id` from the parent video's TMDB cast or crew. Required if `person_id` is absent. |
-| `dbid` | Conditional | Library ID of the parent video. Required when `name` is the only identifier. |
-| `dbtype` | Conditional | `movie`, `tvshow`, `episode`, `season`, or `set`. Pairs with `dbid`. |
+| `name` | Conditional | Person name. Used to look up `person_id` from the parent video's TMDB cast, then its crew. Required if `person_id` is absent. |
+| `dbid` | Conditional | Library ID of the parent video. Required when `name` is the only identifier, unless `tmdb_id` is given. |
+| `tmdb_id` | Conditional | TMDB ID of the parent movie or TV show, in place of `dbid` for a title not in the library. Needs `dbtype` `movie` or `tvshow`. Works with `name` and `crew`. |
+| `dbtype` | Conditional | `movie`, `tvshow`, `episode`, `season`, or `set`. Pairs with `dbid` or `tmdb_id`. |
 | `role` | No | Character name. Helps disambiguate when multiple cast members share the same name. |
-| `crew` | No | `director`, `writer`, or `creator`. When provided (with `dbid`+`dbtype`), shows a picker of all matching crew members or opens the dialog directly if there's only one. |
+| `crew` | No | `director`, `writer`, or `creator`. When provided (with `dbid` or `tmdb_id`, plus `dbtype`), shows a picker of all matching crew members or opens the dialog directly if there's only one. |
 | `sourceid` | Conditional | When `dbtype` is `set` or `season`, this is the source movie or episode ID used to resolve the person. |
-| `separator` | No | Default ` / `. Separator for multi-name `name` values (e.g., `"John Doe / Jane Smith"`). |
-| `auto_search` | No | Default `true`. If `false`, the dialog will not run a TMDB name search when the person isn't found in the parent video's cast. |
+| `separator` | No | Default ` / `. Separator for multi-name `name` values (e.g., `"John Doe / Jane Smith"`). A value with several names shows a picker of them. |
+| `auto_search` | No | Default `true`. If `false`, the dialog will not run a TMDB name search when the person isn't found in the parent video's cast or crew. A search with one result opens it directly. |
 | `online` | No | Default `false`. Forces the cast lookup to fetch fresh data from TMDB rather than relying on Kodi's library cast. |
 
 ## Window Properties

@@ -53,14 +53,15 @@ Fetches person data and sets properties.
 | Parameter     | Required | Description                                |
 |---------------|----------|--------------------------------------------|
 | `action`      | Yes      | `person_info`                              |
-| `name`        | Yes*     | Actor/actress name                         |
+| `name`        | Yes*     | Person name, matched in the title's cast, then its crew |
 | `role`        | No       | Character role (improves matching)         |
-| `dbid`        | Yes      | Kodi database ID                           |
+| `dbid`        | Yes*     | Kodi database ID                           |
+| `tmdb_id`     | *        | TMDB ID of a movie or TV show, in place of `dbid` for a title not in the library; needs `dbtype` movie or tvshow |
 | `dbtype`      | Yes      | movie, tvshow, episode, season, set        |
 | `sourceid`    | *        | Source DBID (required for set/season)      |
 | `crew`        | No       | Crew type: director, writer, creator       |
-| `separator`   | No       | Name separator (default: " / ")            |
-| `auto_search` | No       | Show search on failure (default: true)     |
+| `separator`   | No       | Name separator (default: " / "); a value with several names shows a picker of them |
+| `auto_search` | No       | Show search on failure (default: true); a search with one result is used without a picker |
 | `open_window` | No       | Window ID to open after search             |
 
 **Movie set usage:**

@@ -149,9 +149,10 @@ def _convert_external_id(external_id: str, source: str, media_type: str) -> Opti
 def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbtype: str,
                              dbid: int = 0, auto_search: bool = True,
                              online: bool = False) -> Optional[int]:
-    """Match an actor to a TMDB person id, strictest matcher first, asking the user on a miss."""
+    """Match a person in the cast, then the crew, to a TMDB person id; may search on a miss."""
     api = ApiTmdb()
     credits = []
+    crew: list = []
 
     if dbtype == 'episode':
         details = get_item_details(dbtype, dbid, ['season', 'episode'])
@@ -174,6 +175,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
 
         episode_cast = episode_data.get('credits', {}).get('cast', [])
         episode_guests = episode_data.get('credits', {}).get('guest_stars', [])
+        crew = episode_data.get('credits', {}).get('crew') or []
 
         if online:
             credits = episode_cast + episode_guests
@@ -211,6 +213,7 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
             return None
 
         main_cast = season_data.get('aggregate_credits', {}).get('cast', [])
+        crew = season_data.get('aggregate_credits', {}).get('crew') or []
 
         all_guests = {}
         for episode in season_data.get('episodes', []):
@@ -234,8 +237,9 @@ def match_actor_to_person_id(actor_name: str, actor_role: str, tmdb_id: int, dbt
             return None
 
         credits = tmdb_cast(complete_data, media_type)
+        crew = complete_data['credits'].get('crew') or []
 
-    match = match_credit(credits, actor_name, actor_role)
+    match = match_credit(credits, actor_name, actor_role) or match_credit(crew, actor_name, '')
     if match:
         return match['id']
 
@@ -356,7 +360,7 @@ def match_credit(credits: list, name: str, role: str,
 
 
 def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
-    """Search TMDB by name and let the user pick; None when nothing is found or chosen."""
+    """Search TMDB by name and let the user pick unless one result; None if none or on cancel."""
     results = api.search(name, 'person')
 
     if not results:
@@ -367,6 +371,10 @@ def _search_with_dialog(name: str, api: ApiTmdb) -> Optional[int]:
             3000
         )
         return None
+    if len(results) == 1:
+        log("Person", f"Single search result for '{name}' (person_id={results[0]['id']})",
+            xbmc.LOGDEBUG)
+        return results[0]['id']
 
     items = []
     for result in results[:10]:

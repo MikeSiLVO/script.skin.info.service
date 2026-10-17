@@ -696,16 +696,21 @@ def _handle_dialog_actor_info_inner(args: dict) -> None:
 
     if not person_id and crew:
         from lib.script.person import resolve_via_crew
-        resolved = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
+        resolved = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search,
+                                    args.get('tmdb_id'))
         if not resolved:
             return
         person_id, name = resolved
 
     elif not person_id:
-        from lib.script.person import resolve_via_actor
+        from lib.script.person import pick_name, resolve_via_actor
+        name = pick_name(name, separator, xbmc.getLocalizedString(424))
+        if not name:
+            return
         person_id = resolve_via_actor(
             person_api, name, role, dbid, dbtype, auto_search, online,
             args.get('sourceid'), open_window='', set_search_query=False,
+            tmdb_id=args.get('tmdb_id'),
         )
         if not person_id:
             return

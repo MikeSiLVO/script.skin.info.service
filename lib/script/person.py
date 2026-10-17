@@ -8,7 +8,8 @@ import xbmc
 import xbmcgui
 
 from lib.kodi.client import ADDON, log
-from lib.kodi.utilities import set_window_prop, clear_window_prop
+from lib.data.api.utilities import is_valid_tmdb_id
+from lib.kodi.utilities import set_window_prop, clear_window_prop, parse_pipe_list
 
 
 _PERSON_PROP_KEYS = (
@@ -38,8 +39,25 @@ def _clear_person_properties() -> None:
         clear_window_prop(key)
 
 
+def pick_name(name: str, separator: str, heading: str) -> str:
+    """Pick one name from a separator-joined value, asking if there are several; '' on cancel."""
+    names = parse_pipe_list(name, separator) if separator else [name.strip()]
+    if len(names) <= 1:
+        return names[0] if names else ''
+    selected = xbmcgui.Dialog().select(heading, names)  # type: ignore[arg-type]
+    return names[selected] if selected >= 0 else ''
+
+
+def _parent_tmdb_id(tmdb_id: Optional[str], dbtype: str) -> Optional[int]:
+    """TMDB id of the parent movie or show; None for any other type or an invalid id."""
+    if tmdb_id and dbtype in ('movie', 'tvshow') and is_valid_tmdb_id(tmdb_id):
+        return int(tmdb_id)
+    return None
+
+
 def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, crew: str,
-                     separator: str, auto_search: bool) -> Optional[tuple]:
+                     separator: str, auto_search: bool,
+                     tmdb_id: Optional[str] = None) -> Optional[tuple]:
     """Resolve `(person_id, name)` via TMDB crew listing. Returns None on failure."""
     if crew not in ('director', 'writer', 'creator'):
         log(
@@ -48,29 +66,31 @@ def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, cr
             xbmc.LOGERROR,
         )
         return None
-    if not dbid:
-        log("General", "person_info: crew mode requires dbid parameter", xbmc.LOGERROR)
-        return None
 
-    try:
-        dbid_int = int(dbid)
-    except (ValueError, TypeError):
-        log("General", f"person_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
-        return None
-
-    tmdb_id = person_api.library_tmdb_id(dbtype, dbid_int)
-    if not tmdb_id:
-        log(
-            "General",
-            f"person_info: Could not resolve TMDB ID for {dbtype} {dbid}",
-            xbmc.LOGERROR,
-        )
-        return None
+    parent_tmdb_id = _parent_tmdb_id(tmdb_id, dbtype)
+    if not parent_tmdb_id:
+        if not dbid:
+            log("General", "person_info: crew mode requires dbid or tmdb_id", xbmc.LOGERROR)
+            return None
+        try:
+            dbid_int = int(dbid)
+        except (ValueError, TypeError):
+            log("General", f"person_info: Invalid dbid '{dbid}'", xbmc.LOGERROR)
+            return None
+        parent_tmdb_id = person_api.library_tmdb_id(dbtype, dbid_int)
+        if not parent_tmdb_id:
+            log(
+                "General",
+                f"person_info: Could not resolve TMDB ID for {dbtype} {dbid}",
+                xbmc.LOGERROR,
+            )
+            return None
 
     if not name:
-        return _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype, crew)
+        return _resolve_crew_from_tmdb(person_api, parent_tmdb_id, dbtype, crew)
 
-    return _resolve_crew_from_name(person_api, tmdb_id, dbtype, crew, name, separator, auto_search)
+    return _resolve_crew_from_name(person_api, parent_tmdb_id, dbtype, crew, name, separator,
+                                   auto_search)
 
 
 def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Optional[tuple]:
@@ -120,19 +140,10 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
 def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: str,
                             separator: str, auto_search: bool) -> Optional[tuple]:
     """Match a crew member by name (with optional separator-split picker)."""
-    names = [n.strip() for n in name.split(separator) if n.strip()]
-    if not names:
-        log("General", "person_info: No valid names after parsing", xbmc.LOGERROR)
+    selected_name = pick_name(name, separator, _crew_heading(crew))
+    if not selected_name:
+        log("General", f"person_info: No {crew} name picked", xbmc.LOGDEBUG)
         return None
-
-    if len(names) == 1:
-        selected_name = names[0]
-    else:
-        selected = xbmcgui.Dialog().select(_crew_heading(crew), names)  # type: ignore[arg-type]
-        if selected < 0:
-            log("General", f"person_info: User cancelled {crew} selection", xbmc.LOGDEBUG)
-            return None
-        selected_name = names[selected]
 
     person_id = person_api.match_crew_to_person_id(
         selected_name, crew, tmdb_id, dbtype, auto_search=auto_search
@@ -146,10 +157,17 @@ def _resolve_crew_from_name(person_api, tmdb_id, dbtype: str, crew: str, name: s
 
 def resolve_via_actor(person_api, name: str, role: str, dbid: Optional[str], dbtype: str,
                       auto_search: bool, online: bool, sourceid: Optional[str],
-                      open_window: str, set_search_query: bool = True) -> Optional[int]:
-    """Resolve a person id by actor name and role, publishing a manual search command on a miss."""
+                      open_window: str, set_search_query: bool = True,
+                      tmdb_id: Optional[str] = None) -> Optional[int]:
+    """Resolve a person id by actor name and role; a library miss may publish a search command."""
+    parent_tmdb_id = _parent_tmdb_id(tmdb_id, dbtype)
+    if name and parent_tmdb_id and not dbid:
+        return person_api.match_actor_to_person_id(
+            name, role, parent_tmdb_id, dbtype, auto_search=auto_search, online=online)
+
     if not name or not dbid:
-        log("General", "person_info: Missing required parameters (name, dbid)", xbmc.LOGERROR)
+        log("General", "person_info: Missing required parameters (name, dbid or tmdb_id)",
+            xbmc.LOGERROR)
         return None
 
     try:
@@ -363,14 +381,19 @@ def handle_person_info_action(args: dict) -> None:
             return
 
     if not person_id and crew:
-        result = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search)
+        result = resolve_via_crew(person_api, name, dbid, dbtype, crew, separator, auto_search,
+                                  args.get('tmdb_id'))
         if result is None:
             return
         person_id, name = result
     elif not person_id:
+        name = pick_name(name, separator, xbmc.getLocalizedString(424))
+        if not name:
+            return
         person_id = resolve_via_actor(
             person_api, name, role, dbid, dbtype,
             auto_search, online, args.get('sourceid'), open_window,
+            tmdb_id=args.get('tmdb_id'),
         )
         if person_id is None:
             return
