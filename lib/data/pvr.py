@@ -8,6 +8,7 @@ from typing import Callable, Dict, Final, FrozenSet, List, NamedTuple, Optional,
 import xbmc
 
 from lib.data.database.pvr import PvrMatchKey
+from lib.kodi.utilities import LabelSnapshot
 
 # JSON-RPC notification the match picker sends once it saves a match
 MATCH_CHANGED: Final = "pvr_match_changed"
@@ -135,9 +136,11 @@ def read_programme(title: str, source: str = "ListItem",
 
 def focused_programme() -> Optional[Programme]:
     """Read the focused programme, None when the focused item is not one."""
-    if not is_programme_path(xbmc.getInfoLabel("ListItem.FileNameAndPath")):
+    labels = LabelSnapshot(("ListItem.FileNameAndPath", "ListItem.Title",
+                            *programme_labels("ListItem")))
+    if not is_programme_path(labels.get("ListItem.FileNameAndPath")):
         return None
-    return read_programme(xbmc.getInfoLabel("ListItem.Title"))
+    return read_programme(labels.get("ListItem.Title"), "ListItem", labels.get)
 
 
 def _genres() -> Tuple[FrozenSet[str], FrozenSet[str]]:

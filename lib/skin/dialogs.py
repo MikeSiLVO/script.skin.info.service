@@ -9,6 +9,7 @@ from lib.kodi.utilities import (
     resolve_infolabel as _resolve_infolabel,
     parse_pipe_list as _parse_list,
     clear_window_prop,
+    read_labels,
 )
 from lib.infrastructure.dialogs import DialogProgress
 
@@ -466,8 +467,8 @@ def dialog_textviewer(
     """Show a text viewer with the given text or a named infolabel's, or a file's contents."""
     import xbmcvfs
 
-    heading = (xbmc.getInfoLabel(headinginfo) if headinginfo else _resolve_infolabel(heading)
-               ) or TEST_DEFAULTS['heading']
+    heading = (read_labels((headinginfo,))[headinginfo] if headinginfo
+               else _resolve_infolabel(heading)) or TEST_DEFAULTS['heading']
     use_mono = _parse_bool(usemono, False)
 
     if file:
@@ -486,8 +487,8 @@ def dialog_textviewer(
                                 ADDON.getLocalizedString(32563).format(str(e)))
             log('Dialogs', f"textviewer: Error reading file '{file_path}': {str(e)}", xbmc.LOGERROR)
     else:
-        text = (xbmc.getInfoLabel(textinfo) if textinfo else _resolve_infolabel(text)
-                ) or TEST_DEFAULTS['text']
+        text = (read_labels((textinfo,))[textinfo] if textinfo
+                else _resolve_infolabel(text)) or TEST_DEFAULTS['text']
         xbmcgui.Dialog().textviewer(heading, text, usemono=use_mono)
 
 
@@ -624,7 +625,7 @@ def dialog_progress(
     background: str = 'false',
     **kwargs
 ) -> None:
-    """Show a progress dialog polling an InfoLabel, closed at the maximum or after the timeout."""
+    """Show a progress dialog polling an InfoLabel, closed at the maximum, on cancel or timeout."""
     heading = _resolve_infolabel(heading) or 'Progress'
     message = _resolve_infolabel(message) or 'Please wait...'
     max_val = _parse_int(max_value, 100)
@@ -654,8 +655,10 @@ def dialog_progress(
             if not is_background and dialog_normal and dialog_normal.iscanceled():
                 break
 
+            reads = read_labels(label for label in (progress_info, message_info)
+                                if label and not label.isdigit())
             progress_str = (progress_info if progress_info.isdigit()
-                            else xbmc.getInfoLabel(progress_info))
+                            else reads.get(progress_info, ''))
             try:
                 progress_val = int(progress_str)
             except (ValueError, TypeError):
@@ -664,7 +667,7 @@ def dialog_progress(
             percentage = int((progress_val / max_val) * 100) if max_val > 0 else 0
             percentage = min(100, max(0, percentage))
 
-            dynamic_message = xbmc.getInfoLabel(message_info) if message_info else message
+            dynamic_message = reads.get(message_info, '') if message_info else message
 
             if is_background and dialog_bg:
                 dialog_bg.update(percentage, dynamic_message)

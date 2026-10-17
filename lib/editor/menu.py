@@ -9,7 +9,7 @@ import xbmcgui
 from lib.infrastructure.dialogs import show_notification
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.kodi.client import log, ADDON
-from lib.kodi.utilities import normalize_dbtype
+from lib.kodi.utilities import focused_item
 from lib.editor.config import (
     MEDIA_TYPE_FIELDS,
     FieldType,
@@ -40,9 +40,7 @@ from lib.editor.utilities import (
 
 def run_editor(dbid: str | None = None, dbtype: str | None = None) -> None:
     """Run the metadata editor on an item, the focused ListItem when none is given."""
-    if not dbid:
-        dbid = xbmc.getInfoLabel("ListItem.DBID")
-    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
+    dbid, dbtype = focused_item(dbid, dbtype)
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(

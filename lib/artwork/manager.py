@@ -20,7 +20,7 @@ from lib.download.artwork import DownloadArtwork, download_item_art
 from lib.artwork.dialogs.select import show_artwork_selection_dialog
 from lib.kodi.client import log, ADDON
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utilities import normalize_dbtype, parse_pipe_list
+from lib.kodi.utilities import focused_item, parse_pipe_list
 from lib.infrastructure.menus import Menu, MenuItem
 from lib.infrastructure.dialogs import (
     show_ok, show_yesno, show_textviewer, show_select, show_notification, DialogProgress)
@@ -234,9 +234,7 @@ def _extract_downloadable_art(media_type: str, art_dict: Dict[str, str]) -> Dict
 
 def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
     """Download library art for one item or a whole show; args fall back to ListItem."""
-    if not dbid:
-        dbid = xbmc.getInfoLabel("ListItem.DBID")
-    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
+    dbid, dbtype = focused_item(dbid, dbtype)
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(
@@ -462,10 +460,8 @@ def download_item_artwork(dbid: Optional[str], dbtype: Optional[str]) -> None:
 
 def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
                            art_type_filter: Optional[str] = None) -> None:
-    """Open artwork selection dialog for a single item, optionally limited to given art types."""
-    if not dbid:
-        dbid = xbmc.getInfoLabel("ListItem.DBID")
-    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
+    """Run artwork selection dialog for a single item, optionally limited to given art types."""
+    dbid, dbtype = focused_item(dbid, dbtype)
 
     if not dbid or dbid == "-1" or not dbtype:
         show_notification(

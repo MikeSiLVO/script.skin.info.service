@@ -3,8 +3,7 @@ from typing import Final
 
 import xbmc
 
-from lib.kodi.client import request
-from lib.kodi.utilities import parse_pipe_list, set_window_prop, clear_window_prop
+from lib.kodi.utilities import clear_window_prop, parse_pipe_list, read_labels, set_window_prop
 
 
 _LABEL_CHUNK: Final = 1000
@@ -19,31 +18,26 @@ def _copy_or_clear(prop_name: str, value: str, window: str) -> None:
 
 
 def copy_container_item(container, infolabels='', artwork='', prefix='', window='home'):
-    """Copy `Container.ListItem` infolabels/`Art(...)` to `SkinInfo.Selected[.prefix].*` props."""
+    """Copy a container's focused item infolabels and art to `SkinInfo.Selected.*` props."""
     if not container:
         return
 
     container_prefix = f'Container({container}).ListItem'
     prop_base = f'SkinInfo.Selected.{prefix}' if prefix else 'SkinInfo.Selected'
-
-    if infolabels:
-        for label in parse_pipe_list(infolabels):
-            value = xbmc.getInfoLabel(f'{container_prefix}.{label}')
-            _copy_or_clear(f'{prop_base}.{label}', value, window)
-
-    if artwork:
-        for art_type in parse_pipe_list(artwork):
-            value = xbmc.getInfoLabel(f'{container_prefix}.Art({art_type})')
-            _copy_or_clear(f'{prop_base}.Art({art_type})', value, window)
+    names = parse_pipe_list(infolabels) + [f'Art({art})' for art in parse_pipe_list(artwork)]
+    values = read_labels(f'{container_prefix}.{name}' for name in names)
+    for name in names:
+        _copy_or_clear(f'{prop_base}.{name}', values[f'{container_prefix}.{name}'], window)
 
 
 def aggregate_container_labels(container, infolabel, separator=' / ',
                                prefix='SkinInfo', window='home'):
-    """Join a label's unique values across a container into `{prefix}.{infolabel}s`."""
+    """Join a label's unique values across a container into a property named for the label."""
     if not container or not infolabel:
         return
 
-    num_items_str = xbmc.getInfoLabel(f'Container({container}).NumItems')
+    num_items_label = f'Container({container}).NumItems'
+    num_items_str = read_labels((num_items_label,))[num_items_label]
     try:
         num_items = int(num_items_str) if num_items_str else 0
     except (ValueError, TypeError):
@@ -58,10 +52,9 @@ def aggregate_container_labels(container, infolabel, separator=' / ',
     seen = set()
     for start in range(0, num_items, _LABEL_CHUNK):
         chunk = labels[start:start + _LABEL_CHUNK]
-        response = request('XBMC.GetInfoLabels', {'labels': chunk})
-        result = response.get('result', {}) if response else {}
+        result = read_labels(chunk)
         for label in chunk:
-            value = result.get(label, '')
+            value = result[label]
             if value and value not in seen:
                 values.append(value)
                 seen.add(value)

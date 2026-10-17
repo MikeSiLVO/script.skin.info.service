@@ -7,7 +7,7 @@ import xbmcgui
 
 from lib.kodi.client import request, get_api_key, log, KODI_GET_DETAILS_METHODS, ADDON
 from lib.kodi.settings import KodiSettings
-from lib.kodi.utilities import normalize_dbtype
+from lib.kodi.utilities import focused_item
 from lib.data.api.tmdb import ApiTmdb as TMDBRatingsSource
 from lib.data.api.mdblist import ApiMdblist as MDBListRatingsSource
 from lib.data.api.omdb import ApiOmdb as OMDbRatingsSource
@@ -137,9 +137,7 @@ def _combine_runs(runs: List[Dict]) -> Dict:
 def _resolve_single_item_target(
         dbid: Optional[str], dbtype: Optional[str]) -> Optional[Tuple[str, str]]:
     """Resolve `(dbid, media_type)`, the focused item by default; None after notifying."""
-    if not dbid:
-        dbid = xbmc.getInfoLabel("ListItem.DBID")
-    dbtype = normalize_dbtype(dbtype or xbmc.getInfoLabel("ListItem.DBType"))
+    dbid, dbtype = focused_item(dbid, dbtype)
 
     if not dbid or dbid == "-1" or not dbtype:
         _notify(32259, xbmcgui.NOTIFICATION_WARNING)

@@ -85,7 +85,7 @@ def move_to_position(
 
 def _move_main_containers(main_focus: str, main_position: Optional[str],
                           main_action: Optional[str]) -> None:
-    """Reset each visible control to its target, unless a list is there or a button focused."""
+    """Move each visible control to its target, unless a list is there or a button focused."""
     main_ids = [cid.strip() for cid in main_focus.split('|')]
     main_action_list = [a.strip() for a in main_action.split('|')] if main_action else []
     has_pipe_main_action = main_action and '|' in main_action
@@ -117,15 +117,9 @@ def _move_main_containers(main_focus: str, main_position: Optional[str],
             except (ValueError, TypeError):
                 continue
 
-        try:
-            item_count = int(xbmc.getInfoLabel(f'Container({cid}).NumItems') or 0)
-        except ValueError:
-            item_count = 0
-
-        if item_count > 0:
-            should_move = (
-                xbmc.getInfoLabel(f'Container({cid}).CurrentItem') != target_1indexed
-            )
+        if xbmc.getCondVisibility(f'Integer.IsGreater(Container({cid}).NumItems,0)'):
+            should_move = not xbmc.getCondVisibility(
+                f'Integer.IsEqual(Container({cid}).CurrentItem,{target_1indexed})')
         else:
             should_move = not xbmc.getCondVisibility(f'Control.HasFocus({cid})')
 
@@ -213,7 +207,7 @@ def _clear_cm_focus_props(properties_found: list) -> None:
 
 
 def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
-    """Jump to an item starting with a letter (A-Z or `#`) via Kodi's SMS actions."""
+    """Jump to an item starting with a letter via Kodi's SMS actions, `#` by a page jump."""
     if container_id:
         xbmc.executebuiltin(f'SetFocus({container_id})', True)
 
@@ -233,7 +227,8 @@ def jump_letter(letter: str, container_id: Optional[str] = None) -> None:
         request('Input.ExecuteAction', {'action': action})
         xbmc.sleep(30)
 
-        if _fold_letter(xbmc.getInfoLabel('ListItem.SortLetter')) == letter_upper:
+        sort_letter = read_labels(('ListItem.SortLetter',))['ListItem.SortLetter']
+        if _fold_letter(sort_letter) == letter_upper:
             break
 
 
@@ -269,8 +264,9 @@ def _alphabetic_sort(target: str) -> bool:
 
 def _container_too_large(target: str) -> bool:
     """True when the container holds more items than the probe grid can address."""
+    label = f'Container({target}).NumAllItems'
     try:
-        count = int(xbmc.getInfoLabel(f'Container({target}).NumAllItems') or 0)
+        count = int(read_labels((label,))[label] or 0)
     except ValueError:
         return False
     if count > _LETTER_GRID:
@@ -295,9 +291,10 @@ def _sweep_letters(target: str, start_index: int, all_count: int) -> set[str]:
 
 def _available_sort_letters(target: str, descending: bool) -> set[str]:
     """Folded jump letters (A-Z plus '#') in the live container, honoring filters and sort."""
+    counts = read_labels((f'Container({target}).NumAllItems', f'Container({target}).NumItems'))
     try:
-        all_count = int(xbmc.getInfoLabel(f'Container({target}).NumAllItems') or 0)
-        count = int(xbmc.getInfoLabel(f'Container({target}).NumItems') or 0)
+        all_count = int(counts[f'Container({target}).NumAllItems'] or 0)
+        count = int(counts[f'Container({target}).NumItems'] or 0)
     except ValueError:
         return set()
     if all_count <= 0:
@@ -393,8 +390,8 @@ def handle_letter_jump_exec(handle: int, params: dict) -> None:
     if not letter:
         return
 
-    current = xbmc.getInfoLabel(f'Container({target}).ListItem.SortLetter')
-    if letter.upper() == _fold_letter(current):
+    label = f'Container({target}).ListItem.SortLetter'
+    if letter.upper() == _fold_letter(read_labels((label,))[label]):
         return
 
     jump_letter(letter, target)

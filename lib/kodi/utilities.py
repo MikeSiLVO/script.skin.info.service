@@ -33,6 +33,15 @@ def read_labels(labels: Iterable[str]) -> Dict[str, str]:
     return {label: result.get(label) or '' for label in wanted}
 
 
+def focused_item(dbid: Optional[str], dbtype: Optional[str]) -> Tuple[str, str]:
+    """Fill a missing id or type from the focused ListItem via the main thread; type normalized."""
+    if not dbid or not dbtype:
+        focused = read_labels(("ListItem.DBID", "ListItem.DBType"))
+        dbid = dbid or focused["ListItem.DBID"]
+        dbtype = dbtype or focused["ListItem.DBType"]
+    return dbid or "", normalize_dbtype(dbtype)
+
+
 def read_conditions(conditions: Iterable[str]) -> Dict[str, bool]:
     """Read conditions on Kodi's main thread in one call; False for each one the call loses."""
     wanted = list(dict.fromkeys(conditions))
