@@ -166,6 +166,76 @@ def handle_next_up(handle: int, params: dict) -> None:
     xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
 
 
+def _library_episodes(keys: list) -> dict:
+    """Library episodes for `(tvshowid, season, episode)` keys, fetched in one batch."""
+    if not keys:
+        return {}
+    responses = batch_request([
+        {'method': 'VideoLibrary.GetEpisodes',
+         'params': {'tvshowid': tvshowid, 'season': season,
+                    'filter': {'field': 'episode', 'operator': 'is', 'value': str(episode)},
+                    'properties': _EPISODE_PROPERTIES}}
+        for tvshowid, season, episode in keys
+    ])
+    found = {}
+    for key, response in zip(keys, responses):
+        episodes = extract_result(response, 'episodes', [])
+        if episodes:
+            found[key] = episodes[0]
+    return found
+
+
+def _trakt_next_up_rows(limit: int) -> list:
+    """Trakt's next episode per in-progress show as `(url, listitem, isfolder)` rows."""
+    from lib.data.api.trakt import ApiTrakt
+    entries = []
+    for raw in ApiTrakt().get_up_next(limit=limit):
+        nxt = (raw.get('progress') or {}).get('next_episode') if isinstance(raw, dict) else None
+        if isinstance(nxt, dict):
+            entries.append(_trim_account_entry(
+                {'first_aired': nxt.get('first_aired'), 'show': raw.get('show'), 'episode': nxt}))
+
+    library = _library_shows_by_id()
+    matched = [(entry, _library_tvshowid(entry, library)) for entry in entries]
+    shows = _tvshows_by_id({tvshowid for _, tvshowid in matched if tvshowid is not None},
+                           _CALENDAR_SHOW_PROPERTIES)
+    episodes = _library_episodes([(tvshowid, entry['season'], entry['episode'])
+                                  for entry, tvshowid in matched if tvshowid in shows])
+
+    rows = []
+    for entry, tvshowid in matched:
+        show = shows.get(tvshowid) if tvshowid is not None else None
+        episode = episodes.get((tvshowid, entry['season'], entry['episode'])) if show else None
+        firstaired = entry['aired'][:10]
+        if episode and show:
+            listitem = _episode_item_from_show(show, episode)
+            listitem.setProperties({'tvshowdbid': str(tvshowid),
+                                    'tvshowtmdbid': str(entry['tmdb'] or '')})
+            rows.append((episode['file'], listitem, False))
+        elif show:
+            rows.append((f"videodb://tvshows/titles/{tvshowid}/",
+                         _trakt_episode_item(entry, show, firstaired), True))
+        else:
+            rows.append(('', _trakt_episode_item(entry, entry['show'], firstaired), False))
+    return rows
+
+
+def handle_trakt_next_up(handle: int, params: dict) -> None:
+    """Plugin entry: Trakt's next episode of each show in progress, most recently watched first."""
+    from lib.data.api.trakt import ApiTrakt
+    if not ApiTrakt().is_authorized():
+        from lib.plugin.widgets.discovery import warn_trakt_auth
+        warn_trakt_auth()
+        xbmcplugin.endOfDirectory(handle, succeeded=True)
+        return
+
+    for url, listitem, is_folder in _trakt_next_up_rows(_int_param(params, 'limit', 20)):
+        xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
+
+    xbmcplugin.setContent(handle, 'episodes')
+    xbmcplugin.endOfDirectory(handle, cacheToDisc=False)
+
+
 def _favourite_tvshow_ids() -> list:
     """TV show DBIDs pulled from the favourites list, in the order they were favourited."""
     result = request('Favourites.GetFavourites',
@@ -352,16 +422,15 @@ def _tvshows_by_id(tvshowids, properties: list) -> dict:
     return shows
 
 
-def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem:
-    """Upcoming episode ListItem with the show's art and its local air date and time."""
-    from lib.kodi.utilities import format_region_date, format_region_time
+def _trakt_episode_item(entry: dict, show: dict, firstaired: str) -> xbmcgui.ListItem:
+    """Episode ListItem from Trakt's episode data, with the show's art and details."""
     listitem = _create_episode_listitem({
         'title': entry['title'],
         'season': entry['season'],
         'episode': entry['episode'],
         'showtitle': show.get('title', ''),
         'plot': entry['plot'],
-        'firstaired': aired.date().isoformat(),
+        'firstaired': firstaired,
         'runtime': entry['runtime'] * 60,
     })
     _set_episode_artwork_from_show(listitem, show.get('art', {}), {'thumb': entry.get('thumb', '')})
@@ -378,13 +447,22 @@ def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem
         video_tag.setTvShowStatus(entry['status'].title())
 
     listitem.setProperties({
+        'episodetype': entry['type'],
+        'tvshowdbid': str(show.get('tvshowid') or ''),
+        'tvshowtmdbid': str(entry['tmdb'] or ''),
+    })
+    return listitem
+
+
+def _calendar_item(entry: dict, aired: datetime, show: dict) -> xbmcgui.ListItem:
+    """Upcoming episode ListItem with the show's art and its local air date and time."""
+    from lib.kodi.utilities import format_region_date, format_region_time
+    listitem = _trakt_episode_item(entry, show, aired.date().isoformat())
+    listitem.setProperties({
         'airdate': format_region_date(aired, 'dateshort'),
         'airdatelong': format_region_date(aired, 'datelong'),
         'airday': xbmc.getLocalizedString(11 + aired.weekday()),
         'airtime': format_region_time(aired),
-        'episodetype': entry['type'],
-        'tvshowdbid': str(show.get('tvshowid') or ''),
-        'tvshowtmdbid': str(entry['tmdb'] or ''),
     })
     return listitem
 

@@ -199,6 +199,12 @@ def _handle_next_up(handle: int, params: dict) -> None:
     handle_next_up(handle, params)
 
 
+def _handle_trakt_next_up(handle: int, params: dict) -> None:
+    """List Trakt's next episode of each show in progress."""
+    from lib.plugin.widgets.video import handle_trakt_next_up
+    handle_trakt_next_up(handle, params)
+
+
 def _handle_next_up_favourites(handle: int, params: dict) -> None:
     from lib.plugin.widgets.video import handle_next_up_favourites
     handle_next_up_favourites(handle, params)
@@ -375,6 +381,7 @@ _HANDLERS = {
     'discover_tvshows_menu': _handle_discover_tvshows_menu_action,
     'next_up': _handle_next_up,
     'next_up_favourites': _handle_next_up_favourites,
+    'trakt_next_up': _handle_trakt_next_up,
     'next_aired': _handle_next_aired,
     'artwork_viewer': _handle_artwork_viewer,
     'continue_watching': _handle_continue_watching,

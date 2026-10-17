@@ -32,6 +32,7 @@ Online content from TMDB and Trakt APIs. See also: [Library Widgets](widgets-lib
 - [Trakt Watchlist](#trakt-watchlist) (OAuth)
 - [Trakt History](#trakt-history) (OAuth)
 - [Trakt In Progress](#trakt-in-progress) (OAuth)
+- [Trakt Next Up](#trakt-next-up) (OAuth)
 - [Trakt Lists](#trakt-lists)
 - [Trakt List Items](#trakt-list-items)
 
@@ -611,6 +612,46 @@ Shows hidden from progress on Trakt are left out.
 ```
 
 **Widget Type:** TV Show
+
+---
+
+## Trakt Next Up
+
+The next episode of each show in [Trakt In Progress](#trakt-in-progress), the most recently watched
+show first.
+
+**Requires Trakt OAuth.** Returns empty list if no Trakt account is linked.
+
+### Usage
+
+```xml
+<content>plugin://script.skin.info.service/?action=trakt_next_up</content>
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `limit` | No | `20` | Maximum items |
+
+### Behavior
+
+1. An episode in the library plays when selected, with its library details and art
+2. An episode missing from the library opens the show in the library
+3. An episode of a show not in the library has no action, and its art comes from Trakt
+
+### Episode Properties
+
+- **Label**: Formatted as `2x05. Episode Title`
+- **MediaType**: `episode`
+
+| Property | Description |
+|----------|-------------|
+| `TVShowDBID` | The show's library DBID; empty for a show not in the library |
+| `TVShowTMDBID` | The show's TMDB ID |
+| `EpisodeType` | For an episode not in the library: `standard`, or a premiere or finale such as `season_premiere` |
+
+**Widget Type:** Episode
 
 ---
 
