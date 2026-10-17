@@ -524,7 +524,8 @@ _CREW_JOB_PRIORITY: dict[str, int] = {
 def get_crew_from_tmdb(
     crew_type: str,
     tmdb_id: int,
-    dbtype: str
+    dbtype: str,
+    abort_flag=None
 ) -> list[dict]:
     """Get one crew type from TMDB, or the whole crew deduped with their jobs joined."""
     api = ApiTmdb()
@@ -534,7 +535,7 @@ def get_crew_from_tmdb(
             log("Person", f"Creator lookup only valid for TV shows, got {dbtype}", xbmc.LOGWARNING)
             return []
 
-        data = api.get_tv_details_extended(tmdb_id)
+        data = api.get_tv_details_extended(tmdb_id, abort_flag)
         if not data:
             return []
 
@@ -550,7 +551,7 @@ def get_crew_from_tmdb(
         ]
 
     media_type = "movie" if dbtype == "movie" else "tvshow"
-    data = api.get_complete_data(media_type, tmdb_id)
+    data = api.get_complete_data(media_type, tmdb_id, abort_flag=abort_flag)
 
     if not data or "credits" not in data:
         return []

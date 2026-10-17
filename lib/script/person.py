@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import xbmc
 import xbmcgui
@@ -130,9 +130,10 @@ def _resolve_set_crew(person_api, setid: Optional[str], crew: str, name: str, se
     elif len(credits) == 1:
         picked = next(iter(credits))
     else:
-        names = list(credits)
-        selected = xbmcgui.Dialog().select(_crew_heading(crew), names)  # type: ignore[arg-type]
-        picked = names[selected] if selected >= 0 else ''
+        member = _pick_crew(crew, _set_crew_members(person_api, credits))
+        if member and member['id']:
+            return member['id'], member['name']
+        picked = member['name'] if member else ''
     if not picked:
         log("General", f"person_info: No {crew} picked from movie set {setid}", xbmc.LOGDEBUG)
         return None
@@ -151,10 +152,56 @@ def _resolve_set_crew(person_api, setid: Optional[str], crew: str, name: str, se
     return person_id, picked
 
 
-def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Optional[tuple]:
-    """Pick a crew member from TMDB's crew list. Single match auto-resolves; multi shows picker."""
+def _set_crew_members(person_api, credits: Dict[str, int]) -> List[dict]:
+    """TMDB crew entry for each name from the movie crediting them; the name alone on a miss."""
+    from concurrent.futures import ThreadPoolExecutor
+    from lib.data.api.client import AbortRequested, RateLimitHit, RetryableError
+    from lib.infrastructure.tasks import ShutdownAbortFlag
+
+    abort_flag = ShutdownAbortFlag()
+
+    def movie_crew(movieid: int) -> List[dict]:
+        try:
+            tmdb_id = person_api.library_tmdb_id('movie', movieid)
+            if not tmdb_id:
+                return []
+            return person_api.get_crew_from_tmdb('all', tmdb_id, 'movie', abort_flag)
+        except (AbortRequested, RateLimitHit, RetryableError):
+            return []
+
+    movieids = list(dict.fromkeys(credits.values()))
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        crews = dict(zip(movieids, executor.map(movie_crew, movieids)))
+
+    members = []
+    for name, movieid in credits.items():
+        normalized = person_api.normalize_name(name)
+        member = next((m for m in crews[movieid]
+                       if person_api.normalize_name(m['name']) == normalized), None)
+        members.append(member or {'id': None, 'name': name, 'profile_path': None, 'job': ''})
+    return members
+
+
+def _pick_crew(crew: str, members: List[dict]) -> Optional[dict]:
+    """Pick a crew member from a list showing each one's photo and job; None on cancel."""
     from lib.data.api.utilities import tmdb_image_url
 
+    items = []
+    for member in members:
+        item = xbmcgui.ListItem(member['name'], offscreen=True)
+        if member.get('job'):
+            item.setLabel2(member['job'])
+        if member.get('profile_path'):
+            image_url = tmdb_image_url(member['profile_path'], 'h632')
+            item.setArt({'thumb': image_url, 'icon': image_url})
+        items.append(item)
+
+    selected = xbmcgui.Dialog().select(_crew_heading(crew), items, useDetails=True)
+    return members[selected] if selected >= 0 else None
+
+
+def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Optional[tuple]:
+    """Resolve a crew member from TMDB's crew list, asking only when there are several."""
     crew_list = person_api.get_crew_from_tmdb(crew, tmdb_id, dbtype)
     if not crew_list:
         log("General", f"person_info: No {crew}s found for TMDB {tmdb_id}", xbmc.LOGDEBUG)
@@ -170,23 +217,13 @@ def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Opti
         )
         return person_id, name
 
-    items = []
-    for member in crew_list:
-        item = xbmcgui.ListItem(member['name'], offscreen=True)
-        if member.get('job'):
-            item.setLabel2(member['job'])
-        if member.get('profile_path'):
-            image_url = tmdb_image_url(member['profile_path'], 'h632')
-            item.setArt({'thumb': image_url, 'icon': image_url})
-        items.append(item)
-
-    selected = xbmcgui.Dialog().select(_crew_heading(crew), items, useDetails=True)
-    if selected < 0:
+    member = _pick_crew(crew, crew_list)
+    if not member:
         log("General", f"person_info: User cancelled {crew} selection", xbmc.LOGDEBUG)
         return None
 
-    person_id = crew_list[selected]['id']
-    name = crew_list[selected]['name']
+    person_id = member['id']
+    name = member['name']
     log(
         "General",
         f"person_info: User selected {crew}: {name} (person_id={person_id})",
