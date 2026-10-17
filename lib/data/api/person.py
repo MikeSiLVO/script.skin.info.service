@@ -428,7 +428,7 @@ def match_crew_to_person_id(
     dbtype: str,
     auto_search: bool = True
 ) -> Optional[int]:
-    """Match a director, writer or creator to a TMDB person id."""
+    """Match a director, writer or creator to a TMDB person id; may search on a miss."""
     api = ApiTmdb()
     normalized_name = normalize_name(crew_name)
 
@@ -464,19 +464,18 @@ def match_crew_to_person_id(
 
         crew = data["credits"].get("crew") or []
 
-        job_filter = _CREW_JOBS.get(crew_type)
-        if job_filter is None:
+        if crew_type not in _CREW_JOBS:
             log("Person", f"Unknown crew_type '{crew_type}'", xbmc.LOGWARNING)
             return None
 
-        for member in crew:
-            member_name = member.get("name", "")
-            member_job = member.get("job", "")
-            if normalize_name(member_name) == normalized_name and member_job in job_filter:
-                person_id = member.get("id")
-                log("Person", f"Matched {crew_type} '{crew_name}' (person_id={person_id})",
-                    xbmc.LOGDEBUG)
-                return person_id
+        # Kodi credits people TMDB lists under other jobs, such as Novel or Director for a writer
+        member = next((m for m in crew
+                       if normalize_name(m.get("name", "")) == normalized_name), None)
+        if member:
+            person_id = member.get("id")
+            log("Person", f"Matched {crew_type} '{crew_name}' (person_id={person_id})",
+                xbmc.LOGDEBUG)
+            return person_id
 
         log("Person",
             f"{crew_type.title()} '{crew_name}' not found in crew for {media_type} {tmdb_id}",

@@ -37,7 +37,7 @@ A full-screen actor info dialog with profile image, biography, top credits, and 
 | `tmdb_id` | Conditional | TMDB ID of the parent movie or TV show, in place of `dbid` for a title not in the library. Needs `dbtype` `movie` or `tvshow`. Works with `name` and `crew`. |
 | `dbtype` | Conditional | `movie`, `tvshow`, `episode`, `season`, or `set`. Pairs with `dbid` or `tmdb_id`. |
 | `role` | No | Character name. Helps disambiguate when multiple cast members share the same name. |
-| `crew` | No | `director`, `writer`, or `creator`. When provided (with `dbid` or `tmdb_id`, plus `dbtype`), shows a picker of all matching crew members or opens the dialog directly if there's only one. |
+| `crew` | No | `director`, `writer`, or `creator`. When provided (with `dbid` or `tmdb_id`, plus `dbtype`), shows a picker of all matching crew members or opens the dialog directly if there's only one. On a movie set (`dbtype=set`, `dbid` the set's), `director` or `writer` lists the set's library movies' people in `SkinInfo.Set.Directors` and `SkinInfo.Set.Writers` order. |
 | `sourceid` | Conditional | When `dbtype` is `set` or `season`, this is the source movie or episode ID used to resolve the person. |
 | `separator` | No | Default ` / `. Separator for multi-name `name` values (e.g., `"John Doe / Jane Smith"`). A value with several names shows a picker of them. |
 | `auto_search` | No | Default `true`. If `false`, the dialog will not run a TMDB name search when the person isn't found in the parent video's cast or crew. A search with one result opens it directly. |

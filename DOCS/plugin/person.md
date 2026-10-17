@@ -59,7 +59,7 @@ Fetches person data and sets properties.
 | `tmdb_id`     | *        | TMDB ID of a movie or TV show, in place of `dbid` for a title not in the library; needs `dbtype` movie or tvshow |
 | `dbtype`      | Yes      | movie, tvshow, episode, season, set        |
 | `sourceid`    | *        | Source DBID (required for set/season)      |
-| `crew`        | No       | Crew type: director, writer, creator       |
+| `crew`        | No       | Crew type: director, writer, creator; on a set, director or writer across its library movies |
 | `separator`   | No       | Name separator (default: " / "); a value with several names shows a picker of them |
 | `auto_search` | No       | Show search on failure (default: true); a search with one result is used without a picker |
 | `open_window` | No       | Window ID to open after search             |
@@ -106,6 +106,16 @@ Fetches person data and sets properties.
   crew=writer,
   dbid=$INFO[ListItem.DBID],
   dbtype=movie)</onclick>
+```
+
+**Crew lookup on a movie set:**
+
+```xml
+<onclick>RunScript(script.skin.info.service,
+  action=person_info,
+  crew=director,
+  dbid=$INFO[ListItem.DBID],
+  dbtype=set)</onclick>
 ```
 
 **TV creator:**

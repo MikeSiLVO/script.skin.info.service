@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import urllib.parse
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import xbmc
 import xbmcgui
 
-from lib.kodi.client import ADDON, log
+from lib.kodi.client import ADDON, log, request
 from lib.data.api.utilities import is_valid_tmdb_id
 from lib.kodi.utilities import set_window_prop, clear_window_prop, parse_pipe_list
 
@@ -67,6 +67,9 @@ def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, cr
         )
         return None
 
+    if dbtype == 'set':
+        return _resolve_set_crew(person_api, dbid, crew, name, separator, auto_search)
+
     parent_tmdb_id = _parent_tmdb_id(tmdb_id, dbtype)
     if not parent_tmdb_id:
         if not dbid:
@@ -91,6 +94,61 @@ def resolve_via_crew(person_api, name: str, dbid: Optional[str], dbtype: str, cr
 
     return _resolve_crew_from_name(person_api, parent_tmdb_id, dbtype, crew, name, separator,
                                    auto_search)
+
+
+def _set_credits(setid: Optional[str], crew: str) -> Dict[str, int]:
+    """A set's library directors or writers in movie year order, each with its first movie."""
+    try:
+        setid_int = int(setid or "")
+    except ValueError:
+        return {}
+    response = request('VideoLibrary.GetMovies', {
+        'filter': {'setid': setid_int},
+        'properties': [crew],
+        'sort': {'method': 'year', 'order': 'ascending'},
+    })
+    credits: Dict[str, int] = {}
+    for movie in ((response or {}).get('result') or {}).get('movies') or []:
+        for person in movie.get(crew) or []:
+            credits.setdefault(person, movie['movieid'])
+    return credits
+
+
+def _resolve_set_crew(person_api, setid: Optional[str], crew: str, name: str, separator: str,
+                      auto_search: bool) -> Optional[tuple]:
+    """Resolve a set's director or writer via the movie crediting them, else its first movie."""
+    if crew == 'creator':
+        log("General", "person_info: a movie set has no creators", xbmc.LOGERROR)
+        return None
+    credits = _set_credits(setid, crew)
+    if not credits:
+        log("General", f"person_info: No {crew}s in movie set {setid}", xbmc.LOGDEBUG)
+        return None
+
+    if name:
+        picked = pick_name(name, separator, _crew_heading(crew))
+    elif len(credits) == 1:
+        picked = next(iter(credits))
+    else:
+        names = list(credits)
+        selected = xbmcgui.Dialog().select(_crew_heading(crew), names)  # type: ignore[arg-type]
+        picked = names[selected] if selected >= 0 else ''
+    if not picked:
+        log("General", f"person_info: No {crew} picked from movie set {setid}", xbmc.LOGDEBUG)
+        return None
+
+    movieid = credits.get(picked) or next(iter(credits.values()))
+    movie_tmdb_id = person_api.library_tmdb_id('movie', movieid)
+    if not movie_tmdb_id:
+        log("General", f"person_info: Could not resolve TMDB ID for movie {movieid}",
+            xbmc.LOGERROR)
+        return None
+    person_id = person_api.match_crew_to_person_id(picked, crew, movie_tmdb_id, 'movie',
+                                                   auto_search=auto_search)
+    if not person_id:
+        log("General", f"person_info: Could not match {crew} '{picked}'", xbmc.LOGDEBUG)
+        return None
+    return person_id, picked
 
 
 def _resolve_crew_from_tmdb(person_api, tmdb_id, dbtype: str, crew: str) -> Optional[tuple]:
