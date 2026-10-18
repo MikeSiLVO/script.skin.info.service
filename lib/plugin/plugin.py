@@ -263,7 +263,7 @@ def _handle_recommended(handle: int, params: dict) -> None:
 
 
 def _handle_tmdb_discover(handle: int, params: dict) -> None:
-    """List titles sharing a seed item's trait, or the TMDB catalogue in one order."""
+    """List titles sharing a seed item's trait or a named genre, or the TMDB catalogue in order."""
     from lib.plugin.widgets.discovery import handle_tmdb_discover
     handle_tmdb_discover(handle, params)
 

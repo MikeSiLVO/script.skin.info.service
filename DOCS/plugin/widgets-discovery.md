@@ -248,7 +248,7 @@ TV shows with episodes airing within the next 7 days.
 
 ## TMDB Discover
 
-Titles that share a trait with a seed item, or the whole TMDB catalogue in one order.
+Titles that share a trait with a seed item, titles in one genre, or the whole TMDB catalogue in one order.
 
 ### Usage
 
@@ -261,6 +261,9 @@ Titles that share a trait with a seed item, or the whole TMDB catalogue in one o
 
 <!-- Most voted movies of all time -->
 <content>plugin://script.skin.info.service/?action=tmdb_discover&amp;dbtype=movie&amp;sort=votes</content>
+
+<!-- Popular comedies -->
+<content>plugin://script.skin.info.service/?action=tmdb_discover&amp;dbtype=movie&amp;genre=Comedy</content>
 ```
 
 ### Parameters
@@ -270,7 +273,8 @@ Titles that share a trait with a seed item, or the whole TMDB catalogue in one o
 | `dbtype` | No | `movie` | `movie` or `tvshow` |
 | `tmdb_id` | Conditional | - | TMDB ID of the seed item. Provide this OR `dbid` when `by` is set. |
 | `dbid` | Conditional | - | Library ID of the seed item. |
-| `by` | No | - | What the titles share with the seed, see below. Without it, the list is the whole catalogue in `sort` order. |
+| `by` | No | - | What the titles share with the seed, see below. Without it or `genre`, the list is the whole catalogue in `sort` order. |
+| `genre` | No | - | A genre name, such as `Comedy`, in the online metadata language. Lists titles in that genre in `sort` order; no seed needed. Ignored when `by` is set. `Action` also finds the TV genre `Action & Adventure`. A name matching no genre gives an empty list. |
 | `sort` | No | `popularity` | `popularity`, `votes` (most voted) or `revenue` (movies only) |
 | `limit` | No | `20` | Maximum items |
 | `page` | No | `1` | Pagination |

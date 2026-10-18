@@ -666,8 +666,17 @@ def _seeded_results(by: str, media_type: str, seed: dict, sort: str, page: int) 
     return api.discover(media_type if media_type == "movie" else "tv", filters, page)
 
 
+def _genre_id(genre_map: Dict[int, str], name: str) -> Optional[int]:
+    """TMDB id of a genre by name, or by the part before ` & ` a URL's `&` cuts it to."""
+    wanted = name.strip().lower()
+    names = {gid: label.lower() for gid, label in genre_map.items()}
+    return (next((gid for gid, label in names.items() if label == wanted), None)
+            or next((gid for gid, label in names.items() if label.split(' & ')[0] == wanted),
+                    None))
+
+
 def handle_tmdb_discover(handle: int, params: dict) -> None:
-    """Plugin entry for TMDB discover: titles sharing a seed item's trait, or a sorted catalogue."""
+    """Plugin entry for TMDB discover: titles by seed trait or genre, or a sorted catalogue."""
     try:
         dbtype = params.get("dbtype", ["movie"])[0]
         if dbtype not in ("movie", "tvshow"):
@@ -682,17 +691,24 @@ def handle_tmdb_discover(handle: int, params: dict) -> None:
         page = int(params.get("page", ["1"])[0])
         source = params.get("source", ["online"])[0]
 
+        genre = params.get("genre", [""])[0]
+
         from lib.data.api.tmdb import ApiTmdb
         api = ApiTmdb()
+        genre_map = api.get_genre_list(media_type)
         seed_id = 0
         if by:
             seed_id = _seed_tmdb_id(dbtype, params)
             seed = api.get_complete_data(dbtype, seed_id) if seed_id else None
             raw_items = _seeded_results(by, media_type, seed, sort, page) if seed else []
+        elif genre:
+            genre_id = _genre_id(genre_map, genre)
+            raw_items = api.discover(
+                media_type, {"sort_by": sort, "with_genres": str(genre_id)}, page
+            ) if genre_id else []
         else:
             raw_items = api.discover(media_type, {"sort_by": sort}, page)
 
-        genre_map = api.get_genre_list(media_type)
         normalized_items = [_normalize_tmdb_item(raw, media_type, genre_map)
                             for raw in raw_items if raw.get("id") != seed_id][:limit]
         library_lookup = _get_library_lookup(
