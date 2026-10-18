@@ -20,7 +20,7 @@
 				<label>$ADDON[script.skin.info.service 32102]</label>
 				<visible>!String.IsEmpty(ListItem.DBID) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.DBType,musicvideo) | String.IsEqual(ListItem.DBType,set) | String.IsEqual(ListItem.DBType,artist) | String.IsEqual(ListItem.DBType,album) | String.IsEqual(ListItem.DBType,song)] + [Addon.SettingBool(script.skin.info.service,context_show_review_artwork) | Addon.SettingBool(script.skin.info.service,context_show_download_artwork) | Addon.SettingBool(script.skin.info.service,context_show_update_ratings) | Addon.SettingBool(script.skin.info.service,context_show_edit_metadata) | Addon.SettingBool(script.skin.info.service,context_show_export_nfo)]</visible>
 			</item>
-			<item library="context.py">
+			<item library="context.py" args="pvr">
 				<label>$ADDON[script.skin.info.service 32079]</label>
 				<visible>Skin.HasSetting(SkinInfo.PVR) + [[String.StartsWith(ListItem.FileNameAndPath,pvr://guide/) + !Window.IsActive(radioguide) + !Window.IsActive(radiosearch)] | [String.StartsWith(ListItem.FileNameAndPath,pvr://channels/tv/) + ListItem.HasEpg] | [String.StartsWith(ListItem.FileNameAndPath,pvr://recordings/tv/) + !ListItem.IsFolder] | [String.StartsWith(ListItem.FileNameAndPath,pvr://timers/tv/timers/) + ListItem.HasEpg]]</visible>
 			</item>
