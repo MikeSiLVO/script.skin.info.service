@@ -39,10 +39,24 @@ def _parse_int(value: str, default: int = 0) -> int:
 
 
 def _execute_builtin_list(builtins: str) -> None:
-    """Execute pipe-separated list of builtins."""
+    """Execute pipe-separated builtins, splitting only on pipes outside parentheses and quotes."""
     if not builtins:
         return
-    for builtin in _parse_list(builtins, '|'):
+    parts, current, depth, quoted = [], '', 0, False
+    for ch in builtins:
+        if ch == '"':
+            quoted = not quoted
+        elif not quoted and ch == '(':
+            depth += 1
+        elif not quoted and ch == ')' and depth:
+            depth -= 1
+        elif ch == '|' and not quoted and not depth:
+            parts.append(current)
+            current = ''
+            continue
+        current += ch
+    parts.append(current)
+    for builtin in (part.strip() for part in parts):
         if builtin:
             log('Dialogs', f"Executing builtin: {builtin}", xbmc.LOGDEBUG)
             xbmc.executebuiltin(builtin)

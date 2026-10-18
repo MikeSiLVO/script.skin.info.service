@@ -70,6 +70,8 @@ All actions use `action=name` or `dialog=type` syntax.
 
 Kodi dialogs that run builtins on the user's choice. All dialogs work with no parameters for quick skin testing.
 
+In a pipe-separated list of builtins, a `|` inside a builtin's parentheses or quotes stays part of that builtin, so one builtin can open another dialog with its own list.
+
 ### Test Defaults
 
 All dialogs can be called with minimal parameters for testing:
