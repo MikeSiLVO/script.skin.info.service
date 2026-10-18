@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta11"
+	   version="2.0.1~beta12"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -36,11 +36,24 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta11
-- Seasons can fetch fanart in Manage Artwork, picked from the show's fanart
-- New overlays in the artwork pickers mark the current art and the show's fanart, skins with their own picker XML can use the is_inherited property
-- Ratings with no votes are left empty instead of showing 0.0
-- Estuary: colored media flags on Piers
+2.0.1~beta12
+- Upcoming Episodes widget from Trakt's TV calendar, for library shows or the shows on your Trakt account
+- TMDB Discover widget: more from a studio, network, genre, year, cast, director or collection, plus any genre by name, most voted and top revenue
+- Trakt widgets for watchlist, history, in progress, Next Up, most played and lists
+- TMDB posters list for a movie or TV show
+- Online properties for add-on widget items outside the library
+- Live TV properties for the guide, channels, recordings and timers, with a Fix match context menu item
+- Player properties for the playing episode's season, live TV, and the artist's discography and similar artists
+- Award counts for the Oscars, Golden Globes, Emmys and more
+- Rotten Tomatoes fresh and rotten review counts
+- Image color: the main color of the focused item's image
+- Clearlogo in the slideshow properties
+- Crew picker for movie sets, with photos and jobs
+- Full size view in the artwork pickers
+- New properties GenrePrimary, StudioPrimary, PremieredFormatted, NextEpisodeAiredLong and AirDayShort
+- Dialog builtin lists can open another dialog with its own list
+- Actor info matches crew as well as cast, and opens from titles outside the library
+- Fix a rare Kodi crash when closing a library window
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
