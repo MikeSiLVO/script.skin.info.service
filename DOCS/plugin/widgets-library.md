@@ -131,9 +131,6 @@ For the same thing over your favourited shows instead, see
 
 <!-- Custom limit -->
 <content>plugin://script.skin.info.service/?action=next_up&amp;limit=10</content>
-
-<!-- With auto-refresh -->
-<content>plugin://script.skin.info.service/?action=next_up&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Behavior
@@ -182,9 +179,6 @@ first episode. Fully watched shows are skipped.
 
 <!-- Custom limit -->
 <content>plugin://script.skin.info.service/?action=next_up_favourites&amp;limit=10</content>
-
-<!-- With auto-refresh -->
-<content>plugin://script.skin.info.service/?action=next_up_favourites&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Behavior
@@ -307,9 +301,6 @@ The episode half is [Next Up](#next-up). The movie half is every movie with a re
 
 <!-- Custom limit -->
 <content>plugin://script.skin.info.service/?action=continue_watching&amp;limit=10</content>
-
-<!-- With auto-refresh -->
-<content>plugin://script.skin.info.service/?action=continue_watching&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Behavior
@@ -403,9 +394,6 @@ smart playlist type combines movies with episodes.
 
 <!-- Every episode, ungrouped -->
 <content>plugin://script.skin.info.service/?action=recent_videos&amp;group=false</content>
-
-<!-- With auto-refresh -->
-<content>plugin://script.skin.info.service/?action=recent_videos&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Behavior

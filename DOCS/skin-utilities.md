@@ -1490,11 +1490,15 @@ The service provides automatic refresh properties for widget auto-reload.
 
 - Items added or removed, watched state or resume point changed, scan finished
 
+Kodi already reloads a widget that lists library items when the library changes, `wrap` paths
+included. Add the property only to a widget whose items are not library items, such as
+[Path Stats](plugin/stats.md); on any other widget it causes a second reload.
+
 **Usage:**
 
 ```xml
-<!-- Auto-refresh on library changes -->
-<content>plugin://script.skin.info.service/?action=next_up&amp;refresh=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
+<!-- Path stats reload on library changes -->
+<content>plugin://script.skin.info.service/?action=path_stats&amp;path=videodb://movies/titles/&amp;reload=$INFO[Window(Home).Property(SkinInfo.Library.Refreshed)]</content>
 ```
 
 ### Scheduled Refresh
