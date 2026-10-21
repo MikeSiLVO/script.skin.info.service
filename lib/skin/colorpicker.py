@@ -165,10 +165,12 @@ class _ColorPickerDialog(xbmcgui.WindowXMLDialog):
             palette_list = self.getControl(300)
             palette_list.reset()  # type: ignore[attr-defined]
 
+            items = []
             for color_info in self.palette_colors:
                 item = xbmcgui.ListItem(color_info['name'], offscreen=True)
                 item.setProperty('color', color_info['value'])
-                palette_list.addItem(item)  # type: ignore[attr-defined]
+                items.append(item)
+            palette_list.addItems(items)  # type: ignore[attr-defined]
         except Exception as e:
             log("General", f'Color Picker: Failed to populate palette: {e}', xbmc.LOGERROR)
 
