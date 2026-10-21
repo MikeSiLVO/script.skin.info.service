@@ -245,7 +245,8 @@ def build_download_jobs(
                     use_basename=not use_basename
                 )
 
-                if alternate_path and listing.find_with_extension(alternate_path, ART_EXTENSIONS):
+                if (alternate_path and alternate_path != local_path
+                        and listing.find_with_extension(alternate_path, ART_EXTENSIONS)):
                     if media_type == 'movie':
                         if use_basename:
                             mismatch_counts['movie_folder_to_basename'] += 1

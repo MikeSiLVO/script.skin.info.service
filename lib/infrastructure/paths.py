@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import threading
+import urllib.parse
 
 import xbmc
 import xbmcgui
@@ -93,13 +94,26 @@ def vfs_join(base: str, *parts: str) -> str:
     return result
 
 
+def get_disc_file(path: str) -> str:
+    """Get the index.bdmv or ISO a `bluray://` path plays from; any other path is returned as-is."""
+    if not path.startswith('bluray://'):
+        return path
+    host = urllib.parse.unquote(path[len('bluray://'):].split('/', 1)[0])
+    if host.startswith('udf://'):
+        return urllib.parse.unquote(host[len('udf://'):].split('/', 1)[0])
+    return vfs_join(host, 'BDMV', 'index.bdmv')
+
+
 def build_actors_folder_path(media_type: str, file_path: str,
                              show_path: Optional[str] = None) -> Optional[str]:
     """Build the `.actors` folder path Kodi's scanner reads; an episode's sits at the show root."""
     if media_type == "movie":
         if not file_path:
             return None
-        parent = vfs_dirname(file_path)
+        parent = vfs_dirname(get_disc_file(file_path))
+        # Kodi reads a bluray:// item's actors beside BDMV, an index.bdmv item's inside it
+        if file_path.startswith('bluray://') and vfs_basename(parent) == 'BDMV':
+            parent = vfs_dirname(parent)
         return vfs_join(parent, ".actors")
     elif media_type in ("tvshow", "episode"):
         base_path = show_path if show_path else file_path
@@ -388,10 +402,12 @@ class PathBuilder:
     def build_path(media_type: str, media_file: str, artwork_type: str,
                    season_number: Optional[int] = None,
                    use_basename: bool = True, mbid: Optional[str] = None) -> Optional[str]:
-        """Build an extensionless artwork path, or None when the item has nothing to build from."""
+        """Build an extensionless artwork path or None; a set or artist may prompt for a folder."""
         if not media_file:
             return None
 
+        if media_type == 'movie':
+            media_file = get_disc_file(media_file)
         base_path, ext = vfs_splitext(media_file)
         dir_path, filename = vfs_split(base_path)
 
@@ -400,7 +416,9 @@ class PathBuilder:
             filename = ''
 
         if media_type == 'movie':
-            if use_basename and filename:
+            # Kodi reads a disc's art from the disc root only
+            on_disc = vfs_basename(dir_path) in ('BDMV', 'VIDEO_TS')
+            if use_basename and filename and not on_disc:
                 return base_path + '-' + artwork_type
             else:
                 if ext:
