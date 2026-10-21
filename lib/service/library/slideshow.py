@@ -34,6 +34,8 @@ class SlideshowDriver:
         from lib.service.slideshow import PlaylistRotator, LibrarySlideshow
         self._library = LibrarySlideshow()
         self._playlists = PlaylistRotator()
+        from lib.infrastructure.tasks import ShutdownAbortFlag
+        self._abort = ShutdownAbortFlag()
 
     def invalidate_playlists(self) -> None:
         """Force playlist-background slots to re-fetch on the next tick (library changed)."""
@@ -96,8 +98,8 @@ class SlideshowDriver:
         try:
             if self._stopping:
                 return
-            self._library.refresh()
-            self._playlists.refresh()
+            self._library.refresh(self._abort)
+            self._playlists.refresh(self._abort)
             self._last_update = time.time()
         except Exception as e:
             log("Service", f"Slideshow: Update error: {str(e)}", xbmc.LOGERROR)
@@ -126,14 +128,15 @@ class SlideshowDriver:
             if self._stopping:
                 return
             from lib.data.slideshow import reconcile_pool
-            reconcile_pool(('movie', 'tvshow', 'artist', 'musicvideo'))
+            reconcile_pool(('movie', 'tvshow', 'artist', 'musicvideo'), self._abort)
         except Exception as e:
             log("Service", f"Slideshow: Reconcile error: {str(e)}", xbmc.LOGERROR)
 
     def cleanup(self) -> None:
-        """Clear `SkinInfo.Slideshow.*`, first waiting briefly for an in-flight update to finish."""
+        """Clear `SkinInfo.Slideshow.*` after stopping in-flight work and briefly waiting for it."""
         try:
             self._stopping = True
+            self._abort.request()
             for name, thread in (('update', self._update_thread),
                                  ('reconcile', self._reconcile_thread)):
                 if thread and thread.is_alive():

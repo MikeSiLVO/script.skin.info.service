@@ -53,7 +53,8 @@ class LibraryMonitor(xbmc.Monitor):
     def _sync_dbids() -> None:
         """Sync the DBID registry off the notification thread."""
         from lib.data.database.rollcall import sync_dbids
-        sync_dbids()
+        from lib.infrastructure.tasks import ShutdownAbortFlag
+        sync_dbids(ShutdownAbortFlag())
 
     @staticmethod
     def _on_video_remove(data: str) -> None:

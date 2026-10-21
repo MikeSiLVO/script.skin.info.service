@@ -90,11 +90,12 @@ class Orchestrator:
                 return
             from lib.data.database.cache import clear_expired_cache
             from lib.data.database.rollcall import needs_id_backfill, sync_dbids
+            from lib.infrastructure.tasks import ShutdownAbortFlag
             clear_expired_cache()
             if self.monitor.abortRequested():
                 return
             if needs_id_backfill():
-                sync_dbids()
+                sync_dbids(ShutdownAbortFlag())
             _refresh_awards()
             while not self.monitor.waitForAbort(_CLEANUP_INTERVAL):
                 clear_expired_cache()

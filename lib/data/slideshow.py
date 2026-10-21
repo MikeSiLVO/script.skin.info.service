@@ -73,7 +73,7 @@ def populate_slideshow_pool() -> None:
 _RECONCILE_LOCK = threading.Lock()
 
 
-def reconcile_pool(scope: tuple) -> None:
+def reconcile_pool(scope: tuple, abort_flag=None) -> None:
     """Diff the pool against the library, apply only changes; a failed fetch skips its scope."""
     with _RECONCILE_LOCK:
         fetchers = {
@@ -87,7 +87,9 @@ def reconcile_pool(scope: tuple) -> None:
         for mtype in scope:
             getter, id_key, title_key, plot_key = fetchers[mtype]
             items = getter()
-            if items is None:  # fetch failed - keep this type's rows, don't diff/delete them
+            if abort_flag and abort_flag.is_requested():
+                return
+            if items is None:
                 continue
             fetched.add(mtype)
             for rec in _build_pool_records(mtype, items, id_key, title_key, 'fanart', plot_key):

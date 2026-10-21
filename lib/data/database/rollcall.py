@@ -64,14 +64,16 @@ _UPSERT_LIBRARY_ITEM: Final = (
 )
 
 
-def _fetch_paginated(method: str, result_key: str,
-                     properties: Optional[list] = None) -> Optional[list]:
-    """Fetch every item of a paged library call; None if any page fails, never a partial list."""
+def _fetch_paginated(method: str, result_key: str, properties: Optional[list] = None,
+                     abort_flag=None) -> Optional[list]:
+    """Fetch every item of a paged library call; None on a failed page or abort, never partial."""
     from lib.kodi.client import request
 
     items: list = []
     start = 0
     while True:
+        if abort_flag and abort_flag.is_requested():
+            return None
         params: dict = {"limits": {"start": start, "end": start + _PAGE_SIZE}}
         if properties:
             params["properties"] = properties
@@ -104,12 +106,14 @@ _LIBRARY_SOURCES = [
 ]
 
 
-def _fetch_library_dbids() -> Dict[str, Dict[int, _Item]]:
-    """Fetch every library DBID as `media_type -> {dbid: _Item}`; a type that fails is left out."""
+def _fetch_library_dbids(abort_flag=None) -> Dict[str, Dict[int, _Item]]:
+    """Fetch every library DBID per media type; a type that fails is left out, {} on abort."""
     snapshot: Dict[str, Dict[int, _Item]] = {}
 
     for media_type, method, result_key, id_field, properties in _LIBRARY_SOURCES:
-        items = _fetch_paginated(method, result_key, properties)
+        items = _fetch_paginated(method, result_key, properties, abort_flag)
+        if abort_flag and abort_flag.is_requested():
+            return {}
         if items is None:
             log("Database", f"DBID sync: {media_type} fetch failed, leaving its rows alone",
                 xbmc.LOGWARNING)
@@ -229,14 +233,16 @@ def get_airing_shows() -> List[Dict]:
         ]
 
 
-def sync_dbids() -> Dict[str, Dict[str, int]]:
+def sync_dbids(abort_flag=None) -> Dict[str, Dict[str, int]]:
     """Sync the DBID registry with the Kodi library; change counts per media type, {} if none."""
-    snapshot = _fetch_library_dbids()
+    snapshot = _fetch_library_dbids(abort_flag)
     now = int(time.time())
     results: Dict[str, Dict[str, int]] = {}
 
     with get_db(DB_PATH) as cursor:
         for media_type, library_items in snapshot.items():
+            if abort_flag and abort_flag.is_requested():
+                break
             cursor.execute(
                 "SELECT dbid, content_key, tmdb_id FROM library_item WHERE media_type = ?",
                 (media_type,),
@@ -299,6 +305,8 @@ def sync_dbids() -> Dict[str, Dict[str, int]]:
             if any(v > 0 for v in stats.values()):
                 results[media_type] = stats
 
+    if abort_flag and abort_flag.is_requested():
+        return results
     if results:
         parts = []
         for mt, s in sorted(results.items()):

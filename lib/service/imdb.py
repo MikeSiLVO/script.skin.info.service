@@ -98,7 +98,8 @@ class ImdbUpdateService(threading.Thread):
             from lib.data.database import workflow as db
 
             dataset = get_imdb_dataset()
-            if dataset.refresh_if_stale() == RefreshResult.Failed:
+            abort_flag = task_manager.ServiceAbortFlag(self.abort)
+            if dataset.refresh_if_stale(abort_flag) == RefreshResult.Failed:
                 idx = min(self._consecutive_failures, len(_BACKOFF_SECONDS) - 1)
                 backoff = _BACKOFF_SECONDS[idx]
                 self._consecutive_failures += 1

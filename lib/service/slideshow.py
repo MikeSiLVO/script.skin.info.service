@@ -184,12 +184,12 @@ class PlaylistRotator:
         """Re-fetch every slot's pool on the next refresh."""
         self._invalidate = True
 
-    def refresh(self) -> None:
+    def refresh(self, abort_flag=None) -> None:
         """Rebuild on pool change, publish each category, refill lookahead. On the update thread."""
         if self._reconcile():
-            self._refill()  # pre-fill (re)built slots so the first frame shows this tick
+            self._refill(abort_flag)  # pre-fill (re)built slots so the first frame shows this tick
         self._display()
-        self._refill()
+        self._refill(abort_flag)
 
     def clear(self) -> None:
         """Clear published props and drop the cursors."""
@@ -252,11 +252,13 @@ class PlaylistRotator:
             else:
                 self._publish_video(name, entry)
 
-    def _refill(self) -> None:
+    def _refill(self, abort_flag=None) -> None:
         """Force-cache each cursor's next fanart and clearlogo, then fill the lookaheads."""
         for slot in self._slots.values():
             cursor = slot['cursor']
             for item in cursor.wanted():
+                if abort_flag and abort_flag.is_requested():
+                    return
                 cursor.deliver([self._resolve(item)])
 
     @staticmethod
@@ -334,7 +336,7 @@ class LibrarySlideshow:
         self._categories: Dict[str, Dict[str, _RotationCursor]] = {}
         self._weights: Dict[str, Dict[str, float]] = {}
 
-    def refresh(self) -> None:
+    def refresh(self, abort_flag=None) -> None:
         """Rebuild on pool change, publish each category, refill lookahead. On the update thread."""
         rebuilt = db_slideshow.pool_generation() != self._generation
         if rebuilt:
@@ -342,9 +344,9 @@ class LibrarySlideshow:
         if not self._categories:
             return
         if rebuilt:
-            self._refill()  # pre-fill new cursors so the first frame shows this tick
+            self._refill(abort_flag)
         self._display()
-        self._refill()
+        self._refill(abort_flag)
 
     def clear(self) -> None:
         """Clear published props and drop the cursors."""
@@ -393,11 +395,13 @@ class LibrarySlideshow:
             if entry is not None:
                 _publish_library(category, entry)
 
-    def _refill(self) -> None:
+    def _refill(self, abort_flag=None) -> None:
         """Force-cache each cursor's next fanart and clearlogo, then fill the lookaheads."""
         for cursors in self._categories.values():
             for cursor in cursors.values():
                 for row in cursor.wanted():
+                    if abort_flag and abort_flag.is_requested():
+                        return
                     if not _cache_image_url(row.get('fanart', '')):
                         cursor.deliver([None])
                         continue
@@ -413,7 +417,8 @@ class SlideshowMonitor(xbmc.Monitor):
         scope = ('artist',) if library == 'music' else ('movie', 'tvshow', 'musicvideo')
         try:
             log("Service", f"Slideshow: {reason}, reconciling {scope}...", xbmc.LOGDEBUG)
-            reconcile_pool(scope)
+            from lib.infrastructure.tasks import ShutdownAbortFlag
+            reconcile_pool(scope, ShutdownAbortFlag())
         except Exception as e:
             log("Service", f"Slideshow: Error reconciling pool: {e}", xbmc.LOGERROR)
 
