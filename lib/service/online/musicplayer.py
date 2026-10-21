@@ -23,7 +23,7 @@ PLAYER_MUSICVIDEO_ONLINE_PREFIX: Final = "SkinInfo.Player.Online.MusicVideo."
 @dataclass(frozen=True)
 class _Mode:
     """Everything that differs between the audio and musicvideo tracks."""
-    condition: str
+    video_content: str
     player: str
     prefix: str
     fetch_mbids: bool
@@ -41,14 +41,14 @@ class _State:
 
 _MODES = (
     _Mode(
-        condition="Player.HasAudio",
+        video_content="",
         player="MusicPlayer",
         prefix=PLAYER_MUSIC_ONLINE_PREFIX,
         fetch_mbids=True,
         log_label="Music player",
     ),
     _Mode(
-        condition="Player.HasVideo + VideoPlayer.Content(musicvideos)",
+        video_content="musicvideos",
         player="VideoPlayer",
         prefix=PLAYER_MUSICVIDEO_ONLINE_PREFIX,
         fetch_mbids=False,
@@ -77,6 +77,9 @@ class MusicPlayerHandler:
 
     def __init__(self, service: 'OnlineServiceMain'):
         self._service = service
+        self._player = xbmc.Player()
+        self._content_file: Optional[str] = None
+        self._content_match = False
         self._players: Tuple[Tuple[_Mode, _State], ...] = tuple(
             (mode, _State()) for mode in _MODES
         )
@@ -118,9 +121,22 @@ class MusicPlayerHandler:
             urls[next_index],
         )
 
+    def _mode_active(self, mode: _Mode) -> bool:
+        """True while this mode's player plays; a video's content is read once per file."""
+        if not mode.video_content:
+            return self._player.isPlayingAudio()
+        if not self._player.isPlayingVideo():
+            return False
+        playing = xbmc.getInfoLabel("Player.Filenameandpath")
+        if playing != self._content_file:
+            self._content_file = playing
+            self._content_match = xbmc.getCondVisibility(
+                f"VideoPlayer.Content({mode.video_content})")
+        return self._content_match
+
     def _process(self, mode: _Mode, state: _State) -> None:
-        """Start a fetch thread when this player's artist changes."""
-        if not xbmc.getCondVisibility(mode.condition):
+        """Start a fetch thread when this player's artist, album or track changes."""
+        if not self._mode_active(mode):
             self._reset(mode, state)
             return
 

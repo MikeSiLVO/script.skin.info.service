@@ -9,7 +9,7 @@ import xbmc
 from lib.kodi.client import log
 from lib.kodi.utilities import LabelSnapshot
 from lib.service.library.refresh import RefreshTracker
-from lib.service.library.blur import BlurHandler, ImageColorHandler
+from lib.service.library.blur import SKIN_BOOL_LABELS, BlurHandler, ImageColorHandler
 from lib.service.library.player import PlayerVideoTracker, PlayerMusicTracker
 from lib.service.library.musicvideo import MusicVideoArt
 from lib.service.library.slideshow import SlideshowDriver
@@ -167,10 +167,10 @@ class ServiceMain(threading.Thread):
 
     def _loop(self) -> None:
         """One service tick: player blur, video/audio player tracking, focus, image color."""
-        self.blur.handle_player()
+        labels = LabelSnapshot((*FOCUS_LABELS, *SKIN_BOOL_LABELS, *self.blur.focus_labels(),
+                                *self.color.focus_labels()))
+        self.blur.handle_player(labels)
         self.player.handle()
         self.music_player.handle()
-        labels = LabelSnapshot((*FOCUS_LABELS, *self.blur.focus_labels(),
-                                *self.color.focus_labels()))
         self.focus.process(labels)
         self.color.handle_focus(labels)

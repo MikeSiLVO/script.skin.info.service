@@ -9,13 +9,17 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    LabelSnapshot, clear_prop, get_prop, parse_pipe_list, set_prop, skin_bool,
+    LabelSnapshot, clear_prop, get_prop, parse_pipe_list, set_prop, skin_bool_label,
 )
 from lib.skin.labels import resolve_variables, variable_labels
 
 _COLOR_PROP: Final = "SkinInfo.ImageColor.Main"
 _COLOR_CACHE_SIZE: Final = 1000
 _COLOR_SOURCE: Final = "ListItem.Art(poster)"
+_BLUR: Final = "SkinInfo.Blur"
+_PLAYER_BLUR: Final = "SkinInfo.Player.Blur"
+_IMAGE_COLOR: Final = "SkinInfo.ImageColor"
+SKIN_BOOL_LABELS: Final = tuple(skin_bool_label(s) for s in (_BLUR, _PLAYER_BLUR, _IMAGE_COLOR))
 
 
 class BlurHandler:
@@ -38,8 +42,8 @@ class BlurHandler:
         return parse_pipe_list(get_prop("SkinInfo.BlurSource"))
 
     def handle_focus(self, labels: LabelSnapshot) -> None:
-        """Handle a focus tick: blur the focused item's background."""
-        if not skin_bool("SkinInfo.Blur"):
+        """Handle a focus tick: blur the focused item's background, clear it when off."""
+        if not labels.skin_bool(_BLUR):
             if self._focus_last_source is not None:
                 self._clear_props("SkinInfo.")
                 self._focus_last_source = None
@@ -49,16 +53,15 @@ class BlurHandler:
         prop_base = f"SkinInfo.{prefix}." if prefix else "SkinInfo."
 
         self._process(
-            setting="SkinInfo.Blur",
             source_property="SkinInfo.BlurSource",
             slot="focus",
             prop_base=prop_base,
             labels=labels,
         )
 
-    def handle_player(self) -> None:
-        """Run a blur pass for the playing audio's background, cleared once audio stops."""
-        if not self._player.isPlayingAudio():
+    def handle_player(self, labels: LabelSnapshot) -> None:
+        """Handle a player tick: blur playing audio's background, clear it when stopped or off."""
+        if not self._player.isPlayingAudio() or not labels.skin_bool(_PLAYER_BLUR):
             if self._player_last_source is not None:
                 self._clear_props("SkinInfo.Player.")
                 self._player_last_source = None
@@ -67,22 +70,15 @@ class BlurHandler:
         current_file = xbmc.getInfoLabel("Player.Filenameandpath")
 
         self._process(
-            setting="SkinInfo.Player.Blur",
             source_property="SkinInfo.Player.BlurSource",
             slot="player",
             prop_base="SkinInfo.Player.",
             cache_key_suffix=f"|{current_file}",
         )
 
-    def _process(self, setting: str, source_property: str, slot: str, prop_base: str,
+    def _process(self, source_property: str, slot: str, prop_base: str,
                  cache_key_suffix: str = "", labels: Optional[LabelSnapshot] = None) -> None:
-        """Process one blur slot: start a blur of its source; clear it when off or without one."""
-        if not skin_bool(setting):
-            if self._get_last(slot) is not None:
-                self._clear_props(prop_base)
-                self._set_last(slot, None)
-            return
-
+        """Process one blur slot: start a blur of its source; clear it when it has none."""
         blur_source_var = get_prop(source_property + "Var")
         if blur_source_var:
             names = parse_pipe_list(blur_source_var)
@@ -202,7 +198,7 @@ class ImageColorHandler:
 
     def handle_focus(self, labels: LabelSnapshot) -> None:
         """Handle a focus tick: publish the image's color, computing a new image's off-thread."""
-        if not skin_bool("SkinInfo.ImageColor"):
+        if not labels.skin_bool(_IMAGE_COLOR):
             self._clear()
             return
 

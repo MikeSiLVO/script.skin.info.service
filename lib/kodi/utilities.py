@@ -68,6 +68,10 @@ class LabelSnapshot:
             self.read((label,))
         return self._values[label]
 
+    def skin_bool(self, setting: str) -> bool:
+        """True when a skin bool is set, read through its `skin_bool_label` in the batch."""
+        return self.get(skin_bool_label(setting)) != ""
+
 
 def modal_dialog_active() -> bool:
     """True while a modal dialog is on top, when ListItem.* answers from the dialog's own list."""
@@ -414,9 +418,14 @@ def kodi_build_version() -> str:
     return _build_version
 
 
+def skin_bool_label(setting: str) -> str:
+    """Infolabel that reads a set skin bool as a localized `True`, an unset one as empty."""
+    return f"Skin.HasSetting({setting})"
+
+
 def skin_bool(setting: str) -> bool:
-    """True when a skin bool is set."""
-    return xbmc.getCondVisibility(f"Skin.HasSetting({setting})")
+    """True when a skin bool is set, read alone under the GUI lock."""
+    return xbmc.getCondVisibility(skin_bool_label(setting))
 
 
 def is_kodi_piers_or_later() -> bool:

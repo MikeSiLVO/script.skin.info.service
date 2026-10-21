@@ -9,7 +9,7 @@ import xbmc
 
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    LabelSnapshot, batch_set_props, clear_group, modal_dialog_active, skin_bool,
+    LabelSnapshot, batch_set_props, clear_group, modal_dialog_active, skin_bool_label,
 )
 from lib.data.database.cache import (
     CacheKey, cache_online_properties, get_cached_online_properties_state,
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 PVR_PREFIX: Final = "SkinInfo.PVR."
 PLAYER_PVR_PREFIX: Final = "SkinInfo.Player.PVR."
 SKIN_BOOL: Final = "SkinInfo.PVR"
-FOCUS_LABELS: Final = ("ListItem.FileNameAndPath", "ListItem.Title")
+FOCUS_LABELS: Final = ("ListItem.FileNameAndPath", "ListItem.Title", skin_bool_label(SKIN_BOOL))
 
 _MAX_MISSES: Final = 5000
 _PLAYING_PATHS: Final = ("pvr://channels/tv/", "pvr://recordings/tv/")
@@ -171,7 +171,7 @@ class PvrFocusHandler(_PvrHandler):
 
     def process(self, labels: LabelSnapshot) -> None:
         """Read the focused programme; publish its cached props or start a lookup."""
-        if not skin_bool(SKIN_BOOL):
+        if not labels.skin_bool(SKIN_BOOL):
             if self._last_read is not None:
                 self._reset()
             return
@@ -199,9 +199,9 @@ class PvrPlayerHandler(_PvrHandler):
     def __init__(self, service: 'OnlineServiceMain'):
         super().__init__(service, PLAYER_PVR_PREFIX)
 
-    def process(self) -> None:
+    def process(self, labels: LabelSnapshot) -> None:
         """Read the playing programme; publish its cached props or start a lookup."""
-        if not skin_bool(SKIN_BOOL):
+        if not labels.skin_bool(SKIN_BOOL):
             if self._last_read is not None:
                 self._reset()
             return

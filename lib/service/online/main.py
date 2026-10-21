@@ -114,4 +114,4 @@ class OnlineServiceMain(threading.Thread):
         self.music.rotate_fanart()
         self.musicvideo.process(labels)
         self.pvr.process(labels)
-        self.pvr_player.process()
+        self.pvr_player.process(labels)

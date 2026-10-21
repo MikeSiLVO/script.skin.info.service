@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import Dict, Optional, TYPE_CHECKING, Final
+from typing import Dict, Optional, Tuple, TYPE_CHECKING, Final
 
 import xbmc
 
@@ -35,6 +35,8 @@ class PlayerHandler:
         self._service = service
         self._last_key: Optional[CacheKey] = None
         self._player = xbmc.Player()
+        self._type_key: Optional[Tuple[str, str]] = None
+        self._type = ""
         self._fetch_thread: Optional[threading.Thread] = None
         self._fetch_for_key: Optional[CacheKey] = None
         self._empty_for_key: Optional[CacheKey] = None
@@ -52,11 +54,17 @@ class PlayerHandler:
             self._clear_if_active()
             return
 
-        if xbmc.getCondVisibility("VideoPlayer.Content(movies)"):
-            dbtype = "movie"
-        elif xbmc.getCondVisibility("VideoPlayer.Content(episodes)"):
-            dbtype = "episode"
-        else:
+        key = (dbid, xbmc.getInfoLabel("Player.Filenameandpath"))
+        if key != self._type_key:
+            self._type_key = key
+            if xbmc.getCondVisibility("VideoPlayer.Content(movies)"):
+                self._type = "movie"
+            elif xbmc.getCondVisibility("VideoPlayer.Content(episodes)"):
+                self._type = "episode"
+            else:
+                self._type = ""
+        dbtype = self._type
+        if not dbtype:
             self._clear_if_active()
             return
 

@@ -24,7 +24,7 @@ class PlayerVideoTracker:
     def __init__(self, service: 'ServiceMain'):
         self._service = service
         self._last_player_id: Optional[str] = None
-        self._last_player_type: Optional[str] = None
+        self._last_player_file: Optional[str] = None
         self._player = xbmc.Player()
 
     def handle(self) -> None:
@@ -33,7 +33,7 @@ class PlayerVideoTracker:
             if self._last_player_id:
                 self._service.focus.clear_media_type("player")
                 self._last_player_id = None
-                self._last_player_type = None
+                self._last_player_file = None
             return
 
         player_dbid = xbmc.getInfoLabel("VideoPlayer.DBID") or ""
@@ -41,7 +41,11 @@ class PlayerVideoTracker:
             if self._last_player_id:
                 self._service.focus.clear_media_type("player")
                 self._last_player_id = None
-                self._last_player_type = None
+                self._last_player_file = None
+            return
+
+        player_file = xbmc.getInfoLabel("Player.Filenameandpath")
+        if player_dbid == self._last_player_id and player_file == self._last_player_file:
             return
 
         if xbmc.getCondVisibility("VideoPlayer.Content(movies)"):
@@ -53,11 +57,8 @@ class PlayerVideoTracker:
         else:
             return
 
-        if player_dbid == self._last_player_id and player_type == self._last_player_type:
-            return
-
         self._last_player_id = player_dbid
-        self._last_player_type = player_type
+        self._last_player_file = player_file
 
         if player_type == "movie":
             self._set_movie(player_dbid)

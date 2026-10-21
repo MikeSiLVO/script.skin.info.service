@@ -5,8 +5,6 @@ import re
 import threading
 from typing import Optional, Tuple, TYPE_CHECKING, Final
 
-import xbmc
-
 from lib.kodi.client import (
     request, get_cache_only, extract_result, get_item_details,
     KODI_MOVIE_PROPERTIES,
@@ -131,10 +129,7 @@ class FocusDispatcher:
         """Handle a versions or extras view as its parent movie; True while one is open."""
         if not is_kodi_piers_or_later():
             return False
-        in_container = xbmc.getCondVisibility(
-            "Container.Content(videoversions) | Container.Content(videoextras)"
-        )
-        if not in_container:
+        if labels.get("Container.Content").lower() not in ("videoversions", "videoextras"):
             if self._last_asset_parent is not None and not modal_dialog_active():
                 set_movie_extras_aggregates(0, 0, 0, 0)
                 self._last_asset_parent = None
