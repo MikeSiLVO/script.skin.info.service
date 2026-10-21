@@ -174,7 +174,7 @@ def _fetch_single_item(dbid: str, media_type: str) -> Optional[dict]:
 
 def _report_single_item_result(success: Optional[bool], item_stats: Optional[dict],
                                title: str, episodes_updated: int) -> None:
-    """Notify the user of single-item update outcome and refresh the container if updated."""
+    """Report a single-item update outcome, as a toast or a dialog listing what changed."""
     if success is False:
         _notify(32405, xbmcgui.NOTIFICATION_ERROR)
         return
@@ -194,7 +194,6 @@ def _report_single_item_result(success: Optional[bool], item_stats: Optional[dic
         if episodes_updated > 0:
             message_lines.append(f"[B]Episodes:[/B] {episodes_updated} updated")
         show_ok(ADDON.getLocalizedString(32316).format(title), "[CR]".join(message_lines))
-        xbmc.executebuiltin("Container.Refresh")
     else:
         _notify(32403)
 
@@ -235,7 +234,6 @@ def _update_movieset_ratings(setid: int, sources: List) -> None:
         message = (f"[B]Movies updated ({len(updated_titles)}/{len(movies)}):[/B][CR]"
                    f"{', '.join(updated_titles)}")
         show_ok(ADDON.getLocalizedString(32316).format(setdetails.get("label", "Set")), message)
-        xbmc.executebuiltin("Container.Refresh")
     else:
         _notify(32403)
 

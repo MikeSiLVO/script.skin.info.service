@@ -660,7 +660,6 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             show_notification(ADDON.getLocalizedString(32004), ADDON.getLocalizedString(32251),
                               xbmcgui.NOTIFICATION_ERROR, 3000)
         elif art_updates:
-            xbmc.executebuiltin("Container.Refresh")
             show_notification(
                 ADDON.getLocalizedString(32004),
                 ADDON.getLocalizedString(32717),

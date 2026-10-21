@@ -374,7 +374,6 @@ def run_fix_library_ids(prompt: bool = True) -> None:
         if total_tmdb_fixed > 0:
             results.append(ADDON.getLocalizedString(32745).format(f"{total_tmdb_fixed:,}"))
         show_ok(ADDON.getLocalizedString(32260), "\n".join(results))
-        xbmc.executebuiltin("Container.Refresh")
     else:
         show_ok(ADDON.getLocalizedString(32260), ADDON.getLocalizedString(32359))
 
