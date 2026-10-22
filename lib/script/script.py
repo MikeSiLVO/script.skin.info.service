@@ -4,7 +4,7 @@ import xbmc
 from typing import Callable, Dict, Optional
 from lib.kodi.client import log
 from lib.kodi.utilities import (
-    resolve_infolabel, normalize_dbtype, set_window_prop, clear_window_prop,
+    resolve_infolabel, normalize_dbtype, set_window_prop, clear_window_prop, read_labels,
 )
 
 
@@ -88,9 +88,13 @@ def _handle_split_string(args: dict) -> None:
 
 
 def _handle_urlencode(args: dict) -> None:
+    """URL-encode a string, or an infolabel read here so commas and quotes survive."""
     from lib.skin.strings import urlencode
-    string = resolve_infolabel(args.get('string', ""))
-    urlencode(string, args.get('prefix', ''), args.get('window', 'home'))
+    stringinfo = args.get('stringinfo', '')
+    string = (read_labels((stringinfo,))[stringinfo] if stringinfo
+              else resolve_infolabel(args.get('string', "")))
+    urlencode(string, args.get('prefix', ''), args.get('window', 'home'),
+              args.get('doneaction', ''), args.get('json', '').lower() == 'true')
 
 
 def _handle_urldecode(args: dict) -> None:

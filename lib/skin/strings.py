@@ -17,8 +17,8 @@ def split_string(string, separator='|', prefix='', window='home'):
         clear_window_prop(f'{prop_base}.{idx}', window)
 
 
-def urlencode(string, prefix='', window='home'):
-    """URL-encode a string into `SkinInfo.Encoded[.prefix]`."""
+def urlencode(string, prefix='', window='home', doneaction='', json_escape=False):
+    """URL-encode a string into `SkinInfo.Encoded[.prefix]` and the builtin's `{value}`."""
     prop_name = f'SkinInfo.Encoded.{prefix}' if prefix else 'SkinInfo.Encoded'
 
     if not string:
@@ -26,8 +26,14 @@ def urlencode(string, prefix='', window='home'):
         return
 
     from urllib.parse import quote
+    if json_escape:
+        import json
+        string = json.dumps(string, ensure_ascii=False)[1:-1]
     encoded = quote(string)
     set_window_prop(prop_name, encoded, window)
+    if doneaction:
+        from lib.skin.dialogs import _execute_builtin_list
+        _execute_builtin_list(doneaction.replace('{value}', encoded))
 
 
 def urldecode(string, prefix='', window='home'):

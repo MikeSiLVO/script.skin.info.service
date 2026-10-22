@@ -1092,8 +1092,8 @@ URL-encode a string.
 
 ```xml
 <onclick>RunScript(script.skin.info.service,action=urlencode,string=hello world)</onclick>
-<onclick>RunScript(script.skin.info.service,action=urlencode,string=$INFO[ListItem.Label])</onclick>
-<onclick>RunScript(script.skin.info.service,action=urlencode,string=$INFO[ListItem.Title],prefix=MovieTitle)</onclick>
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Label)</onclick>
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Title,prefix=MovieTitle)</onclick>
 ```
 
 **Parameters:**
@@ -1101,8 +1101,17 @@ URL-encode a string.
 | Parameter               | Type   | Description                              |
 | ----------------------- | ------ | ---------------------------------------- |
 | `string` (positional 0) | string | String to encode (can use InfoLabels)    |
+| `stringinfo`            | string | InfoLabel to read and encode, in place of `string` |
 | `prefix`                | string | Property suffix for namespace separation |
 | `window`                | string | Target window (default `home`)           |
+| `json`                  | string | `true` JSON-escapes the string first, for a value inside an xsp |
+| `doneaction`            | string | Pipe-separated builtins run once the property is set, `{value}` replaced by the encoded string |
+
+A `string` value ends at its first comma, and `string=$ESCINFO[...]` arrives empty on Kodi 21. `stringinfo` has neither limit.
+
+`stringinfo` is read when the script runs, after the rest of the onclick, so after a `Dialog.Close` or `ActivateWindow` there it reads the new window. `doneaction` runs after the read.
+
+An empty string clears the property and runs no `doneaction`.
 
 **Properties Set:**
 
@@ -1113,14 +1122,17 @@ URL-encode a string.
 
 ```xml
 <!-- Without prefix -->
-<onclick>RunScript(script.skin.info.service,action=urlencode,string=$INFO[ListItem.Title])</onclick>
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Title)</onclick>
 <label>$INFO[Window(Home).Property(SkinInfo.Encoded)]</label> <!-- hello%20world -->
 
 <!-- With prefix for multiple encoded values -->
-<onclick>RunScript(script.skin.info.service,action=urlencode,string=$INFO[ListItem.Title],prefix=Title)</onclick>
-<onclick>RunScript(script.skin.info.service,action=urlencode,string=$INFO[ListItem.Plot],prefix=Plot)</onclick>
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Title,prefix=Title)</onclick>
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Plot,prefix=Plot)</onclick>
 <label>$INFO[Window(Home).Property(SkinInfo.Encoded.Title)]</label>
 <label>$INFO[Window(Home).Property(SkinInfo.Encoded.Plot)]</label>
+
+<!-- Library movies with the focused title; the xsp is written URL-encoded -->
+<onclick>RunScript(script.skin.info.service,action=urlencode,stringinfo=ListItem.Title,json=true,doneaction=ActivateWindow(Videos,videodb://movies/titles/?xsp=%7B%22rules%22%3A%7B%22and%22%3A%5B%7B%22field%22%3A%22title%22%2C%22operator%22%3A%22is%22%2C%22value%22%3A%22{value}%22%7D%5D%7D%2C%22type%22%3A%22movies%22%7D,return))</onclick>
 ```
 
 ---
