@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.1~beta12"
+	   version="2.0.1~beta13"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -36,24 +36,24 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.1~beta12
-- Upcoming Episodes widget from Trakt's TV calendar, for library shows or the shows on your Trakt account
-- TMDB Discover widget: more from a studio, network, genre, year, cast, director or collection, plus any genre by name, most voted and top revenue
+2.0.1~beta13
+- The database is rebuilt, so online data is fetched again on first run
+- New widgets: Continue Watching, Next Up (Favourites), Recent Videos, Favourites, Upcoming Episodes and TMDB Discover
 - Trakt widgets for watchlist, history, in progress, Next Up, most played and lists
-- TMDB posters list for a movie or TV show
-- Online properties for add-on widget items outside the library
+- Online properties for episodes and for add-on widget items outside the library
 - Live TV properties for the guide, channels, recordings and timers, with a Fix match context menu item
-- Player properties for the playing episode's season, live TV, and the artist's discography and similar artists
-- Award counts for the Oscars, Golden Globes, Emmys and more
-- Rotten Tomatoes fresh and rotten review counts
-- Image color: the main color of the focused item's image
-- Clearlogo in the slideshow properties
-- Crew picker for movie sets, with photos and jobs
-- Full size view in the artwork pickers
-- New properties GenrePrimary, StudioPrimary, PremieredFormatted, NextEpisodeAiredLong and AirDayShort
-- Dialog builtin lists can open another dialog with its own list
-- Actor info matches crew as well as cast, and opens from titles outside the library
+- Player properties for the playing season, live TV, and the artist's discography and similar artists
+- New properties for awards, Rotten Tomatoes counts, star ratings, HDR, audio and subtitle language, watch time and image color
+- Ratings sources can each be turned off, and the IMDb Top 250 can update itself daily
+- Artwork review covers episodes and music videos, adds Fanart.tv 4K backgrounds and season keyart, with a full size view
+- Estuary versions of the actor, video info, artwork and image dialogs
+- Actor info covers crew as well as cast, and TMDB search can open the info dialog
+- Slideshow can follow a playlist or library node, and includes music videos
+- Metadata editor handles movie sets and song moods
+- Less input lag while the services run, and Kodi 22 closes faster after a library scan
 - Fix a rare Kodi crash when closing a library window
+- Fix home properties and blur being cleared by modal dialogs
+- Fix ratings and awards showing on the wrong item when a movie and a show share a TMDB id
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
