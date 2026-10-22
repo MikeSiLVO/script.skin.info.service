@@ -1552,9 +1552,16 @@ Append `:YYYY` to the query to restrict by year (movies/TV only).
 </control>
 ```
 
+With `open=info` the pick also opens its info dialog: [Video Info](dialogs/video-info.md) for a movie or TV show, [Actor Info](dialogs/actor-info.md) for a person.
+
+```xml
+<onclick>RunScript(script.skin.info.service,action=tmdb_search,dbtype=movie,open=info)</onclick>
+```
+
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `dbtype` | No | `movie` | `movie`, `tv`, or `person` |
+| `open` | No | - | `info` opens the picked item's info dialog |
 | `property` | No | `SkinInfo.Search.Details` | Window property name to set |
 | `window` | No | `home` | Window to set the property on |
 | `doneaction` | No | - | Pipe-separated builtin actions to fire after the user picks (e.g. `ActivateWindow(Videos,...)`) |

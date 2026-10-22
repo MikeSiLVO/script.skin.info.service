@@ -299,7 +299,7 @@ def _handle_person_search(args: dict) -> None:
 
 
 def _handle_tmdb_search(args: dict) -> None:
-    """Search TMDB from the keyboard and publish the pick's details path; `:YYYY` sets a year."""
+    """Search TMDB by keyboard, publish the pick, open its info on request; `:YYYY` sets a year."""
     import xbmcgui
     import re
     from lib.data.api.tmdb import ApiTmdb
@@ -391,6 +391,12 @@ def _handle_tmdb_search(args: dict) -> None:
     set_window_prop(property_name, details_url, window)
 
     log("General", f"tmdb_search: Set property {property_name}={details_url}", xbmc.LOGDEBUG)
+
+    if args.get('open') == 'info':
+        if media_type == 'person':
+            _handle_dialog_actor_info({'person_id': tmdb_id})
+        else:
+            _handle_dialog_video_info({'dbtype': media_type, 'tmdb_id': tmdb_id})
 
     if doneaction:
         for builtin in doneaction.split('|'):
