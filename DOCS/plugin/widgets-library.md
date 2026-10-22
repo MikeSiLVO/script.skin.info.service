@@ -761,7 +761,7 @@ Library artists similar to a given artist, matched via Last.fm data.
 ### Usage
 
 ```xml
-<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;artist=$INFO[ListItem.Artist]</content>
+<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=$INFO[ListItem.DBType]</content>
 ```
 
 ### Parameters
@@ -773,16 +773,16 @@ Library artists similar to a given artist, matched via Last.fm data.
 | `dbtype` | No* | - | Source type (musicvideo/artist/album/song) |
 | `limit` | No | 25 | Maximum items |
 
-*Either `artist` or `dbid`+`dbtype` required.
+*Either `artist` or `dbid`+`dbtype` required. `artist` wins when both are given, and a name ends at its first `&`.
 
 ### Examples
 
 ```xml
-<!-- From artist name -->
-<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;artist=$INFO[ListItem.Artist]&amp;limit=10</content>
-
 <!-- From musicvideo -->
 <content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;dbid=$INFO[ListItem.DBID]&amp;dbtype=musicvideo</content>
+
+<!-- From artist name -->
+<content sortby="none">plugin://script.skin.info.service/?action=similar_artists&amp;artist=$INFO[ListItem.Artist]&amp;limit=10</content>
 ```
 
 ### Behavior

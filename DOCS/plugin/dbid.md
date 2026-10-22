@@ -186,7 +186,13 @@ The ListItem carries the same properties as [Music Videos](../service/library.md
 
 ## Music Video Nodes
 
-For music video artist and album navigation nodes (which have `DBType=actor` and `DBType=album` instead of `musicvideo`), use the name-based path:
+For music video artist and album navigation nodes (which have `DBType=actor` and `DBType=album` instead of `musicvideo`):
+
+- A node Kodi finds in the music library carries that artist's or album's art itself, in `ListItem.Art(fanart)`, `ListItem.Art(thumb)`, `ListItem.Art(clearlogo)` and the rest.
+- For the focused node the service also sets `SkinInfo.MusicVideo.Artist.*`, see [Music Videos](../service/library.md#music-videos).
+- An album node's `ListItem.DBID` is one of the album's music videos, so the [Music Videos](#music-videos) path returns its artist and album art.
+
+The name-based path cuts a name at its first `&`:
 
 ```xml
 <value condition="!String.IsEmpty(ListItem.Property(musicvideomediatype))">
