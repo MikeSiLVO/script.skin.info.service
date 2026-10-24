@@ -316,6 +316,10 @@ msgctxt "#32070"
 msgid "years old"
 msgstr ""
 
+msgctxt "#32071"
+msgid "Upcoming Episodes"
+msgstr ""
+
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
 msgstr "正在处理艺术图队列"
@@ -340,6 +344,16 @@ msgctxt "#32077"
 msgid "TMDB"
 msgstr "TMDB"
 
+#. "Info" is the remote and keyboard button
+msgctxt "#32078"
+msgid "Info: view full size"
+msgstr ""
+
+#. "match" is the movie or TV show found for a programme, not a sports match
+msgctxt "#32079"
+msgid "Fix match"
+msgstr ""
+
 msgctxt "#32080"
 msgid "API Key"
 msgstr "API 密钥"
@@ -355,6 +369,10 @@ msgstr "纹理缓存管理器"
 msgctxt "#32083"
 msgid "Pre-Cache Library Artwork"
 msgstr "预缓存媒体库艺术图"
+
+msgctxt "#32084"
+msgid "Trakt Watchlist"
+msgstr ""
 
 msgctxt "#32085"
 msgid "Statistics & Info"
@@ -562,6 +580,18 @@ msgstr "下载完成"
 msgctxt "#32122"
 msgid "Text-free / Untagged"
 msgstr "无文字/未标记"
+
+msgctxt "#32123"
+msgid "Trakt History"
+msgstr ""
+
+msgctxt "#32124"
+msgid "Trakt In Progress"
+msgstr ""
+
+msgctxt "#32125"
+msgid "Trakt Most Played"
+msgstr ""
 
 msgctxt "#32128"
 msgid "Skip"
