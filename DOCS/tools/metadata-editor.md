@@ -105,6 +105,7 @@ Settings → Advanced → Context Menu Items
 | Premiered | Date | First air date (YYYY-MM-DD) |
 | Runtime | Integer | Episode duration in minutes |
 | MPAA Rating | Text | Content rating |
+| Status | Select | Returning Series, In Production, Planned, Cancelled or Ended (Piers+) |
 | Genre | List | Genre tags |
 | Studio | List | Networks/studios |
 | Tags | List | Custom tags |
@@ -205,7 +206,7 @@ The first two NFO settings are bypassed: the write happens even with the master 
 | Not a full export | Persists editor changes only. For a complete backup, use Kodi's own library export. |
 | Seasons are not written | Season edits are saved to the library but not to an NFO. Only movies, TV shows, episodes and music videos get NFO files. |
 | Artwork is not written | Posters, fanart and other item artwork are left to Kodi, which rebuilds them on rescrape. Existing artwork entries in the file are preserved. |
-| Some fields are skipped | A few fields Kodi does not expose to add-ons are left out (for example, TV show status) and kept as-is if already present. |
+| Some fields are skipped | A few fields Kodi does not expose to add-ons are left out (for example, TV show status before Piers) and kept as-is if already present. |
 
 ---
 

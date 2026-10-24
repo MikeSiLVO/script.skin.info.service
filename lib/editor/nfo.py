@@ -345,8 +345,10 @@ def write_nfo(media_type: str, dbid: int, forced: bool = False) -> bool:
 
     properties = _NFO_PROPERTIES[media_type]
     if media_type == 'tvshow':
-        from lib.kodi.utilities import tvshow_version_fields
+        from lib.kodi.utilities import tvshow_status_gettable, tvshow_version_fields
         properties = properties + tvshow_version_fields()
+        if tvshow_status_gettable():
+            properties = properties + ["status"]
     details = get_item_details(media_type, dbid, properties)
     if not isinstance(details, dict):
         log("Editor", f"NFO: no details for {media_type} {dbid}", xbmc.LOGWARNING)
