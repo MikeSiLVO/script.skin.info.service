@@ -1500,7 +1500,7 @@ The service provides automatic refresh properties for widget auto-reload.
 
 **Triggers:**
 
-- Items added or removed, watched state or resume point changed, scan finished
+- Items added or removed, watched state or resume point changed, scan or clean finished (once per scan or clean)
 
 Kodi already reloads a widget that lists library items when the library changes, `wrap` paths
 included. Add the property only to a widget whose items are not library items, such as

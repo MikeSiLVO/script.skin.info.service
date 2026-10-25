@@ -17,6 +17,9 @@ from lib.service.library.focus import FOCUS_LABELS, FocusDispatcher
 
 SERVICE_POLL_INTERVAL: Final = 0.10
 MAX_CONSECUTIVE_ERRORS: Final = 10
+LIBRARY_REFRESH_EVENTS: Final = ('VideoLibrary.OnUpdate', 'VideoLibrary.OnRemove',
+                                 'VideoLibrary.OnRefresh', 'VideoLibrary.OnScanFinished',
+                                 'VideoLibrary.OnCleanFinished')
 
 
 class LibraryMonitor(xbmc.Monitor):
@@ -28,7 +31,7 @@ class LibraryMonitor(xbmc.Monitor):
 
     def onNotification(self, sender: str, method: str, data: str) -> None:
         """Route Kodi library/audio notifications to the matching handler."""
-        if method in ('VideoLibrary.OnUpdate', 'VideoLibrary.OnScanFinished'):
+        if method in LIBRARY_REFRESH_EVENTS and not self._in_transaction(data):
             self.service_main.refresh.increment()
         if method == 'VideoLibrary.OnUpdate':
             self.service_main.focus.invalidate_asset_view()
@@ -48,6 +51,15 @@ class LibraryMonitor(xbmc.Monitor):
         if method in ('VideoLibrary.OnScanFinished', 'VideoLibrary.OnCleanFinished'):
             from lib.data.database.runtime import clear_all_runtime_cache
             clear_all_runtime_cache()
+
+    @staticmethod
+    def _in_transaction(data: str) -> bool:
+        """True when Kodi sent the notification mid-scan or mid-clean."""
+        try:
+            import json
+            return bool(json.loads(data).get('transaction'))
+        except Exception:
+            return False
 
     @staticmethod
     def _sync_dbids() -> None:
