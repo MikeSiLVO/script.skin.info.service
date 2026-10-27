@@ -85,6 +85,14 @@ def parse_pipe_list(value: str, separator: str = '|') -> list:
     return [item.strip() for item in value.split(separator) if item.strip()]
 
 
+def int_param(params: dict, name: str, default: int) -> int:
+    """Read an integer plugin argument, falling back when it is missing or unparseable."""
+    try:
+        return int(params.get(name, [str(default)])[0])
+    except (ValueError, TypeError):
+        return default
+
+
 _CACHE_LOCK = threading.RLock()
 
 _PREV_PROPS: OrderedDict[str, str] = OrderedDict()

@@ -12,6 +12,7 @@ import xbmc
 import xbmcgui
 import xbmcplugin
 from lib.kodi.client import request, batch_request, get_item_details, extract_result, ADDON
+from lib.kodi.utilities import int_param
 
 _FAVOURITE_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
 
@@ -229,7 +230,7 @@ def handle_trakt_next_up(handle: int, params: dict) -> None:
         xbmcplugin.endOfDirectory(handle, succeeded=True)
         return
 
-    for url, listitem, is_folder in _trakt_next_up_rows(_int_param(params, 'limit', 20)):
+    for url, listitem, is_folder in _trakt_next_up_rows(int_param(params, 'limit', 20)):
         xbmcplugin.addDirectoryItem(handle, url, listitem, is_folder)
 
     xbmcplugin.setContent(handle, 'episodes')
@@ -472,12 +473,12 @@ def handle_next_aired(handle: int, params: dict) -> None:
     """Plugin entry: library or Trakt account shows' episodes airing on the requested days."""
     xbmcplugin.setPluginCategory(handle, ADDON.getLocalizedString(32071))
     today = date.today()
-    weekday = _int_param(params, 'weekday', -1)
+    weekday = int_param(params, 'weekday', -1)
     if 0 <= weekday <= 6:
         first = (weekday - today.weekday()) % 7
     else:
-        first = min(max(_int_param(params, 'day', 0), 0), _CALENDAR_DAYS - 1)
-    days = min(max(_int_param(params, 'days', 1), 1), _CALENDAR_DAYS - first)
+        first = min(max(int_param(params, 'day', 0), 0), _CALENDAR_DAYS - 1)
+    days = min(max(int_param(params, 'days', 1), 1), _CALENDAR_DAYS - first)
     start = today + timedelta(days=first)
     end = start + timedelta(days=days)
 
@@ -868,7 +869,7 @@ def handle_by_actor(handle: int, params: dict) -> None:
     dbid = int(dbid_param)
     limit = int(params.get('limit', ['25'])[0])
     cast_limit = int(params.get('cast_limit', ['4'])[0])
-    position = _int_param(params, 'position', 0)
+    position = int_param(params, 'position', 0)
     mix = params.get('mix', ['true'])[0].lower() == 'true'
     lock = params.get('lock', ['false'])[0].lower() == 'true'
 
@@ -1146,14 +1147,6 @@ def handle_by_director(handle: int, params: dict) -> None:
     xbmcplugin.endOfDirectory(handle)
 
 
-def _int_param(params: dict, name: str, default: int) -> int:
-    """Read an integer plugin argument, falling back to the default on anything unparseable."""
-    try:
-        return int(params.get(name, [str(default)])[0])
-    except (ValueError, TypeError):
-        return default
-
-
 def _vote_count(item: dict) -> float:
     """Vote count as a number; Kodi returns it as a grouped string."""
     raw = item.get('votes')
@@ -1300,7 +1293,7 @@ def handle_similar(handle: int, params: dict) -> None:
     dbid_param = params.get('dbid', [''])[0]
     tmdb_id_param = params.get('tmdb_id', [''])[0]
     dbtype = params.get('dbtype', ['movie'])[0]
-    limit = _int_param(params, 'limit', 25)
+    limit = int_param(params, 'limit', 25)
     wanted = params.get('watched', ['both'])[0].lower()
     path = params.get('path', [''])[0]
 

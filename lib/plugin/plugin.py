@@ -164,6 +164,12 @@ def _handle_wrap(handle: int, params: dict) -> None:
     handle_wrap(handle, params)
 
 
+def _handle_infolabel_list(handle: int, params: dict) -> None:
+    """List one item per index of a numbered infolabel."""
+    from lib.plugin.infolabels import handle_infolabel_list
+    handle_infolabel_list(handle, params)
+
+
 def _handle_online(handle: int, params: dict) -> None:
     from lib.plugin.online import handle_online
     handle_online(handle, params)
@@ -376,6 +382,7 @@ _HANDLERS = {
     'get_cast_player': _handle_get_cast_player,
     'path_stats': _handle_path_stats,
     'wrap': _handle_wrap,
+    'infolabel_list': _handle_infolabel_list,
     'discover_menu': _handle_discover_menu_action,
     'discover_movies_menu': _handle_discover_movies_menu_action,
     'discover_tvshows_menu': _handle_discover_tvshows_menu_action,

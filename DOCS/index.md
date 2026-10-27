@@ -50,6 +50,7 @@ Each add-on dialog ships with a default layout. When Estuary is the active skin,
 | [Cast](plugin/cast.md)             | Cast lists for items and player      |
 | [DBID Queries](plugin/dbid.md)     | Fetch full metadata by database or TMDB ID |
 | [Online Data](plugin/online.md)    | Ratings and metadata from APIs       |
+| [Infolabel List](plugin/infolabels.md) | Numbered infolabels as list items, with 0-100 scaling |
 | [Path Statistics](plugin/stats.md) | Counts and totals for library paths  |
 | [Person Info](plugin/person.md)    | Actor/director biography, filmography|
 
