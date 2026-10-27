@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-10-06 20:16+0000\n"
+"PO-Revision-Date: 2026-10-25 00:02+0000\n"
 "Last-Translator: Andrei Stepanov <adem4ik@gmail.com>\n"
 "Language-Team: Russian <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/ru_ru/>\n"
 "Language: ru_ru\n"
@@ -11,7 +11,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 msgctxt "Addon Summary"
 msgid "Provides rich media info and artwork to skins."
@@ -309,16 +309,16 @@ msgstr "Нажмите OK, чтобы прочитать биографию"
 
 msgctxt "#32069"
 msgid "Birthplace"
-msgstr ""
+msgstr "Место рождения"
 
 #. Follows a person's age, as in "53 years old"
 msgctxt "#32070"
 msgid "years old"
-msgstr ""
+msgstr "лет"
 
 msgctxt "#32071"
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "Будущие серии"
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -347,12 +347,12 @@ msgstr "TMDB"
 #. "Info" is the remote and keyboard button
 msgctxt "#32078"
 msgid "Info: view full size"
-msgstr ""
+msgstr "Info: показать в полном размере"
 
 #. "match" is the movie or TV show found for a programme, not a sports match
 msgctxt "#32079"
 msgid "Fix match"
-msgstr ""
+msgstr "Исправить соответствие"
 
 msgctxt "#32080"
 msgid "API Key"
@@ -372,7 +372,7 @@ msgstr "Предварительное кэширование иллюстрац
 
 msgctxt "#32084"
 msgid "Trakt Watchlist"
-msgstr ""
+msgstr "Trakt Watchlist"
 
 msgctxt "#32085"
 msgid "Statistics & Info"
@@ -583,15 +583,15 @@ msgstr "Без текста / без подписей"
 
 msgctxt "#32123"
 msgid "Trakt History"
-msgstr ""
+msgstr "Trakt History"
 
 msgctxt "#32124"
 msgid "Trakt In Progress"
-msgstr ""
+msgstr "Trakt In Progress"
 
 msgctxt "#32125"
 msgid "Trakt Most Played"
-msgstr ""
+msgstr "Trakt Most Played"
 
 msgctxt "#32128"
 msgid "Skip"

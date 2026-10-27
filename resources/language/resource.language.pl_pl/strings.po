@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: script.skin.info.service\n"
 "POT-Creation-Date: 2024-10-23 00:00+0000\n"
-"PO-Revision-Date: 2026-10-09 21:36+0000\n"
+"PO-Revision-Date: 2026-10-27 07:55+0000\n"
 "Last-Translator: 3vtv <90260969+3vtv@users.noreply.github.com>\n"
 "Language-Team: Polish <https://kodi.weblate.cloud/projects/kodi-add-ons-scripts/script-skin-info-service/pl_pl/>\n"
 "Language: pl_pl\n"
@@ -318,7 +318,7 @@ msgstr "lat(a)"
 
 msgctxt "#32071"
 msgid "Upcoming Episodes"
-msgstr ""
+msgstr "Nadchodzące odcinki"
 
 msgctxt "#32072"
 msgid "Processing Artwork Queue"
@@ -347,12 +347,12 @@ msgstr "TMDB"
 #. "Info" is the remote and keyboard button
 msgctxt "#32078"
 msgid "Info: view full size"
-msgstr ""
+msgstr "Info: zobacz w pełnym rozmiarze"
 
 #. "match" is the movie or TV show found for a programme, not a sports match
 msgctxt "#32079"
 msgid "Fix match"
-msgstr ""
+msgstr "Napraw dopasowanie"
 
 msgctxt "#32080"
 msgid "API Key"
@@ -372,7 +372,7 @@ msgstr "Wstępne buforowanie grafik biblioteki"
 
 msgctxt "#32084"
 msgid "Trakt Watchlist"
-msgstr ""
+msgstr "Obserwowane Trakt"
 
 msgctxt "#32085"
 msgid "Statistics & Info"
@@ -583,15 +583,15 @@ msgstr "Bez tekstu / Bez tagów"
 
 msgctxt "#32123"
 msgid "Trakt History"
-msgstr ""
+msgstr "Trakt - historia"
 
 msgctxt "#32124"
 msgid "Trakt In Progress"
-msgstr ""
+msgstr "W trakcie oglądania Trakt"
 
 msgctxt "#32125"
 msgid "Trakt Most Played"
-msgstr ""
+msgstr "Najczęściej odtwarzane Trakt"
 
 msgctxt "#32128"
 msgid "Skip"
