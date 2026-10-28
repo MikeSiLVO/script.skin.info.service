@@ -65,7 +65,6 @@ def is_library_artwork_url(url: str) -> bool:
         return False
 
     special_folders = (
-        '/.actors/', '\\.actors\\',
         '/.extrafanart/', '\\.extrafanart\\',
         '/.extrathumbs/', '\\.extrathumbs\\'
     )
