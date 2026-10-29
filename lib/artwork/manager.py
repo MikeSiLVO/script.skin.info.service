@@ -675,15 +675,7 @@ def run_art_fetcher_single(dbid: Optional[str], dbtype: Optional[str],
             if refreshed_details and isinstance(refreshed_details, dict):
                 current_art = refreshed_details.get("art", {})
 
-        if skip_picker:
-            return
-
-        if action == "cancel":
-            if not queued_multiart:
-                continue
-            return
-
-        elif action == "skip":
+        if skip_picker or action == "skip":
             return
 
 
