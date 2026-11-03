@@ -143,7 +143,7 @@ Highest rated items on TMDB by user votes.
 
 ## TMDB Now Playing
 
-Movies currently in theaters.
+Movies currently in theaters in the country set under Settings > Language > Country, the United States by default.
 
 ### Usage
 
@@ -161,7 +161,7 @@ Movies currently in theaters.
 
 ## TMDB Upcoming
 
-Movies with upcoming release dates.
+Movies coming to theaters soon, in the same country as [TMDB Now Playing](#tmdb-now-playing).
 
 ### Usage
 

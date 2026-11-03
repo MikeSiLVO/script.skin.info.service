@@ -593,9 +593,21 @@ msgctxt "#32125"
 msgid "Trakt Most Played"
 msgstr "Trakt Most Played"
 
+msgctxt "#32126"
+msgid "Select Country"
+msgstr "Select Country"
+
+msgctxt "#32127"
+msgid "Country for the TMDB Now Playing and Upcoming lists"
+msgstr "Country for the TMDB Now Playing and Upcoming lists"
+
 msgctxt "#32128"
 msgid "Skip"
 msgstr "Skip"
+
+msgctxt "#32129"
+msgid "Failed to load the country list"
+msgstr "Failed to load the country list"
 
 msgctxt "#32130"
 msgid "Multi-Art..."
