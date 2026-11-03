@@ -886,7 +886,7 @@
 						<textureradiooffnofocus colordiffuse="D0FFFFFF">icons/infodialogs/extras.png</textureradiooffnofocus>
 						<textureradiooffdisabled colordiffuse="disabled">icons/infodialogs/extras.png</textureradiooffdisabled>
 						<textureradioondisabled colordiffuse="disabled">icons/infodialogs/extras.png</textureradioondisabled>
-						<label>$ADDON[script.skin.info.service 32682]</label>
+						<label>$ADDON[script.skin.info.service 32138]</label>
 						<onclick>SetProperty(Section,recommendations)</onclick>
 						<onclick>SetFocus(1511)</onclick>
 						<enable>Integer.IsGreater(Container(1511).NumItems,0)</enable>

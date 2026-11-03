@@ -641,6 +641,10 @@ msgctxt "#32137"
 msgid "Automatically update IMDb ratings in your library"
 msgstr "Automatically update IMDb ratings in your library"
 
+msgctxt "#32138"
+msgid "Recommended"
+msgstr "Recommended"
+
 msgctxt "#32139"
 msgid "After library scan"
 msgstr "After library scan"
