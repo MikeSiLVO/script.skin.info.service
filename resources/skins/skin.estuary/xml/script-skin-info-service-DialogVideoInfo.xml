@@ -736,12 +736,20 @@
 						<param name="control_id" value="146" />
 						<param name="label" value="[COLOR button_focus]$LOCALIZE[20339]: [/COLOR]$INFO[Window.Property(Director)]" />
 						<param name="altlabel" value="$LOCALIZE[20339]: $INFO[Window.Property(Director)]" />
+						<param name="onclick_condition" value="true" />
+						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,tmdb_id=$INFO[Window.Property(tmdb_id)],dbid=$INFO[Window.Property(DBID)],dbtype=$INFO[Window.Property(MediaType)])" />
+						<param name="altclick_condition" value="true" />
+						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,tmdb_id=$INFO[Window.Property(tmdb_id)],dbid=$INFO[Window.Property(DBID)],dbtype=$INFO[Window.Property(MediaType)])" />
 						<param name="visible" value="!String.IsEmpty(Window.Property(Director))" />
 					</include>
 					<include content="InfoDialogMetadata">
 						<param name="control_id" value="147" />
 						<param name="label" value="[COLOR button_focus]$LOCALIZE[20417]: [/COLOR]$INFO[Window.Property(Writer)]" />
 						<param name="altlabel" value="$LOCALIZE[20417]: $INFO[Window.Property(Writer)]" />
+						<param name="onclick_condition" value="true" />
+						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,tmdb_id=$INFO[Window.Property(tmdb_id)],dbid=$INFO[Window.Property(DBID)],dbtype=$INFO[Window.Property(MediaType)])" />
+						<param name="altclick_condition" value="true" />
+						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,tmdb_id=$INFO[Window.Property(tmdb_id)],dbid=$INFO[Window.Property(DBID)],dbtype=$INFO[Window.Property(MediaType)])" />
 						<param name="visible" value="!String.IsEmpty(Window.Property(Writer))" />
 					</include>
 					<include content="InfoDialogMetadata">
