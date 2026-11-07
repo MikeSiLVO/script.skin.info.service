@@ -535,8 +535,8 @@ msgid "Show Download Artwork"
 msgstr "Visa Hämta bilder"
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
-msgstr "Inga HTTP-adresser till bilder hittades i {0} biblioteksobjekt."
+msgid "Nothing to download. Artwork for these {0} library items is already local."
+msgstr "Inget att hämta. Bilderna för dessa {0} biblioteksobjekt finns redan lokalt."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"

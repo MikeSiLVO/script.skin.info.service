@@ -562,8 +562,8 @@ msgid "Show Download Artwork"
 msgstr "Показывать «Скачать иллюстрации»"
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
-msgstr "Не найдено HTTP-адресов иллюстраций в {0} элементах медиатеки."
+msgid "Nothing to download. Artwork for these {0} library items is already local."
+msgstr "Нечего скачивать. Иллюстрации для этих {0} элементов медиатеки уже сохранены локально."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"

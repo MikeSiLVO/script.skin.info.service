@@ -535,7 +535,7 @@ msgid "Show Download Artwork"
 msgstr ""
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
+msgid "Nothing to download. Artwork for these {0} library items is already local."
 msgstr ""
 
 msgctxt "#32119"

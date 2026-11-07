@@ -562,8 +562,8 @@ msgid "Show Download Artwork"
 msgstr "显示“下载艺术图”"
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
-msgstr "在 {0} 个媒体库项目中未找到 HTTP 艺术图 URL。"
+msgid "Nothing to download. Artwork for these {0} library items is already local."
+msgstr "没有需要下载的内容。这 {0} 个媒体库项目的艺术图已保存在本地。"
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"

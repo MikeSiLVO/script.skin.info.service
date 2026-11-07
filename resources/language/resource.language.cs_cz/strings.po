@@ -562,8 +562,8 @@ msgid "Show Download Artwork"
 msgstr "Zobrazit možnost Stáhnout grafiku"
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
-msgstr "V {0} položkách knihovny nebyly nalezeny žádné adresy URL grafiky HTTP."
+msgid "Nothing to download. Artwork for these {0} library items is already local."
+msgstr "Není co stahovat. Grafika pro těchto {0} položek knihovny je již uložena místně."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"

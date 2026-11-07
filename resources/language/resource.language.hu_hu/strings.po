@@ -562,8 +562,8 @@ msgid "Show Download Artwork"
 msgstr "Képek letöltésének megjelenítése"
 
 msgctxt "#32118"
-msgid "No HTTP artwork URLs found in {0} library items."
-msgstr "Nem találhatók HTTP kép URL-ek {0} médiatári elemben."
+msgid "Nothing to download. Artwork for these {0} library items is already local."
+msgstr "Nincs mit letölteni. A(z) {0} médiatári elem képei már helyben megtalálhatók."
 
 msgctxt "#32119"
 msgid "Overwrite Mode Warning"
