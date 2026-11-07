@@ -26,7 +26,7 @@ Access via **Tools > Download Artwork** for bulk operations.
 
 ### Download Artwork
 
-Download all library artwork to filesystem files.
+Download all library artwork to filesystem files. Actor images are not included; those download from the context menu only.
 
 | Scope | Description |
 |-------|-------------|
@@ -82,10 +82,9 @@ This is the same operation as the **Download Artwork** context menu item, so TV 
 
 ## Notes
 
-- Actor images use the thumbnail URL from Kodi's library (typically from TMDB)
-- TMDB images download at full resolution
-- Actor images are skipped if no thumbnail URL exists in the library
-- Duplicate actor names across items share the same image file
+- Actor images come from TMDB at full resolution, or from the thumbnail in Kodi's library when TMDB has none
+- An actor with no image on TMDB or in the library is skipped
+- Each movie folder and TV show gets its own copy; a name repeated within one TV show downloads once
 
 ---
 
