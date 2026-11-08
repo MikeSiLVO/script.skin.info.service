@@ -1171,7 +1171,7 @@ msgstr "Egyetlen azonosítót sem lehetett javítani"
 
 msgctxt "#32370"
 msgid "Testing {0}"
-msgstr "Tesztelés {0"
+msgstr "Tesztelés {0}"
 
 msgctxt "#32371"
 msgid "Connecting to API..."
