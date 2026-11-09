@@ -138,7 +138,7 @@ For the same thing over your favourited shows instead, see
 1. Takes in-progress TV shows, most recently played first
 2. For each show, finds the last played episode
 3. Returns the next unwatched episode in same season
-4. If season complete, returns first unwatched overall
+4. If season complete, returns first unwatched overall, specials only once the regular seasons are watched
 
 ### Item Properties
 
@@ -156,8 +156,7 @@ For the same thing over your favourited shows instead, see
 
 [Next Up](#next-up) restricted to the TV shows in your Kodi favourites. A show favourited from any library listing counts, and a favourited season counts as its show.
 
-Shows appear in the order you favourited them, and one you have never started appears at its
-first episode. Fully watched shows are skipped.
+Shows appear in the order you favourited them, and one you have never started appears at its first episode outside the specials. Fully watched shows are skipped.
 
 ### Usage
 

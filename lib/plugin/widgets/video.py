@@ -40,6 +40,8 @@ _CALENDAR_SHOW_PROPERTIES = ['title', 'art', 'studio', 'mpaa', 'genre']
 _RECENT_WINDOW = {'field': 'dateadded', 'operator': 'inthelast', 'value': '365 days'}
 _IN_PROGRESS = {'field': 'inprogress', 'operator': 'true', 'value': ''}
 
+_REGULAR_SEASON = {'field': 'season', 'operator': 'greaterthan', 'value': '0'}
+
 _TAG_STOPLIST = frozenset({
     'duringcreditsstinger', 'aftercreditsstinger', 'woman director', 'sequel', 'remake',
     'based on novel or book', 'based on true story', 'based on comic',
@@ -75,11 +77,13 @@ def _set_episode_artwork_from_show(listitem: xbmcgui.ListItem, show_art: dict,
     })
 
 
-def _earliest_unwatched(tvshowid: int, season: Optional[int] = None) -> list:
-    """Lowest-numbered unwatched episode of a show, restricted to one season when given."""
+def _earliest_unwatched(tvshowid: int, season: Optional[int] = None,
+                        regular_only: bool = False) -> list:
+    """Lowest-numbered unwatched episode of a show, optionally in one season or without specials."""
+    unwatched = {'field': 'playcount', 'operator': 'is', 'value': '0'}
     params = {
         'tvshowid': tvshowid,
-        'filter': {'field': 'playcount', 'operator': 'is', 'value': '0'},
+        'filter': {'and': [unwatched, _REGULAR_SEASON]} if regular_only else unwatched,
         'properties': _EPISODE_PROPERTIES,
         'sort': {'method': 'episode', 'order': 'ascending'},
         'limits': {'start': 0, 'end': 1}
@@ -90,7 +94,7 @@ def _earliest_unwatched(tvshowid: int, season: Optional[int] = None) -> list:
 
 
 def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
-    """Episode to watch next: earliest unwatched in the season last played, else in the show."""
+    """Earliest unwatched in the season last played, else in the show with specials last."""
     last_result = request('VideoLibrary.GetEpisodes', {
         'tvshowid': tvshowid,
         'filter': {
@@ -110,7 +114,7 @@ def _next_unwatched_episode(tvshowid: int) -> Optional[dict]:
         if episodes:
             return episodes[0]
 
-    episodes = _earliest_unwatched(tvshowid)
+    episodes = _earliest_unwatched(tvshowid, regular_only=True) or _earliest_unwatched(tvshowid)
     return episodes[0] if episodes else None
 
 
