@@ -154,7 +154,7 @@ For the same thing over your favourited shows instead, see
 
 ## Next Up (Favourites)
 
-[Next Up](#next-up) restricted to the TV shows in your Kodi favourites.
+[Next Up](#next-up) restricted to the TV shows in your Kodi favourites. A show favourited from any library listing counts, and a favourited season counts as its show.
 
 Shows appear in the order you favourited them, and one you have never started appears at its
 first episode. Fully watched shows are skipped.

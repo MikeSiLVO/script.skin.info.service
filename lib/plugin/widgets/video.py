@@ -14,7 +14,8 @@ import xbmcplugin
 from lib.kodi.client import request, batch_request, get_item_details, extract_result, ADDON
 from lib.kodi.utilities import int_param
 
-_FAVOURITE_TVSHOW = re.compile(r'videodb://tvshows/titles/(\d+)')
+_FAVOURITE_TVSHOW = re.compile(
+    r'videodb://(?:inprogresstvshows|tvshows/titles|tvshows/(?!titles/)[a-z]+/\d+)/(\d+)(?=[/?]|$)')
 
 _EPISODE_PROPERTIES = ['title', 'season', 'episode', 'showtitle', 'plot', 'art', 'file',
                        'resume', 'runtime', 'firstaired', 'rating', 'userrating',
