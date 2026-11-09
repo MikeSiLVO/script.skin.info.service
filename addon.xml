@@ -85,5 +85,6 @@
 		<disclaimer lang="pl_PL">Ten dodatek korzysta z serwisu TMDB i interfejsów API TMDB, ale nie jest zatwierdzony, certyfikowany ani w żaden inny sposób wspierany przez TMDB.</disclaimer>
 		<disclaimer lang="ru_RU">Это дополнение использует TMDB и API TMDB, но не одобрено, не сертифицировано и иным образом не поддержано TMDB.</disclaimer>
 		<disclaimer lang="sv_SE">Detta tillägg använder TMDB och TMDB:s API:er, men är inte rekommenderat, certifierat eller på annat sätt godkänt av TMDB.</disclaimer>
+		<disclaimer lang="zh_CN">本插件使用 TMDB 及 TMDB API，但未获得 TMDB 的认可、认证或以其他方式批准。</disclaimer>
 	</extension>
 </addon>
