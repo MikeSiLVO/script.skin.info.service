@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.skin.info.service"
 	   name="Skin Info Service"
-	   version="2.0.2"
+	   version="2.0.3"
 	   provider-name="MikeSiLVO">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1" />
@@ -36,10 +36,11 @@
 			<fanart>fanart.jpg</fanart>
 		</assets>
 		<news>
-2.0.2
-- TMDB country setting for the Now Playing and Upcoming widgets
-- Estuary video and actor info show the full plot and match Estuary's sizes
-- Estuary video info: Director and Writer open person info, Recommended button label
+2.0.3
+- Discovery widget items not in the library open the add-on's own video info dialog
+- Estuary video info: Director and Writer work on episodes
+- Estuary video info: person clicks work for online movies and shows
+- Favourites widget keeps shows favourited from genre or in-progress lists
 		</news>
 		<summary lang="cs_CZ">Poskytuje vzhledům podrobné informace o médiích a grafiku.</summary>
 		<summary lang="en_GB">Provides rich media info and artwork to skins.</summary>
