@@ -736,7 +736,7 @@ When an item matches a library entry:
 - TV show items link to their library folder
 - `IsInLibrary` property is set to `true`
 
-When `source=online` (default), all results are returned. Library matches still carry DBID and file path.
+When `source=online` (default), all results are returned. Library matches still carry DBID and file path. Selecting an item that isn't in the library opens it in the [Video Info](../dialogs/video-info.md) dialog.
 
 ```xml
 <!-- TMDB popular movies, only those in library -->
