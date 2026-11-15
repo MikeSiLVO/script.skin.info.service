@@ -189,20 +189,20 @@
 						<param name="control_id" value="147" />
 						<param name="label" value="$INFO[ListItem.Director,[COLOR button_focus]$LOCALIZE[20339]: [/COLOR]]" />
 						<param name="altlabel" value="$INFO[ListItem.Director,$LOCALIZE[20339]: ]" />
-						<param name="onclick_condition" value="System.AddonIsEnabled(script.skin.info.service)" />
-						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])" />
-						<param name="altclick_condition" value="System.AddonIsEnabled(script.skin.info.service)" />
-						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])" />
+						<param name="onclick_condition" value="System.AddonIsEnabled(script.skin.info.service) + [!String.IsEmpty(ListItem.DBID) | [!String.IsEmpty(ListItem.UniqueID(tmdb)) + !String.IsEqual(ListItem.DBType,episode)]]" />
+						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType],tmdb_id=$INFO[ListItem.UniqueID(tmdb)])" />
+						<param name="altclick_condition" value="System.AddonIsEnabled(script.skin.info.service) + [!String.IsEmpty(ListItem.DBID) | [!String.IsEmpty(ListItem.UniqueID(tmdb)) + !String.IsEqual(ListItem.DBType,episode)]]" />
+						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=director,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType],tmdb_id=$INFO[ListItem.UniqueID(tmdb)])" />
 						<param name="visible" value="!String.IsEmpty(ListItem.Director)" />
 					</include>
 					<include content="InfoDialogMetadata">
 						<param name="control_id" value="148" />
 						<param name="label" value="$INFO[ListItem.Writer,[COLOR button_focus]$LOCALIZE[20417]: [/COLOR]]" />
 						<param name="altlabel" value="$INFO[ListItem.Writer,$LOCALIZE[20417]: ]" />
-						<param name="onclick_condition" value="System.AddonIsEnabled(script.skin.info.service)" />
-						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])" />
-						<param name="altclick_condition" value="System.AddonIsEnabled(script.skin.info.service)" />
-						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])" />
+						<param name="onclick_condition" value="System.AddonIsEnabled(script.skin.info.service) + [!String.IsEmpty(ListItem.DBID) | [!String.IsEmpty(ListItem.UniqueID(tmdb)) + !String.IsEqual(ListItem.DBType,episode)]]" />
+						<param name="onclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType],tmdb_id=$INFO[ListItem.UniqueID(tmdb)])" />
+						<param name="altclick_condition" value="System.AddonIsEnabled(script.skin.info.service) + [!String.IsEmpty(ListItem.DBID) | [!String.IsEmpty(ListItem.UniqueID(tmdb)) + !String.IsEqual(ListItem.DBType,episode)]]" />
+						<param name="altclick" value="RunScript(script.skin.info.service,action=dialog_actor_info,crew=writer,dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType],tmdb_id=$INFO[ListItem.UniqueID(tmdb)])" />
 						<param name="visible" value="!String.IsEmpty(ListItem.Writer)" />
 					</include>
 					<include content="InfoDialogMetadata">
@@ -330,7 +330,7 @@
 					<top>158</top>
 					<width>1235</width>
 					<height>370</height>
-					<onup condition="System.AddonIsEnabled(script.skin.info.service) + Control.HasFocus(50) + !String.IsEqual(ListItem.DBType,set)">RunScript(script.skin.info.service,action=dialog_actor_info,"name=$INFO[Container(50).ListItem.Label]","role=$INFO[Container(50).ListItem.Label2]",dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType])</onup>
+					<onup condition="System.AddonIsEnabled(script.skin.info.service) + Control.HasFocus(50) + !String.IsEqual(ListItem.DBType,set) + [!String.IsEmpty(ListItem.DBID) | [!String.IsEmpty(ListItem.UniqueID(tmdb)) + !String.IsEqual(ListItem.DBType,episode)]]">RunScript(script.skin.info.service,action=dialog_actor_info,"name=$INFO[Container(50).ListItem.Label]","role=$INFO[Container(50).ListItem.Label2]",dbid=$INFO[ListItem.DBID],dbtype=$INFO[ListItem.DBType],tmdb_id=$INFO[ListItem.UniqueID(tmdb)])</onup>
 					<onup condition="System.HasAddon(script.skin.info.service) + !System.AddonIsEnabled(script.skin.info.service) + !String.IsEqual(ListItem.DBType,set)">EnableAddon(script.skin.info.service)</onup>
 					<onup condition="!System.HasAddon(script.skin.info.service) + !String.IsEqual(ListItem.DBType,set)">InstallAddon(script.skin.info.service)</onup>
 					<onleft>50</onleft>
