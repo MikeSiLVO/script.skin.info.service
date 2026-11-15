@@ -456,8 +456,7 @@ favourites list cannot do.
 1. Reads the favourites list, keeping the order you favourited things
 2. Favourites whose item is no longer in the library are skipped
 
-Favourites pointing at an add-on or a plugin path are not resolved and do not appear. TV show rows
-are folders that open the show; everything else is playable.
+Favourites pointing at an add-on or a plugin path are not resolved and do not appear. TV show rows are folders that open the show; everything else is playable. A show favourited from any library listing counts, and a favourited season counts as its show.
 
 ### Item Properties
 
